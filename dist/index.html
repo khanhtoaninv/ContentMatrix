@@ -3878,7 +3878,7 @@ function cellPrompt(S, cellId) {
   const len = r.min || r.max ? `${r.min || 0}–${r.max || '…'} ${r.lengthUnit === 'words' ? 'chữ' : 'ký tự'}` : 'không giới hạn';
   return [
     `Bạn viết một bài cho Cột "${col.name}" của thương hiệu ${b.name || ''}, chỉ dựa trên Topic bên dưới.`,
-    '', '# Chức năng của Cột', col.guideMd || '',
+    '', activeSkill(col) ? skillBlock(col, 'Chỉ dẫn viết của Cột') : `# Chức năng của Cột\n${col.guideMd || ''}`,
     '', '# Độ dài', `${len}${r.requireCta ? '; kết bằng lời kêu gọi hành động' + (r.ctaType === 'question' ? ' dạng câu hỏi' : '') : ''}.`,
     '', '# Khung trình bày', columnLayoutGuide(col),
     '', '# Bài mẫu khung (chỉ minh họa hình dạng, không chép chữ)', layoutSkeleton(col),
@@ -4890,6 +4890,7 @@ const criteriaText = cr => (cr || []).map(c => `- ${c.id}: ${c.name} (trọng s�
 function cellJob(S, cell, iv, col, context, mock, n) {
   const sk = skillBlock(col, `Chỉ dẫn viết cho Cột "${col.name}"`);
   const user = [`# Việc: viết bài cho Cột "${col.name}"`, sk || col.guideMd || '', col.structure && col.structure.length ? `Bố cục: ${col.structure.join(' → ')}. Mỗi phần mở bằng đề mục "## Tên phần".` : '', rulesLine(col.hardRules || {}),
+    `# Khung trình bày\n${columnLayoutGuide(col)}`,
     `# Topic: ${iv.title}\n${iv.text}`, context ? `# Bối cảnh tuần\n${context}` : '',
     sk ? '' : `# Bản nháp máy (chỉ để theo bố cục và độ dài; hãy viết lại hay hơn, không chép)\n${mock}`,
     n > 1 ? `Đây là lượt viết thứ ${n}: chọn góc mở bài khác các lượt trước.` : '',
@@ -10923,10 +10924,10 @@ ACTIONS['col-edit'] = el => {
     <div class="body">
       <div class="field"><label for="cf-name">Tên Cột</label><input id="cf-name" value="${esc(c.name)}"></div>
       <label class="check"><input id="cf-active" type="checkbox" ${c.active ? 'checked' : ''}> Đang bật (tuần mới có Cột này)</label>
-      <div class="field"><label for="cf-guide">Hướng dẫn viết (Markdown)</label><textarea id="cf-guide">${esc(c.guideMd)}</textarea></div>
+      ${(() => { const sk = AC.activeSkill(c); const f = `<div class="field"><label for="cf-guide">Hướng dẫn viết (Markdown)</label><textarea id="cf-guide">${esc(c.guideMd)}</textarea></div>`; return sk ? `<details class="field"><summary class="small muted">Hướng dẫn viết: không dùng khi có Skill "${esc(sk.name)}" v${sk.version} (bấm để xem)</summary>${f}</details>` : f; })()}
       ${isNew ? '<p class="small muted">Lưu Cột trước, rồi mở lại để nạp Skill.</p>' : skillButtonHtml('col', c)}
       <div class="field"><label for="cf-struct">Cấu trúc bắt buộc (mỗi dòng một đoạn)</label><textarea id="cf-struct" style="min-height:100px">${esc(c.structure.join('\n'))}</textarea><span class="hint">Ô ghi mỗi đoạn bằng đề mục "## Tên đoạn"; thiếu đoạn thì cảnh báo HR-04.</span></div>
-      <div class="field"><label for="cf-layout">Khung trình bày (gửi kèm lệnh cho AI)</label><textarea id="cf-layout" style="min-height:130px" placeholder="${esc(AC.defaultLayoutGuide(c))}">${esc(c.layoutGuide || '')}</textarea><span class="hint">Để trống là dùng khung mặc định (chữ mờ). Quy tắc "Trình bày" (HR-13) nhắc khi bài sai khung. <button class="btn sm ghost" type="button" data-x="layout-default">Dùng mặc định</button></span></div>
+      <div class="field"><label for="cf-layout">Khung trình bày (gửi kèm lệnh cho AI viết bài)</label><textarea id="cf-layout" style="min-height:130px" placeholder="${esc(AC.defaultLayoutGuide(c))}">${esc(c.layoutGuide || '')}</textarea><span class="hint">Để trống là dùng khung mặc định (chữ mờ). Quy tắc "Trình bày" (HR-13) nhắc khi bài sai khung. <button class="btn sm ghost" type="button" data-x="layout-default">Dùng mặc định</button></span></div>
       <div class="fgrid">
         <div class="field"><label for="cf-unit">Đơn vị độ dài</label><select id="cf-unit"><option value="chars" ${r.lengthUnit !== 'words' ? 'selected' : ''}>Ký tự</option><option value="words" ${r.lengthUnit === 'words' ? 'selected' : ''}>Chữ</option></select></div>
         <div class="field"><label for="cf-min">Tối thiểu</label><input id="cf-min" type="number" min="0" value="${r.min || ''}"></div>
@@ -11170,7 +11171,7 @@ ACTIONS['rescue-clear'] = () => { store.del(AC.STORAGE_KEY + '-rescue'); view.ba
 const skillOwner = (kind, id) => AC.byId(kind === 'fmt' ? S.formats : S.columns, id);
 function skillButtonHtml(kind, o) {
   const a = AC.activeSkill(o), n = AC.skillsOf(o).length;
-  return `<div class="field"><label>Skill (bộ chỉ dẫn cho AI)</label><div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn" data-act="skill-open" data-kind="${kind}" data-id="${esc(o.id)}">Quản lý Skill (${n})</button><span class="small muted">${a ? `Đang dùng: ${esc(a.name)} v${a.version}` : 'Chưa chọn Skill: AI dùng hướng dẫn ở trên'}</span></div><span class="hint">Mỗi lần gen chỉ dùng đúng 1 Skill; chọn Skill khác thì gen lần sau dùng Skill đó. Skill thay cho "Hướng dẫn" ở trên. Quy tắc cứng (độ dài, CTA, từ cấm) luôn thắng Skill.</span></div>`;
+  return `<div class="field"><label>Skill (bộ chỉ dẫn cho AI)</label><div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn" data-act="skill-open" data-kind="${kind}" data-id="${esc(o.id)}">Quản lý Skill (${n})</button><span class="small muted">${a ? `Đang dùng: ${esc(a.name)} v${a.version}` : 'Chưa chọn Skill: AI dùng Hướng dẫn viết'}</span></div><span class="hint">Mỗi lần gen chỉ dùng đúng 1 Skill; chọn Skill khác thì gen lần sau dùng Skill đó. Skill thay cho "Hướng dẫn" ở trên. Quy tắc cứng (độ dài, CTA, từ cấm) luôn thắng Skill.</span></div>`;
 }
 function skillSystemText() { return AC.aiSystem(S).split('\n\nTrả lời bằng')[0]; }
 function openSkillLayer(kind, id, editId) {

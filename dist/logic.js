@@ -2878,7 +2878,7 @@ function cellPrompt(S, cellId) {
   const len = r.min || r.max ? `${r.min || 0}–${r.max || '…'} ${r.lengthUnit === 'words' ? 'chữ' : 'ký tự'}` : 'không giới hạn';
   return [
     `Bạn viết một bài cho Cột "${col.name}" của thương hiệu ${b.name || ''}, chỉ dựa trên Topic bên dưới.`,
-    '', '# Chức năng của Cột', col.guideMd || '',
+    '', activeSkill(col) ? skillBlock(col, 'Chỉ dẫn viết của Cột') : `# Chức năng của Cột\n${col.guideMd || ''}`,
     '', '# Độ dài', `${len}${r.requireCta ? '; kết bằng lời kêu gọi hành động' + (r.ctaType === 'question' ? ' dạng câu hỏi' : '') : ''}.`,
     '', '# Khung trình bày', columnLayoutGuide(col),
     '', '# Bài mẫu khung (chỉ minh họa hình dạng, không chép chữ)', layoutSkeleton(col),
@@ -3890,6 +3890,7 @@ const criteriaText = cr => (cr || []).map(c => `- ${c.id}: ${c.name} (trọng s�
 function cellJob(S, cell, iv, col, context, mock, n) {
   const sk = skillBlock(col, `Chỉ dẫn viết cho Cột "${col.name}"`);
   const user = [`# Việc: viết bài cho Cột "${col.name}"`, sk || col.guideMd || '', col.structure && col.structure.length ? `Bố cục: ${col.structure.join(' → ')}. Mỗi phần mở bằng đề mục "## Tên phần".` : '', rulesLine(col.hardRules || {}),
+    `# Khung trình bày\n${columnLayoutGuide(col)}`,
     `# Topic: ${iv.title}\n${iv.text}`, context ? `# Bối cảnh tuần\n${context}` : '',
     sk ? '' : `# Bản nháp máy (chỉ để theo bố cục và độ dài; hãy viết lại hay hơn, không chép)\n${mock}`,
     n > 1 ? `Đây là lượt viết thứ ${n}: chọn góc mở bài khác các lượt trước.` : '',

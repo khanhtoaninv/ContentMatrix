@@ -3,7 +3,7 @@
 const skillOwner = (kind, id) => AC.byId(kind === 'fmt' ? S.formats : S.columns, id);
 function skillButtonHtml(kind, o) {
   const a = AC.activeSkill(o), n = AC.skillsOf(o).length;
-  return `<div class="field"><label>Skill (bộ chỉ dẫn cho AI)</label><div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn" data-act="skill-open" data-kind="${kind}" data-id="${esc(o.id)}">Quản lý Skill (${n})</button><span class="small muted">${a ? `Đang dùng: ${esc(a.name)} v${a.version}` : 'Chưa chọn Skill: AI dùng hướng dẫn ở trên'}</span></div><span class="hint">Mỗi lần gen chỉ dùng đúng 1 Skill; chọn Skill khác thì gen lần sau dùng Skill đó. Skill thay cho "Hướng dẫn" ở trên. Quy tắc cứng (độ dài, CTA, từ cấm) luôn thắng Skill.</span></div>`;
+  return `<div class="field"><label>Skill (bộ chỉ dẫn cho AI)</label><div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn" data-act="skill-open" data-kind="${kind}" data-id="${esc(o.id)}">Quản lý Skill (${n})</button><span class="small muted">${a ? `Đang dùng: ${esc(a.name)} v${a.version}` : 'Chưa chọn Skill: AI dùng Hướng dẫn viết'}</span></div><span class="hint">Mỗi lần gen chỉ dùng đúng 1 Skill; chọn Skill khác thì gen lần sau dùng Skill đó. Skill thay cho "Hướng dẫn" ở trên. Quy tắc cứng (độ dài, CTA, từ cấm) luôn thắng Skill.</span></div>`;
 }
 function skillSystemText() { return AC.aiSystem(S).split('\n\nTrả lời bằng')[0]; }
 function openSkillLayer(kind, id, editId) {

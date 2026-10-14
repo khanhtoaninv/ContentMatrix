@@ -26,7 +26,7 @@ function cellPrompt(S, cellId) {
   const len = r.min || r.max ? `${r.min || 0}–${r.max || '…'} ${r.lengthUnit === 'words' ? 'chữ' : 'ký tự'}` : 'không giới hạn';
   return [
     `Bạn viết một bài cho Cột "${col.name}" của thương hiệu ${b.name || ''}, chỉ dựa trên Topic bên dưới.`,
-    '', '# Chức năng của Cột', col.guideMd || '',
+    '', activeSkill(col) ? skillBlock(col, 'Chỉ dẫn viết của Cột') : `# Chức năng của Cột\n${col.guideMd || ''}`,
     '', '# Độ dài', `${len}${r.requireCta ? '; kết bằng lời kêu gọi hành động' + (r.ctaType === 'question' ? ' dạng câu hỏi' : '') : ''}.`,
     '', '# Khung trình bày', columnLayoutGuide(col),
     '', '# Bài mẫu khung (chỉ minh họa hình dạng, không chép chữ)', layoutSkeleton(col),

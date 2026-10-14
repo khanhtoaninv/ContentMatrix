@@ -643,6 +643,13 @@ Giữ các kịch bản còn hiệu lực của v2.6: U1–U7, X3–X12, Y1–Y3
 | R6 | Nối thật kênh đầu tiên (Metricool hoặc Meta FB + IG) | — |
 | R7 | Nối các kênh còn lại; khớp số liệu bài đăng tay theo link | — |
 
+## 10.50. Khung trình bày đi kèm lệnh AI, lệnh agent ngoài dùng Skill (14/10/2026, bản 75)
+
+- Lệnh AI viết ô (`cellJob`) luôn có mục "# Khung trình bày" (khung riêng của Cột hoặc khung mặc định theo Cấu trúc), kể cả khi có Skill; Skill nên khớp khung (đoạn tối đa 3 câu và 80 chữ, in đậm tối đa 2 chỗ mỗi đề mục).
+- Lệnh sao chép cho agent bên ngoài (`cellPrompt`) dùng Skill đang chọn thay mục "Chức năng của Cột"; không có Skill thì như cũ.
+- Form Sửa Cột: ô Hướng dẫn viết gập lại khi có Skill (vẫn lưu được); nhãn Khung trình bày ghi rõ "gửi kèm lệnh cho AI viết bài".
+- Bản nháp Skill Cột Giải thích: `skills/cot-giai-thich.md` (chưa nạp vào app; chờ người dùng duyệt và bài mẫu thật).
+
 ## 10.49. Skill (bộ chỉ dẫn) gắn theo Cột và Format (14/10/2026, bản 74)
 
 Mỗi Cột và mỗi Format có danh sách Skill riêng (không có thư viện chung). Nạp được nhiều Skill, tại thời điểm gen chỉ dùng đúng một (`activeSkillId`); đổi bằng cách chọn lại. Không chọn thì dùng hướng dẫn cũ (`guideMd`).

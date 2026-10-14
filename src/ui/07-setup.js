@@ -220,10 +220,10 @@ ACTIONS['col-edit'] = el => {
     <div class="body">
       <div class="field"><label for="cf-name">Tên Cột</label><input id="cf-name" value="${esc(c.name)}"></div>
       <label class="check"><input id="cf-active" type="checkbox" ${c.active ? 'checked' : ''}> Đang bật (tuần mới có Cột này)</label>
-      <div class="field"><label for="cf-guide">Hướng dẫn viết (Markdown)</label><textarea id="cf-guide">${esc(c.guideMd)}</textarea></div>
+      ${(() => { const sk = AC.activeSkill(c); const f = `<div class="field"><label for="cf-guide">Hướng dẫn viết (Markdown)</label><textarea id="cf-guide">${esc(c.guideMd)}</textarea></div>`; return sk ? `<details class="field"><summary class="small muted">Hướng dẫn viết: không dùng khi có Skill "${esc(sk.name)}" v${sk.version} (bấm để xem)</summary>${f}</details>` : f; })()}
       ${isNew ? '<p class="small muted">Lưu Cột trước, rồi mở lại để nạp Skill.</p>' : skillButtonHtml('col', c)}
       <div class="field"><label for="cf-struct">Cấu trúc bắt buộc (mỗi dòng một đoạn)</label><textarea id="cf-struct" style="min-height:100px">${esc(c.structure.join('\n'))}</textarea><span class="hint">Ô ghi mỗi đoạn bằng đề mục "## Tên đoạn"; thiếu đoạn thì cảnh báo HR-04.</span></div>
-      <div class="field"><label for="cf-layout">Khung trình bày (gửi kèm lệnh cho AI)</label><textarea id="cf-layout" style="min-height:130px" placeholder="${esc(AC.defaultLayoutGuide(c))}">${esc(c.layoutGuide || '')}</textarea><span class="hint">Để trống là dùng khung mặc định (chữ mờ). Quy tắc "Trình bày" (HR-13) nhắc khi bài sai khung. <button class="btn sm ghost" type="button" data-x="layout-default">Dùng mặc định</button></span></div>
+      <div class="field"><label for="cf-layout">Khung trình bày (gửi kèm lệnh cho AI viết bài)</label><textarea id="cf-layout" style="min-height:130px" placeholder="${esc(AC.defaultLayoutGuide(c))}">${esc(c.layoutGuide || '')}</textarea><span class="hint">Để trống là dùng khung mặc định (chữ mờ). Quy tắc "Trình bày" (HR-13) nhắc khi bài sai khung. <button class="btn sm ghost" type="button" data-x="layout-default">Dùng mặc định</button></span></div>
       <div class="fgrid">
         <div class="field"><label for="cf-unit">Đơn vị độ dài</label><select id="cf-unit"><option value="chars" ${r.lengthUnit !== 'words' ? 'selected' : ''}>Ký tự</option><option value="words" ${r.lengthUnit === 'words' ? 'selected' : ''}>Chữ</option></select></div>
         <div class="field"><label for="cf-min">Tối thiểu</label><input id="cf-min" type="number" min="0" value="${r.min || ''}"></div>

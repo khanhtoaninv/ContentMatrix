@@ -1746,3 +1746,16 @@ test('10.49 · Skill gắn theo Cột/Format: chỉ dùng 1 Skill, thay guideMd 
   assert.ok(JSON.stringify(S).includes('CHỈ DẪN FORMAT'));
   AC.clearAiText();
 });
+
+test('10.50 · Khung trình bày đi kèm lệnh AI thật; lệnh sao chép cho agent dùng Skill thay Hướng dẫn viết', () => {
+  const S = seed();
+  const c = S.cells.find(x => x.weekId === T2 && AC.cellView(S, x).state !== 'EMPTY');
+  const col = AC.byId(S.columns, c.columnId);
+  let job = AC.aiPlan(S, C => AC.regenCell(C, c.id))[0];
+  assert.match(job.user, /# Khung trình bày/);
+  col.layoutGuide = 'KHUNG RIÊNG CỦA CỘT'; job = AC.aiPlan(S, C => AC.regenCell(C, c.id))[0]; assert.match(job.user, /KHUNG RIÊNG CỦA CỘT/);
+  assert.match(AC.cellPrompt(S, c.id), /Chức năng của Cột/);
+  AC.addSkill(S, col, { name: 'S1', body: 'SKILL CHO AGENT' });
+  const p = AC.cellPrompt(S, c.id);
+  assert.match(p, /SKILL CHO AGENT/); assert.doesNotMatch(p, /Chức năng của Cột/); assert.ok(!p.includes(col.guideMd));
+});
