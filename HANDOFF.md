@@ -2,6 +2,13 @@
 
 Cập nhật lần cuối: 14/10/2026, bản artifact **72** (R4 + 10.23–10.46). Đọc mục "Hiện trạng" trước; các mục theo đợt bên dưới là lịch sử (khi khác nhau, "Hiện trạng" và mục đặc tả số lớn hơn là đúng).
 
+
+## QUY TẮC BẮT BUỘC cho mọi thread: tự đẩy mã lên Git (14/10/2026)
+- Repo riêng: https://github.com/khanhtoaninv/ContentMatrix (nhánh `main`). Người dùng chạy app trên PC bằng `dist/index.html` (artifact claude.ai chặn gọi API ngoài), và lấy mã mới bằng `git pull` hoặc `chay.bat`.
+- **Sau mỗi lần sửa mã/đặc tả/HANDOFF (và trước khi kết thúc phiên), thread phải tự đẩy lên Git, không chờ người dùng ra lệnh.** Các bước: `python3 build.py`, chạy test, rồi gọi `add_repo` (owner `khanhtoaninv`, repo `ContentMatrix`) nếu phiên chưa có quyền, rồi `bash /mnt/project-files/AutoContent/tools/sync-git.sh "lời nhắn"`. Báo người dùng một dòng: đã đẩy, cần `git pull`.
+- Thư mục dự án `/mnt/project-files/AutoContent` vẫn là nơi sửa chính; Git là bản sao để PC lấy. Luôn đọc lại HANDOFF.md ngay trước khi sửa để không ghi đè thread khác.
+- AI chữ trong artifact dùng nhà cung cấp "Claude của claude.ai" (mục 10.47); gọi Anthropic/OpenAI trực tiếp chỉ chạy ở bản trên PC.
+
 ## Trạng thái
 - Bản đang chạy: https://claude.ai/artifact/LLs7vn1wKnZN8PVe3RYXQB (bản 71, khai báo quyền `downloads` để tải ZIP và tệp sao lưu trong trình xem artifact). Mã ở `/mnt/project-files/AutoContent`, đặc tả `spec/AutoContent_Spec_v2_8_ContentMatrix_MVP.md` (quyết định D101–D151 ở 0.3, mục mở M-1…M-12 ở 0.5, ghi chú dựng 10.1–10.46 xếp mới nhất lên trên).
 - Quy ước tên đợt: bỏ dấu phẩy trên từ R4 (R4, R5, R6…).
