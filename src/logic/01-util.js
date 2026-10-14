@@ -1,12 +1,12 @@
 // ---------- 01 · Tiện ích thuần ----------
-const DATA_VERSION = 'ac-edu-r4-0';
-const STORAGE_KEY = 'autocontent.state';
-const RELEASE = 'R4';
+export const DATA_VERSION = 'ac-edu-r4-0';
+export const STORAGE_KEY = 'autocontent.state';
+export const RELEASE = 'R4';
 
-function clone(o) { return JSON.parse(JSON.stringify(o)); }
+export function clone(o) { return JSON.parse(JSON.stringify(o)); }
 
 // FNV-1a 32-bit: dùng cho mock xác định (cùng đầu vào → cùng đầu ra)
-function hash32(str) {
+export function hash32(str) {
   let h = 0x811c9dc5;
   for (let i = 0; i < str.length; i++) {
     h ^= str.charCodeAt(i);
@@ -14,12 +14,12 @@ function hash32(str) {
   }
   return h >>> 0;
 }
-function pick(arr, seed) { return arr[hash32(String(seed)) % arr.length]; }
+export function pick(arr, seed) { return arr[hash32(String(seed)) % arr.length]; }
 
 // SHA-256 thuần JS (chạy cả trình duyệt lẫn Node, không cần crypto.subtle)
-function sha256(ascii) { return sha256Bytes(utf8Bytes(ascii)); }
+export function sha256(ascii) { return sha256Bytes(utf8Bytes(ascii)); }
 // Băm mảng byte (dùng cho tệp ảnh/video khi xuất ZIP)
-function sha256Bytes(bytes) {
+export function sha256Bytes(bytes) {
   const K = [0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
   let H = [0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19];
   const l = bytes.length;
@@ -54,7 +54,7 @@ function sha256Bytes(bytes) {
   }
   return H.map(x => x.toString(16).padStart(8, '0')).join('');
 }
-function utf8Bytes(str) {
+export function utf8Bytes(str) {
   if (typeof TextEncoder !== 'undefined') return new TextEncoder().encode(str);
   return Uint8Array.from(Buffer.from(str, 'utf8'));
 }
@@ -63,7 +63,7 @@ function utf8Bytes(str) {
 function foldChar(c) {
   return c.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/đ/g, 'd');
 }
-function foldWithMap(text) {
+export function foldWithMap(text) {
   let out = ''; const map = [];
   for (let i = 0; i < text.length; i++) {
     const f = foldChar(text[i]);
@@ -71,39 +71,39 @@ function foldWithMap(text) {
   }
   return { out, map };
 }
-function fold(text) { return foldWithMap(String(text || '')).out; }
+export function fold(text) { return foldWithMap(String(text || '')).out; }
 
 // ---------- Ngày giờ (chuỗi, không phụ thuộc múi giờ máy) ----------
-function parseYMD(s) { const [y, m, d] = s.split('-').map(Number); return Date.UTC(y, m - 1, d); }
-function fmtYMD(ms) { const d = new Date(ms); return d.toISOString().slice(0, 10); }
-function addDays(ymd, n) { return fmtYMD(parseYMD(ymd) + n * 86400000); }
-function weekdayOf(ymd) { const w = new Date(parseYMD(ymd)).getUTCDay(); return w === 0 ? 7 : w; } // 1=T2 … 7=CN
-function mondayOf(ymd) { return addDays(ymd, 1 - weekdayOf(ymd)); }
-function isValidYMD(s) { return /^\d{4}-\d{2}-\d{2}$/.test(s || '') && fmtYMD(parseYMD(s)) === s; }
-function isValidTime(s) { return /^([01]\d|2[0-3]):[0-5]\d$/.test(s || ''); }
-function isoWeek(ymd) {
+export function parseYMD(s) { const [y, m, d] = s.split('-').map(Number); return Date.UTC(y, m - 1, d); }
+export function fmtYMD(ms) { const d = new Date(ms); return d.toISOString().slice(0, 10); }
+export function addDays(ymd, n) { return fmtYMD(parseYMD(ymd) + n * 86400000); }
+export function weekdayOf(ymd) { const w = new Date(parseYMD(ymd)).getUTCDay(); return w === 0 ? 7 : w; } // 1=T2 … 7=CN
+export function mondayOf(ymd) { return addDays(ymd, 1 - weekdayOf(ymd)); }
+export function isValidYMD(s) { return /^\d{4}-\d{2}-\d{2}$/.test(s || '') && fmtYMD(parseYMD(s)) === s; }
+export function isValidTime(s) { return /^([01]\d|2[0-3]):[0-5]\d$/.test(s || ''); }
+export function isoWeek(ymd) {
   const ms = parseYMD(ymd); const d = new Date(ms);
   const day = d.getUTCDay() || 7;
   d.setUTCDate(d.getUTCDate() + 4 - day);
   const y0 = Date.UTC(d.getUTCFullYear(), 0, 1);
   return { year: d.getUTCFullYear(), week: Math.ceil(((d - y0) / 86400000 + 1) / 7) };
 }
-function dmy(ymd) { const [y, m, d] = ymd.split('-'); return `${d}/${m}`; }
-function dmyFull(ymd) { const [y, m, d] = ymd.split('-'); return `${d}/${m}/${y}`; }
-const WEEKDAY_SHORT = ['', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
-const WEEKDAY_LONG = ['', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy', 'Chủ Nhật'];
-function minutesOf(t) { const [h, m] = t.split(':').map(Number); return h * 60 + m; }
+export function dmy(ymd) { const [y, m, d] = ymd.split('-'); return `${d}/${m}`; }
+export function dmyFull(ymd) { const [y, m, d] = ymd.split('-'); return `${d}/${m}/${y}`; }
+export const WEEKDAY_SHORT = ['', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+export const WEEKDAY_LONG = ['', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy', 'Chủ Nhật'];
+export function minutesOf(t) { const [h, m] = t.split(':').map(Number); return h * 60 + m; }
 
-function splitSentences(text) {
+export function splitSentences(text) {
   return String(text || '').replace(/\s+/g, ' ').trim()
     .split(/(?<=[.!?…])\s+(?=[^\s])/).filter(Boolean);
 }
 // Dòng nhãn đoạn (mục 10.28): "## Tên đoạn" (định dạng của ô) hoặc "[Tên đoạn]" (bản cũ, kịch bản video); trả tên đoạn hoặc null
-function labelOf(line) { const m = /^\s*(?:\[([^\]]+)\]|##\s+(.+?))\s*$/.exec(String(line || '')); return m ? (m[1] || m[2]).trim() : null; }
+export function labelOf(line) { const m = /^\s*(?:\[([^\]]+)\]|##\s+(.+?))\s*$/.exec(String(line || '')); return m ? (m[1] || m[2]).trim() : null; }
 // Chia đoạn cho dễ đọc (mục 10.26): mỗi đoạn `per` câu (đoạn cuối không để lẻ một câu, tối đa per + 1), "Bước n:" mỗi bước một dòng.
 // Đổi dấu cách thành xuống dòng (giữa các bước) hoặc dòng trống (giữa đoạn); độ dài theo ký tự gộp khoảng trắng nên không đổi; dòng nhãn [..], tiêu đề #, Slide n:, gạch đầu dòng để nguyên
-const PARA_WORDS = 80; // một đoạn tối đa 80 chữ (mục 10.28)
-function paraBreak(text, per = 3) {
+export const PARA_WORDS = 80; // một đoạn tối đa 80 chữ (mục 10.28)
+export function paraBreak(text, per = 3) {
   // Gom câu thành đoạn: tối đa `per` câu và không quá PARA_WORDS chữ; đoạn cuối không lẻ một câu ngắn
   const chunk = x => {
     const ss = x.split(/(?<=[.!?…])\s(?=\S)/); if (ss.length < 2) return x;
@@ -125,5 +125,5 @@ function paraBreak(text, per = 3) {
     }).join('\n');
   }).join('\n');
 }
-function countWords(text) { const t = String(text || '').trim(); return t ? t.split(/\s+/).length : 0; }
-function isValidUrl(s) { return /^https?:\/\/[^\s/$.?#][^\s]*\.[^\s]+$/i.test(String(s || '').trim()); }
+export function countWords(text) { const t = String(text || '').trim(); return t ? t.split(/\s+/).length : 0; }
+export function isValidUrl(s) { return /^https?:\/\/[^\s/$.?#][^\s]*\.[^\s]+$/i.test(String(s || '').trim()); }

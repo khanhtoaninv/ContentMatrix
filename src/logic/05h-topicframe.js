@@ -1,5 +1,7 @@
 // ---------- Khung Topic (mục 10.30): mục chuẩn, tên gọi khác, kiểu hiển thị; chuẩn hoá tệp Topic khi nạp ----------
-const TOPIC_STYLES = { para: 'Đoạn văn', stats: 'Số liệu nổi bật', steps: 'Các bước đánh số', myth: 'Ngộ nhận ↔ Thực tế', qa: 'Hỏi – đáp', case: 'Khung trích dẫn' };
+import { fold } from './01-util.js';
+import { log } from './05-model.js';
+export const TOPIC_STYLES = { para: 'Đoạn văn', stats: 'Số liệu nổi bật', steps: 'Các bước đánh số', myth: 'Ngộ nhận ↔ Thực tế', qa: 'Hỏi – đáp', case: 'Khung trích dẫn' };
 const TOPIC_STYLE_HINT = {
   para: 'đoạn văn 2–4 câu, mỗi đoạn một dòng',
   stats: 'mỗi phát hiện một dòng "- ", con số kèm nguồn ngay trong câu',
@@ -8,7 +10,7 @@ const TOPIC_STYLE_HINT = {
   qa: 'mỗi câu một dòng "Câu hỏi: … Đáp án: …"',
   case: 'chỉ trường hợp có thật, kể thành đoạn văn; không có thì bỏ mục này',
 };
-const DEFAULT_TOPIC_FRAME = [
+export const DEFAULT_TOPIC_FRAME = [
   { name: 'Số liệu và phát hiện', aliases: ['Số liệu', 'Phát hiện', 'Dữ liệu', 'Thống kê', 'Data', 'Findings', 'Key facts'], style: 'stats', optional: false },
   { name: 'Vì sao', aliases: ['Tại sao', 'Nguyên nhân', 'Lý do', 'Why'], style: 'para', optional: false },
   { name: 'Cách làm', aliases: ['Hướng dẫn', 'Các bước', 'Cách thực hiện', 'Giải pháp', 'How to'], style: 'steps', optional: false },
@@ -16,8 +18,8 @@ const DEFAULT_TOPIC_FRAME = [
   { name: 'Trường hợp', aliases: ['Câu chuyện', 'Case study', 'Case', 'Ví dụ thực tế'], style: 'case', optional: true },
   { name: 'Câu hỏi luyện tập', aliases: ['Câu hỏi', 'Luyện tập', 'Bài tập', 'Quiz', 'Q&A'], style: 'qa', optional: false },
 ];
-function topicFrameOf(S) { return S && S.topicFrame && S.topicFrame.length ? S.topicFrame : DEFAULT_TOPIC_FRAME; }
-function validateTopicFrame(frame) {
+export function topicFrameOf(S) { return S && S.topicFrame && S.topicFrame.length ? S.topicFrame : DEFAULT_TOPIC_FRAME; }
+export function validateTopicFrame(frame) {
   const errs = []; const seen = new Set();
   if (!frame || !frame.length) errs.push('Khung cần ít nhất một mục.');
   (frame || []).forEach((s, i) => {
@@ -29,16 +31,16 @@ function validateTopicFrame(frame) {
   });
   return errs;
 }
-function setTopicFrame(S, frame) {
+export function setTopicFrame(S, frame) {
   const clean = (frame || []).map(s => ({ name: String(s.name || '').trim(), aliases: (s.aliases || []).map(a => String(a).trim()).filter(Boolean), style: s.style, optional: !!s.optional }));
   const errs = validateTopicFrame(clean);
   if (errs.length) return { ok: false, error: errs.join(' ') };
   S.topicFrame = clean; log(S, 'edit', 'topicFrame', '', `${clean.length} mục`);
   return { ok: true };
 }
-function resetTopicFrame(S) { delete S.topicFrame; return { ok: true }; }
+export function resetTopicFrame(S) { delete S.topicFrame; return { ok: true }; }
 // Đề mục ứng với mục nào của khung: trùng tên, hoặc bắt đầu/chứa một tên gọi khác (từ 4 ký tự)
-function matchTopicSection(S, name) {
+export function matchTopicSection(S, name) {
   const k = fold(String(name || '').replace(/[*_`]/g, '')).replace(/[^a-z0-9& ]+/g, ' ').replace(/\s+/g, ' ').trim();
   if (!k) return null;
   const fr = topicFrameOf(S);
@@ -46,14 +48,14 @@ function matchTopicSection(S, name) {
   return fr.find(s => norm(s.name) === k) || fr.find(s => [s.name].concat(s.aliases || []).some(a => { const c = norm(a); return c && (k === c || (c.length >= 4 && (k.startsWith(c + ' ') || k.includes(c)))); })) || null;
 }
 // Lệnh cho AI nghiên cứu: phần khung (đề mục, thứ tự, cách viết từng mục)
-function topicFramePrompt(S) {
+export function topicFramePrompt(S) {
   const fr = topicFrameOf(S);
   return ['Mỗi Topic bắt đầu bằng đề mục "## Tên Topic", ngay dưới là ba dòng "Thông điệp chính:", "Đối tượng:", "Góc nhìn:", rồi các mục "###" theo đúng tên và thứ tự sau:']
     .concat(fr.map((s, i) => `${i + 1}. ### ${s.name}: ${TOPIC_STYLE_HINT[s.style]}${s.optional ? ' (không bắt buộc)' : ''}.`))
     .concat(['Trình bày: mỗi đoạn viết liền trên một dòng (không ngắt dòng giữa câu), dòng trống giữa các đoạn; được dùng **in đậm**, "- " và "1."; không dùng bảng, HTML, link, ảnh hay đề mục "####".'])
     .join('\n');
 }
-function agentPromptOf(S) {
+export function agentPromptOf(S) {
   return ['Từ báo cáo nghiên cứu tuần này, hãy viết 3 Topic cho ứng dụng Content Matrix. Ba Topic là ba chủ đề có quan hệ với nhau trong cùng một mạch, mỗi Topic khoảng 2.000 chữ.',
     'Tệp bắt đầu bằng "# Chủ đề tuần", rồi một đoạn "Bối cảnh chung:" nêu quan hệ giữa ba Topic.',
     topicFramePrompt(S), 'Chỉ dùng số liệu có trong báo cáo; nêu nguồn ngay trong câu.'].join('\n\n');
@@ -62,7 +64,7 @@ function agentPromptOf(S) {
 // Chuẩn hoá tệp Topic theo khung; trả về tệp mới, danh sách thay đổi (để xem trước) và mục còn thiếu
 const TF_STRUCT = /^\s*(#{1,6}\s|[-*•+]\s|\d+[.)]\s|>|\|)/;
 const TF_FIELD = /^\s*(?:[-*]\s*)?[^:\n]{2,30}:\s*\S/;
-function normalizeTopicMd(S, md) {
+export function normalizeTopicMd(S, md) {
   const changes = []; const missing = [];
   const raw = String(md || '').replace(/\r\n?/g, '\n');
   const fmm = /^---\s*\n[\s\S]*?\n---\s*(\n|$)/.exec(raw);

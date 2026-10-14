@@ -1,4 +1,10 @@
 // ---------- UI · Trợ lý viết (mục 10.35) ----------
+import { AC } from '../logic/99-export.js';
+import { ACTIONS, CHANGES, INPUTS, S, view } from './00-state.js';
+import { $, chName, closeLayer, colName, commit, esc, icon, mdReplace, mdTa, openLayer, save, toast } from './01-core.js';
+import { render } from './02-shell.js';
+import { pvCtx } from './04b-preview.js';
+import { textCall, textProviderLabel } from './04k-aitext.js';
 // Sửa đoạn bằng AI, phương án hook/caption: MÔ PHỎNG (AC.aiRewrite, AC.hookOptions, AC.captionOptions).
 // Thư viện hashtag & CTA: chạy thật (Setup → Hashtag & CTA).
 function aiCtxOf(ta) {
@@ -19,7 +25,7 @@ function aiRange(ta) {
 }
 // Ghi đè cả bài (giữ Hoàn tác của trình duyệt)
 function aiReplaceAll(ta, text) { mdReplace(ta, 0, ta.value.length, text); }
-const AI_SIM_NOTE_TXT = '<span class="sim-tag" title="Bản MVP biến đổi theo quy tắc; bật AI thật ở Setup → Kết nối AI">Mô phỏng</span>';
+export const AI_SIM_NOTE_TXT = '<span class="sim-tag" title="Bản MVP biến đổi theo quy tắc; bật AI thật ở Setup → Kết nối AI">Mô phỏng</span>';
 const aiNote = () => AC.textApiOn(S) ? `<span class="sim-tag real">AI thật · ${esc(textProviderLabel())}</span>` : AI_SIM_NOTE_TXT;
 
 ACTIONS['ai-edit'] = el => {
@@ -130,7 +136,7 @@ ACTIONS['snip'] = el => {
 };
 
 // ---------- Setup → Hashtag & CTA ----------
-function snippetsTab() {
+export function snippetsTab() {
   const d = view.snDraft || (view.snDraft = { kind: 'hashtag', text: '', columnId: '', channelId: '' });
   const rows = AC.snippetsOf(S);
   const sel = (id, list, cur, all) => `<select id="${id}" data-change="sn-d" data-k="${id.slice(5)}"><option value="">${all}</option>${list.map(x => `<option value="${esc(x.id)}" ${x.id === cur ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select>`;

@@ -1,4 +1,11 @@
 // ---------- UI · Matrix: Topic (hàng) × Cột (cột) · ô ----------
+import { AC } from '../logic/99-export.js';
+import { ACTIONS, CHANGES, INPUTS, RENDERERS, S, view } from './00-state.js';
+import { CELL_STATE, closeAllLayers, closeLayer, commit, confirmBox, curStart, curWeek, ensureCurWeek, esc, fmtName, icon, mdEditorHtml, openLayer, richText, save, scoreHtml, toast, topicRich, warnMarks, warningsHtml } from './01-core.js';
+import { go, lockBannerHtml, nextBandHtml, progressHtml, render } from './02-shell.js';
+import { demoBarHtml, slotRowHtml } from './03-today.js';
+import { withAiText } from './04k-aitext.js';
+import { lines } from './07-setup.js';
 function topicMatches(w) {
   const q = AC.fold(view.tpcSearch || '').trim();
   return AC.topicsOf(S, w.id).map(r => {
@@ -457,7 +464,7 @@ ACTIONS['show-template'] = el => {
 // Lệnh cho agent nghiên cứu ghép theo Khung Topic hiện hành (mục 10.30)
 function tplText(t) { return t === 'agentPrompt' ? AC.agentPromptOf(S) : AC.TEMPLATES[t]; }
 ACTIONS['copy-template'] = el => copyText(tplText(el.dataset.t));
-function copyText(text) {
+export function copyText(text) {
   try {
     navigator.clipboard.writeText(text).then(() => toast('Đã sao chép.'), () => toast('Không sao chép được. Hãy bôi đen và sao chép thủ công.', 'bad'));
   } catch (e) { toast('Không sao chép được. Hãy bôi đen và sao chép thủ công.', 'bad'); }

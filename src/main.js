@@ -1,0 +1,26 @@
+// ---------- Điểm vào: nạp logic (window.AC) rồi giao diện; 99-boot chạy sau cùng ----------
+import './logic/99-export.js';
+import './ui/00-state.js';
+import './ui/01-core.js';
+import './ui/01b-mediastore.js';
+import './ui/02-shell.js';
+import './ui/03-today.js';
+import './ui/04-week.js';
+import './ui/04b-preview.js';
+import './ui/04c-layout.js';
+import './ui/04d-publish.js';
+import './ui/04e-frame.js';
+import './ui/04f-text.js';
+import './ui/04g-assist.js';
+import './ui/04h-design.js';
+import './ui/04i-studio.js';
+import './ui/04j-media.js';
+import './ui/04k-aitext.js';
+import './ui/04l-blog.js';
+import './ui/04m-imgtools.js';
+import './ui/05-matrix.js';
+import './ui/06-export.js';
+import './ui/07-setup.js';
+import './ui/07b-skill.js';
+import './ui/08-report.js';
+import './ui/99-boot.js';

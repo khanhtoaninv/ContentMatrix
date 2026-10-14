@@ -1,5 +1,20 @@
 // ---------- UI · Thiết lập (SCR-12..19) ----------
-const SETUP_TABS = [
+import { AC } from '../logic/99-export.js';
+import { ACTIONS, CHANGES, INPUTS, RENDERERS, S, setS, view } from './00-state.js';
+import { $, chName, chTag, closeLayer, colName, commit, confirmBox, esc, fmtFull, fmtName, icon, openLayer, save, store, toast } from './01-core.js';
+import { render, renderNav } from './02-shell.js';
+import { demoSetupBarHtml } from './03-today.js';
+import { channelOptions, formatOptions } from './04-week.js';
+import { framesTab } from './04e-frame.js';
+import { snippetsTab } from './04g-assist.js';
+import { libraryTab } from './04i-studio.js';
+import { aiConnectTab } from './04k-aitext.js';
+import { blogSetupTab } from './04l-blog.js';
+import { imgStdTab } from './04m-imgtools.js';
+import { copyText } from './05-matrix.js';
+import { downloadBytes } from './06-export.js';
+import { skillButtonHtml, writingRulesSection } from './07b-skill.js';
+export const SETUP_TABS = [
   ['brand', 'Thương hiệu'], ['voice', 'Giọng văn'], ['channels', 'Kênh'], ['matrix', 'Matrix'], ['columns', 'Cột'], ['topicframe', 'Khung Topic'],
   ['formats', 'Format'], ['imgstd', 'Chuẩn ảnh'], ['frames', 'Frame ảnh'], ['snippets', 'Hashtag & CTA'], ['library', 'Kho tài sản'], ['blog', 'Chuẩn Blog'], ['imageapi', 'Kết nối AI'], ['templates', 'Tuần mẫu'], ['rules', 'Quy tắc & tiêu chí'], ['backup', 'Sao lưu & demo'],
 ];
@@ -185,7 +200,7 @@ function bindCriteria(box, prefix) {
 function readCriteria(box, prefix) {
   return [...$(`#${prefix}-rows`, box).querySelectorAll('[data-crit-row]')].map(r => { const [n, w] = r.querySelectorAll('input'); return { id: n.dataset.cid, name: n.value.trim(), weight: parseInt(w.value, 10) || 0 }; }).filter(c => c.name);
 }
-const lines = t => String(t || '').split('\n').map(s => s.trim()).filter(Boolean);
+export const lines = t => String(t || '').split('\n').map(s => s.trim()).filter(Boolean);
 const commaList = t => String(t || '').split(',').map(s => s.trim()).filter(Boolean);
 const numOrNull = v => { const n = parseInt(v, 10); return Number.isFinite(n) && n > 0 ? n : null; };
 
@@ -534,7 +549,7 @@ ACTIONS['backup-restore'] = async () => {
   if (!r.ok) { $('#bk-err').textContent = r.error; return; }
   const ok = await confirmBox({ title: 'Khôi phục bản sao lưu?', danger: true, ok: 'Khôi phục', body: `<p>Thay dữ liệu hiện tại bằng bản sao lưu: ${r.state.weeks.length} tuần, ${r.state.slots.length} slot, ${r.state.cells.length} ô. Checksum đã khớp.</p>` });
   if (!ok) return;
-  S = r.state; commit('Đã khôi phục bản sao lưu.');
+  setS(r.state); commit('Đã khôi phục bản sao lưu.');
 };
 ACTIONS['rescue-copy'] = () => copyText(store.get(AC.STORAGE_KEY + '-rescue') || '');
 ACTIONS['rescue-clear'] = () => { store.del(AC.STORAGE_KEY + '-rescue'); view.banner = null; render(); toast('Đã xóa bản cứu.'); };

@@ -1,6 +1,14 @@
 // ---------- 06 · Dữ liệu demo v2.8 — Nói Được English (mọi số liệu là số kiểm thử, mô phỏng) ----------
+import { hash32, splitSentences } from './01-util.js';
+import { TEMPLATES } from './02-parse.js';
+import { scoreText, writeCell, writeImagePrompt } from './04-mock.js';
+import { applyTemplateWeek, byId, cellAt, cellsOf, dealSlots, defaultSetup, emptyState, ensureWeek, genSlotImage, importTopics, log, setBrandMd, setVoiceMd, topicCurrent, topicFileOf, topicsOf, weekSlots } from './05-model.js';
+import { channelPublish, mockPostUrl, publishNow, slotTs, syncMetrics, tsAddMin } from './05e-publish.js';
+import { aiCellText } from './05o-aitext.js';
+import { skillTag } from './05r-skill.js';
+import { SEED_TOPIC_FILES } from './06-seed-topics.js';
 // Viết một lượt sinh cho ô theo phiên bản Topic (AI-03). Trả về null khi Cột Câu chuyện mà Topic không có trường hợp (D100).
-function addCellGen(S, cell, topicVersionN, state, createdAt) {
+export function addCellGen(S, cell, topicVersionN, state, createdAt) {
   const row = byId(S.topics, cell.topicId);
   const iv = row.versions.find(v => v.n === topicVersionN);
   const col = byId(S.columns, cell.columnId);
@@ -18,9 +26,9 @@ function addCellGen(S, cell, topicVersionN, state, createdAt) {
   cell.byVersion[topicVersionN] = { state: state || 'DRAFT', currentRef: { genN: n, editRev: 0 }, approvedAt: state === 'APPROVED' ? gen.createdAt : null };
   return gen;
 }
-function cancelCell(cell, topicVersionN) { cell.byVersion[topicVersionN] = { state: 'CANCELLED', currentRef: null, approvedAt: null }; }
+export function cancelCell(cell, topicVersionN) { cell.byVersion[topicVersionN] = { state: 'CANCELLED', currentRef: null, approvedAt: null }; }
 
-function buildSeed() {
+export function buildSeed() {
   const S = emptyState();
   Object.assign(S, defaultSetup());
   S.isDemo = true;

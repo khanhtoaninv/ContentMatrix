@@ -1,9 +1,17 @@
 // ---------- 05d · Nút demo từng bước (để trải nghiệm từng phần; chạy tức thì, dữ liệu mô phỏng) ----------
+import { clone, parseYMD } from './01-util.js';
+import { TEMPLATES } from './02-parse.js';
+import { DEFAULT_HYPE } from './03-rules.js';
+import { applyTemplateWeek, canApplyTemplate, cellView, cellsOf, dealGate, defaultSetup, ensureWeek, genSlotImage, importTopics, log, matrixCounts, setBrandMd, setVoiceMd, setupStatus, slotCounts, suggestTemplateId, templateOf, topicsOf, weekIdOf, weekOf, weekSlots } from './05-model.js';
+import { approveCell, writeGate, writeMatrix } from './05b-cells.js';
+import { approveSlot, dealWeek } from './05c-slots.js';
+import { confirmWeek } from './05e-publish.js';
+import { SEED_TOPIC_FILES } from './06-seed-topics.js';
 const DEMO_TOPIC_KEYS = ['2026-10-12', '2026-10-05', '2026-10-19'];
-function demoTopicKey(startDate) { return DEMO_TOPIC_KEYS[Math.floor(parseYMD(startDate) / 604800000) % DEMO_TOPIC_KEYS.length]; }
+export function demoTopicKey(startDate) { return DEMO_TOPIC_KEYS[Math.floor(parseYMD(startDate) / 604800000) % DEMO_TOPIC_KEYS.length]; }
 function demoTopicMd(startDate) { const f = SEED_TOPIC_FILES[demoTopicKey(startDate)]; return f.v2 || f.v1; }
 // Cổng của từng nút demo: { ok, reason, label }
-function demoGate(S, startDate, step) {
+export function demoGate(S, startDate, step) {
   const wid = weekIdOf(startDate); const w = weekOf(S, wid);
   const locked = !!w && w.status === 'CONFIRMED';
   const no = reason => ({ ok: false, reason });
@@ -28,7 +36,7 @@ function demoGate(S, startDate, step) {
   if (step === 'clear') return w ? { ok: true, reason: '' } : no('Tuần chưa có dữ liệu');
   return no('Bước không hợp lệ');
 }
-function demoRun(S, startDate, step, at) {
+export function demoRun(S, startDate, step, at) {
   const g = demoGate(S, startDate, step);
   if (!g.ok) return { ok: false, error: g.reason };
   const now = at || S.settings.demoNow;
@@ -71,7 +79,7 @@ function demoRun(S, startDate, step, at) {
   return { ok: false, error: 'Bước không hợp lệ.' };
 }
 // Chạy các bước còn làm được, theo thứ tự
-function demoRunAll(S, startDate, at) {
+export function demoRunAll(S, startDate, at) {
   const done = [];
   ['setup', 'plan', 'topics', 'write', 'approve', 'deal', 'review'].forEach(step => {
     if (step === 'topics' && topicsOf(S, weekIdOf(startDate)).length) return;
@@ -81,7 +89,7 @@ function demoRunAll(S, startDate, at) {
 }
 
 // ---------- Demo cho Setup: nạp mẫu từng mục (mục cùng mã ghi đè bằng bản mẫu; mục người dùng tự thêm giữ nguyên) ----------
-const SETUP_PARTS = ['brand', 'voice', 'channels', 'columns', 'formats', 'templates', 'rules'];
+export const SETUP_PARTS = ['brand', 'voice', 'channels', 'columns', 'formats', 'templates', 'rules'];
 function demoSetupDefaults() { return defaultSetup(); }
 function upsertById(list, items, onlyMissing) {
   let added = 0, replaced = 0;
@@ -93,7 +101,7 @@ function upsertById(list, items, onlyMissing) {
   return { added, replaced };
 }
 // Số mục sẽ bị ghi đè (để hỏi xác nhận)
-function demoSetupImpact(S, part) {
+export function demoSetupImpact(S, part) {
   const d = demoSetupDefaults();
   const diff = (list, items) => items.filter(it => { const x = list.find(y => y.id === it.id); return x && JSON.stringify(x) !== JSON.stringify(it); }).length;
   if (part === 'brand') return S.brand.md.trim() && S.brand.md !== TEMPLATES.brand ? 1 : 0;
@@ -106,7 +114,7 @@ function demoSetupImpact(S, part) {
   if (part === 'all') return SETUP_PARTS.reduce((n, p) => n + demoSetupImpact(S, p), 0);
   return 0;
 }
-function demoSetup(S, part) {
+export function demoSetup(S, part) {
   const d = demoSetupDefaults(); const msg = [];
   const run = p => {
     if (p === 'brand') { setBrandMd(S, TEMPLATES.brand); msg.push('Thương hiệu'); }

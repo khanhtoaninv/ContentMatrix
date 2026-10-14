@@ -1,19 +1,18 @@
 // ---------- UI · Lõi: lưu trữ, tiện ích hiển thị, hộp thoại ----------
-const AC = window.AC;
-let S = null;               // trạng thái ứng dụng
-const view = {              // trạng thái giao diện (không lưu)
-  screen: 'week', scrollToday: true, setupTab: 'brand', weekMode: 'week', monthAnchor: null, tpcSearch: '',
-  chFilter: [], progressOpen: false, banner: null,
-};
-const $ = (sel, el = document) => el.querySelector(sel);
+import { AC } from '../logic/99-export.js';
+import { S } from './00-state.js';
+import { mediaOk, mediaPutAll, setMediaOk, stateJson } from './01b-mediastore.js';
+import { render } from './02-shell.js';
+import { lines } from './07-setup.js';
+export const $ = (sel, el = document) => el.querySelector(sel);
 
-function esc(s) {
+export function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
-function attr(o) { return Object.entries(o).filter(([, v]) => v != null && v !== false).map(([k, v]) => v === true ? k : `${k}="${esc(v)}"`).join(' '); }
+export function attr(o) { return Object.entries(o).filter(([, v]) => v != null && v !== false).map(([k, v]) => v === true ? k : `${k}="${esc(v)}"`).join(' '); }
 
 // ---- Lưu trữ (an toàn khi localStorage bị chặn) ----
-const store = {
+export const store = {
   get(k) { try { return window.localStorage.getItem(k); } catch (e) { return null; } },
   set(k, v) { try { window.localStorage.setItem(k, v); return true; } catch (e) { return false; } },
   del(k) { try { window.localStorage.removeItem(k); } catch (e) { /* bỏ qua */ } },
@@ -26,20 +25,20 @@ function writeState(json) {
 }
 // Lưu: ảnh, video lớn cất IndexedDB trước, rồi mới ghi localStorage (mục 10.39); các lần lưu xếp hàng theo thứ tự
 let saveQ = Promise.resolve(), saveBusy = 0;
-function save() {
+export function save() {
   if (!mediaOk) return writeState(JSON.stringify(S));
   const pend = new Map(); const json = stateJson(pend);
   if (!pend.size && !saveBusy) return writeState(json);
   saveBusy++;
-  saveQ = saveQ.then(() => mediaPutAll(pend)).then(() => writeState(json), () => { mediaOk = false; toast('Không cất được ảnh vào bộ nhớ trình duyệt; chuyển về lưu thường.', 'bad'); writeState(JSON.stringify(S)); }).finally(() => { saveBusy--; });
+  saveQ = saveQ.then(() => mediaPutAll(pend)).then(() => writeState(json), () => { setMediaOk(false); toast('Không cất được ảnh vào bộ nhớ trình duyệt; chuyển về lưu thường.', 'bad'); writeState(JSON.stringify(S)); }).finally(() => { saveBusy--; });
   return true;
 }
 // Chờ các lần lưu đang xếp hàng (dùng trước khi tải lại trang)
 function saveDone() { return saveQ; }
-function commit(msg) { save(); render(); if (msg) toast(msg); }
+export function commit(msg) { save(); render(); if (msg) toast(msg); }
 
 // ---- Thông báo ----
-function toast(text, kind, action) {
+export function toast(text, kind, action) {
   const el = document.createElement('div');
   el.className = 'toast' + (kind ? ' ' + kind : '');
   el.textContent = text;
@@ -50,8 +49,8 @@ function toast(text, kind, action) {
 }
 
 // ---- Lớp phủ: ngăn bên và hộp thoại ----
-let layerStack = [];
-function openLayer(html, kind, onMount) {
+export let layerStack = [];
+export function openLayer(html, kind, onMount) {
   const layer = $('#layer');
   const wrap = document.createElement('div');
   wrap.style.position = 'absolute'; wrap.style.inset = '0';
@@ -65,14 +64,14 @@ function openLayer(html, kind, onMount) {
   if (focusable) setTimeout(() => focusable.focus(), 30);
   return box;
 }
-function closeLayer() {
+export function closeLayer() {
   const w = layerStack.pop(); if (w) w.remove();
   if (!layerStack.length) $('#layer').style.pointerEvents = 'none';
 }
-function closeAllLayers() { while (layerStack.length) closeLayer(); }
+export function closeAllLayers() { while (layerStack.length) closeLayer(); }
 
 // Hộp xác nhận dựng trong trang (confirm() bị chặn trong artifact)
-function confirmBox({ title, body, ok = 'Đồng ý', danger = false, extra = '' }) {
+export function confirmBox({ title, body, ok = 'Đồng ý', danger = false, extra = '' }) {
   return new Promise(resolve => {
     const box = openLayer(`
       <h2>${esc(title)}</h2>
@@ -110,15 +109,15 @@ const ICONS = {
   chart: '<path d="M4 20h16M7 16v-5M12 16V7M17 16v-8"/>', link: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>', clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
   sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
 };
-function icon(name) { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] || ''}</svg>`; }
+export function icon(name) { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] || ''}</svg>`; }
 
 // ---- Nhãn hiển thị (không mã chữ cái — UX-08) ----
 const SLOT_STATE = {
   EMPTY: ['Chưa có bài', 'st-need'], DRAFT: ['Chưa duyệt', 'st-need'], APPROVED: ['Đã duyệt', 'st-ok'], PUBLISHED: ['Đã đăng', 'st-done'],
 };
-const CELL_STATE = { EMPTY: ['Trống', 'st-need'], DRAFT: ['Chưa duyệt', 'st-need'], APPROVED: ['Đã duyệt', 'st-ok'], CANCELLED: ['Đã hủy', 'st-off'] };
+export const CELL_STATE = { EMPTY: ['Trống', 'st-need'], DRAFT: ['Chưa duyệt', 'st-need'], APPROVED: ['Đã duyệt', 'st-ok'], CANCELLED: ['Đã hủy', 'st-off'] };
 function freeTag(s) { return s.free ? '<span class="free-tag" title="Slot tự do: bạn tự viết bài, tải ảnh/video">Tự viết</span>' : ''; }
-function slotStateHtml(s) {
+export function slotStateHtml(s) {
   if (s.needsUpdate) return `<span class="st st-bad">Cần cập nhật</span>`;
   const [l, c] = SLOT_STATE[s.state] || [s.state, 'st-off'];
   return `<span class="st ${c}">${s.state === 'PUBLISHED' ? '✓ ' : ''}${l}</span>${freeTag(s)}`;
@@ -136,46 +135,46 @@ function pfIcon(pf) {
     : `<svg class="pfi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>`;
 }
 // Nhãn kênh: icon nền tảng + tên (tên ẩn trên thẻ slot nhưng vẫn đọc được bằng trình đọc màn hình)
-function chTag(id, label) {
+export function chTag(id, label) {
   const c = AC.byId(S.channels, id); const pf = c ? AC.channelPlatform(c) : 'other'; const name = label || chName(id);
   return `<span class="ch pf-${pf}" title="${esc(name)}">${pfIcon(pf)}<span class="chn">${esc(name)}</span></span>`;
 }
-function chName(id) { const c = AC.byId(S.channels, id); return c ? (c.short || c.name) : 'Kênh đã xóa'; }
-function fmtName(id) { const f = AC.byId(S.formats, id); return f ? f.name : 'Format đã xóa'; }
-function fmtFull(id) { const f = AC.byId(S.formats, id); return f ? `${chName(f.channelId)} · ${f.name}` : 'Format đã xóa'; }
-function colName(id) { const c = AC.byId(S.columns, id); return c ? c.name : 'Cột đã xóa'; }
-function curStart() { return S.ui.weekStart; }
-function curWeek() { return AC.weekOf(S, AC.weekIdOf(S.ui.weekStart)); }   // null nếu tuần chưa được chạm tới
+export function chName(id) { const c = AC.byId(S.channels, id); return c ? (c.short || c.name) : 'Kênh đã xóa'; }
+export function fmtName(id) { const f = AC.byId(S.formats, id); return f ? f.name : 'Format đã xóa'; }
+export function fmtFull(id) { const f = AC.byId(S.formats, id); return f ? `${chName(f.channelId)} · ${f.name}` : 'Format đã xóa'; }
+export function colName(id) { const c = AC.byId(S.columns, id); return c ? c.name : 'Cột đã xóa'; }
+export function curStart() { return S.ui.weekStart; }
+export function curWeek() { return AC.weekOf(S, AC.weekIdOf(S.ui.weekStart)); }   // null nếu tuần chưa được chạm tới
 // Mở bản ghi tuần hiện tại khi cần ghi dữ liệu (nạp Topic trước khi lập tuần)
-function ensureCurWeek() { const r = AC.ensureWeek(S, curStart()); return r.ok ? r.week : null; }
+export function ensureCurWeek() { const r = AC.ensureWeek(S, curStart()); return r.ok ? r.week : null; }
 // Ảnh minh họa mô phỏng: màu và khối sinh từ seed của phiên bản
 // Hình của một phiên bản ảnh: ảnh tải lên (src) hoặc ảnh mô phỏng (SVG theo seed)
-function imgVisual(v, controls, ratio) {
+export function imgVisual(v, controls, ratio) {
   if (v.src && v.kind === 'video') return `<video src="${esc(v.src)}#t=0.1" ${v.cover ? `poster="${esc(v.cover.src)}"` : ''} muted playsinline preload="metadata" ${controls ? 'controls' : ''}></video>`;
   if (v.src) return `<img src="${esc(v.src)}" alt="" loading="lazy">`;
   const g = AC.mockArt(v.seed, ratio);
   return `<svg viewBox="0 0 ${g.W} ${g.H}" preserveAspectRatio="xMidYMid meet" aria-hidden="true">${g.inner}</svg>`;
 }
 // Loại của ô media: theo bản đang dùng (slot tự do: một ô nhận cả ảnh lẫn video)
-function assetKind(a) { const v = a.versions.find(x => x.n === a.current); return v ? (v.kind === 'video' ? 'video' : 'image') : (a.kind === 'video' ? 'video' : 'image'); }
+export function assetKind(a) { const v = a.versions.find(x => x.n === a.current); return v ? (v.kind === 'video' ? 'video' : 'image') : (a.kind === 'video' ? 'video' : 'image'); }
 // Nhãn ngắn của một phiên bản ảnh/video
-function versionLabel(v) { return v.kind === 'video' ? 'Video của bạn' + (v.cover ? ' · có bìa' : '') + (v.subs ? ' · phụ đề' : '') : v.ai ? 'AI thật' : v.lib ? 'Từ kho' : v.crop ? 'Đã cắt' : v.tpl ? 'Áp mẫu' : v.frame ? 'Đã ghép frame' : v.text ? 'Đã thêm chữ' : v.i2i ? (v.i2i.simulated === false ? 'Img2Img AI' : 'Img2Img mô phỏng') : v.src ? 'Ảnh của bạn' : 'Mô phỏng'; }
-function imgThumb(a) {
+export function versionLabel(v) { return v.kind === 'video' ? 'Video của bạn' + (v.cover ? ' · có bìa' : '') + (v.subs ? ' · phụ đề' : '') : v.ai ? 'AI thật' : v.lib ? 'Từ kho' : v.crop ? 'Đã cắt' : v.tpl ? 'Áp mẫu' : v.frame ? 'Đã ghép frame' : v.text ? 'Đã thêm chữ' : v.i2i ? (v.i2i.simulated === false ? 'Img2Img AI' : 'Img2Img mô phỏng') : v.src ? 'Ảnh của bạn' : 'Mô phỏng'; }
+export function imgThumb(a) {
   const v = a.versions.find(x => x.n === a.current);
   if (!v) return `<div class="imgbox empty" aria-label="Ô ảnh trống"><span class="small faint">${a.kind === 'video' ? 'Chưa có video' : 'Chưa có ảnh'}</span></div>`;
   return `<div class="imgbox" role="img" aria-label="${v.src ? 'Ảnh tải lên' : 'Ảnh mô phỏng'} phiên bản ${v.n}">${imgVisual(v, false, AC.assetRatioOf(a))}<span class="mock">${versionLabel(v)} · v${v.n}/${a.versions.length}</span></div>`;
 }
 // Số gọn kiểu Việt: 2.431 · 12,4K · 1,2Tr
-function fmtNum(n) {
+export function fmtNum(n) {
   n = Math.round(Number(n) || 0);
   if (n >= 1e6) return (n / 1e6).toFixed(1).replace('.', ',').replace(/,0$/, '') + 'Tr';
   if (n >= 1e4) return (n / 1e3).toFixed(1).replace('.', ',').replace(/,0$/, '') + 'K';
   return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 }
-function fmtPct(x) { return `${(Math.round(x * 1000) / 10).toString().replace('.', ',')}%`; }
-function tsLabel(ts) { return ts ? `${AC.dmy(ts.slice(0, 10))} ${ts.slice(11, 16)}` : ''; }
-function nowDate() { return S.settings.demoNow.slice(0, 10); }
-function nowTime() { return S.settings.demoNow.slice(11, 16); }
+export function fmtPct(x) { return `${(Math.round(x * 1000) / 10).toString().replace('.', ',')}%`; }
+export function tsLabel(ts) { return ts ? `${AC.dmy(ts.slice(0, 10))} ${ts.slice(11, 16)}` : ''; }
+export function nowDate() { return S.settings.demoNow.slice(0, 10); }
+export function nowTime() { return S.settings.demoNow.slice(11, 16); }
 
 // ---- Trình bày bài (mục 10.26): nhãn [Mục] và # ## ### thành tiêu đề, mỗi dòng một đoạn, - / 1. / "Bước n:" thành danh sách, **đậm**.
 // marks: [{s, e, cls}] vị trí trong văn bản gốc (cảnh báo quy tắc, từ khóa tìm) — giữ nguyên khi chia khối
@@ -222,7 +221,7 @@ function richInline(text, s, e, marks) {
   }
   return out;
 }
-function richText(text, marks) {
+export function richText(text, marks) {
   const t = String(text || ''); let out = '', list = '';
   const close = () => { if (list) { out += list === 'ol' ? '</ol>' : '</ul>'; list = ''; } };
   const blocks = richBlocks(t);
@@ -243,7 +242,7 @@ function richText(text, marks) {
 }
 // Nội dung Topic theo Khung Topic (mục 10.30): mỗi mục ### là một khối, trình bày theo kiểu của mục trong khung
 const TP_PAIRS = { myth: ['Ngộ nhận', 'Thực tế'], qa: ['Câu hỏi', 'Đáp án'] };
-function topicRich(text, marks) {
+export function topicRich(text, marks) {
   const t = String(text || ''); const blocks = richBlocks(t);
   const groups = [{ h: null, style: 'para', bs: [] }];
   blocks.forEach(b => {
@@ -283,13 +282,13 @@ function topicRich(text, marks) {
     return `<section class="tsec tsec-${g.style}">${g.h ? `<h2 class="rt-h2">${richInline(t, g.h.s, g.h.e, marks)}</h2>` : ''}${body}</section>`;
   }).join('');
 }
-function warnMarks(ws) { const r = []; (ws || []).forEach(w => (w.ranges || []).forEach(x => r.push({ s: x[0], e: x[1], cls: w.level === 'note' ? 'note' : '' }))); return r; }
-function warningsHtml(ws) {
+export function warnMarks(ws) { const r = []; (ws || []).forEach(w => (w.ranges || []).forEach(x => r.push({ s: x[0], e: x[1], cls: w.level === 'note' ? 'note' : '' }))); return r; }
+export function warningsHtml(ws) {
   if (!ws.length) return `<p class="small" style="color:var(--good)">Không có cảnh báo quy tắc.</p>`;
   return `<div class="warns">${ws.map(w => `<div class="warn-i"><span class="lvl ${w.level}">${w.level === 'error' ? 'Lỗi' : 'Lưu ý'}</span><span>${esc(AC.RULE_NAMES[w.id] || '')}: ${esc(w.text)}</span></div>`).join('')}</div>
     <p class="faint small">Cảnh báo chỉ để tham khảo, không chặn duyệt hay xác nhận.</p>`;
 }
-function scoreHtml(scores, total, tip, criteria, ai) {
+export function scoreHtml(scores, total, tip, criteria, ai) {
   if (total == null) return '';
   const thr = S.settings.reviewThreshold;
   return `<div class="score">
@@ -302,7 +301,7 @@ function scoreHtml(scores, total, tip, criteria, ai) {
 // ---- Trình chỉnh sửa Markdown cơ bản (mục 10.28): thanh công cụ + Viết/Xem trước; nội dung vẫn là văn bản Markdown ----
 // mode 'full' (Topic, Cell, Blog): tiêu đề mục, đậm, danh sách; 'social' (Facebook, Threads…): gạch đầu dòng "•", danh sách số, emoji
 const MD_EMOJI = ['👉', '✅', '💡', '📌', '❓', '🔥'];
-function mdToolbarHtml(id, mode, preview, ai) {
+export function mdToolbarHtml(id, mode, preview, ai) {
   const b = (op, label, title, cls = '') => `<button type="button" class="mdb ${cls}" data-act="md" data-op="${op}" data-for="${id}" title="${esc(title)}" aria-label="${esc(title)}">${label}</button>`;
   const tools = mode === 'social'
     ? b('bullet', '•', 'Gạch đầu dòng •') + b('ol', '1.', 'Danh sách số') + '<span class="mdsep"></span>' + MD_EMOJI.map(e => b('emoji', e, `Chèn ${e}`, 'emo').replace('data-op="emoji"', `data-op="emoji" data-e="${e}"`)).join('')
@@ -312,24 +311,25 @@ function mdToolbarHtml(id, mode, preview, ai) {
   return `<div class="mded-bar" role="toolbar" aria-label="Định dạng">${tools}${aiTools}<span class="mdsep"></span>${b('undo', icon('undo'), 'Hoàn tác (Ctrl+Z)')}${preview ? `<span class="mded-tabs" role="tablist"><button type="button" role="tab" data-act="md-tab" data-tab="write" data-for="${id}" aria-selected="true">Viết</button><button type="button" role="tab" data-act="md-tab" data-tab="preview" data-for="${id}" aria-selected="false">Xem trước</button></span>` : ''}</div>`;
 }
 // Ô soạn mà thanh công cụ tác động. Ô Sửa Blog dạng khối (mục 10.46): #pv-edit là bản ghép ẩn; công cụ tác động lên đoạn chữ đang đứng (hoặc đoạn đầu khi first)
-let mdSegLast = 0;
-function mdTa(id, first) {
+export let mdSegLast = 0;
+export function setMdSegLast(v) { mdSegLast = v; }
+export function mdTa(id, first) {
   const m = document.getElementById(id); if (!m || !m.hidden || !m.classList.contains('pv-edit')) return m;
   const segs = [...document.querySelectorAll('.pv-seg')]; if (!segs.length) return m;
   return first ? segs[0] : segs.find(x => x === document.activeElement) || segs[mdSegLast] || segs[0];
 }
-function mdEditorHtml(id, value, opts = {}) {
+export function mdEditorHtml(id, value, opts = {}) {
   const mode = opts.mode || 'full'; const pv = mode === 'full' && opts.preview !== false;
   return `<div class="mded" data-mode="${mode}">${mdToolbarHtml(id, mode, pv, opts.ai)}<textarea id="${id}" class="mded-ta ${opts.cls || ''}" data-md="${mode}" spellcheck="false" ${opts.attrs || ''} style="min-height:${opts.h || 260}px">${esc(value || '')}</textarea>${pv ? `<div class="mded-pv content-text rich" data-pv-for="${id}" hidden></div>` : ''}</div>`;
 }
 // Thay đoạn [a, b) bằng chữ mới, giữ được Hoàn tác của trình duyệt khi có thể
-function mdReplace(ta, a, b, text, selA, selB) {
+export function mdReplace(ta, a, b, text, selA, selB) {
   ta.focus(); ta.setSelectionRange(a, b);
   let ok = false; try { ok = document.execCommand('insertText', false, text); } catch (e) { ok = false; }
   if (!ok) { ta.setRangeText(text, a, b, 'end'); ta.dispatchEvent(new Event('input', { bubbles: true })); }
   if (selA != null) ta.setSelectionRange(selA, selB == null ? selA : selB);
 }
-function mdApply(ta, op, arg) {
+export function mdApply(ta, op, arg) {
   const v = ta.value, s = ta.selectionStart, e = ta.selectionEnd;
   if (op === 'undo') { ta.focus(); try { document.execCommand('undo'); } catch (er) { /* trình duyệt không hỗ trợ */ } return; }
   if (op === 'emoji') return mdReplace(ta, s, e, arg, s + arg.length);

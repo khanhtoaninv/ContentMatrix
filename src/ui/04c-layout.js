@@ -1,10 +1,14 @@
 // ---------- UI · Sơ đồ layout của Format (mục 10.13): khung dây giúp hình dung bài trước khi tạo ----------
+import { AC } from '../logic/99-export.js';
+import { S } from './00-state.js';
+import { chName, colName, esc } from './01-core.js';
+import { pvRatio } from './04b-preview.js';
 const FL_CARD_KINDS = { 'fb-quote': 'Câu trích lớn', 'fb-truefalse': 'Nhận định + "Đúng hay Sai?"', 'fb-poll': 'Câu hỏi bình chọn', 'fb-fill': 'Câu có chỗ trống ___', 'fb-infographic': 'Con số nổi bật' };
 function flLines(n, w) { return Array.from({ length: n }, (_, i) => `<i class="fl-line" style="width:${i === n - 1 ? w || 60 : 100}%"></i>`).join(''); }
 function flImg(name, label, ratio) {
   return `<div class="fl-img" style="aspect-ratio:${ratio || pvRatio(name)}"><span>${esc(label || name)}</span></div>`;
 }
-function formatLayoutHtml(formatId) {
+export function formatLayoutHtml(formatId) {
   const f = AC.byId(S.formats, formatId);
   if (!f) return '<div class="fl-wrap"><p class="small muted">Chọn Format để xem layout bài.</p></div>';
   const hr = f.hardRules || {}; const unit = hr.lengthUnit === 'words' ? 'chữ' : 'ký tự';

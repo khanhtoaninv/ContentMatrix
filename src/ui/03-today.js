@@ -1,5 +1,10 @@
 // ---------- UI · Dashboard: tiêu đề tuần + chỉ số "Đăng đủ, đúng bài" (gộp từ màn Hôm nay cũ) ----------
-function slotRowHtml(s, showDate) {
+import { AC } from '../logic/99-export.js';
+import { ACTIONS, S } from './00-state.js';
+import { chTag, commit, confirmBox, curStart, curWeek, esc, fmtName, fmtNum, nowDate, nowTime, slotStateHtml, toast } from './01-core.js';
+import { FAIL_TAG } from './04-week.js';
+import { SETUP_TABS } from './07-setup.js';
+export function slotRowHtml(s, showDate) {
   const late = s.state !== 'PUBLISHED' && `${s.date}T${s.time}` <= S.settings.demoNow;
   return `<button class="li" data-act="open-slot" data-id="${esc(s.id)}">
     <span class="mono">${showDate ? `${AC.WEEKDAY_SHORT[AC.weekdayOf(s.date)]} ` : ''}${esc(s.time)}</span>
@@ -7,7 +12,7 @@ function slotRowHtml(s, showDate) {
     <span class="row" style="gap:6px">${late ? FAIL_TAG : ''}${slotStateHtml(s)}</span>
   </button>`;
 }
-function dashHeaderHtml(start, w, file) {
+export function dashHeaderHtml(start, w, file) {
   const l = AC.weekLabelOf(start); const date = nowDate();
   const k = w ? AC.weekKpi(S, w.id) : { total: 0, ready: 0, due: 0, published: 0, asConfirmed: 0, late: [], tracking: false };
   const sc = w ? AC.slotCounts(S, w.id) : { total: 0, EMPTY: 0, APPROVED: 0, PUBLISHED: 0, needsUpdate: 0 };
@@ -30,7 +35,7 @@ function dashHeaderHtml(start, w, file) {
 
 // ---- Nút demo từng bước (chỉ để trải nghiệm; dữ liệu mô phỏng, áp cho tuần đang chọn) ----
 const DEMO_LABELS = { setup: 'Nạp Thiết lập', plan: 'Lập tuần', topics: 'Nạp Topic', write: 'Viết ma trận', approve: 'Duyệt ô', deal: 'Chia bài', review: 'Duyệt slot + ảnh', confirm: 'Chốt lịch', clear: 'Làm trống tuần' };
-function demoBarHtml(steps) {
+export function demoBarHtml(steps) {
   const start = curStart();
   return `<section class="demobar" aria-label="Demo từng bước"><span class="demo-tag" title="Công cụ trải nghiệm, áp cho tuần ${esc(AC.weekLabelOf(start).range)}">Demo</span><div class="row">${steps.map(k => {
     const g = AC.demoGate(S, start, k);
@@ -50,7 +55,7 @@ ACTIONS['demo-step'] = async el => {
 };
 
 // ---- Demo trong Setup: nạp mẫu cho mục đang xem, hoặc cả Thiết lập ----
-function demoSetupBarHtml(tab) {
+export function demoSetupBarHtml(tab) {
   const label = (SETUP_TABS.find(t => t[0] === tab) || [])[1];
   const part = AC.SETUP_PARTS.includes(tab) ? tab : null;
   return `<section class="demobar" aria-label="Demo Thiết lập"><span class="demo-tag" title="Chỉ nạp phần Thiết lập; không đụng tới tuần, Topic, slot">Demo</span><div class="row">

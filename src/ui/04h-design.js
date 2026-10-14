@@ -1,20 +1,26 @@
 // ---------- UI · Cắt, xoay, đổi tỉ lệ ảnh và Mẫu thiết kế (mục 10.36) — chạy thật bằng canvas ----------
+import { AC } from '../logic/99-export.js';
+import { ACTIONS, S } from './00-state.js';
+import { commit, confirmBox, esc, icon, openLayer, toast } from './01-core.js';
+import { afterImageDialog, curVersion, drawCover, loadImg, renderFramed, versionImgSrc } from './04e-frame.js';
+import { drawTextLayer, txLoadFonts, txOutSize } from './04f-text.js';
+import { downloadBytes } from './06-export.js';
 // Ảnh đã xoay/lật (cạnh dài tối đa 2000px) làm nền cho vùng cắt
-function orientImage(img, rot, flip) {
+export function orientImage(img, rot, flip) {
   const iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height, k = Math.min(1, 2000 / Math.max(iw, ih));
   const w0 = Math.round(iw * k), h0 = Math.round(ih * k), sw = rot % 180 ? h0 : w0, sh = rot % 180 ? w0 : h0;
   const c = document.createElement('canvas'); c.width = sw; c.height = sh; const g = c.getContext('2d');
   g.translate(sw / 2, sh / 2); g.rotate(rot * Math.PI / 180); if (flip) g.scale(-1, 1); g.drawImage(img, -w0 / 2, -h0 / 2, w0, h0);
   return c;
 }
-function cropToDataUrl(oc, ratio, zoom, cx, cy) {
+export function cropToDataUrl(oc, ratio, zoom, cx, cy) {
   const r = AC.cropRect(oc.width, oc.height, ratio, zoom, cx, cy); const [W, H] = AC.cropOutSize(ratio, r.w, r.h);
   const c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d');
   g.imageSmoothingQuality = 'high'; g.drawImage(oc, r.x, r.y, r.w, r.h, 0, 0, W, H);
   return { src: c.toDataURL('image/jpeg', 0.88), W, H };
 }
 
-async function openCropDialog(s, i) {
+export async function openCropDialog(s, i) {
   const a = s.assets[i], v = curVersion(a);
   let img; try { img = await loadImg(versionImgSrc(v, AC.assetRatioOf(a))); } catch (e) { return toast('Không đọc được ảnh.', 'bad'); }
   const st = { ratio: AC.assetRatioOf(a), rot: 0, flip: false, zoom: 1, cx: 0.5, cy: 0.5, drag: null };
@@ -93,7 +99,7 @@ async function renderTemplateImage(tpl, a, v, texts, scale) {
   g.fillStyle = '#fff'; g.fillRect(0, 0, W, H); drawCover(g, img, 0, 0, W, H); layers.forEach(l => drawTextLayer(g, l, W, H));
   return c.toDataURL('image/jpeg', 0.88);
 }
-function openTemplateDialog(s, i) {
+export function openTemplateDialog(s, i) {
   const a = s.assets[i], v = curVersion(a), list = AC.designTemplatesOf(S);
   if (!list.length) return toast('Chưa có mẫu. Bấm Chữ, soạn chữ rồi Lưu thành mẫu.', 'bad');
   const st = { id: list[0].id, texts: [] };
@@ -128,7 +134,7 @@ function openTemplateDialog(s, i) {
   fields();
 }
 // Thiết lập → Frame ảnh: danh sách mẫu thiết kế
-function designTplSection() {
+export function designTplSection() {
   const L = AC.designTemplatesOf(S);
   return `<section class="stack"><h3>Mẫu thiết kế <span class="small faint">${L.length}</span></h3><p class="small muted">Mẫu là bộ lớp chữ (vị trí, font, cỡ, màu) và frame tuỳ chọn. Tạo mẫu ở nút Chữ trên ảnh → Lưu thành mẫu; dùng mẫu bằng nút Mẫu trên ảnh.</p>
     ${L.length ? `<div class="sn-table">${L.map(x => `<div class="sn-row"><span class="sn-t"><b>${esc(x.name)}</b></span><span class="small muted">${x.layers.length} lớp chữ · ${esc(x.layers.map(l => AC.TEXT_FONTS.find(f => f.id === l.font).name.split(' (')[0]).filter((n, k, arr) => arr.indexOf(n) === k).join(', '))}</span><span class="small faint">${x.frameId ? esc((AC.frameOf(S, x.frameId) || {}).name || 'frame đã xoá') : 'không frame'}</span><button class="btn sm ghost danger" data-act="dtpl-del" data-id="${esc(x.id)}" aria-label="Xoá mẫu ${esc(x.name)}">Xoá</button></div>`).join('')}</div>` : '<p class="small muted">Chưa có mẫu nào.</p>'}</section>`;

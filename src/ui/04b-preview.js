@@ -1,9 +1,21 @@
 // ---------- UI · Xem như khi đăng: mô phỏng giao diện bài trên từng kênh (chỉ để hình dung) ----------
+import { AC } from '../logic/99-export.js';
+import { ACTIONS, S } from './00-state.js';
+import { assetKind, chName, confirmBox, esc, fmtFull, fmtName, fmtPct, icon, imgThumb, imgVisual, mdSegLast, mdToolbarHtml, openLayer, richText, save, scoreHtml, setMdSegLast, slotStateHtml, toast, tsLabel, warningsHtml } from './01-core.js';
+import { render } from './02-shell.js';
+import { lockNote, openSlot, slotImageAction, slotImageRowsHtml, vidMax } from './04-week.js';
+import { liveMs, pubButtonsHtml, pubSectionsHtml, publishDialog } from './04d-publish.js';
+import { slotImageDialog } from './04e-frame.js';
+import { openCarouselEditor, openRepurposeDialog } from './04i-studio.js';
+import { apiGenImage, videoMetaLine } from './04j-media.js';
+import { withAiText } from './04k-aitext.js';
+import { blogBlocksHtml, blogBodyHtml, blogEditTools, blogPvAction, blogSeoPanelHtml } from './04l-blog.js';
+import { imgToolbar } from './04m-imgtools.js';
 ACTIONS['slot-preview'] = el => openPreview(el.dataset.id, el.dataset.n ? Number(el.dataset.n) : null);
 const PV_FREE_EMPTY = 'Chưa có nội dung. Bấm Sửa để tự viết bài.';
 
 // Tỉ lệ khung ảnh đoán từ tên ô ảnh của Format (1080×1080, 1200×630, 16:9, 9:16, 4:5)
-function pvRatio(name) {
+export function pvRatio(name) {
   const n = String(name || '');
   if (/9\s*:\s*16|dọc/i.test(n)) return '9 / 16';
   if (/16\s*:\s*9|1280\s*×\s*720|ngang/i.test(n)) return '16 / 9';
@@ -12,7 +24,7 @@ function pvRatio(name) {
   return '1 / 1';
 }
 // Ngữ cảnh chế độ Sửa của popup đang mở (để pvImage vẽ nút thao tác ngay trên ảnh)
-let pvCtx = null;
+export let pvCtx = null;
 function pvImgTools(a, ti) {
   const c = pvCtx; if (!c || !c.edit || ti == null || !a || c.s.free) return ''; // slot tự do: layout chỉ để xem, thao tác ở mục media bên dưới
   const s = c.s, lk = c.locked; const ci = a.versions.findIndex(v => v.n === a.current);
@@ -42,7 +54,7 @@ function pvMediaHtml(s, st, lk) {
 function pvImage(a, ratio, overlay, ti) {
   return pvImageBase(a, ratio, overlay) + pvImgTools(a, ti);
 }
-function pvImageBase(a, ratio, overlay) {
+export function pvImageBase(a, ratio, overlay) {
   const v = a && a.versions.find(x => x.n === a.current);
   const key = a ? AC.assetRatioOf(a) : '', r = ratio || (key ? AC.RATIO_CSS[key] : '1 / 1');
   const ov = overlay ? `<span class="pv-overlay">${esc(overlay)}</span>` : '';
@@ -77,8 +89,8 @@ function pvCompact(n) {
   const f = (x, u) => (x >= 100 ? Math.round(x) : Math.round(x * 10) / 10).toString().replace('.', ',') + u;
   return n >= 1e6 ? f(n / 1e6, 'Tr') : n >= 1e3 ? f(n / 1e3, 'K') : String(n);
 }
-function pvMVal(m, k) { return k === '_reach' ? m.reach : k === '_eng' ? m.eng : (m.values || {})[k]; }
-function pvMText(k, v) {
+export function pvMVal(m, k) { return k === '_reach' ? m.reach : k === '_eng' ? m.eng : (m.values || {})[k]; }
+export function pvMText(k, v) {
   if (k === '_rate') return fmtPct(v);
   if (PV_AVG[k]) return `${Math.round(v || 0)} giây`;
   if (k === 'watchHours') return `${String(v || 0).replace('.', ',')} giờ`;
@@ -235,7 +247,7 @@ function pvBlog(s, f, text, st) {
     ${st && st.edit ? pvEditBox(st) : ''}<article ${st && st.edit ? 'hidden' : ''}><h3>${esc(h1)}</h3><p class="pv-meta">${esc(b.name)} · ${esc(pvWhen(s))} · ${Math.max(1, Math.round(AC.countWords(text) / 200))} phút đọc${pvBlogMeta(s, st)}</p>${body}</article>
   </div>`;
 }
-function pvWhen(s) { return `${AC.WEEKDAY_SHORT[AC.weekdayOf(s.date)]} ${AC.dmy(s.date)} lúc ${s.time}`; }
+export function pvWhen(s) { return `${AC.WEEKDAY_SHORT[AC.weekdayOf(s.date)]} ${AC.dmy(s.date)} lúc ${s.time}`; }
 
 // Ô sửa bài ngay trong khung bài (chữ dùng font của khung, giãn theo nội dung)
 // Ô sửa bài slot (mục 10.28): Blog có thanh Markdown đầy đủ; mạng xã hội chỉ "•", danh sách số, emoji (nền tảng không hiện Markdown)
@@ -245,8 +257,8 @@ function pvEditBox(st) {
   const blocks = !!(st.s && AC.isBlogSlot(S, st.s)); // Blog: bài dạng khối, ảnh nằm đúng chỗ (mục 10.46)
   return `<div class="mded pv-mded${blocks ? ' pv-blocks' : ''}" data-mode="${mode}">${blogBar}<textarea class="pv-edit" id="pv-edit" data-md="${mode}" data-slot="${esc(st.s ? st.s.id : '')}" spellcheck="false" aria-label="Sửa bài" ${blocks ? 'hidden' : ''}>\n${esc(st.draft)}</textarea>${blocks ? blogBlocksHtml(st) : ''}</div>`;
 }
-let pvRefresh = null; // vẽ lại popup đang mở sau thao tác ảnh; trả true nếu popup của slot đó đang mở
-function openPreview(id, n, opts) {
+export let pvRefresh = null; // vẽ lại popup đang mở sau thao tác ảnh; trả true nếu popup của slot đó đang mở
+export function openPreview(id, n, opts) {
   const s = AC.byId(S.slots, id); if (!s) return;
   const f = AC.byId(S.formats, s.formatId); if (!f) return;
   const h = (s.history || []).find(x => x.n === n);
@@ -299,7 +311,7 @@ function openPreview(id, n, opts) {
     if (blk && ta) { // Sửa Blog dạng khối: ghép các khối vào #pv-edit (ẩn) mỗi lần gõ
       const fitS = x => { x.style.height = 'auto'; x.style.height = x.scrollHeight + 2 + 'px'; };
       const join = () => [...blk.children].map(n => n.matches('textarea') ? n.value : n.dataset.line).join('\n');
-      blk.querySelectorAll('.pv-seg').forEach((x, k) => { fitS(x); x.addEventListener('focus', () => { mdSegLast = k; fitS(x); }); x.addEventListener('input', () => { fitS(x); ta.value = join(); ta.dispatchEvent(new Event('input')); }); });
+      blk.querySelectorAll('.pv-seg').forEach((x, k) => { fitS(x); x.addEventListener('focus', () => { setMdSegLast(k); fitS(x); }); x.addEventListener('input', () => { fitS(x); ta.value = join(); ta.dispatchEvent(new Event('input')); }); });
     }
     if (ta) { let seoT = null; const fit = () => { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 2 + 'px'; }; fit(); ta.addEventListener('input', () => { st.draft = ta.value; fit(); box.querySelector('#pv-live').innerHTML = live(); const sp = box.querySelector('#pv-seo'); if (sp) { clearTimeout(seoT); seoT = setTimeout(() => { const cur = box.querySelector('#pv-seo'); if (cur) cur.outerHTML = blogSeoPanelHtml(s, st, cur.querySelector('.cfg-n').textContent); }, 300); } }); }
   };

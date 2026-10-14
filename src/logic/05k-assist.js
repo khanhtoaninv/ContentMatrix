@@ -1,8 +1,10 @@
 // ---------- Trợ lý viết: sửa đoạn bằng AI, phương án hook/caption, thư viện hashtag & CTA (mục 10.35) ----------
+import { clone, fold, hash32, pick, splitSentences } from './01-util.js';
+import { byId, nextId } from './05-model.js';
 // Sửa đoạn và phương án hook/caption là MÔ PHỎNG (biến đổi theo quy tắc, xác định theo đầu vào).
 // Khi gắn AI thật: thay aiRewrite / hookOptions / captionOptions bằng gọi mô hình (qua máy chủ), giữ nguyên dạng trả về.
 
-const AI_OPS = {
+export const AI_OPS = {
   short: 'Ngắn lại', long: 'Viết dài hơn', casual: 'Thân mật hơn', formal: 'Trang trọng hơn',
   cta: 'Thêm lời kêu gọi', emoji: 'Thêm emoji', hook: 'Mở bài hấp dẫn hơn', fix: 'Sửa chính tả, dấu câu',
 };
@@ -10,7 +12,7 @@ const AI_OPS = {
 const TONE_PAIRS = [['sử dụng', 'dùng'], ['tuy nhiên', 'nhưng'], ['do đó', 'vì vậy'], ['thực hiện', 'làm'], ['bởi vì', 'vì'], ['hãy', 'cứ'], ['rất nhiều', 'cả đống'], ['nhanh chóng', 'nhanh gọn'], ['vô cùng', 'cực kỳ']];
 const EMOJI_BY_WORD = [['nói', '🗣️'], ['nghe', '🎧'], ['học', '📚'], ['bước', '👣'], ['ngày', '📅'], ['họp', '💼'], ['mẹo', '💡'], ['sai', '⚠️'], ['đúng', '✅'], ['thử', '🔥'], ['cà phê', '☕'], ['ghi âm', '🎙️']];
 const AI_FILLERS = ['Điều quan trọng là bắt đầu nhỏ và làm đều mỗi ngày.', 'Bạn có thể thử ngay trong tuần này để thấy khác biệt.', 'Nhiều người bỏ qua bước này, nhưng chính nó tạo ra thay đổi.', 'Cứ làm chậm mà chắc, kết quả sẽ tự đến.'];
-const DEFAULT_CTAS = ['Lưu bài để làm theo và bình luận "xong" khi bạn thử nhé.', 'Bạn đã thử cách này chưa? Kể cho mình nghe dưới bình luận nhé.', 'Chia sẻ cho một người bạn cũng đang cần nhé.'];
+export const DEFAULT_CTAS = ['Lưu bài để làm theo và bình luận "xong" khi bạn thử nhé.', 'Bạn đã thử cách này chưa? Kể cho mình nghe dưới bình luận nhé.', 'Chia sẻ cho một người bạn cũng đang cần nhé.'];
 
 const capFirst = t => t ? t.charAt(0).toUpperCase() + t.slice(1) : t;
 const lowFirst = t => t && !/^[A-ZĐ]{2,}/.test(t) ? t.charAt(0).toLowerCase() + t.slice(1) : t;
@@ -20,7 +22,7 @@ function swapWords(text, pairs, dir) {
   return out;
 }
 // Đoán thao tác từ yêu cầu tự do
-function aiOpsOf(instruction) {
+export function aiOpsOf(instruction) {
   const p = fold(instruction || ''); const ops = [];
   if (/ngan|gon|rut/.test(p)) ops.push('short');
   if (/dai|chi tiet|them y/.test(p)) ops.push('long');
@@ -33,7 +35,7 @@ function aiOpsOf(instruction) {
   return ops;
 }
 // Sửa một đoạn theo thao tác (mô phỏng). n: lần thử, đổi n cho cách viết khác.
-function aiRewrite(text, op, opts) {
+export function aiRewrite(text, op, opts) {
   const o = opts || {}; const n = o.n || 0; let t = String(text || '');
   const ops = op === 'custom' ? aiOpsOf(o.instruction) : [op];
   if (!t.trim()) return { ok: false, error: 'Chọn hoặc viết một đoạn để sửa.' };
@@ -62,16 +64,16 @@ function aiRewrite(text, op, opts) {
 }
 
 // ---- Phương án hook ----
-const HOOK_KINDS = { question: 'Câu hỏi', number: 'Con số', surprise: 'Bất ngờ', story: 'Câu chuyện', benefit: 'Lợi ích' };
+export const HOOK_KINDS = { question: 'Câu hỏi', number: 'Con số', surprise: 'Bất ngờ', story: 'Câu chuyện', benefit: 'Lợi ích' };
 // Ý chính của bài: câu đầu, bỏ nhãn đoạn, hashtag, dấu chấm cuối
-function coreIdea(text) {
+export function coreIdea(text) {
   const line = String(text || '').split('\n').map(l => l.replace(/^\s*(\[[^\]]+\]|#{1,6}\s+|Slide\s*\d+:|[-*•]\s+)/i, '').trim()).find(l => l && !/^#\S/.test(l)) || '';
   let c = (splitSentences(line)[0] || line).replace(/\*\*/g, '').replace(/[.!?:…]+$/, '').trim();
   const head = c.split(/:\s/)[0]; if (head.length >= 12 && head !== c) c = head; // "Chủ đề: chi tiết" → lấy chủ đề
   if (c.length > 70) { const k = c.indexOf(', '); if (k >= 12) c = c.slice(0, k); }
   return c;
 }
-function hookOptions(text, opts) {
+export function hookOptions(text, opts) {
   const n = (opts && opts.n) || 0; const core = coreIdea(text); const lc = lowFirst(core);
   const num = (String(text).match(/\b(\d{1,3})\b/) || [])[1] || '3';
   const T = {
@@ -84,7 +86,7 @@ function hookOptions(text, opts) {
   return Object.keys(HOOK_KINDS).map(k => ({ kind: k, label: HOOK_KINDS[k], text: T[k][n % 2], simulated: true }));
 }
 // Thay câu mở đầu (dòng/đoạn đầu không phải nhãn) bằng hook mới; giữ phần còn lại
-function replaceHook(text, hook) {
+export function replaceHook(text, hook) {
   const lines = String(text || '').split('\n');
   const i = lines.findIndex(l => l.trim() && !/^\s*(\[[^\]]+\]|#{1,6}\s)/.test(l.trim()) && !/^#\S/.test(l.trim()));
   if (i < 0) return `${hook}\n\n${text}`;
@@ -93,7 +95,7 @@ function replaceHook(text, hook) {
   return lines.join('\n');
 }
 // Ba phương án caption theo độ dài, dùng hashtag và CTA hợp ngữ cảnh
-function captionOptions(S, text, ctx) {
+export function captionOptions(S, text, ctx) {
   const hook = (hookOptions(text, ctx)[((ctx && ctx.n) || 0) % 5] || {}).text || coreIdea(text);
   const body = String(text || '').replace(/^\s*#\S.*$/gm, '').trim();
   const ss = splitSentences(body.replace(/^\s*(\[[^\]]+\]|#{1,6}\s+.*|Slide\s*\d+:)\s*$/gm, '').replace(/\n+/g, ' ')).slice(1);
@@ -106,14 +108,14 @@ function captionOptions(S, text, ctx) {
   ];
 }
 // Ghi loại hook đã chọn để sau này so với số liệu
-function setSlotHookKind(S, slotId, kind) {
+export function setSlotHookKind(S, slotId, kind) {
   const s = byId(S.slots, slotId); if (!s) return { ok: false, error: 'Không tìm thấy slot.' };
   if (!HOOK_KINDS[kind]) return { ok: false, error: 'Loại hook không hợp lệ.' };
   s.hookKind = kind; return { ok: true };
 }
 
 // ---- Thư viện hashtag & CTA (chạy thật) ----
-const DEFAULT_SNIPPETS = [
+export const DEFAULT_SNIPPETS = [
   { id: 'sn-1', kind: 'hashtag', text: '#NoiDuocEnglish #TiengAnhDiLam #LuyenNoi', columnId: null, channelId: null },
   { id: 'sn-2', kind: 'hashtag', text: '#MeoTiengAnh #TiengAnhCongSo', columnId: 'col-huongdan', channelId: null },
   { id: 'sn-3', kind: 'hashtag', text: '#SuThatTiengAnh #NgoNhan', columnId: 'col-batngo', channelId: null },
@@ -125,16 +127,16 @@ const DEFAULT_SNIPPETS = [
   { id: 'sn-9', kind: 'cta', text: 'Theo dõi kênh để nhận mẹo nói tiếng Anh mỗi tuần.', columnId: null, channelId: null },
   { id: 'sn-10', kind: 'cta', text: 'Đọc bài đầy đủ ở link trong bio nhé.', columnId: null, channelId: 'ch-ig' },
 ];
-function snippetsOf(S) { return S.snippets || (S.isDemo ? DEFAULT_SNIPPETS : []); }
+export function snippetsOf(S) { return S.snippets || (S.isDemo ? DEFAULT_SNIPPETS : []); }
 function ownSnippets(S) { if (!S.snippets) S.snippets = clone(snippetsOf(S)); return S.snippets; }
 // Hợp ngữ cảnh: đúng Cột + kênh > đúng một trong hai > dùng chung; sau đó dùng nhiều trước
-function snippetsFor(S, ctx, kind, q) {
+export function snippetsFor(S, ctx, kind, q) {
   const c = ctx || {}; const fq = fold(q || '');
   return snippetsOf(S).filter(x => (!kind || x.kind === kind) && (!x.columnId || !c.columnId || x.columnId === c.columnId) && (!x.channelId || !c.channelId || x.channelId === c.channelId) && (!fq || fold(x.text).includes(fq)))
     .map(x => ({ x, w: (x.columnId && x.columnId === c.columnId ? 2 : 0) + (x.channelId && x.channelId === c.channelId ? 2 : 0) + (x.uses || 0) / 1000 }))
     .sort((a, b) => b.w - a.w).map(o => o.x);
 }
-function saveSnippet(S, sn) {
+export function saveSnippet(S, sn) {
   const kind = sn.kind === 'cta' ? 'cta' : 'hashtag';
   let text = String(sn.text || '').replace(/\s+/g, ' ').trim();
   if (kind === 'hashtag') {
@@ -150,8 +152,8 @@ function saveSnippet(S, sn) {
   if (i >= 0) { item.uses = list[i].uses || 0; list[i] = item; } else list.push(item);
   return { ok: true, snippet: item };
 }
-function deleteSnippet(S, id) {
+export function deleteSnippet(S, id) {
   const list = ownSnippets(S); const n = list.length; S.snippets = list.filter(x => x.id !== id);
   return n === S.snippets.length ? { ok: false, error: 'Không tìm thấy mục.' } : { ok: true };
 }
-function useSnippet(S, id) { const x = ownSnippets(S).find(y => y.id === id); if (x) x.uses = (x.uses || 0) + 1; return x || null; }
+export function useSnippet(S, id) { const x = ownSnippets(S).find(y => y.id === id); if (x) x.uses = (x.uses || 0) + 1; return x || null; }

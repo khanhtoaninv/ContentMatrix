@@ -1,21 +1,34 @@
 // ---------- UI · Ghép frame và Image to Image (mục 10.33) ----------
+import { AC } from '../logic/99-export.js';
+import { ACTIONS, CHANGES, INPUTS, S, view } from './00-state.js';
+import { $, assetKind, closeLayer, commit, confirmBox, esc, fmtNum, icon, imgVisual, openLayer, save, toast } from './01-core.js';
+import { stateJson } from './01b-mediastore.js';
+import { render } from './02-shell.js';
+import { openSlot } from './04-week.js';
+import { pvRefresh } from './04b-preview.js';
+import { openTextDialog } from './04f-text.js';
+import { designTplSection, openCropDialog, openTemplateDialog } from './04h-design.js';
+import { versionToDataUrl } from './04i-studio.js';
+import { apiGenImage, imageApiCall, openCoverDialog, openSubsDialog, providerLabel } from './04j-media.js';
+import { fitImageToRatio, openImageEditor, openLibraryPicker, openPromptDialog } from './04m-imgtools.js';
+import { lines } from './07-setup.js';
 // Ghép frame vẽ thật bằng canvas trong trình duyệt. Image to Image là mô phỏng: ảnh thật được biến đổi bằng bộ lọc
 // theo từ khoá của yêu cầu, ảnh mô phỏng sinh hình mới. Khi gắn API thật chỉ thay i2iEngine bên dưới.
 const FRAME_FONT = '"Be Vietnam Pro", system-ui, sans-serif';
-function loadImg(src) { return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('Không đọc được ảnh.')); i.src = src; }); }
+export function loadImg(src) { return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('Không đọc được ảnh.')); i.src = src; }); }
 // Ảnh nguồn của một phiên bản: ảnh thật, hoặc hình mô phỏng đổi thành SVG độc lập để vẽ lên canvas
-function versionImgSrc(v, ratio) {
+export function versionImgSrc(v, ratio) {
   if (v.src) return v.src;
   const std = AC.FRAME_RATIOS[ratio] || [1200, 800];
   const svg = imgVisual(v, false, ratio).replace('<svg ', `<svg xmlns="http://www.w3.org/2000/svg" width="${std[0]}" height="${std[1]}" `);
   return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
 }
-function drawCover(g, img, x, y, w, h) {
+export function drawCover(g, img, x, y, w, h) {
   const iw = img.naturalWidth || img.width || 1, ih = img.naturalHeight || img.height || 1;
   const k = Math.max(w / iw, h / ih), sw = w / k, sh = h / k;
   g.drawImage(img, (iw - sw) / 2, (ih - sh) / 2, sw, sh, x, y, w, h);
 }
-function roundRectPath(g, x, y, w, h, r) {
+export function roundRectPath(g, x, y, w, h, r) {
   g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r);
   g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath();
 }
@@ -46,7 +59,7 @@ function drawTextBlock(g, spec, text, W, H, st, weight, shadow) {
   g.restore();
 }
 // Vẽ ảnh đã ghép frame; scale < 1 để xem trước nhanh. Trả data URL JPEG.
-async function renderFramed(fr, v, title, sub, scale) {
+export async function renderFramed(fr, v, title, sub, scale) {
   const k = scale || 1; const [W0, H0] = AC.FRAME_RATIOS[fr.ratio] || [1080, 1080];
   const W = Math.round(W0 * k), H = Math.round(H0 * k); const st = AC.frameStyleOf(S);
   try { if (document.fonts && document.fonts.load) await Promise.all([document.fonts.load(`700 40px ${FRAME_FONT}`), document.fonts.load(`500 40px ${FRAME_FONT}`)]); } catch (e) { /* dùng font dự phòng */ }
@@ -91,15 +104,15 @@ async function i2iEngine(v, prompt, strength, ratio) {
   if (!v.src) return {};
   return { src: await renderI2I(v, AC.i2iLook(prompt, strength)) };
 }
-function curVersion(a) { return a && a.versions.find(x => x.n === a.current); }
+export function curVersion(a) { return a && a.versions.find(x => x.n === a.current); }
 // Dung lượng dữ liệu đang lưu (localStorage khoảng 5 triệu ký tự)
-function storeUse() { const n = stateJson(null).length; return { n, pct: Math.min(100, Math.round(n / 5e6 * 100)) }; }
-function afterImageDialog(s, msg) {
+export function storeUse() { const n = stateJson(null).length; return { n, pct: Math.min(100, Math.round(n / 5e6 * 100)) }; }
+export function afterImageDialog(s, msg) {
   closeLayer(); save(); render(); if (pvRefresh && pvRefresh(s.id)) {} else openSlot(s.id);
   const u = storeUse(); toast(msg + (u.pct >= 80 ? ` Bộ nhớ trình duyệt đã dùng ${u.pct}%: nên Sao lưu và xoá bớt ảnh cũ.` : ''), u.pct >= 80 ? 'bad' : undefined);
 }
 // Mở hộp thoại theo nút trên ảnh; trả true nếu đã xử lý
-function slotImageDialog(s, x, i) {
+export function slotImageDialog(s, x, i) {
   if (x === 'img-gen' && AC.imageApiOn(S)) { apiGenImage(s, i); return true; }
   if (x === 'img-edit') { openImageEditor(s, i); return true; }
   if (x === 'img-prompt') { const lk = AC.slotLockMsg(S, s); if (lk) toast(lk, 'bad'); else openPromptDialog(s, i); return true; }
@@ -114,7 +127,7 @@ function slotImageDialog(s, x, i) {
   return true;
 }
 
-function openFrameDialog(s, i) {
+export function openFrameDialog(s, i) {
   const a = s.assets[i], v = curVersion(a), ratio = AC.assetRatioOf(a), list = AC.framesFor(S, ratio);
   const st = { id: list[0].id, title: AC.frameTitleHint(s), sub: '' };
   const box = openLayer(`<header class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:nowrap"><div><span class="eyebrow">Ghép frame · ${esc(a.name)} · bản v${v.n}</span><h2>Ghép frame vào ảnh</h2><p class="small muted">Chọn frame, sửa chữ rồi Xác nhận. Ảnh ghép thành một phiên bản mới; bản gốc v${v.n} vẫn giữ. Frame của công ty thêm ở Thiết lập → Frame ảnh.</p></div><button class="btn icon ghost" data-act="close-layer" aria-label="Đóng">${icon('close')}</button></header>
@@ -157,7 +170,7 @@ function openFrameDialog(s, i) {
 }
 
 const I2I_PRESETS = ['Làm sáng hơn', 'Tông ấm cổ điển', 'Tông lạnh xanh', 'Đen trắng', 'Tương phản mạnh', 'Nhẹ nhàng pastel', 'Màu rực rỡ', 'Xoá phông nền'];
-function openI2IDialog(s, i) {
+export function openI2IDialog(s, i) {
   const a = s.assets[i], v = curVersion(a);
   const st = { prompt: '', strength: 0.5 };
   const box = openLayer(`<header class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:nowrap"><div><span class="eyebrow">Image to Image · ${AC.imageApiOn(S) ? 'qua ' + esc(providerLabel()) : 'mô phỏng'} · ${esc(a.name)} · bản v${v.n}</span><h2>Biến đổi ảnh theo yêu cầu</h2><p class="small muted">${AC.imageApiOn(S) ? `Ảnh đang dùng và yêu cầu được gửi tới ${esc(providerLabel())} để vẽ lại (tính phí theo nhà cung cấp). Ô bên phải chỉ xem gần đúng; ảnh thật có sau khi tạo.` : v.src ? 'Bản MVP biến đổi ảnh bằng bộ lọc màu theo từ khoá của yêu cầu (sáng, tối, ấm, lạnh, đen trắng, tương phản, pastel, xoá phông).' : 'Ảnh này là ảnh mô phỏng: bản MVP sinh một hình mô phỏng mới nối từ ảnh cũ.'} ${AC.imageApiOn(S) ? '' : 'Muốn AI vẽ lại thật: Setup → AI ảnh & video.'} Kết quả thành phiên bản mới; bản v${v.n} vẫn giữ.</p></div><button class="btn icon ghost" data-act="close-layer" aria-label="Đóng">${icon('close')}</button></header>
@@ -194,7 +207,7 @@ function openI2IDialog(s, i) {
 const FR_SAMPLE = { n: 1, seed: 137, kind: 'image' };
 const frThumbCache = new Map();
 // Ảnh mẫu của các frame trong Thiết lập (vẽ sau mỗi lần render)
-function paintFrameThumbs(root) {
+export function paintFrameThumbs(root) {
   const st = JSON.stringify(AC.frameStyleOf(S));
   root.querySelectorAll('img[data-frthumb]').forEach(async im => {
     const f = AC.frameOf(S, im.dataset.frthumb); if (!f) return;
@@ -204,7 +217,7 @@ function paintFrameThumbs(root) {
   });
 }
 const FR_DRAFT0 = () => ({ name: '', ratio: '1:1', src: '', photo: { x: 0, y: 0, w: 1, h: 1 }, title: { x: 0.06, y: 0.8, w: 0.88, size: 0.055, color: '#ffffff', lines: 2 }, sub: { x: 0.06, y: 0.93, w: 0.88, size: 0.03, color: '#ffffff', lines: 1 } });
-function framesTab() {
+export function framesTab() {
   const st = AC.frameStyleOf(S); const d = view.frDraft; const u = storeUse();
   const pct = (o, k) => Math.round(o[k] * 1000) / 10;
   const num = (grp, k, label) => `<div class="field"><label for="frd-${grp}-${k}">${label}</label><input id="frd-${grp}-${k}" type="number" min="0" max="100" step="0.5" value="${pct(d[grp], k)}" data-input="frd" data-g="${grp}" data-k="${k}"></div>`;
@@ -235,7 +248,7 @@ function framesTab() {
     ${designTplSection()}
     <p class="small ${u.pct >= 80 ? 'err' : 'faint'}">Dữ liệu đang lưu trong trình duyệt: khoảng ${fmtNum(Math.round(u.n / 1024))} KB, ${u.pct}% sức chứa ước tính. Ảnh tải lên, ảnh ghép frame và frame PNG chiếm nhiều chỗ nhất.</p>`;
 }
-function paintFrameDraft() {
+export function paintFrameDraft() {
   const d = view.frDraft, el = document.querySelector('#frd-prev'); if (!d || !el || !d.src) return;
   const f = Object.assign({ id: 'draft', kind: 'png' }, d);
   renderFramed(f, FR_SAMPLE, 'Tiêu đề mẫu trên ảnh của bài', 'Phụ đề mẫu', 0.4).then(src => { if (el.isConnected) el.innerHTML = `<img src="${src}" alt="Xem trước frame">`; }).catch(() => { el.innerHTML = '<span class="small err">Không dựng được xem trước.</span>'; });

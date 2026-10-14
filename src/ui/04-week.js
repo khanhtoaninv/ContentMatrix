@@ -1,4 +1,17 @@
 // ---------- UI · Tuần: lịch tuần, lịch tháng, slot, Cột của tuần ----------
+import { AC } from '../logic/99-export.js';
+import { ACTIONS, CHANGES, RENDERERS, S, view } from './00-state.js';
+import { $, chName, chTag, closeAllLayers, closeLayer, colName, commit, confirmBox, curStart, curWeek, esc, fmtFull, fmtName, icon, imgThumb, imgVisual, nowDate, openLayer, richText, save, scoreHtml, slotStateHtml, toast, warnMarks, warningsHtml } from './01-core.js';
+import { mediaOk } from './01b-mediastore.js';
+import { lockBannerHtml, nextBandHtml, progressHtml, render, setWeekStart } from './02-shell.js';
+import { dashHeaderHtml, demoBarHtml } from './03-today.js';
+import { openPreview, pvRefresh } from './04b-preview.js';
+import { formatLayoutHtml } from './04c-layout.js';
+import { confirmBtnHtml, slotPubLine } from './04d-publish.js';
+import { slotImageDialog } from './04e-frame.js';
+import { withAiText } from './04k-aitext.js';
+import { blogCfgAction, slotSeoSectionHtml } from './04l-blog.js';
+import { imgToolbar } from './04m-imgtools.js';
 function filteredSlots(weekId) {
   const f = view.chFilter;
   return AC.weekSlots(S, weekId).filter(s => !f.length || f.includes(s.channelId));
@@ -11,9 +24,9 @@ function slotLevel(s) {
 // Chuyên mục của slot = tên Cột của Format (D97, CAL-12)
 function segName(s) { const id = AC.slotColumnId(S, s); return id ? colName(id) : s.free ? 'Không Cột' : ''; }
 // Slot chỉ xem (mục 10.24): bài Đã đăng không sửa; tuần đã chốt phải Mở lại để sửa
-function lockNote(s) { return s.state === 'PUBLISHED' ? `Bài đã đăng nên chỉ xem.${s.pub && s.pub.mode === 'manual' ? ' Lỡ đánh dấu nhầm thì bấm "Bỏ đánh dấu" rồi sửa.' : ''}` : 'Tuần đã chốt nên chỉ xem. Muốn sửa: Mở lại để sửa ở Dashboard.'; }
+export function lockNote(s) { return s.state === 'PUBLISHED' ? `Bài đã đăng nên chỉ xem.${s.pub && s.pub.mode === 'manual' ? ' Lỡ đánh dấu nhầm thì bấm "Bỏ đánh dấu" rồi sửa.' : ''}` : 'Tuần đã chốt nên chỉ xem. Muốn sửa: Mở lại để sửa ở Dashboard.'; }
 // Bài quá giờ mà chưa đăng được: Đăng lỗi (sửa được, rồi đăng lại)
-const FAIL_TAG = '<span class="st st-bad" title="Đã quá giờ mà chưa đăng được. Bài vẫn sửa được.">Đăng lỗi</span>';
+export const FAIL_TAG = '<span class="st st-bad" title="Đã quá giờ mà chưa đăng được. Bài vẫn sửa được.">Đăng lỗi</span>';
 function slotChipHtml(s) {
   // Kéo thả sang ngày khác (mục 10.31): mọi slot chưa đăng
   const drag = s.state !== 'PUBLISHED' ? ` draggable="true" data-drag="${esc(s.id)}" title="Kéo sang ngày khác để đổi ngày đăng"` : '';
@@ -252,8 +265,8 @@ ACTIONS['plan-week'] = () => {
 };
 
 // ---- Thêm / sửa slot (SCR-04) ----
-function channelOptions(sel) { return S.channels.map(c => `<option value="${esc(c.id)}" ${c.id === sel ? 'selected' : ''}>${esc(c.name)}</option>`).join(''); }
-function formatOptions(channelId, sel) {
+export function channelOptions(sel) { return S.channels.map(c => `<option value="${esc(c.id)}" ${c.id === sel ? 'selected' : ''}>${esc(c.name)}</option>`).join(''); }
+export function formatOptions(channelId, sel) {
   const fs = S.formats.filter(f => f.channelId === channelId);
   return fs.length ? fs.map(f => `<option value="${esc(f.id)}" ${f.id === sel ? 'selected' : ''}>${esc(f.name)}</option>`).join('') : '<option value="">Kênh này chưa có Format</option>';
 }
@@ -332,7 +345,7 @@ ACTIONS['slot-back'] = el => { closeAllLayers(); if (slotCentered) openPreview(e
 // Bấm thẻ slot: có bài thì vào View (Xem như khi đăng); chưa có bài thì vào Cấu hình slot (có nút Tạo bài). Bánh răng: Cấu hình slot.
 ACTIONS['open-slot'] = el => { const s = AC.byId(S.slots, el.dataset.id); if (s && (s.text || s.free)) openPreview(s.id); else openSlot(el.dataset.id, null, false); };
 ACTIONS['slot-config'] = el => openSlot(el.dataset.id, null, false);
-function openSlot(id, browseN, center) {
+export function openSlot(id, browseN, center) {
   const s = AC.byId(S.slots, id); if (!s) return;
   if (center !== undefined) slotCentered = center;
   closeAllLayers();
@@ -448,7 +461,7 @@ ACTIONS['close-layer'] = () => closeLayer();
 
 // Tải ảnh của người dùng lên ô ảnh (mục 10.9): thu nhỏ cạnh dài về 1600px, lưu JPEG trong trình duyệt
 const VID_MAX_BYTES = 3 * 1024 * 1024, VID_MAX_IDB = 25 * 1024 * 1024, IMG_MAX_BYTES = 15 * 1024 * 1024, IMG_MAX_SIDE = 1600;
-const vidMax = () => mediaOk ? VID_MAX_IDB : VID_MAX_BYTES;
+export const vidMax = () => mediaOk ? VID_MAX_IDB : VID_MAX_BYTES;
 CHANGES['img-upload'] = el => {
   const file = el.files && el.files[0]; if (!file) return;
   const id = el.dataset.id, i = Number(el.dataset.i);
@@ -493,7 +506,7 @@ function cfgActionsHtml(s, locked) {
   return '';
 }
 // Phần Ảnh của slot: dùng chung cho chi tiết slot và Sửa trong Xem như khi đăng
-function slotImageRowsHtml(s, locked) {
+export function slotImageRowsHtml(s, locked) {
   const vid = a => a.kind === 'video';
   const acc = a => (s.free || vid(a)) ? 'image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm,video/quicktime' : 'image/png,image/jpeg,image/webp,image/gif';
   const addBar = s.free && !locked ? `<div class="row" style="gap:6px"><button class="btn sm" data-x="asset-add-image">+ Thêm ảnh</button><button class="btn sm" data-x="asset-add-video">+ Thêm video</button></div>` : '';
@@ -501,7 +514,7 @@ function slotImageRowsHtml(s, locked) {
         <div class="stack" style="gap:2px;min-width:0"><b>${esc(a.name)}</b>${a.place ? `<span class="small">Vị trí: ${esc(a.place)}</span>` : ''}${a.caption ? `<span class="small">Chữ trên ảnh: “${esc(a.caption.replace(/^["“]+|["”]+$/g, ''))}”</span>` : ''}${a.hint ? `<span class="small faint">${esc(a.hint)}</span>` : ''}${vid(a) ? '' : `<span class="small muted">${a.prompt ? `Prompt: ${esc(a.prompt)}` : s.free ? 'Prompt: (trống)' : 'Prompt: (trống, nhận từ ô khi Chia bài)'}</span>`}${a.ref ? `<span class="small mono faint">${esc(a.ref)}</span>` : ''}</div><div class="imgrow-tools">${imgToolbar({ s, a, i, lk: locked, via: 'dlg', idp: 'cfg-', accept: acc(a), meta: false, extra: a.extra && !locked ? `<button class="btn sm ghost danger" data-x="asset-del" data-i="${i}" aria-label="Bỏ ô này">Bỏ</button>` : '' })}</div></div>`; }).join('')}${addBar}</section>` : '';
 }
 // Thao tác ảnh (data-x img-gen/img-prev/img-next); null nếu không phải thao tác ảnh
-function slotImageAction(s, x, i) {
+export function slotImageAction(s, x, i) {
   if (x === 'img-gen') { const r = AC.genSlotImage(S, s.id, i); return [r, r.ok ? `Đã tạo ảnh phiên bản ${r.version}.` : '']; }
   if (x === 'img-prev' || x === 'img-next') return [AC.stepSlotImage(S, s.id, i, x === 'img-prev' ? -1 : 1), ''];
   if (x === 'asset-add') { const r = AC.addSlotAsset(S, s.id); return [r, r.ok ? 'Đã thêm ô. Bấm Up để chọn ảnh hoặc video.' : '']; }

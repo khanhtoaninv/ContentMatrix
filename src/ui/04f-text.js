@@ -1,4 +1,8 @@
 // ---------- UI · Thêm chữ lên ảnh (mục 10.34) ----------
+import { AC } from '../logic/99-export.js';
+import { S } from './00-state.js';
+import { confirmBox, esc, icon, openLayer, save, toast } from './01-core.js';
+import { afterImageDialog, curVersion, drawCover, loadImg, roundRectPath, versionImgSrc } from './04e-frame.js';
 // Trình soạn nhiều lớp chữ: chọn font, cỡ, màu, đậm/nghiêng, căn lề, hiệu ứng; kéo chữ trên ảnh để đặt vị trí.
 // Vẽ thật bằng canvas; Xác nhận tạo phiên bản ảnh mới (JPEG), bản gốc giữ nguyên.
 function txFont(l, sz) { return `${l.italic ? 'italic ' : ''}${l.bold ? 700 : 400} ${sz}px ${AC.textFontCss(l.font)}`; }
@@ -16,7 +20,7 @@ function txLayout(g, l, W, H) {
 }
 function txIsLight(hex) { const n = parseInt(hex.slice(1), 16); return ((n >> 16 & 255) * 299 + (n >> 8 & 255) * 587 + (n & 255) * 114) / 1000 > 150; }
 // Vẽ một lớp chữ; trả khung bao (để chọn và kéo)
-function drawTextLayer(g, l, W, H) {
+export function drawTextLayer(g, l, W, H) {
   if (!String(l.text || '').trim()) return null;
   const L = txLayout(g, l, W, H); if (!L.rows.length) return null;
   g.save(); g.font = txFont(l, L.sz); g.textBaseline = 'top'; g.textAlign = l.align;
@@ -31,14 +35,14 @@ function drawTextLayer(g, l, W, H) {
   return { x: L.left, y: L.top, w: L.blockW, h: L.h };
 }
 const txFontsReady = new Set();
-function txLoadFonts(layers) {
+export function txLoadFonts(layers) {
   if (!document.fonts || !document.fonts.load) return Promise.resolve(false);
   const need = layers.filter(l => String(l.text || '').trim()).map(l => [txFont(l, 40), l.text]).filter(([f, t]) => !txFontsReady.has(f + '|' + t));
   if (!need.length) return Promise.resolve(false);
   return Promise.all(need.map(([f, t]) => document.fonts.load(f, t).then(() => txFontsReady.add(f + '|' + t)).catch(() => {}))).then(() => true);
 }
 // Khổ ảnh ra: ảnh thật giữ tỉ lệ gốc (cạnh dài tối đa 1600px); ảnh mô phỏng theo tỉ lệ ô ảnh
-function txOutSize(a, img, v) {
+export function txOutSize(a, img, v) {
   if (v.src) { const iw = img.naturalWidth || 1080, ih = img.naturalHeight || 1080, k = Math.min(1, 1600 / Math.max(iw, ih)); return [Math.round(iw * k), Math.round(ih * k)]; }
   return AC.FRAME_RATIOS[AC.assetRatioOf(a)];
 }
@@ -50,7 +54,7 @@ async function renderTextImage(img, W, H, layers) {
   return c.toDataURL('image/jpeg', 0.88);
 }
 
-async function openTextDialog(s, i) {
+export async function openTextDialog(s, i) {
   const a = s.assets[i], v = curVersion(a);
   let img; try { img = await loadImg(versionImgSrc(v, AC.assetRatioOf(a))); } catch (e) { return toast('Không đọc được ảnh.', 'bad'); }
   const [W, H] = txOutSize(a, img, v);

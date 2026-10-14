@@ -1,4 +1,9 @@
 // ---------- UI · Report kênh: Overview, Tuần, Tháng (mục 10.22; số liệu mô phỏng) ----------
+import { AC } from '../logic/99-export.js';
+import { ACTIONS, RENDERERS, S, view } from './00-state.js';
+import { chTag, colName, curStart, esc, fmtFull, fmtName, fmtNum, fmtPct } from './01-core.js';
+import { render } from './02-shell.js';
+import { VIA_LABEL } from './04d-publish.js';
 view.rpTab = 'overview'; view.rpCh = [];
 const RP_TABS = [['overview', 'Overview'], ['week', 'Tuần'], ['month', 'Tháng']];
 function rpRange() {

@@ -1,7 +1,9 @@
-// Test logic thuần v2.8 — chạy: node --test tests/logic.test.js
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const AC = require('../dist/logic.js');
+// Test logic thuần v2.8 — chạy: npm run test:logic (node --test tests/logic.test.js)
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
+import fs from 'node:fs';
+import AC from '../src/logic/99-export.js';
 
 const T1 = 'w-2026-10-05', T2 = 'w-2026-10-12', T3 = 'w-2026-10-19';
 const seed = () => AC.buildSeed();
@@ -640,7 +642,7 @@ test('UX-10 · dữ liệu hỏng được nhận diện', () => {
 
 test('sha256 đúng chuẩn', () => {
   assert.equal(AC.sha256('abc'), 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad');
-  assert.equal(AC.sha256('Nói'), require('crypto').createHash('sha256').update('Nói').digest('hex'));
+  assert.equal(AC.sha256('Nói'), crypto.createHash('sha256').update('Nói').digest('hex'));
 });
 
 test('Mock xác định: cùng đầu vào cùng đầu ra', () => {
@@ -1151,7 +1153,7 @@ test('10.28 Khung trình bày: ô viết dạng ## Mục, HR-13, Định dạng 
 
 test('10.30 Khung Topic: chuẩn hoá tệp khi nạp, giữ tệp gốc, lệnh cho agent theo khung', () => {
   const S = seed();
-  const messy = require('fs').readFileSync(require('path').join(__dirname, 'fixture-topic-messy.md'), 'utf8');
+  const messy = fs.readFileSync(new URL('./fixture-topic-messy.md', import.meta.url), 'utf8');
   const n = AC.normalizeTopicMd(S, messy);
   assert.ok(n.changed);
   const t = n.changes.join(' | ');

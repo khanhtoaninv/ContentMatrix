@@ -1,12 +1,13 @@
 // ---------- 03 · Quy tắc cứng (ứng dụng tính, chỉ cảnh báo — D77) ----------
-const RULE_NAMES = {
+import { countWords, fold, foldWithMap, labelOf, splitSentences } from './01-util.js';
+export const RULE_NAMES = {
   'HR-01': 'Độ dài', 'HR-02': 'Cụm từ cấm', 'HR-03': 'CTA', 'HR-04': 'Cấu trúc',
   'HR-05': 'Số liệu mới', 'HR-06': 'Giới hạn kênh', 'HR-07': 'Từ cường điệu', 'HR-08': 'Xưng hô', 'HR-10': 'Ngoài Topic', 'HR-11': 'Lặp giữa ô', 'HR-12': 'Dẫn bài khác', 'HR-13': 'Trình bày', 'TPC-W': 'Topic',
 };
 const CTA_WORDS = ['đăng ký', 'dang ky', 'inbox', 'nhắn', 'bình luận', 'comment', 'học thử', 'lưu lại', 'lưu bài',
   'chia sẻ', 'thử ngay', 'thử câu', 'thử cách', 'theo dõi', 'follow', 'link', 'để lại', 'kể mình nghe', 'trả lời', 'bấm', 'tag'];
 const REF_PHRASES = ['hôm qua', 'bài trước', 'phần trước', 'tập trước', 'kỳ trước', 'như mình đã nói', 'ở bài sau', 'bài tiếp theo'];
-const DEFAULT_HYPE = ['100%', 'chắc chắn', 'cam kết', 'đảm bảo', 'tuyệt đối'];
+export const DEFAULT_HYPE = ['100%', 'chắc chắn', 'cam kết', 'đảm bảo', 'tuyệt đối'];
 
 function stripLabels(text) {
   return String(text || '')
@@ -14,21 +15,21 @@ function stripLabels(text) {
     .replace(/^\s*Slide\s*\d+\s*[:·.-]\s*/gim, '')
     .replace(/\b(Bước|bước|Slide|slide)\s*\d+/g, '');
 }
-function extractNumbers(text) {
+export function extractNumbers(text) {
   const t = stripLabels(text).replace(/#\S+/g, '');
   const out = [];
   const re = /\d+(?:[.,]\d+)?\s?%?/g; let m;
   while ((m = re.exec(t))) out.push(m[0].replace(/\s/g, '').replace(',', '.'));
   return out;
 }
-function paragraphsOf(text) {
+export function paragraphsOf(text) {
   return String(text || '').split(/\n\s*\n/).map(s => s.trim()).filter(Boolean);
 }
-function slidesOf(text) {
+export function slidesOf(text) {
   const parts = String(text || '').split(/^\s*Slide\s*\d+\s*[:·.-]\s*/gim);
   return parts.slice(1).map(s => s.trim());
 }
-function hashtagsOf(text) { return (String(text || '').match(/(^|\s)#[\p{L}\p{N}_]+/gu) || []).length; }
+export function hashtagsOf(text) { return (String(text || '').match(/(^|\s)#[\p{L}\p{N}_]+/gu) || []).length; }
 function hasCta(text, type) {
   const paras = paragraphsOf(stripLabels(text));
   const tail = (paras.slice(-2).join(' ') || String(text || ''));
@@ -48,7 +49,7 @@ function findWord(text, phrase) {
   const s = String(text || '');
   return findPhrase(s, phrase).filter(([a, b]) => !/[\p{L}\p{N}]/u.test(s[a - 1] || ' ') && !/[\p{L}\p{N}]/u.test(s[b] || ' '));
 }
-function lengthOf(text, unit) {
+export function lengthOf(text, unit) {
   return unit === 'words' ? countWords(stripLabels(text)) : String(text || '').trim().replace(/\s+/g, ' ').length; // ký tự: khoảng trắng liền nhau (xuống dòng, dòng trống) tính là một
 }
 
@@ -68,7 +69,7 @@ function checkStructure(text, structure, layout) {
  * ctx: { kind:'cell'|'slot', rules, structure, layout, channel, banned[], hypeWords[], pronouns, sourceNumbers[], verifiedFacts[] }
  * Trả về danh sách cảnh báo {id, level:'error'|'note', text, ranges}
  */
-function checkRules(text, ctx) {
+export function checkRules(text, ctx) {
   const w = []; const r = ctx.rules || {}; const t = String(text || '');
   const unit = r.lengthUnit === 'words' ? 'words' : 'chars';
   const unitName = unit === 'words' ? 'chữ' : 'ký tự';
@@ -144,7 +145,7 @@ function checkRules(text, ctx) {
   }
   return w;
 }
-function summarizeWarnings(ws) {
+export function summarizeWarnings(ws) {
   const errors = ws.filter(x => x.level === 'error').length;
   return { total: ws.length, errors, notes: ws.length - errors, label: ws.length ? `${ws.length} cảnh báo` : 'Không cảnh báo' };
 }

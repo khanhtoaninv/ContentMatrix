@@ -1,4 +1,8 @@
 // ---------- 04 · AI mô phỏng (xác định) ----------
+import { countWords, fold, hash32, labelOf, paraBreak, pick, splitSentences } from './01-util.js';
+import { CASE_KEYS, topicSubsections } from './02-parse.js';
+import { lengthOf } from './03-rules.js';
+import { plainSocial } from './05g-format.js';
 // Cùng đầu vào → cùng đầu ra; genN khác → cách mở bài khác.
 
 const TIP_BY_CRITERION = [
@@ -15,7 +19,7 @@ const TIP_BY_CRITERION = [
   ['chủ đề', 'Nối Idea với chủ đề tuần ngay ở tiêu đề.'],
   ['nhiều dạng', 'Chọn insight có thể kể, liệt kê và hỏi đáp.'],
 ];
-function scoreText(text, criteria, salt) {
+export function scoreText(text, criteria, salt) {
   const scores = (criteria || []).map(c => ({ criterionId: c.id, score: 3 + (hash32(`${salt}|${c.id}|${text}`) % 3) }));
   const total = Math.round((criteria || []).reduce((s, c, i) => s + c.weight * scores[i].score / 5, 0));
   let low = null;
@@ -66,7 +70,7 @@ const CELL_FILLERS = {
   generic: ['Ý chính là bắt đầu nhỏ và làm đều.', 'Bạn có thể áp dụng ngay trong tuần này.'],
 };
 // ---- Chất liệu từ Topic (mục 8.1) ----
-function topicMaterial(iv) {
+export function topicMaterial(iv) {
   const subs = topicSubsections(iv.text);
   const pick = keys => subs.filter(s => keys.some(k => s.key.includes(k))).map(s => s.text).join('\n');
   const plain = String(iv.text || '').replace(/^#{1,6}\s+.*$/gm, '').replace(/^\s*[-*]\s+/gm, '');
@@ -92,7 +96,7 @@ function topicMaterial(iv) {
 const rot = (arr, k) => arr.length ? arr.slice(k % arr.length).concat(arr.slice(0, k % arr.length)) : arr;
 
 // Viết một ô từ phiên bản Topic + Cột (AI-03). Trả về chuỗi có nhãn [Đoạn], hoặc null khi Cột Câu chuyện mà Topic không có trường hợp (D100).
-function writeCell(iv, column, genN, context) { const t = writeCellRaw(iv, column, genN, context); return t == null ? t : paraBreak(t); }
+export function writeCell(iv, column, genN, context) { const t = writeCellRaw(iv, column, genN, context); return t == null ? t : paraBreak(t); }
 function writeCellRaw(iv, column, genN, context) {
   const M = topicMaterial(iv);
   const f = iv.fields || {};
@@ -175,12 +179,12 @@ function writeCellRaw(iv, column, genN, context) {
 }
 
 // Prompt ảnh gợi ý đi kèm ô (AI-08): từ gợi ý ảnh của Cột và tên Topic; slot nhận lại và thêm ngữ cảnh của ô ảnh.
-function writeImagePrompt(iv, column, genN) {
+export function writeImagePrompt(iv, column, genN) {
   const angle = ['Cận cảnh, một chủ thể rõ ràng.', 'Toàn cảnh, bố cục thoáng.', 'Tối giản, nhiều khoảng trống cho chữ.'][(genN - 1) % 3];
   return `${column.assetPrompt || 'Hình minh họa đơn giản, nền sáng.'} Chủ đề: ${iv.title}.${genN > 1 ? ' ' + angle : ''}`;
 }
 
-function parseLabeled(text) {
+export function parseLabeled(text) {
   const out = {}; let cur = null;
   String(text || '').split('\n').forEach(line => {
     const lb = labelOf(line);
@@ -274,7 +278,7 @@ const FB_WRITERS = {
     return [vary(lead, c.genN), q, `“${blanked}${end}”`, `Gợi ý: từ cần điền bắt đầu bằng chữ “${hint.charAt(0).toUpperCase()}”. Điền vào bình luận, đáp án sẽ ghim sau nhé?`].filter(Boolean).join('\n\n');
   },
 };
-function writeSlot(cellText, format, genN, iv) { const t = writeSlotRaw(cellText, format, genN, iv); return t == null ? t : paraBreak(format && format.layout === 'article' ? t : plainSocial(t)); } // slot mạng xã hội không có Markdown (mục 10.28)
+export function writeSlot(cellText, format, genN, iv) { const t = writeSlotRaw(cellText, format, genN, iv); return t == null ? t : paraBreak(format && format.layout === 'article' ? t : plainSocial(t)); } // slot mạng xã hội không có Markdown (mục 10.28)
 function writeSlotRaw(cellText, format, genN, iv) {
   const p = parseLabeled(cellText);
   const firstOf = (...keys) => keys.map(k => p[k]).find(Boolean) || '';

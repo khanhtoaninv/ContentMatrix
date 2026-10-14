@@ -1,11 +1,22 @@
 // ---------- Thanh công cụ ảnh gọn: < > Gen Up Store Edit (mục 10.41) ----------
+import { AC } from '../logic/99-export.js';
+import { CHANGES, S } from './00-state.js';
+import { assetKind, closeLayer, commit, esc, icon, layerStack, openLayer, save, toast, versionLabel } from './01-core.js';
+import { go, render } from './02-shell.js';
+import { openSlot } from './04-week.js';
+import { pvImageBase, pvRefresh } from './04b-preview.js';
+import { afterImageDialog, curVersion, loadImg, openFrameDialog, openI2IDialog, versionImgSrc } from './04e-frame.js';
+import { openTextDialog } from './04f-text.js';
+import { cropToDataUrl, openCropDialog, openTemplateDialog, orientImage } from './04h-design.js';
+import { addFilesToLibrary, versionToDataUrl } from './04i-studio.js';
+import { apiGenImage, openCoverDialog, openSubsDialog } from './04j-media.js';
 // Gen: tạo lại theo prompt; rê chuột (hoặc focus) hiện nút Prompt nhỏ phía trên. Ô chưa có prompt: Gen mở ô Prompt.
 // Store: kho ảnh chung dạng gallery. Edit: giao diện sửa ảnh có các tab Frame, Chữ, Img2Img, Cắt, Mẫu (video: Bìa, Phụ đề).
 const ED_TABS_IMG = [['img-frame', 'Frame', 'Ghép frame của công ty kèm tiêu đề lên ảnh'], ['img-text', 'Chữ', 'Thêm chữ lên ảnh: font, cỡ, màu, kéo đặt vị trí'], ['img-i2i', 'Img2Img', 'Biến đổi ảnh theo yêu cầu bằng chữ'], ['img-crop', 'Cắt', 'Cắt, xoay, lật, đổi tỉ lệ ảnh'], ['img-tpl', 'Mẫu', 'Áp mẫu thiết kế đã lưu (chữ và frame)']];
 const ED_TABS_VID = [['vid-cover', 'Bìa', 'Chọn ảnh bìa từ khung hình hoặc tải ảnh lên'], ['vid-subs', 'Phụ đề', 'Tạo, sửa phụ đề; tải .srt/.vtt']];
 
 // o: { s, a, i, lk, via: 'pv' (ô Prompt ngay dưới ảnh) | 'dlg' (hộp thoại), open (ô Prompt đang mở), accept, extra, meta }
-function imgToolbar(o) {
+export function imgToolbar(o) {
   const { s, a, i, lk } = o; const ci = a.versions.findIndex(v => v.n === a.current), cur = ci >= 0 ? a.versions[ci] : null;
   const vid = assetKind(a) === 'video' || (cur && cur.kind === 'video');
   const pAttr = o.via === 'pv' ? `data-pv="prompt" data-i="${i}" aria-expanded="${!!o.open}"` : `data-x="img-prompt" data-i="${i}"`;
@@ -27,7 +38,7 @@ function imgToolbar(o) {
 }
 
 // Ô Prompt dạng hộp thoại (Cấu hình slot)
-function openPromptDialog(s, i) {
+export function openPromptDialog(s, i) {
   const a = s.assets[i];
   const box = openLayer(`<header><span class="eyebrow">Prompt ảnh · ${esc(a.name)}</span><h2>Sửa prompt</h2><p class="small muted">Mô tả ảnh cần tạo. Gen tạo một phiên bản mới; bản cũ vẫn giữ, bấm mũi tên để quay lại.</p></header>
     <div class="field"><label for="pd-text">Prompt</label><textarea id="pd-text" rows="5" spellcheck="false">${esc(a.prompt || '')}</textarea></div>
@@ -63,7 +74,7 @@ async function edGo(s, i, x) {
   const head = box.querySelector('header'); if (head) head.after(nav.firstElementChild); else box.prepend(nav.firstElementChild);
   box.classList.add('ed-box'); edBind(box, s, i);
 }
-function openImageEditor(s, i) {
+export function openImageEditor(s, i) {
   const a = s.assets[i], v = curVersion(a);
   const lock = AC.slotLockMsg(S, s); if (lock) return toast(lock, 'bad');
   if (!v) return toast('Ô chưa có ảnh để sửa.', 'bad');
@@ -78,7 +89,7 @@ function openImageEditor(s, i) {
 }
 
 // ---- Store: kho ảnh chung dạng gallery ----
-function openLibraryPicker(s, i) {
+export function openLibraryPicker(s, i) {
   const a = s.assets[i], v = curVersion(a);
   const st = { q: '', tag: '', unused: false };
   const box = openLayer(`<header class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:nowrap"><div><span class="eyebrow">Store · ${esc(a.name)}</span><h2>Kho ảnh chung</h2><p class="small muted">Logo, ảnh sản phẩm, ảnh đội ngũ, ảnh đã dùng. Bấm một ảnh để dùng cho ô này (thành phiên bản mới). Quản lý tên, thẻ ở Setup → Kho tài sản.</p></div><button class="btn icon ghost" data-act="close-layer" aria-label="Đóng">${icon('close')}</button></header>
@@ -130,7 +141,7 @@ function libZoom(s, i, id) {
 }
 
 // Cắt giữa về đúng tỉ lệ của ô (một bấm); muốn chọn vùng cắt thì dùng Edit → Cắt
-async function fitImageToRatio(s, i) {
+export async function fitImageToRatio(s, i) {
   const a = s.assets[i], v = curVersion(a), r = AC.assetRatioOf(a);
   let img; try { img = await loadImg(versionImgSrc(v, r)); } catch (e) { return toast('Không đọc được ảnh.', 'bad'); }
   const out = cropToDataUrl(orientImage(img, 0, false), r, 1, 0.5, 0.5);
@@ -140,7 +151,7 @@ async function fitImageToRatio(s, i) {
 }
 
 // ---------- Setup → Chuẩn ảnh: bảng chuẩn theo nền tảng và tỉ lệ mặc định của từng kênh ----------
-function imgStdTab() {
+export function imgStdTab() {
   return `<p class="muted">Mỗi ô ảnh có một tỉ lệ lấy từ chuẩn của nền tảng. Xem bài, danh sách ảnh, Gen, Frame, Cắt và xuất tệp đều theo tỉ lệ đó, ảnh hiện trọn, không cắt ngầm. Ảnh sai tỉ lệ hoặc nhỏ hơn chuẩn được cảnh báo ở slot (không chặn Duyệt) kèm nút Cắt về đúng tỉ lệ.</p>
     <section class="card stack"><h3>Tỉ lệ mặc định theo kênh</h3><p class="small faint">Dùng cho ô ảnh không ghi tỉ lệ trong tên. Ô đã có giữ nguyên; ô tạo mới theo mặc định này.</p>
       <div class="row" style="gap:16px;flex-wrap:wrap">${S.channels.map(ch => `<div class="field"><label for="imgdef-${esc(ch.id)}">${esc(ch.name)}</label><select id="imgdef-${esc(ch.id)}" data-change="imgdef" data-ch="${esc(ch.id)}">${AC.IMG_RATIOS.map(r => `<option value="${r}" ${AC.imgDefaultRatio(S, ch.id) === r ? 'selected' : ''}>${esc(AC.FRAME_RATIO_LABEL[r])}</option>`).join('')}</select></div>`).join('')}</div></section>

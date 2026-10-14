@@ -1,7 +1,12 @@
 // ---------- Viết bài bằng AI thật (mục 10.39) ----------
-const textProviderLabel = () => (AC.TEXT_PROVIDERS[AC.textApiOf(S).provider] || {}).label || '';
+import { AC } from '../logic/99-export.js';
+import { ACTIONS, CHANGES, S } from './00-state.js';
+import { $, confirmBox, esc, save, toast } from './01-core.js';
+import { go, render } from './02-shell.js';
+import { apiFetch, imageApiTab, keyFor, keyRememberedFor, maskKey, setKeyFor } from './04j-media.js';
+export const textProviderLabel = () => (AC.TEXT_PROVIDERS[AC.textApiOf(S).provider] || {}).label || '';
 // light = việc nhẹ (Sửa đoạn, Hook, CTA): dùng model nhẹ nếu đã khai báo
-async function textCall(job, maxTokens, light) {
+export async function textCall(job, maxTokens, light) {
   const cfg = AC.textCfgFor(S, light);
   if (cfg.provider === 'claudeai') return sampleText(job, light);
   const req = AC.buildTextRequest(cfg, keyFor(cfg.provider), { system: job.system, user: job.user, maxTokens });
@@ -33,7 +38,7 @@ function aiBusy(total) {
 }
 // Chạy một thao tác viết ô/slot: AI thật thì chuẩn bị bài trước, rồi chạy thao tác trên S
 let aiRunning = false;
-async function withAiText(run) {
+export async function withAiText(run) {
   if (!AC.textApiOn(S)) return run(S);
   const jobs = AC.aiPlan(S, run); if (!jobs.length) return run(S);
   if (aiRunning) return { ok: false, error: 'AI đang viết bài khác, đợi xong đã.' };
@@ -79,7 +84,7 @@ function textApiSection() {
       ${c.provider === 'custom' ? '<p class="small muted">Máy chủ riêng nhận POST JSON <span class="mono">{system, user, model, max_tokens}</span>, trả <span class="mono">{text}</span>.</p>' : ''}` : '<p class="small muted">Đang dùng bộ viết mô phỏng.</p>'}
     </div></section>`;
 }
-function aiConnectTab() {
+export function aiConnectTab() {
   return `${textApiSection()}<h3 style="margin-top:24px">AI ảnh và video</h3>${imageApiTab()}`;
 }
 CHANGES['ta-prov'] = el => { const r = AC.setTextApi(S, { provider: el.value }); if (!r.ok) return toast(r.error, 'bad'); save(); render(); };

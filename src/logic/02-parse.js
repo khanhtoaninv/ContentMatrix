@@ -1,5 +1,6 @@
 // ---------- 02 · Mẫu Markdown và bộ đọc ----------
-const TEMPLATES = {
+import { countWords, fold } from './01-util.js';
+export const TEMPLATES = {
   brand: `---
 template: autocontent-brand-v1
 ---
@@ -148,12 +149,12 @@ Câu hỏi: … Đáp án: …
   agentPrompt: 'Từ báo cáo nghiên cứu tuần này, hãy viết 3 Topic cho ứng dụng Content Matrix. Ba Topic là ba chủ đề có quan hệ với nhau trong cùng một mạch. Mỗi Topic khoảng 2.000 chữ, bắt đầu bằng đề mục "##" là tên Topic, ba dòng "Thông điệp chính:", "Đối tượng:", "Góc nhìn:", rồi các phần "###": Số liệu và phát hiện (kèm nguồn ngay trong câu), Vì sao, Cách làm (các bước, câu mẫu), Ngộ nhận thường gặp (dạng "Ngộ nhận: … Thực tế: …"), Trường hợp (chỉ trường hợp có thật; không có thì bỏ phần này), Câu hỏi luyện tập (dạng "Câu hỏi: … Đáp án: …"). Trước Topic đầu tiên, viết một đoạn Bối cảnh chung nêu quan hệ giữa ba Topic. Chỉ dùng số liệu có trong báo cáo.',
 };
 
-const BRAND_HEADINGS = ['Tên thương hiệu', 'Sản phẩm', 'Thị trường', 'Khách hàng', 'Triết lý', 'Cụm từ cấm', 'Sự thật đã xác minh'];
-const VOICE_HEADINGS = ['Tông', 'Xưng hô', 'Nên', 'Không nên', 'Ví dụ mẫu'];
+export const BRAND_HEADINGS = ['Tên thương hiệu', 'Sản phẩm', 'Thị trường', 'Khách hàng', 'Triết lý', 'Cụm từ cấm', 'Sự thật đã xác minh'];
+export const VOICE_HEADINGS = ['Tông', 'Xưng hô', 'Nên', 'Không nên', 'Ví dụ mẫu'];
 
 // Chỉ đọc frontmatter, đề mục "## " và danh sách "- ". Mọi dòng khác là văn bản thường,
 // kể cả dòng trông như chỉ thị (SET-04): không có gì trong md được thực thi.
-function parseFrontmatter(md) {
+export function parseFrontmatter(md) {
   const m = /^---\s*\n([\s\S]*?)\n---\s*(\n|$)/.exec(md || '');
   const fm = {}; let body = md || '';
   if (m) {
@@ -184,7 +185,7 @@ function findSection(sections, name) {
   return key ? sections[key] : null;
 }
 
-function parseBrand(md) {
+export function parseBrand(md) {
   const { fm, body } = parseFrontmatter(md);
   const { sections } = parseSections(body);
   const issues = [];
@@ -202,7 +203,7 @@ function parseBrand(md) {
   };
   return { parsed, issues };
 }
-function parseVoice(md) {
+export function parseVoice(md) {
   const { fm, body } = parseFrontmatter(md);
   const { sections } = parseSections(body);
   const issues = [];
@@ -220,10 +221,10 @@ function parseVoice(md) {
 }
 
 // Tệp Topic (v2.7, mục 12.5): tiêu đề # (tùy chọn), Bối cảnh chung (tùy chọn), mỗi Topic một đề mục ##.
-const TOPIC_MIN_LETTERS = 200, TOPIC_MAX = 10, TOPIC_SHORT_WORDS = 300, CONTEXT_MIN_CHARS = 60;
+export const TOPIC_MIN_LETTERS = 200, TOPIC_MAX = 10, TOPIC_SHORT_WORDS = 300, CONTEXT_MIN_CHARS = 60;
 const TOPIC_FIELDS = { 'thong diep chinh': 'message', 'thong diep': 'message', 'doi tuong': 'audience', 'goc nhin': 'angle' };
-const CASE_KEYS = ['truong hop', 'cau chuyen'];
-function topicSubsections(text) {
+export const CASE_KEYS = ['truong hop', 'cau chuyen'];
+export function topicSubsections(text) {
   const out = []; let cur = null;
   String(text || '').split('\n').forEach(line => {
     const m = /^###\s+(.+?)\s*#*\s*$/.exec(line);
@@ -232,8 +233,8 @@ function topicSubsections(text) {
   });
   return out.map(s => ({ name: s.name, key: s.key, text: s.lines.join('\n').trim() }));
 }
-function topicHasCase(text) { return topicSubsections(text).some(s => s.text && CASE_KEYS.some(k => s.key.includes(k))); }
-function parseTopics(md) {
+export function topicHasCase(text) { return topicSubsections(text).some(s => s.text && CASE_KEYS.some(k => s.key.includes(k))); }
+export function parseTopics(md) {
   const errors = [], warnings = [];
   const raw = String(md || '').replace(/\r\n?/g, '\n');
   const { fm, body } = parseFrontmatter(raw);

@@ -1,24 +1,31 @@
 // ---------- Viết bài bằng AI thật (mục 10.39) ----------
+import { clone } from './01-util.js';
+import { byId, cellView, log } from './05-model.js';
+import { columnLayoutGuide, topicDirection } from './05g-format.js';
+import { AI_OPS, HOOK_KINDS, snippetsFor } from './05k-assist.js';
+import { parseImageResponse } from './05n-media.js';
+import { blogAiBrief, isBlogSlot } from './05p-blogseo.js';
+import { skillBlock, skillOwnerOf } from './05r-skill.js';
 // Logic vẫn đồng bộ: giao diện chạy thử thao tác trên bản sao S để biết những ô/slot sẽ được viết (aiPlan),
 // gọi AI cho từng việc, gửi kết quả vào setAiText, rồi chạy thao tác thật. Viết ô/slot lấy kết quả AI (takeAiText)
 // thay cho bộ ghép mô phỏng; việc nào AI lỗi thì dùng bản mô phỏng như cũ.
 
-const TEXT_PROVIDERS = {
+export const TEXT_PROVIDERS = {
   off: { label: 'Mô phỏng (không gọi API)' },
   claudeai: { label: 'Claude của claude.ai (không cần khoá, chạy trong artifact)', model: '', endpoint: 'claude.ai', key: false, sample: true },
   anthropic: { label: 'Anthropic Claude', model: 'claude-sonnet-5-5', light: 'claude-haiku-5-5', endpoint: 'https://api.anthropic.com/v1', key: true },
   openai: { label: 'OpenAI', model: 'gpt-4.1-mini', light: '', endpoint: 'https://api.openai.com/v1', key: true },
   custom: { label: 'Máy chủ riêng', model: '', endpoint: '', key: false },
 };
-function textApiOf(S) {
+export function textApiOf(S) {
   const c = Object.assign({ provider: 'off', model: '', endpoint: '', lightModel: '' }, S.textApi || {});
   const p = TEXT_PROVIDERS[c.provider] || TEXT_PROVIDERS.off;
   return Object.assign(c, { model: c.model || p.model || '', endpoint: c.endpoint || p.endpoint || '' });
 }
 // Cấu hình gọi cho một loại việc: việc nhẹ (Sửa đoạn, Hook, CTA) dùng model nhẹ nếu đã khai báo, không thì dùng model chính (mục 10.44)
-function textCfgFor(S, light) { const c = textApiOf(S); return light && c.lightModel ? Object.assign({}, c, { model: c.lightModel }) : c; }
-function textApiOn(S) { return textApiOf(S).provider !== 'off'; }
-function setTextApi(S, patch) {
+export function textCfgFor(S, light) { const c = textApiOf(S); return light && c.lightModel ? Object.assign({}, c, { model: c.lightModel }) : c; }
+export function textApiOn(S) { return textApiOf(S).provider !== 'off'; }
+export function setTextApi(S, patch) {
   const old = textApiOf(S); const P = patch || {};
   const c = Object.assign({}, old, P);
   if (!TEXT_PROVIDERS[c.provider]) return { ok: false, error: 'Nhà cung cấp không hợp lệ.' };
@@ -34,7 +41,7 @@ function setTextApi(S, patch) {
   log(S, 'text-api', 'settings', c.provider, c.provider === 'off' ? 'mô phỏng' : `${c.provider} · ${S.textApi.model}`);
   return { ok: true, api: textApiOf(S) };
 }
-function buildTextRequest(cfg, key, req) {
+export function buildTextRequest(cfg, key, req) {
   const p = TEXT_PROVIDERS[cfg.provider];
   if (!p || cfg.provider === 'off') return { ok: false, error: 'Chưa bật AI viết bài (Setup → Kết nối AI).' };
   if (p.key && !String(key || '').trim()) return { ok: false, error: 'Chưa nhập khoá API cho AI viết bài (Setup → Kết nối AI).' };
@@ -43,7 +50,7 @@ function buildTextRequest(cfg, key, req) {
   if (cfg.provider === 'openai') return { ok: true, url: `${cfg.endpoint}/chat/completions`, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${k}` }, json: { model: cfg.model, messages: [{ role: 'system', content: req.system }, { role: 'user', content: req.user }] } };
   return { ok: true, url: cfg.endpoint, headers: Object.assign({ 'Content-Type': 'application/json' }, k ? { Authorization: `Bearer ${k}` } : {}), json: { system: req.system, user: req.user, model: cfg.model || undefined, max_tokens: max } };
 }
-function parseTextResponse(provider, status, body) {
+export function parseTextResponse(provider, status, body) {
   if (status >= 400 || !body) return parseImageResponse(provider, status || 500, body || {});
   let t = '';
   if (provider === 'anthropic') t = (body.content || []).filter(x => x.type === 'text').map(x => x.text).join('');
@@ -54,7 +61,7 @@ function parseTextResponse(provider, status, body) {
   return t ? { ok: true, text: t, cut: body.stop_reason === 'max_tokens' || ((body.choices || [])[0] || {}).finish_reason === 'length' } : { ok: false, error: 'AI không trả về chữ.' };
 }
 // Lấy khối JSON trong câu trả lời (AI đôi khi bọc trong ```json)
-function extractJson(raw) {
+export function extractJson(raw) {
   const s = String(raw || ''); const a = s.indexOf('{'), b = s.lastIndexOf('}');
   if (a < 0 || b <= a) return null;
   try { return JSON.parse(s.slice(a, b + 1)); } catch (e) { return null; }
@@ -63,17 +70,17 @@ function extractJson(raw) {
 // ---- Kết quả AI chờ dùng (khoá "cell:<id>:<n>" hoặc "slot:<id>:<genN>") ----
 const AI_TEXT = new Map();
 let AI_REC = null;
-function setAiText(key, val) { AI_TEXT.set(key, val); }
-function takeAiText(key) { const v = AI_TEXT.get(key); AI_TEXT.delete(key); return v || null; }
-function clearAiText() { AI_TEXT.clear(); }
+export function setAiText(key, val) { AI_TEXT.set(key, val); }
+export function takeAiText(key) { const v = AI_TEXT.get(key); AI_TEXT.delete(key); return v || null; }
+export function clearAiText() { AI_TEXT.clear(); }
 // Chạy thử thao tác trên bản sao để biết việc cần AI viết; trả danh sách {key, kind, label, system, user, criteria}
-function aiPlan(S, run) {
+export function aiPlan(S, run) {
   const C = clone(S); AI_REC = [];
   try { run(C); } catch (e) { /* thao tác lỗi thì không có việc */ }
   const jobs = AI_REC; AI_REC = null; return jobs;
 }
 // Áp điểm AI theo tiêu chí; thiếu tiêu chí nào thì trả null để dùng điểm mô phỏng
-function aiScore(criteria, sc, tip) {
+export function aiScore(criteria, sc, tip) {
   if (!sc || typeof sc !== 'object' || !(criteria || []).length) return null;
   const scores = criteria.map(c => { const v = Math.round(Number(sc[c.id])); return v >= 1 && v <= 5 ? { criterionId: c.id, score: v } : null; });
   if (scores.some(x => !x)) return null;
@@ -81,7 +88,7 @@ function aiScore(criteria, sc, tip) {
   return { scores, total, tip: String(tip || '').trim().slice(0, 200) || 'Giữ nguyên; bài đã cân đối.' };
 }
 // Đọc bài AI viết: JSON {text, imagePrompt, scores, tip}; không phải JSON thì coi cả câu trả lời là bài
-function parseAiPost(raw, criteria) {
+export function parseAiPost(raw, criteria) {
   const j = extractJson(raw);
   const text = j && typeof j.text === 'string' ? j.text : (j ? '' : String(raw || ''));
   const t = text.replace(/\r/g, '').replace(/\n{3,}/g, '\n\n').trim();
@@ -97,7 +104,7 @@ function rulesLine(r, unit) {
     r.slideMin ? `Số slide: ${r.slideMin}–${r.slideMax || r.slideMin}, mỗi slide tối đa ${r.wordsPerSlideMax || 40} chữ.` : '',
     r.hashtagMax != null ? `Hashtag: tối đa ${r.hashtagMax}.` : '', r.requireCta ? 'Bắt buộc có lời kêu gọi hành động ở cuối.' : ''].filter(Boolean).join('\n');
 }
-function aiSystem(S) {
+export function aiSystem(S) {
   const banned = [...(S.settings.hypeWords || [])].join(', ');
   return [
     'Bạn là người viết content mạng xã hội cho thương hiệu dưới đây. Viết tiếng Việt tự nhiên, đúng giọng văn, câu ngắn dễ đọc trên điện thoại.',
@@ -141,32 +148,32 @@ function slotJob(S, slot, f, cellText, iv, mock, n) {
   return { key: `slot:${slot.id}:${n}`, kind: 'slot', label: `${f.name} · ${slot.date} ${slot.time}`, system: aiSystem(S), user, criteria: f.criteria || [] };
 }
 // Gọi từ addCellGen / writeSlotFromCell: ghi việc khi đang chạy thử, lấy kết quả AI khi chạy thật
-function aiCellText(S, cell, iv, col, context, mock, n) {
+export function aiCellText(S, cell, iv, col, context, mock, n) {
   if (AI_REC) { AI_REC.push(cellJob(S, cell, iv, col, context, mock, n)); return null; }
   return takeAiText(`cell:${cell.id}:${n}`);
 }
-function aiSlotText(S, slot, f, cellText, iv, mock, n) {
+export function aiSlotText(S, slot, f, cellText, iv, mock, n) {
   if (AI_REC) { AI_REC.push(slotJob(S, slot, f, cellText, iv, mock, n)); return null; }
   return takeAiText(`slot:${slot.id}:${n}`);
 }
 // Sửa đoạn, hook, caption bằng AI: lời nhắn (trả lời là chữ hoặc JSON)
-function rewriteJob(S, text, op, instruction, ctx) {
+export function rewriteJob(S, text, op, instruction, ctx) {
   const what = op === 'custom' ? `Yêu cầu: ${instruction}` : `Cách sửa: ${AI_OPS[op] || op}.`;
   return { system: withSkill(S, ctx, aiSystem(S).split('\n\nTrả lời bằng')[0]) + '\n\nChỉ trả về đoạn đã sửa, không giải thích, không ngoặc kép bao quanh.', user: `${what}\n\n# Đoạn cần sửa\n${text}` };
 }
-function hooksJob(S, text, ctx) {
+export function hooksJob(S, text, ctx) {
   return { system: withSkill(S, ctx, aiSystem(S).split('\n\nTrả lời bằng')[0]), user: `Viết 5 câu mở đầu (hook) thay cho câu đầu của bài dưới đây, mỗi loại một câu: ${Object.entries(HOOK_KINDS).map(([k, v]) => `${k} (${v})`).join(', ')}. Mỗi câu tối đa 20 chữ.\nTrả về JSON: {"hooks": [{"kind": "question", "text": "…"}, …]}\n\n# Bài\n${text}` };
 }
-function parseHooks(raw) {
+export function parseHooks(raw) {
   const j = extractJson(raw); const arr = j && Array.isArray(j.hooks) ? j.hooks : [];
   const out = Object.keys(HOOK_KINDS).map(k => { const h = arr.find(x => x && x.kind === k && x.text); return h ? { kind: k, label: HOOK_KINDS[k], text: String(h.text).trim(), simulated: false } : null; }).filter(Boolean);
   return out.length ? { ok: true, hooks: out } : { ok: false, error: 'AI không trả về hook đọc được.' };
 }
-function captionsJob(S, text, ctx) {
+export function captionsJob(S, text, ctx) {
   const tags = snippetsFor(S, ctx || {}, 'hashtag')[0]; const cta = snippetsFor(S, ctx || {}, 'cta')[0];
   return { system: withSkill(S, ctx, aiSystem(S).split('\n\nTrả lời bằng')[0]), user: `Viết 3 phương án caption cho bài dưới đây: ngắn (hook + CTA + hashtag), vừa (thêm 2 câu nội dung), đầy đủ (tới 6 câu). ${cta ? `CTA nên dùng: "${cta.text}".` : ''} ${tags ? `Hashtag: ${tags.text}.` : ''}\nTrả về JSON: {"captions": [{"kind": "short", "text": "…"}, {"kind": "medium", "text": "…"}, {"kind": "long", "text": "…"}]}\n\n# Bài\n${text}` };
 }
-function parseCaptions(raw) {
+export function parseCaptions(raw) {
   const j = extractJson(raw); const arr = j && Array.isArray(j.captions) ? j.captions : [];
   const L = { short: 'Ngắn', medium: 'Vừa', long: 'Đầy đủ' };
   const out = Object.keys(L).map(k => { const c = arr.find(x => x && x.kind === k && x.text); return c ? { kind: k, label: L[k], text: String(c.text).trim(), simulated: false } : null; }).filter(Boolean);

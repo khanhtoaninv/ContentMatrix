@@ -1,4 +1,11 @@
 // ---------- UI · Khởi động ----------
+import { AC } from '../logic/99-export.js';
+import { ACTIONS, CHANGES, INPUTS, S, setS, view } from './00-state.js';
+import { closeLayer, esc, layerStack, nowDate, openLayer, save, store, toast } from './01-core.js';
+import { mediaGc, mediaHydrate, mediaOk, mediaOpen, setMediaOk } from './01b-mediastore.js';
+import { render } from './02-shell.js';
+import { LIVE_TICK_MS, clockOff, liveTick } from './04d-publish.js';
+import { copyText } from './05-matrix.js';
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-act]');
   if (!el || el.disabled) return;
@@ -23,10 +30,10 @@ window.__AC_S = () => S;
   const theme = store.get('autocontent.theme');
   if (theme === 'dark' || theme === 'light') document.documentElement.setAttribute('data-theme', theme);
   const raw = store.get(AC.STORAGE_KEY);
-  try { await mediaOpen(); mediaOk = true; } catch (e) { mediaOk = false; }
+  try { await mediaOpen(); setMediaOk(true); } catch (e) { setMediaOk(false); }
   const res = AC.loadStateFromRaw(raw);
   if (res.status === 'ok') {
-    S = res.state;
+    setS(res.state);
     if (raw.includes('"idb:')) {
       try { const h = await mediaHydrate(S); if (h.missing) setTimeout(() => toast(`${h.missing} ảnh/video không còn trong bộ nhớ trình duyệt, đã thay bằng ô xám. Khôi phục từ bản Sao lưu nếu cần.`, 'bad'), 300); mediaGc(h.refs); }
       catch (e) { setTimeout(() => toast('Không đọc được ảnh, video đã cất trong trình duyệt.', 'bad'), 300); }
@@ -34,7 +41,7 @@ window.__AC_S = () => S;
   }
   else if (res.status === 'corrupt') {
     store.set(AC.STORAGE_KEY + '-rescue', raw);
-    S = AC.emptyState(); S.ui.weekStart = AC.mondayOf(nowDate()); view.screen = 'setup'; view.setupTab = 'backup';
+    setS(AC.emptyState()); S.ui.weekStart = AC.mondayOf(nowDate()); view.screen = 'setup'; view.setupTab = 'backup';
     view.banner = `Dữ liệu đã lưu bị hỏng (${esc(res.error)}). Bản thô đã được cứu sang khóa "${esc(AC.STORAGE_KEY)}-rescue" và ứng dụng mở trống an toàn. Bạn có thể nạp dữ liệu demo hoặc khôi phục từ bản sao lưu.`;
     save();
   } else if (res.status === 'old') {
@@ -42,10 +49,10 @@ window.__AC_S = () => S;
     const tag = res.label === 'v2.6' ? '-v26' : '-v27';
     oldDataKey = AC.STORAGE_KEY + tag;
     store.set(oldDataKey, raw);
-    S = AC.buildSeed(); save();
+    setS(AC.buildSeed()); save();
     view.banner = `Ứng dụng đã chuyển sang mô hình Topic → Matrix → Chia bài (đặc tả v2.8) nên dữ liệu cũ (${esc(res.label)}, ${esc(res.version)}) không dùng tiếp được. Bản cũ được cất trong trình duyệt ở khóa "${esc(oldDataKey)}"; dữ liệu demo mới đã được nạp. <button class="linkbtn" data-act="show-old-data">Xem bản cũ</button>`;
   } else {
-    S = AC.buildSeed(); save();
+    setS(AC.buildSeed()); save();
     setTimeout(() => toast('Lần đầu mở: đã nạp dữ liệu demo Nói Được English.'), 300);
   }
   // R4: slot tự đăng đã đến giờ và mốc số liệu đã qua (mô phỏng)

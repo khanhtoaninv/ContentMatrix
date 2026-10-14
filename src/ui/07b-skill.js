@@ -1,7 +1,12 @@
 // ---------- UI · Skill (bộ chỉ dẫn) của Cột và Format (mục 10.49) ----------
+import { AC } from '../logic/99-export.js';
+import { ACTIONS, INPUTS, S } from './00-state.js';
+import { $, closeLayer, confirmBox, esc, icon, openLayer, save, toast } from './01-core.js';
+import { render } from './02-shell.js';
+import { downloadBytes } from './06-export.js';
 // Soạn trong Setup; lưu trong chính Cột/Format (đi theo Sao lưu). Tại thời điểm gen chỉ dùng đúng 1 Skill đang chọn.
 const skillOwner = (kind, id) => AC.byId(kind === 'fmt' ? S.formats : S.columns, id);
-function skillButtonHtml(kind, o) {
+export function skillButtonHtml(kind, o) {
   const a = AC.activeSkill(o), n = AC.skillsOf(o).length;
   return `<div class="field"><label>Skill (bộ chỉ dẫn cho AI)</label><div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn" data-act="skill-open" data-kind="${kind}" data-id="${esc(o.id)}">Quản lý Skill (${n})</button><span class="small muted">${a ? `Đang dùng: ${esc(a.name)} v${a.version}` : 'Chưa chọn Skill: AI dùng Hướng dẫn viết'}</span></div><span class="hint">Mỗi lần gen chỉ dùng đúng 1 Skill; chọn Skill khác thì gen lần sau dùng Skill đó. Skill thay cho "Hướng dẫn" ở trên. Quy tắc cứng (độ dài, CTA, từ cấm) luôn thắng Skill.</span></div>`;
 }
@@ -100,7 +105,7 @@ function skillBlindExport(kind, o) {
   downloadBytes(`so-mu-${o.id}.md`, new TextEncoder().encode(md), 'text/markdown');
 }
 // Quy tắc viết chung (thay đoạn cố định trong lời nhắn hệ thống): để trống thì không thêm gì
-function writingRulesSection() {
+export function writingRulesSection() {
   return `<section class="panel stack" style="margin-top:12px"><h2>Quy tắc viết chung</h2><p class="small muted">Áp cho mọi lần AI viết, mọi Cột và Format (ví dụ: tránh câu sáo kiểu máy viết, cách xưng hô). Để trống nếu không cần. Nên ngắn; quy tắc riêng của từng Cột/Format đặt trong Skill của chúng.</p>
     <div class="field"><label for="wr-text">Quy tắc viết chung</label><textarea id="wr-text" style="min-height:140px" data-input="writing-rules">${esc(S.settings.writingRules || '')}</textarea><span class="hint" id="wr-saved">Tự lưu khi gõ</span></div></section>`;
 }

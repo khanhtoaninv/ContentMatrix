@@ -746,7 +746,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 function topicFileMd(title, context, parts) {
   return `# ${title}\n\n${context}\n\n${parts.join('\n')}`;
 }
-const SEED_TOPIC_FILES = {
+export const SEED_TOPIC_FILES = {
   '2026-10-05': {
     v1: topicFileMd('Bắt đầu lại với tiếng Anh sau giờ làm', 'Bối cảnh chung: ba Topic cùng trả lời câu hỏi làm sao người đi làm giữ được việc học tiếng Anh sau giờ làm. Topic 1 nói về khối lượng học, Topic 2 về thời điểm học, Topic 3 về người học cùng.', [T1_TOPIC_1_V1, T1_TOPIC_2, T1_TOPIC_3]),
     v2: topicFileMd('Bắt đầu lại với tiếng Anh sau giờ làm', 'Bối cảnh chung: ba Topic cùng trả lời câu hỏi làm sao người đi làm giữ được việc học tiếng Anh sau giờ làm. Topic 1 nói về khối lượng học, Topic 2 về thời điểm học, Topic 3 về người học cùng.', [T1_TOPIC_1_V2, T1_TOPIC_2, T1_TOPIC_3]),

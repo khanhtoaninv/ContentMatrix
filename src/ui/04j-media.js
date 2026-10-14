@@ -1,17 +1,26 @@
 // ---------- Ảnh AI thật qua API, ảnh bìa và phụ đề video (mục 10.38) ----------
+import { AC } from '../logic/99-export.js';
+import { ACTIONS, CHANGES, S, view } from './00-state.js';
+import { $, confirmBox, esc, icon, openLayer, save, toast } from './01-core.js';
+import { render } from './02-shell.js';
+import { openSlot } from './04-week.js';
+import { pvRefresh } from './04b-preview.js';
+import { afterImageDialog, curVersion, loadImg } from './04e-frame.js';
+import { readImageFile } from './04i-studio.js';
+import { downloadBytes } from './06-export.js';
 // Mỗi nhà cung cấp một khoá (OpenAI dùng chung cho ảnh và chữ): bộ nhớ, hoặc localStorage "autocontent.key.<nhà cung cấp>"
 const KEY_PREFIX = 'autocontent.key.';
 const keyMem = {};
-function keyFor(p) { if (keyMem[p] != null) return keyMem[p]; try { return localStorage.getItem(KEY_PREFIX + p) || ''; } catch (e) { return ''; } }
-function keyRememberedFor(p) { try { return !!localStorage.getItem(KEY_PREFIX + p); } catch (e) { return false; } }
-function setKeyFor(p, k, remember) {
+export function keyFor(p) { if (keyMem[p] != null) return keyMem[p]; try { return localStorage.getItem(KEY_PREFIX + p) || ''; } catch (e) { return ''; } }
+export function keyRememberedFor(p) { try { return !!localStorage.getItem(KEY_PREFIX + p); } catch (e) { return false; } }
+export function setKeyFor(p, k, remember) {
   keyMem[p] = k || '';
   try { if (remember && k) localStorage.setItem(KEY_PREFIX + p, k); else localStorage.removeItem(KEY_PREFIX + p); } catch (e) { /* trình duyệt chặn lưu: giữ trong bộ nhớ */ }
 }
 const apiKey = () => keyFor(AC.imageApiOf(S).provider);
 const keyRemembered = () => keyRememberedFor(AC.imageApiOf(S).provider);
 const setApiKey = (k, remember) => setKeyFor(AC.imageApiOf(S).provider, k, remember);
-const maskKey = k => k ? `…${k.slice(-4)}` : '';
+export const maskKey = k => k ? `…${k.slice(-4)}` : '';
 function dataUrlToBlob(d) {
   const i = d.indexOf(','); const mime = (/^data:([^;,]+)/.exec(d) || [])[1] || 'application/octet-stream';
   const bin = atob(d.slice(i + 1)); const u = new Uint8Array(bin.length); for (let k = 0; k < bin.length; k++) u[k] = bin.charCodeAt(k);
@@ -25,7 +34,7 @@ async function shrinkDataUrl(d, max) {
   const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, 0, c.width, c.height);
   return c.toDataURL('image/jpeg', 0.88);
 }
-async function apiFetch(req, timeoutMs) {
+export async function apiFetch(req, timeoutMs) {
   const ctl = new AbortController(); const tm = setTimeout(() => ctl.abort(), timeoutMs || 120000);
   let body;
   if (req.form) { body = new FormData(); req.form.forEach(([k, v]) => { if (v && typeof v === 'object') body.append(k, dataUrlToBlob(v.file), v.name); else body.append(k, v); }); }
@@ -41,8 +50,8 @@ async function apiFetch(req, timeoutMs) {
     throw new Error(`Không kết nối được tới ${host}. Trình xem artifact có thể chặn gọi ra ngoài, hoặc máy chủ không cho trình duyệt gọi thẳng. Thử tải tệp HTML về máy rồi mở bằng trình duyệt.`);
   } finally { clearTimeout(tm); }
 }
-const providerLabel = () => (AC.IMAGE_PROVIDERS[AC.imageApiOf(S).provider] || {}).label || '';
-async function imageApiCall(mode, o) {
+export const providerLabel = () => (AC.IMAGE_PROVIDERS[AC.imageApiOf(S).provider] || {}).label || '';
+export async function imageApiCall(mode, o) {
   const cfg = AC.imageApiOf(S); const req = AC.buildImageRequest(cfg, apiKey(), Object.assign({ mode }, o));
   if (!req.ok) throw new Error(req.error);
   const r = await apiFetch(req); const p = AC.parseImageResponse(cfg.provider, r.status, r.body);
@@ -53,7 +62,7 @@ async function imageApiCall(mode, o) {
 }
 const refreshSlot = s => { save(); render(); if (!(pvRefresh && pvRefresh(s.id))) openSlot(s.id); };
 // Gen qua API (thay cho Gen mô phỏng khi đã bật ở Setup)
-async function apiGenImage(s, i) {
+export async function apiGenImage(s, i) {
   const a = s.assets[i]; if (!a) return;
   if (!a.prompt) return toast('Ô ảnh chưa có prompt.', 'bad');
   const lock = AC.slotLockMsg(S, s); if (lock) return toast(lock, 'bad');
@@ -69,7 +78,7 @@ async function apiGenImage(s, i) {
 }
 
 // ---------- Setup → AI ảnh & video ----------
-function imageApiTab() {
+export function imageApiTab() {
   const c = AC.imageApiOf(S), P = AC.IMAGE_PROVIDERS, on = c.provider !== 'off', k = apiKey(), p = P[c.provider];
   return `<p class="muted">Bật để nút <b>Gen</b> và <b>Img2Img</b> gọi AI tạo ảnh thật thay cho ảnh mô phỏng, và để <b>Phụ đề</b> nhận giọng nói trong video. Mỗi lần gọi tính phí theo bảng giá của nhà cung cấp, vào tài khoản của khoá bạn nhập.</p>
     <div class="card stack" style="gap:12px;max-width:760px">
@@ -118,14 +127,14 @@ ACTIONS['ia-check'] = async () => {
 function videoBtns(i, lk, has) {
   return `<button class="btn sm" data-x="vid-cover" data-i="${i}" ${!lk && has ? '' : 'disabled'} title="Chọn ảnh bìa từ khung hình của video hoặc tải ảnh lên">Bìa</button><button class="btn sm" data-x="vid-subs" data-i="${i}" ${!lk && has ? '' : 'disabled'} title="Tạo, sửa phụ đề; tải .srt/.vtt">Phụ đề</button>`;
 }
-function videoMetaLine(v) {
+export function videoMetaLine(v) {
   if (!v || v.kind !== 'video' || !(v.cover || v.subs)) return '';
   return `<span class="small faint">Video: ${[v.cover ? `có ảnh bìa${v.cover.t != null ? ` (khung ${AC.fmtClock(v.cover.t)})` : ''}` : '', v.subs ? `phụ đề ${v.subs.cues.length} dòng${v.subs.source === 'script' ? ' (thời gian ước lượng)' : v.subs.source === 'api' ? ' (nhận giọng nói)' : ''}` : ''].filter(Boolean).join(' · ')}</span>`;
 }
 const videoReady = vd => new Promise(res => { if (vd.readyState >= 1) return res(); vd.addEventListener('loadedmetadata', () => res(), { once: true }); vd.addEventListener('error', () => res(), { once: true }); });
 const seekTo = (vd, t) => new Promise(res => { if (Math.abs(vd.currentTime - t) < 0.01 && vd.readyState >= 2) return res(); const done = () => res(); vd.addEventListener('seeked', done, { once: true }); vd.currentTime = t; setTimeout(done, 1500); });
 
-function openCoverDialog(s, i) {
+export function openCoverDialog(s, i) {
   const a = s.assets[i], v = curVersion(a);
   const st = { t: v.cover && v.cover.t != null ? v.cover.t : 0, src: v.cover ? v.cover.src : '', at: v.cover ? v.cover.t : null, dirty: false };
   const box = openLayer(`<header class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:nowrap"><div><span class="eyebrow">Ảnh bìa video · ${esc(a.name)} · bản v${v.n}</span><h2>Chọn ảnh bìa</h2><p class="small muted">Kéo thanh thời gian tới khung đẹp rồi bấm Lấy khung này, hoặc tải ảnh của bạn. Ảnh bìa đi kèm video khi xuất ZIP; kênh nào cho đặt ảnh bìa thì dùng ảnh này khi đăng.</p></div><button class="btn icon ghost" data-act="close-layer" aria-label="Đóng">${icon('close')}</button></header>
@@ -164,7 +173,7 @@ function openCoverDialog(s, i) {
   ok.addEventListener('click', () => { const r = AC.setVideoCover(S, s.id, i, { src: st.src, t: st.at }); if (!r.ok) return toast(r.error, 'bad'); afterImageDialog(s, 'Đã lưu ảnh bìa video.'); });
 }
 
-function openSubsDialog(s, i) {
+export function openSubsDialog(s, i) {
   const a = s.assets[i], v = curVersion(a);
   const cfg = AC.imageApiOf(S), sttOk = !!(AC.IMAGE_PROVIDERS[cfg.provider] || {}).stt;
   const st = { cues: v.subs ? v.subs.cues.map(c => Object.assign({}, c)) : [], source: v.subs ? v.subs.source : 'manual', dur: 0, busy: false };

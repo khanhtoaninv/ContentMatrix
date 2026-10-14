@@ -1,11 +1,14 @@
 // ---------- UI · Xuất (SCR-11) — R4: gói ZIP của tuần đã chốt ----------
+import { AC } from '../logic/99-export.js';
+import { ACTIONS, RENDERERS, S } from './00-state.js';
+import { chName, colName, curStart, curWeek, esc, fmtName, icon, toast } from './01-core.js';
 // Tải mảng byte về máy: trong trình xem artifact dùng quyền downloads (người xem xác nhận); mở tệp HTML trực tiếp thì dùng liên kết tải
 let dlCap = null;
 function downloadsCap() {
   if (!dlCap) dlCap = (window.claude && typeof window.claude.use === 'function') ? window.claude.use('downloads').catch(() => null) : Promise.resolve(null);
   return dlCap;
 }
-async function downloadBytes(name, bytes, mime) {
+export async function downloadBytes(name, bytes, mime) {
   const dl = await downloadsCap();
   if (dl) {
     try { await dl.save({ filename: name, data: new Blob([bytes]) }); toast(`Đã lưu ${name}.`); }

@@ -1,31 +1,34 @@
 // ---------- 05e · R4: Xác nhận lịch, đăng bài, số liệu, đồng hồ demo (mục 10.22) ----------
+import { fold, hash32, isValidTime, isValidUrl, isValidYMD, minutesOf, mondayOf, parseYMD } from './01-util.js';
+import { byId, log, slotColumnId, slotWarnings, weekOf, weekSlots } from './05-model.js';
+import { stampRatios } from './05q-imgspec.js';
 // Đăng và số liệu ở R4 là mô phỏng xác định; dữ liệu đã đúng dạng để R6–R7 nối API/Metricool/Postiz thật.
 
 // ---- Thời điểm dạng 'YYYY-MM-DDTHH:MM' ----
-function tsToMs(ts) { return parseYMD(ts.slice(0, 10)) + minutesOf(ts.slice(11, 16)) * 60000; }
-function msToTs(ms) { return new Date(ms).toISOString().slice(0, 16); }
-function tsAddMin(ts, m) { return msToTs(tsToMs(ts) + m * 60000); }
-function isValidTs(ts) { return typeof ts === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(ts) && isValidYMD(ts.slice(0, 10)) && isValidTime(ts.slice(11, 16)); }
-function slotTs(s) { return `${s.date}T${s.time}`; }
+export function tsToMs(ts) { return parseYMD(ts.slice(0, 10)) + minutesOf(ts.slice(11, 16)) * 60000; }
+export function msToTs(ms) { return new Date(ms).toISOString().slice(0, 16); }
+export function tsAddMin(ts, m) { return msToTs(tsToMs(ts) + m * 60000); }
+export function isValidTs(ts) { return typeof ts === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(ts) && isValidYMD(ts.slice(0, 10)) && isValidTime(ts.slice(11, 16)); }
+export function slotTs(s) { return `${s.date}T${s.time}`; }
 
 // ---- Nền tảng, cách đăng theo kênh ----
-const PLATFORMS = { facebook: 'Facebook', instagram: 'Instagram', tiktok: 'TikTok', threads: 'Threads', youtube: 'YouTube', blog: 'Blog', other: 'Khác' };
-const PUBLISH_VIA = { api: 'API riêng', metricool: 'Metricool', postiz: 'Postiz' };
-const METRICS_VIA = { api: 'API riêng', metricool: 'Metricool', postiz: 'Postiz', none: 'Không' };
-const PLATFORM_OF_ID = { 'ch-fb': 'facebook', 'ch-ig': 'instagram', 'ch-tt': 'tiktok', 'ch-th': 'threads', 'ch-yt': 'youtube', 'ch-blog': 'blog' };
+export const PLATFORMS = { facebook: 'Facebook', instagram: 'Instagram', tiktok: 'TikTok', threads: 'Threads', youtube: 'YouTube', blog: 'Blog', other: 'Khác' };
+export const PUBLISH_VIA = { api: 'API riêng', metricool: 'Metricool', postiz: 'Postiz' };
+export const METRICS_VIA = { api: 'API riêng', metricool: 'Metricool', postiz: 'Postiz', none: 'Không' };
+export const PLATFORM_OF_ID = { 'ch-fb': 'facebook', 'ch-ig': 'instagram', 'ch-tt': 'tiktok', 'ch-th': 'threads', 'ch-yt': 'youtube', 'ch-blog': 'blog' };
 const DEFAULT_PUBLISH = {
   facebook: { mode: 'auto', via: 'api', metrics: 'api' }, instagram: { mode: 'auto', via: 'api', metrics: 'api' },
   threads: { mode: 'auto', via: 'metricool', metrics: 'metricool' }, youtube: { mode: 'auto', via: 'postiz', metrics: 'postiz' },
   tiktok: { mode: 'manual', via: 'metricool', metrics: 'metricool' }, blog: { mode: 'manual', via: 'api', metrics: 'none' },
   other: { mode: 'manual', via: 'metricool', metrics: 'metricool' },
 };
-function defaultPublish(platform) { return Object.assign({}, DEFAULT_PUBLISH[platform] || DEFAULT_PUBLISH.other); }
-function channelPlatform(ch) { return ch && PLATFORMS[ch.platform] ? ch.platform : 'other'; }
-function channelPublish(S, channelId) {
+export function defaultPublish(platform) { return Object.assign({}, DEFAULT_PUBLISH[platform] || DEFAULT_PUBLISH.other); }
+export function channelPlatform(ch) { return ch && PLATFORMS[ch.platform] ? ch.platform : 'other'; }
+export function channelPublish(S, channelId) {
   const ch = byId(S.channels, channelId);
   return ch && ch.publish ? ch.publish : defaultPublish(channelPlatform(ch));
 }
-function setChannelPublish(S, channelId, patch) {
+export function setChannelPublish(S, channelId, patch) {
   const ch = byId(S.channels, channelId); if (!ch) return { ok: false, error: 'Không tìm thấy kênh.' };
   const next = Object.assign({}, channelPublish(S, channelId), patch);
   if (!['auto', 'manual'].includes(next.mode)) return { ok: false, error: 'Cách đăng không hợp lệ.' };
@@ -49,8 +52,8 @@ const METRIC_DEFS = {
 };
 // Tiếp cận/xem sau 7 ngày (mô phỏng) theo nền tảng
 const REACH_RANGE = { facebook: [1600, 6200], instagram: [900, 3600], tiktok: [2500, 24000], threads: [400, 2600], youtube: [450, 4200], blog: [150, 950], other: [300, 1500] };
-const MILESTONES = [{ key: '1h', min: 60, f: 0.25, label: '1 giờ' }, { key: '24h', min: 1440, f: 0.8, label: '24 giờ' }, { key: '7d', min: 10080, f: 1, label: '7 ngày' }];
-function metricDefs(S, s) {
+export const MILESTONES = [{ key: '1h', min: 60, f: 0.25, label: '1 giờ' }, { key: '24h', min: 1440, f: 0.8, label: '24 giờ' }, { key: '7d', min: 10080, f: 1, label: '7 ngày' }];
+export function metricDefs(S, s) {
   const p = channelPlatform(byId(S.channels, s.channelId));
   const defs = METRIC_DEFS[p].slice();
   const f = byId(S.formats, s.formatId);
@@ -71,14 +74,14 @@ function mockMetricValues(S, s, frac) {
   return out;
 }
 // Tổng hợp một bộ giá trị thành Tiếp cận/xem và Tương tác
-function metricTotals(S, s, values) {
+export function metricTotals(S, s, values) {
   let reach = 0, eng = 0;
   metricDefs(S, s).forEach(d => { const v = Number(values[d.k]) || 0; if (d.role === 'reach') reach += v; if (d.role === 'eng') eng += v; });
   return { reach, eng };
 }
 // Số liệu tăng liên tục theo thời gian kể từ lúc đăng (mô phỏng): nội suy giữa các mốc 0 → 1 giờ → 24 giờ → 7 ngày
 const LIVE_CURVE = [[0, 0], [60, 0.25], [1440, 0.8], [10080, 1]];
-function liveFrac(min) {
+export function liveFrac(min) {
   if (!(min > 0)) return 0;
   for (let i = 1; i < LIVE_CURVE.length; i++) {
     const [m1, f1] = LIVE_CURVE[i], [m0, f0] = LIVE_CURVE[i - 1];
@@ -88,7 +91,7 @@ function liveFrac(min) {
 }
 const LIVE_FIRST_MIN = 1; // lần lấy số liệu đầu tiên sau khi đăng (phút)
 // Trạng thái số liệu của slot đã đăng tại thời điểm nowMs (mặc định = đồng hồ demo): giá trị hiện tại, nguồn, mốc mới nhất
-function slotMetricsNow(S, s, nowMs) {
+export function slotMetricsNow(S, s, nowMs) {
   if (s.state !== 'PUBLISHED' || !s.pub || !isValidTs(s.pub.at)) return { status: 'unpublished', snap: null };
   const src = channelPublish(S, s.channelId).metrics;
   const snap = (s.metrics || []).length ? s.metrics[s.metrics.length - 1] : null;
@@ -101,7 +104,7 @@ function slotMetricsNow(S, s, nowMs) {
   return Object.assign({ status: 'ok', snap, values, source: snap && src === 'none' ? snap.source : src, minutes: min }, metricTotals(S, s, values));
 }
 // Ba con số hiện trên thẻ slot: tiếp cận/xem, tương tác, và bình luận (hoặc chỉ số đặc trưng khi nền tảng không có bình luận)
-function slotHeadline(S, s, m) {
+export function slotHeadline(S, s, m) {
   if (!m || m.status !== 'ok') return null;
   const defs = metricDefs(S, s);
   const r = defs.find(d => d.role === 'reach');
@@ -113,7 +116,7 @@ function slotHeadline(S, s, m) {
   };
 }
 // Thêm các mốc số liệu đã qua theo đồng hồ demo (mô phỏng)
-function syncSlotMetrics(S, s) {
+export function syncSlotMetrics(S, s) {
   if (s.state !== 'PUBLISHED' || !s.pub || !isValidTs(s.pub.at)) return 0;
   const src = channelPublish(S, s.channelId).metrics;
   if (src === 'none') return 0;
@@ -129,14 +132,14 @@ function syncSlotMetrics(S, s) {
   s.metrics.sort((a, b) => a.at.localeCompare(b.at));
   return added;
 }
-function syncMetrics(S) { let n = 0; S.slots.forEach(s => { n += syncSlotMetrics(S, s); }); return n; }
+export function syncMetrics(S) { let n = 0; S.slots.forEach(s => { n += syncSlotMetrics(S, s); }); return n; }
 
 // ---- Link giả theo nền tảng (mô phỏng tự đăng) ----
 function brandHandle(S) {
   const name = (S.brand && S.brand.parsed && S.brand.parsed.name) || 'thuonghieu';
   return fold(name.split('\n')[0]).replace(/[^a-z0-9]+/g, '').slice(0, 24) || 'thuonghieu';
 }
-function mockPostUrl(S, s) {
+export function mockPostUrl(S, s) {
   const h = brandHandle(S); const p = channelPlatform(byId(S.channels, s.channelId));
   const n = String(hash32(`${s.id}|url`)) + String(hash32(`${s.id}|url2`)).slice(0, 6);
   const code = (len) => { const a = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz0123456789_-'; let x = ''; for (let i = 0; i < len; i++) x += a[hash32(`${s.id}|c${i}`) % a.length]; return x; };
@@ -151,7 +154,7 @@ function mockPostUrl(S, s) {
 }
 
 // ---- Xác nhận lịch (bước 7) ----
-function confirmGate(S, weekId) {
+export function confirmGate(S, weekId) {
   const w = weekOf(S, weekId);
   if (!w) return { ok: false, reason: 'Tuần chưa có slot', blockers: [] };
   if (w.status === 'CONFIRMED') return { ok: false, reason: `Tuần đã chốt (bản ${w.revision})`, blockers: [] };
@@ -165,7 +168,7 @@ function confirmGate(S, weekId) {
   });
   return { ok: !blockers.length, reason: blockers.length ? `${blockers.length} slot chưa đạt` : '', blockers };
 }
-function confirmSummary(S, weekId) {
+export function confirmSummary(S, weekId) {
   const slots = weekSlots(S, weekId); const now = S.settings.demoNow;
   const byChannel = {};
   let auto = 0, manual = 0, warned = 0, missingImages = 0, dueNow = 0;
@@ -178,7 +181,7 @@ function confirmSummary(S, weekId) {
   });
   return { total: slots.length, byChannel, auto, manual, warned, missingImages, dueNow, published: slots.filter(s => s.state === 'PUBLISHED').length };
 }
-function confirmWeek(S, weekId) {
+export function confirmWeek(S, weekId) {
   const g = confirmGate(S, weekId); if (!g.ok) return { ok: false, error: g.reason, blockers: g.blockers };
   const w = weekOf(S, weekId);
   w.status = 'CONFIRMED'; w.revision = (w.revision || 0) + 1; w.confirmedAt = S.settings.demoNow;
@@ -189,12 +192,12 @@ function confirmWeek(S, weekId) {
 }
 
 // ---- Tự đăng (mô phỏng) ----
-function publishNow(S, s, mode, at, extra) {
+export function publishNow(S, s, mode, at, extra) {
   s.state = 'PUBLISHED';
   s.pub = Object.assign({ mode, via: channelPublish(S, s.channelId).via, url: '', at, asConfirmed: s.confirmedText == null || s.text === s.confirmedText, simulated: mode === 'auto' }, extra || {});
   s.metrics = [];
 }
-function runScheduler(S) {
+export function runScheduler(S) {
   const now = S.settings.demoNow; const published = [];
   S.weeks.filter(w => w.status === 'CONFIRMED').forEach(w => {
     weekSlots(S, w.id).forEach(s => {
@@ -214,14 +217,14 @@ function runScheduler(S) {
 }
 
 // ---- Đánh dấu đã đăng (thủ công) và sửa thông tin đăng ----
-function publishGate(S, s) {
+export function publishGate(S, s) {
   if (!s) return { ok: false, reason: 'Không tìm thấy slot.' };
   const w = weekOf(S, s.weekId);
   if (!w || !(w.revision >= 1)) return { ok: false, reason: 'Chốt lịch trước (Xác nhận lịch).' };
   if (s.state !== 'APPROVED' && s.state !== 'PUBLISHED') return { ok: false, reason: 'Slot cần Đã duyệt.' };
   return { ok: true, reason: '' };
 }
-function markPublished(S, slotId, input) {
+export function markPublished(S, slotId, input) {
   const s = byId(S.slots, slotId); const g = publishGate(S, s); if (!g.ok) return { ok: false, error: g.reason };
   const at = String(input.at || slotTs(s)).slice(0, 16);
   const url = String(input.url || '').trim();
@@ -242,7 +245,7 @@ function markPublished(S, slotId, input) {
   syncSlotMetrics(S, s);
   return { ok: true, slot: s };
 }
-function unmarkPublished(S, slotId) {
+export function unmarkPublished(S, slotId) {
   const s = byId(S.slots, slotId); if (!s || s.state !== 'PUBLISHED') return { ok: false, error: 'Slot chưa đăng.' };
   if (s.pub && s.pub.mode === 'auto') return { ok: false, error: 'Bài tự đăng không bỏ đánh dấu được.' };
   s.state = 'APPROVED'; s.pub = null; s.metrics = []; s.changedAfterPublish = false;
@@ -251,7 +254,7 @@ function unmarkPublished(S, slotId) {
 }
 
 // ---- Đồng hồ demo (D127) ----
-function setDemoNow(S, ts) {
+export function setDemoNow(S, ts) {
   if (!isValidTs(ts)) return { ok: false, error: 'Ngày giờ không hợp lệ.' };
   S.settings.demoNow = ts;
   if (S.settings.clock && S.settings.clock.running) S.settings.clock.anchor = null; // neo lại ở lần chạy tới
@@ -259,15 +262,15 @@ function setDemoNow(S, ts) {
   return { ok: true, published: r.published.length };
 }
 // Đồng hồ demo chạy theo giờ thật: neo {demoMs, realMs}; giờ demo = demoMs + (giờ thật − realMs)
-function clockOf(S) { if (!S.settings.clock) S.settings.clock = { running: true, anchor: null }; return S.settings.clock; }
-function clockNowMs(S, realMs) {
+export function clockOf(S) { if (!S.settings.clock) S.settings.clock = { running: true, anchor: null }; return S.settings.clock; }
+export function clockNowMs(S, realMs) {
   const c = clockOf(S); const base = tsToMs(S.settings.demoNow);
   if (!c.running) return base;
   if (!c.anchor) c.anchor = { demoMs: base, realMs };
   return Math.max(base, c.anchor.demoMs + (realMs - c.anchor.realMs));
 }
 // Một nhịp đồng hồ: cập nhật demoNow theo phút, chạy lịch tự đăng và mốc số liệu; trả về giờ ms và các thay đổi
-function clockTick(S, realMs) {
+export function clockTick(S, realMs) {
   const ms = clockNowMs(S, realMs);
   const ts = msToTs(Math.floor(ms / 60000) * 60000);
   let changed = false, published = 0, metrics = 0;
@@ -278,7 +281,7 @@ function clockTick(S, realMs) {
   }
   return { ms, changed, published, metrics };
 }
-function setClockRunning(S, on, realMs) {
+export function setClockRunning(S, on, realMs) {
   const c = clockOf(S);
   if (!on && c.running) clockTick(S, realMs);
   c.running = !!on; c.anchor = on ? { demoMs: tsToMs(S.settings.demoNow), realMs } : null;
@@ -287,7 +290,7 @@ function setClockRunning(S, on, realMs) {
 
 // ---- Báo cáo (màn Báo cáo, header Dashboard) ----
 // filter: { from, to (YYYY-MM-DD, gồm cả hai đầu; bỏ trống = toàn bộ), channels: [] }
-function reportStats(S, filter) {
+export function reportStats(S, filter) {
   const f = filter || {};
   const posts = S.slots.filter(s => s.state === 'PUBLISHED' && s.pub
     && (!f.from || s.date >= f.from) && (!f.to || s.date <= f.to)
@@ -318,10 +321,10 @@ function reportStats(S, filter) {
   const top = rows.filter(r => r.status === 'ok').sort((a, b) => b.eng - a.eng || b.reach - a.reach).slice(0, 5);
   return { total, byChannel, byColumn, byFormat, byDay, byWeek, rows, top };
 }
-function isOnTime(s) { return !!(s.pub && isValidTs(s.pub.at)) && tsToMs(s.pub.at) - tsToMs(slotTs(s)) <= 30 * 60000; }
+export function isOnTime(s) { return !!(s.pub && isValidTs(s.pub.at)) && tsToMs(s.pub.at) - tsToMs(slotTs(s)) <= 30 * 60000; }
 
 // ---- Di trú dữ liệu trước R4 (cùng DATA_VERSION) ----
-function migrateState(S) {
+export function migrateState(S) {
   if (!Array.isArray(S.blogPosts)) S.blogPosts = [];
   (S.slots || []).forEach(s => stampRatios(S, s)); // chuẩn ảnh theo nền tảng (mục 10.42)
   (S.channels || []).forEach(ch => {

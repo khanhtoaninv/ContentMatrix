@@ -1,6 +1,10 @@
 // ---------- 05b · R2′: Viết ma trận, thao tác ô, sửa Topic (MTX-01..08, TPC-08) ----------
+import { countWords } from './01-util.js';
+import { topicHasCase } from './02-parse.js';
+import { byId, cellAt, cellView, cellWarnings, cellsOf, isLocked, log, matrixCounts, refreshSlotFlags, sameTopicContent, slotsUsingCell, topicCurrent, topicsOf, weekLanes, weekOf, weekSlots } from './05-model.js';
+import { addCellGen, cancelCell } from './06-seed.js';
 // Ô Câu chuyện của Topic không có trường hợp cụ thể thì không viết (D100, MTX-07)
-function cellNoCase(S, cell) {
+export function cellNoCase(S, cell) {
   const col = byId(S.columns, cell.columnId); const row = byId(S.topics, cell.topicId);
   const v = row ? topicCurrent(row) : null;
   return !!col && col.kind === 'cauchuyen' && !!v && !v.hasCase;
@@ -13,12 +17,12 @@ function cellGuard(S, cell) {
   return '';
 }
 // Bài của một lượt sinh theo bản sửa (editRev = 0 là bản AI viết)
-function genText(gen, editRev) {
+export function genText(gen, editRev) {
   if (!gen) return '';
   const e = editRev ? gen.edits.find(x => x.rev === editRev) : null;
   return e ? e.text : gen.text;
 }
-function genImagePrompt(gen, editRev) {
+export function genImagePrompt(gen, editRev) {
   if (!gen) return '';
   const e = editRev ? gen.edits.find(x => x.rev === editRev) : null;
   return e && e.imagePrompt != null ? e.imagePrompt : gen.imagePrompt || '';
@@ -26,7 +30,7 @@ function genImagePrompt(gen, editRev) {
 function lastEditRev(gen) { return gen && gen.edits.length ? gen.edits[gen.edits.length - 1].rev : 0; }
 
 // ---- Viết ma trận (MTX-01): các ô Trống của phiên bản Topic hiện hành, theo thứ tự Topic rồi Cột ----
-function writeQueue(S, weekId) {
+export function writeQueue(S, weekId) {
   const w = weekOf(S, weekId); if (!w) return [];
   const out = [];
   topicsOf(S, weekId).filter(r => topicCurrent(r)).forEach(r => weekLanes(S, w).forEach(({ colId, k }) => {
@@ -35,10 +39,10 @@ function writeQueue(S, weekId) {
   }));
   return out;
 }
-function noCaseEmptyCount(S, weekId) {
+export function noCaseEmptyCount(S, weekId) {
   return cellsOf(S, weekId).filter(c => cellView(S, c).state === 'EMPTY' && cellNoCase(S, c) && topicCurrent(byId(S.topics, c.topicId) || {})).length;
 }
-function writeGate(S, weekId) {
+export function writeGate(S, weekId) {
   const w = weekOf(S, weekId);
   const rows = w ? topicsOf(S, weekId).filter(r => topicCurrent(r)) : [];
   const reasons = [];
@@ -52,7 +56,7 @@ function writeGate(S, weekId) {
   return { ok: !reasons.length, reasons, count: queue.length, queue };
 }
 // Viết một ô Trống (một lượt sinh: một bài + một gợi ý ảnh, MTX-01/02)
-function writeCellNow(S, cellId, at) {
+export function writeCellNow(S, cellId, at) {
   const cell = byId(S.cells, cellId);
   const err = cellGuard(S, cell); if (err) return { ok: false, error: err };
   if (cellView(S, cell).state !== 'EMPTY') return { ok: false, error: 'Ô đã có bài.' };
@@ -64,7 +68,7 @@ function writeCellNow(S, cellId, at) {
   return { ok: true, gen };
 }
 // Viết toàn bộ hàng đợi (dùng cho test; giao diện viết từng ô để có nút Dừng)
-function writeMatrix(S, weekId, at) {
+export function writeMatrix(S, weekId, at) {
   const gate = writeGate(S, weekId);
   if (!gate.ok) return { ok: false, reasons: gate.reasons, written: 0 };
   let written = 0;
@@ -74,7 +78,7 @@ function writeMatrix(S, weekId, at) {
 }
 
 // ---- Thao tác ô (MTX-03..06) ----
-function approveCell(S, cellId, at) {
+export function approveCell(S, cellId, at) {
   const cell = byId(S.cells, cellId);
   const err = cellGuard(S, cell); if (err) return { ok: false, error: err };
   const v = cellView(S, cell);
@@ -85,7 +89,7 @@ function approveCell(S, cellId, at) {
   return { ok: true, warnings: cellWarnings(S, cell, v.text).length };
 }
 // Tạo lại: thêm một lượt sinh cho phiên bản Topic hiện hành; ô về Chưa duyệt (cả ô Trống, Đã duyệt, Đã hủy)
-function regenCell(S, cellId, at) {
+export function regenCell(S, cellId, at) {
   const cell = byId(S.cells, cellId);
   const err = cellGuard(S, cell); if (err) return { ok: false, error: err };
   if (cellNoCase(S, cell)) return { ok: false, error: 'Topic không có trường hợp cụ thể nên ô Câu chuyện không viết được (D100).' };
@@ -97,7 +101,7 @@ function regenCell(S, cellId, at) {
   return { ok: true, gen };
 }
 // Sửa tay bài và gợi ý ảnh của bản hiện hành: thêm một bản sửa, ô về Chưa duyệt
-function editCell(S, cellId, text, imagePrompt, at) {
+export function editCell(S, cellId, text, imagePrompt, at) {
   const cell = byId(S.cells, cellId);
   const err = cellGuard(S, cell); if (err) return { ok: false, error: err };
   const v = cellView(S, cell);
@@ -113,7 +117,7 @@ function editCell(S, cellId, text, imagePrompt, at) {
   log(S, 'edit', 'cell', cellId, `bản ${v.gen.n} · sửa ${rev}`);
   return { ok: true, rev };
 }
-function cancelCellNow(S, cellId) {
+export function cancelCellNow(S, cellId) {
   const cell = byId(S.cells, cellId);
   const err = cellGuard(S, cell); if (err) return { ok: false, error: err };
   const v = cellView(S, cell);
@@ -124,7 +128,7 @@ function cancelCellNow(S, cellId) {
   return { ok: true, slots: slotsUsingCell(S, cellId).length };
 }
 // "Dùng bản này" (MTX-05): chọn một lượt sinh bất kỳ (kể cả viết từ phiên bản Topic cũ) làm bản hiện hành; ô về Chưa duyệt
-function useCellGen(S, cellId, genN) {
+export function useCellGen(S, cellId, genN) {
   const cell = byId(S.cells, cellId);
   const err = cellGuard(S, cell); if (err) return { ok: false, error: err };
   const gen = cell.gens.find(g => g.n === genN);
@@ -139,7 +143,7 @@ function useCellGen(S, cellId, genN) {
 }
 // Duyệt hàng loạt (MTX-08): chỉ các ô Chưa duyệt không có cảnh báo
 // Ô Chưa duyệt của Topic còn hiệu lực; withWarned = true thì gồm cả ô có cảnh báo (mục 10.55)
-function bulkApprovable(S, weekId, withWarned) {
+export function bulkApprovable(S, weekId, withWarned) {
   if (isLocked(S, weekId)) return [];
   const live = new Set(topicsOf(S, weekId).filter(r => topicCurrent(r)).map(r => r.id));
   return cellsOf(S, weekId).filter(c => {
@@ -148,10 +152,10 @@ function bulkApprovable(S, weekId, withWarned) {
     return v.state === 'DRAFT' && (withWarned || !cellWarnings(S, c, v.text).length);
   });
 }
-function bulkWarned(S, weekId) {
+export function bulkWarned(S, weekId) {
   return bulkApprovable(S, weekId, true).map(c => ({ cell: c, warnings: cellWarnings(S, c, cellView(S, c).text) })).filter(x => x.warnings.length);
 }
-function approveCellsBulk(S, weekId, at, withWarned) {
+export function approveCellsBulk(S, weekId, at, withWarned) {
   const list = bulkApprovable(S, weekId, withWarned);
   list.forEach(c => approveCell(S, c.id, at));
   const left = matrixCounts(S, weekId).DRAFT;
@@ -160,13 +164,13 @@ function approveCellsBulk(S, weekId, at, withWarned) {
 }
 
 // ---- Sửa Topic trực tiếp, back/next và "Dùng phiên bản này" (TPC-08) ----
-function topicVersionImpact(S, topicId) {
+export function topicVersionImpact(S, topicId) {
   const row = byId(S.topics, topicId); if (!row) return { cells: 0, slots: 0 };
   const cells = cellsOf(S, row.weekId).filter(c => c.topicId === topicId);
   const ids = new Set(cells.map(c => c.id));
   return { cells: cells.filter(c => cellView(S, c).text).length, slots: weekSlots(S, row.weekId).filter(s => s.sourceCellId && ids.has(s.sourceCellId)).length };
 }
-function editTopic(S, topicId, input, at) {
+export function editTopic(S, topicId, input, at) {
   const row = byId(S.topics, topicId);
   if (!row) return { ok: false, error: 'Không tìm thấy Topic.' };
   if (isLocked(S, row.weekId)) return { ok: false, error: 'Tuần đã chốt. Bấm "Mở lại để sửa" trước.' };
@@ -186,7 +190,7 @@ function editTopic(S, topicId, input, at) {
   log(S, 'edit', 'topic', topicId, `v${n}`);
   return { ok: true, version: n, impact };
 }
-function useTopicVersion(S, topicId, n) {
+export function useTopicVersion(S, topicId, n) {
   const row = byId(S.topics, topicId);
   if (!row) return { ok: false, error: 'Không tìm thấy Topic.' };
   if (isLocked(S, row.weekId)) return { ok: false, error: 'Tuần đã chốt. Bấm "Mở lại để sửa" trước.' };

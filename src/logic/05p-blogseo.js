@@ -1,19 +1,25 @@
 // ---------- Blog chuẩn SEO (mục 10.40): chuẩn chung, thông tin SEO của slot, rà soát, chèn ảnh/video, liên kết, gói xuất, kho bài, đăng qua API ----------
+import { countWords, fold, foldWithMap, isValidUrl, pick, splitSentences, utf8Bytes } from './01-util.js';
+import { byId, log, newAsset, nextId, slotLockMsg, weekOf } from './05-model.js';
+import { publishNow, slotTs } from './05e-publish.js';
+import { dataUrlBytes, mockImageSvg, versionExt } from './05f-export.js';
+import { FRAME_RATIOS } from './05i-frames.js';
+import { assetRatioFor, stampRatios } from './05q-imgspec.js';
 // Bài Blog vẫn là Markdown: đúng một "# Tiêu đề", đề mục "## / ###", đoạn ngắn, danh sách, **đậm**, *nghiêng*, [liên kết](url), > trích dẫn.
 // Ảnh/video chèn giữa bài là một dòng riêng: ![mô tả ảnh](media:bm-12 "chú thích"), trỏ tới ô media của slot (a.bid).
-const BLOG_SEO_DEFAULT = {
+export const BLOG_SEO_DEFAULT = {
   titleMax: 60, descMin: 140, descMax: 160, wordsMin: 300, wordsMax: 2500, paraMaxWords: 120, answerMaxWords: 60,
   kwDensityMax: 3, internalMin: 1, linksMax: 15, coverMinW: 1200,
   siteUrl: '', blogPath: '/blog/', defaultAuthor: '', utmSource: 'autocontent', utmMedium: 'blog',
 };
-const BLOG_INTENTS = { info: 'Tìm hiểu thông tin', howto: 'Hướng dẫn cách làm', compare: 'So sánh, lựa chọn', buy: 'Mua hoặc đăng ký' };
+export const BLOG_INTENTS = { info: 'Tìm hiểu thông tin', howto: 'Hướng dẫn cách làm', compare: 'So sánh, lựa chọn', buy: 'Mua hoặc đăng ký' };
 const BLOG_NUM_KEYS = ['titleMax', 'descMin', 'descMax', 'wordsMin', 'wordsMax', 'paraMaxWords', 'answerMaxWords', 'kwDensityMax', 'internalMin', 'linksMax', 'coverMinW'];
 const MEDIA_LINE = /^!\[([^\]]*)\]\(media:([\w-]+)(?:\s+"([^"]*)")?\)\s*$/;
 const LINK_RX = /(^|[^!])\[([^\]\n]+)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g;
 const BAD_ANCHORS = ['bấm vào đây', 'nhấn vào đây', 'tại đây', 'ở đây', 'click', 'click here', 'xem thêm', 'link', 'đây', 'here'];
 
-function blogSeoOf(S) { return Object.assign({}, BLOG_SEO_DEFAULT, (S.settings && S.settings.blogSeo) || {}); }
-function setBlogSeo(S, patch) {
+export function blogSeoOf(S) { return Object.assign({}, BLOG_SEO_DEFAULT, (S.settings && S.settings.blogSeo) || {}); }
+export function setBlogSeo(S, patch) {
   const cur = blogSeoOf(S); const next = Object.assign({}, cur);
   const errs = [];
   BLOG_NUM_KEYS.forEach(k => { if (patch[k] === undefined || patch[k] === '') return; const v = Number(patch[k]); if (!isFinite(v) || v < 0) errs.push(`"${k}" phải là số không âm.`); else next[k] = v; });
@@ -28,25 +34,25 @@ function setBlogSeo(S, patch) {
   S.settings.blogSeo = next; log(S, 'update', 'blogSeo', 'settings');
   return { ok: true, cfg: next };
 }
-function isBlogSlot(S, s) {
+export function isBlogSlot(S, s) {
   if (!s) return false;
   const f = byId(S.formats, s.formatId);
   return !!f && f.layout === 'article'; // chỉ Format loại Bài Blog (mục 10.42)
 }
-function slotSeoOf(s) {
+export function slotSeoOf(s) {
   if (!s.seo) s.seo = {};
   return Object.assign({ keyword: '', keywords: [], intent: 'info', author: '', category: '', tags: [], slug: '', slugEdited: false, related: [], ctaUrl: '', ctaText: '',
     kwSource: '', kwConfirmed: false, seoTitle: '', seoTitleEdited: false, metaDesc: '', metaDescEdited: false, excerpt: '', excerptEdited: false, coverAlt: '', coverAltEdited: false }, s.seo);
 }
 // Slug không dấu, chữ thường, gạch nối
-function vnSlug(text, max) {
+export function vnSlug(text, max) {
   const s = fold(text).replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
   if (s.length <= (max || 70)) return s;
   return s.slice(0, max || 70).replace(/-[^-]*$/, '') || s.slice(0, max || 70);
 }
 const kwNorm = k => fold(k).replace(/[^a-z0-9]+/g, ' ').trim();
 const listOf = v => (Array.isArray(v) ? v : String(v || '').split(/[,\n;]/)).map(x => String(x).trim()).filter(Boolean);
-function setSlotSeo(S, slotId, patch) {
+export function setSlotSeo(S, slotId, patch) {
   const s = byId(S.slots, slotId); if (!s) return { ok: false, error: 'Không tìm thấy slot.' };
   { const e = slotLockMsg(S, s); if (e) return { ok: false, error: e }; }
   if (!isBlogSlot(S, s)) return { ok: false, error: 'Chỉ slot Blog mới có thông tin SEO.' };
@@ -79,7 +85,7 @@ function setSlotSeo(S, slotId, patch) {
   return { ok: true, seo: s.seo, conflicts: keywordConflicts(S, slotId, s.seo.keyword) };
 }
 // Trùng từ khoá chính với slot Blog khác hoặc bài đã đăng trong kho (hai bài tranh cùng một từ khoá)
-function keywordConflicts(S, slotId, kw) {
+export function keywordConflicts(S, slotId, kw) {
   const k = kwNorm(kw); if (!k) return [];
   const out = [];
   S.slots.forEach(x => { if (x.id !== slotId && x.seo && kwNorm(x.seo.keyword) === k && isBlogSlot(S, x)) out.push({ type: 'slot', id: x.id, label: `${x.date} ${x.time} · ${blogH1(x.text) || 'slot Blog'}` }); });
@@ -87,22 +93,22 @@ function keywordConflicts(S, slotId, kw) {
   return out;
 }
 // Gợi ý từ khoá từ tiêu đề Topic (slot tạo từ Tuần mẫu chưa khai báo)
-function suggestKeyword(title) {
+export function suggestKeyword(title) {
   const w = String(title || '').toLowerCase().replace(/["“”'’:;,.!?()[\]]/g, ' ').split(/\s+/).filter(Boolean);
   const stop = new Set(['và', 'của', 'là', 'những', 'các', 'một', 'cho', 'với', 'để', 'khi', 'bạn', 'thế', 'nào', 'gì', 'sao']);
   while (w.length && stop.has(w[w.length - 1])) w.pop();
   while (w.length && stop.has(w[0])) w.shift();
   return w.slice(0, 6).join(' ');
 }
-function confirmKeyword(S, slotId) {
+export function confirmKeyword(S, slotId) {
   const s = byId(S.slots, slotId); if (!s) return { ok: false, error: 'Không tìm thấy slot.' };
   const seo = slotSeoOf(s); if (!seo.keyword) return { ok: false, error: 'Slot chưa có từ khoá.' };
   return setSlotSeo(S, slotId, { keyword: seo.keyword, confirm: true });
 }
 
 // ---- Đọc bài Blog ----
-function blogH1(text) { const l = String(text || '').split('\n').find(x => /^#\s+\S/.test(x)); return l ? l.replace(/^#\s+/, '').trim() : ''; }
-function linksOf(text) {
+export function blogH1(text) { const l = String(text || '').split('\n').find(x => /^#\s+\S/.test(x)); return l ? l.replace(/^#\s+/, '').trim() : ''; }
+export function linksOf(text) {
   const out = []; String(text || '').split('\n').forEach((line, li) => {
     if (MEDIA_LINE.test(line.trim())) return;
     let m; LINK_RX.lastIndex = 0;
@@ -110,7 +116,7 @@ function linksOf(text) {
   });
   return out;
 }
-function blogDoc(text) {
+export function blogDoc(text) {
   const d = { h1: [], headings: [], paras: [], media: [], junk: [], lines: String(text || '').split('\n') };
   d.lines.forEach((raw, i) => {
     const line = raw.trim(); if (!line) return; let m;
@@ -130,7 +136,7 @@ function blogDoc(text) {
   return d;
 }
 // Chữ để đếm và kiểm tra quy tắc: bỏ dòng ảnh/video, liên kết chỉ còn chữ neo
-function blogPlain(text) {
+export function blogPlain(text) {
   return String(text || '').split('\n').filter(l => !MEDIA_LINE.test(l.trim())).join('\n').replace(LINK_RX, '$1$2').replace(/\n{3,}/g, '\n\n').trim();
 }
 const hasKw = (text, kw) => !!kwNorm(kw) && (' ' + kwNorm(text) + ' ').includes(' ' + kwNorm(kw) + ' ');
@@ -138,7 +144,7 @@ function kwCount(text, kw) { const k = kwNorm(kw); if (!k) return 0; const t = '
 
 // ---- Trường SEO tự tạo (khi chưa sửa tay) ----
 function cutWords(t, max) { t = String(t || '').trim(); if (t.length <= max) return t; const c = t.slice(0, max + 1).replace(/\s+\S*$/, '').replace(/[,:;–-]\s*$/, ''); return c || t.slice(0, max); }
-function blogAutoMeta(S, s) {
+export function blogAutoMeta(S, s) {
   const cfg = blogSeoOf(S); const seo = slotSeoOf(s); const d = blogDoc(s.text); const h1 = d.h1.length ? d.h1[0].text : '';
   const kw = seo.keyword;
   let title = h1;
@@ -155,7 +161,7 @@ function blogAutoMeta(S, s) {
   return { seoTitle: title, metaDesc: desc, excerpt, coverAlt: h1 ? `Ảnh bìa bài viết: ${h1}` : '' };
 }
 // Cập nhật các trường tự tạo theo bài hiện tại (giữ trường đã sửa tay); slug theo tiêu đề nếu chưa sửa tay
-function blogRefreshAuto(S, s, ai) {
+export function blogRefreshAuto(S, s, ai) {
   if (!isBlogSlot(S, s) || !s.text) return;
   const seo = slotSeoOf(s); const auto = blogAutoMeta(S, Object.assign({}, s, { seo }));
   const a = ai || {};
@@ -168,7 +174,7 @@ function blogRefreshAuto(S, s, ai) {
   s.seo = seo;
 }
 // Bài mô phỏng: lồng từ khoá vào tiêu đề và mở bài (AI thật tự viết theo khai báo)
-function seoWeave(text, kw) {
+export function seoWeave(text, kw) {
   if (!kw) return text;
   const lines = String(text || '').split('\n'); const cap = kw.charAt(0).toUpperCase() + kw.slice(1);
   const hi = lines.findIndex(l => /^#\s+/.test(l));
@@ -179,9 +185,9 @@ function seoWeave(text, kw) {
 }
 
 // ---- Ảnh/video chèn trong bài ----
-function blogMediaLine(bid, alt, cap) { return `![${String(alt || '').replace(/[\]\n]/g, ' ').trim()}](media:${bid}${cap ? ` "${String(cap).replace(/["\n]/g, ' ').trim()}"` : ''})`; }
-function blogMediaAssets(s) { return (s.assets || []).map((a, i) => ({ a, i })).filter(x => x.a.blog && x.a.bid); }
-function blogMediaIndex(s, bid) { return (s.assets || []).findIndex(a => a.blog && a.bid === bid); }
+export function blogMediaLine(bid, alt, cap) { return `![${String(alt || '').replace(/[\]\n]/g, ' ').trim()}](media:${bid}${cap ? ` "${String(cap).replace(/["\n]/g, ' ').trim()}"` : ''})`; }
+export function blogMediaAssets(s) { return (s.assets || []).map((a, i) => ({ a, i })).filter(x => x.a.blog && x.a.bid); }
+export function blogMediaIndex(s, bid) { return (s.assets || []).findIndex(a => a.blog && a.bid === bid); }
 // Khối (đoạn, đề mục, mục danh sách, ảnh) theo thứ tự dòng: dùng để chèn ảnh "sau khối thứ k"
 function blogBlocks(text) { return String(text || '').split('\n').map((l, i) => ({ l, i })).filter(x => x.l.trim()).map(x => x.i); }
 function insertLineAfter(text, lineIdx, line) {
@@ -191,7 +197,7 @@ function insertLineAfter(text, lineIdx, line) {
   return lines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
 }
 // Thêm một ô media cho bài Blog (không đổi chữ)
-function addBlogMedia(S, slotId, kind, alt) {
+export function addBlogMedia(S, slotId, kind, alt) {
   const s = byId(S.slots, slotId); if (!s) return { ok: false, error: 'Không tìm thấy slot.' };
   { const e = slotLockMsg(S, s); if (e) return { ok: false, error: e }; }
   if (!isBlogSlot(S, s)) return { ok: false, error: 'Chỉ chèn ảnh/video vào bài Blog.' };
@@ -205,21 +211,21 @@ function addBlogMedia(S, slotId, kind, alt) {
   return { ok: true, index: s.assets.length - 1, bid, line: blogMediaLine(bid, alt || (video ? 'Video minh hoạ' : 'Ảnh minh hoạ'), '') };
 }
 // Chèn ảnh/video sau dòng lineIdx (-1 = đầu bài) ngay trên bài đang dùng (không tạo bản mới; bản đang dùng trong lịch sử cập nhật theo)
-function insertBlogMedia(S, slotId, lineIdx, kind, alt) {
+export function insertBlogMedia(S, slotId, lineIdx, kind, alt) {
   const s = byId(S.slots, slotId); if (!s) return { ok: false, error: 'Không tìm thấy slot.' };
   if (!s.text) return { ok: false, error: 'Slot chưa có bài.' };
   const r = addBlogMedia(S, slotId, kind, alt); if (!r.ok) return r;
   setBlogText(S, s, insertLineAfter(s.text, lineIdx, r.line));
   return r;
 }
-function setBlogText(S, s, text) {
+export function setBlogText(S, s, text) {
   const before = s.text; s.text = text;
   const h = (s.history || []).find(x => x.n === (s.curN || s.genN)); if (h) h.text = text;
   if (s.state === 'APPROVED') s.state = 'DRAFT';
   if (s.state === 'PUBLISHED' && before !== text) s.changedAfterPublish = true;
   blogRefreshAuto(S, s);
 }
-function removeBlogMedia(S, slotId, bid) {
+export function removeBlogMedia(S, slotId, bid) {
   const s = byId(S.slots, slotId); if (!s) return { ok: false, error: 'Không tìm thấy slot.' };
   { const e = slotLockMsg(S, s); if (e) return { ok: false, error: e }; }
   const i = blogMediaIndex(s, bid); if (i < 0) return { ok: false, error: 'Không tìm thấy ảnh/video này.' };
@@ -230,13 +236,13 @@ function removeBlogMedia(S, slotId, bid) {
   return { ok: true };
 }
 // Ô media chưa có dòng trong bài, và dòng trỏ tới ô không còn
-function blogMediaIssues(s, text) {
+export function blogMediaIssues(s, text) {
   const d = blogDoc(text != null ? text : s.text);
   const refs = new Set(d.media.map(m => m.bid)); const have = new Set(blogMediaAssets(s).map(x => x.a.bid));
   return { orphans: blogMediaAssets(s).filter(x => !refs.has(x.a.bid)).map(x => x.a), broken: d.media.filter(m => !have.has(m.bid)) };
 }
 // Viết lại bài (Tạo lại, Cập nhật từ ô): giữ ảnh đã chèn ở vị trí tương ứng trong bài mới
-function keepBlogMedia(oldText, newText, keepBids) {
+export function keepBlogMedia(oldText, newText, keepBids) {
   const old = String(oldText || '').split('\n'); const keep = keepBids ? new Set(keepBids) : null;
   const refs = []; const blocks = old.filter(l => l.trim() && !MEDIA_LINE.test(l.trim())).length || 1;
   let k = 0;
@@ -252,7 +258,7 @@ function keepBlogMedia(oldText, newText, keepBids) {
 }
 
 // ---- Liên kết ----
-function utmUrl(url, cfg, campaign) {
+export function utmUrl(url, cfg, campaign) {
   if (!url || /[?&]utm_source=/.test(url)) return url;
   const p = [cfg.utmSource && `utm_source=${encodeURIComponent(cfg.utmSource)}`, cfg.utmMedium && `utm_medium=${encodeURIComponent(cfg.utmMedium)}`, campaign && `utm_campaign=${encodeURIComponent(campaign)}`].filter(Boolean).join('&');
   if (!p) return url;
@@ -260,7 +266,7 @@ function utmUrl(url, cfg, campaign) {
   return `${base}${base.includes('?') ? '&' : '?'}${p}${tail}`;
 }
 const urlBase = u => String(u || '').replace(/[?#].*$/, '').replace(/\/+$/, '').toLowerCase();
-function linkType(S, s, url) {
+export function linkType(S, s, url) {
   const cfg = blogSeoOf(S); const seo = slotSeoOf(s);
   if (seo.ctaUrl && urlBase(url) === urlBase(seo.ctaUrl)) return 'cta';
   if (/^\//.test(url)) return 'internal';
@@ -271,7 +277,7 @@ function linkType(S, s, url) {
   return 'source';
 }
 // Vị trí cụm chữ trong bài mà chưa nằm trong liên kết, đề mục H1 hay dòng ảnh
-function anchorSpots(text, anchor) {
+export function anchorSpots(text, anchor) {
   const out = []; if (!anchor) return out;
   const lines = String(text || '').split('\n'); let pos = 0;
   lines.forEach((line, li) => {
@@ -289,7 +295,7 @@ function anchorSpots(text, anchor) {
   });
   return out;
 }
-function applyLink(text, anchor, url, nth) {
+export function applyLink(text, anchor, url, nth) {
   const u = String(url || '').trim();
   if (!u) return { ok: false, error: 'Nhập đường link.' };
   if (!isValidUrl(u) && !/^\/[^\s]*$/.test(u)) return { ok: false, error: 'Link phải bắt đầu bằng http://, https:// hoặc / (trang trong web).' };
@@ -298,13 +304,13 @@ function applyLink(text, anchor, url, nth) {
   const t = String(text);
   return { ok: true, text: `${t.slice(0, sp.s)}[${sp.text}](${u})${t.slice(sp.e)}` };
 }
-function unlinkAt(text, anchor, url) {
+export function unlinkAt(text, anchor, url) {
   let done = false;
   const t = String(text || '').replace(LINK_RX, (all, pre, a, u) => { if (!done && a === anchor && u === url) { done = true; return pre + a; } return all; });
   return done ? { ok: true, text: t } : { ok: false, error: 'Không tìm thấy liên kết này.' };
 }
 // Gợi ý đoạn nên gắn link: nội bộ (bài trong kho, bài liên quan), nguồn ("Theo …"), kêu gọi hành động (link CTA kèm UTM)
-function linkSuggestions(S, s, text) {
+export function linkSuggestions(S, s, text) {
   const t = text != null ? text : s.text || ''; const seo = slotSeoOf(s); const cfg = blogSeoOf(S);
   const linked = new Set(linksOf(t).map(l => urlBase(l.url)));
   const out = []; const seenAnchor = new Set();
@@ -331,7 +337,7 @@ function linkSuggestions(S, s, text) {
 }
 
 // ---- Chuẩn hoá định dạng ----
-function blogTidy(text) {
+export function blogTidy(text) {
   const changes = []; let h1Seen = false; let prev = 1;
   const drop = new Set(['tiêu đề', 'mở bài', 'kết', 'cta', 'hook', 'thân bài']);
   let lines = String(text || '').replace(/\r\n?/g, '\n').split('\n');
@@ -361,7 +367,7 @@ function blogTidy(text) {
 
 // ---- Rà soát và chấm điểm ----
 function sentencesSet(t) { return new Set(splitSentences(blogPlain(t)).map(x => fold(x).replace(/[^a-z0-9]+/g, ' ').trim()).filter(x => x.length >= 40)); }
-function seoAudit(S, s, text) {
+export function seoAudit(S, s, text) {
   const t = text != null ? text : s.text || '';
   const cfg = blogSeoOf(S); const seo = Object.assign({}, slotSeoOf(s));
   if (text != null && text !== s.text) Object.assign(seo, (() => { const auto = blogAutoMeta(S, Object.assign({}, s, { text: t, seo })); return { seoTitle: seo.seoTitleEdited ? seo.seoTitle : auto.seoTitle, metaDesc: seo.metaDescEdited ? seo.metaDesc : auto.metaDesc, slug: seo.slugEdited ? seo.slug : vnSlug(blogH1(t) || seo.keyword || s.id) }; })());
@@ -434,7 +440,7 @@ function inlineHtml(t) {
   x = escHtml(x).replace(/\*\*(?=\S)([^*]+?)\*\*/g, '<strong>$1</strong>').replace(/(^|[^*\p{L}\p{N}])\*(?=[^\s*])([^*\n]*?[^\s*])\*(?![*\p{L}\p{N}])/gu, '$1<em>$2</em>').replace(/(^|[^\p{L}\p{N}_])_(?=[^\s_])([^_\n]*?[^\s_])_(?![\p{L}\p{N}_])/gu, '$1<em>$2</em>');
   return x.replace(/\u0001(\d+)\u0002/g, (_, i) => { const [a, u] = links[+i]; return `<a href="${escHtml(u)}">${inlineHtml(a)}</a>`; });
 }
-function mdToHtml(md, opts) {
+export function mdToHtml(md, opts) {
   const o = opts || {}; const out = []; let list = '';
   const close = () => { if (list) { out.push(`</${list}>`); list = ''; } };
   String(md || '').split('\n').forEach(raw => {
@@ -458,8 +464,8 @@ function mdToHtml(md, opts) {
 }
 
 // ---- Gói bài (JSON + Markdown + HTML + tệp ảnh) cho web ----
-function slotPublishAt(s) { return `${s.date}T${s.time}:00+07:00`; }
-function blogPackage(S, s, opts) {
+export function slotPublishAt(s) { return `${s.date}T${s.time}:00+07:00`; }
+export function blogPackage(S, s, opts) {
   const o = Object.assign({ inline: false, media: 'images' }, opts || {});
   if (!s || !s.text) return { ok: false, error: 'Slot chưa có bài.' };
   const cfg = blogSeoOf(S); const seo = slotSeoOf(s); const slug = seo.slug || vnSlug(blogH1(s.text) || s.id);
@@ -505,7 +511,7 @@ function blogPackage(S, s, opts) {
   files.push({ path: 'post.json', bytes: utf8Bytes(jsonText) }, { path: 'post.md', bytes: utf8Bytes(md) }, { path: 'post.html', bytes: utf8Bytes(bodyHtml + '\n') });
   return { ok: true, slug, post, jsonText, md, html: bodyHtml, files };
 }
-function bytesToB64(bytes) {
+export function bytesToB64(bytes) {
   const A = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'; let out = '';
   for (let i = 0; i < bytes.length; i += 3) {
     const n = (bytes[i] << 16) | ((bytes[i + 1] || 0) << 8) | (bytes[i + 2] || 0);
@@ -528,7 +534,7 @@ function csvRows(text) {
   return rows.map(r => r.map(x => x.trim())).filter(r => r.some(Boolean));
 }
 function titleFromUrl(u) { const seg = String(u).replace(/[?#].*$/, '').replace(/\/+$/, '').split('/').pop() || ''; const t = decodeURIComponent(seg).replace(/\.\w+$/, '').replace(/[-_]+/g, ' ').trim(); return t ? t.charAt(0).toUpperCase() + t.slice(1) : u; }
-function parsePostsCsv(text) {
+export function parsePostsCsv(text) {
   const rows = csvRows(text); if (!rows.length) return { ok: false, error: 'Tệp trống.' };
   const h = rows[0].map(x => fold(x));
   const col = names => h.findIndex(x => names.some(n => x === n || x.startsWith(n)));
@@ -542,7 +548,7 @@ function parsePostsCsv(text) {
   });
   return posts.length ? { ok: true, posts, bad } : { ok: false, error: 'Không có dòng nào có link hợp lệ (cột url).', bad };
 }
-function parseSitemap(xml) {
+export function parseSitemap(xml) {
   const t = String(xml || ''); if (!/<(urlset|sitemapindex)[\s>]/i.test(t)) return { ok: false, error: 'Không phải tệp sitemap.xml.' };
   const index = /<sitemapindex[\s>]/i.test(t); const un = s => s.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").trim();
   const items = []; const re = /<(url|sitemap)>([\s\S]*?)<\/\1>/gi; let m;
@@ -550,7 +556,7 @@ function parseSitemap(xml) {
   if (index) return { ok: true, index: true, sitemaps: items.map(x => x.url), posts: [] };
   return { ok: true, index: false, posts: items.filter(x => isValidUrl(x.url)).map(x => ({ url: x.url, title: titleFromUrl(x.url), keyword: '', lastmod: x.lastmod })) };
 }
-function importBlogPosts(S, list, source) {
+export function importBlogPosts(S, list, source) {
   if (!Array.isArray(S.blogPosts)) S.blogPosts = [];
   let added = 0, updated = 0;
   (list || []).forEach(p => {
@@ -562,15 +568,15 @@ function importBlogPosts(S, list, source) {
   log(S, 'import', 'blogPosts', source || 'csv', `${added} thêm, ${updated} cập nhật`);
   return { ok: true, added, updated, total: S.blogPosts.length };
 }
-function updateBlogPost(S, id, patch) {
+export function updateBlogPost(S, id, patch) {
   const p = (S.blogPosts || []).find(x => x.id === id); if (!p) return { ok: false, error: 'Không tìm thấy bài.' };
   if (patch.title !== undefined) p.title = String(patch.title).trim() || p.title;
   if (patch.keyword !== undefined) p.keyword = String(patch.keyword).trim();
   return { ok: true };
 }
-function removeBlogPost(S, id) { const n = (S.blogPosts || []).length; S.blogPosts = (S.blogPosts || []).filter(x => x.id !== id); return { ok: S.blogPosts.length < n }; }
+export function removeBlogPost(S, id) { const n = (S.blogPosts || []).length; S.blogPosts = (S.blogPosts || []).filter(x => x.id !== id); return { ok: S.blogPosts.length < n }; }
 // Kho = bài nhập vào + bài Blog đã đăng/đã gửi lên web từ app (có link)
-function blogInventory(S, exceptSlotId) {
+export function blogInventory(S, exceptSlotId) {
   const own = S.slots.filter(s => s.id !== exceptSlotId && isBlogSlot(S, s) && ((s.pub && s.pub.url) || (s.webPost && s.webPost.url)))
     .map(s => ({ id: s.id, url: (s.webPost && s.webPost.url) || s.pub.url, title: blogH1(s.text), keyword: s.seo ? s.seo.keyword : '', slug: s.seo ? s.seo.slug : '', source: 'app' }));
   const ext = (S.blogPosts || []).filter(p => !own.some(o => urlBase(o.url) === urlBase(p.url)));
@@ -578,10 +584,10 @@ function blogInventory(S, exceptSlotId) {
 }
 
 // ---- Đăng lên web qua API (mục 10.40): web nhận POST JSON kèm token; web tự lên lịch theo publishAt ----
-const BLOG_API_DEFAULT = { on: false, endpoint: '', authHeader: 'Authorization', authScheme: 'Bearer', status: 'scheduled', media: 'images' };
-const BLOG_API_STATUS = { draft: 'Bản nháp (người duyệt trên web)', scheduled: 'Lên lịch theo giờ của slot', publish: 'Đăng ngay' };
-function blogApiOf(S) { return Object.assign({}, BLOG_API_DEFAULT, S.blogApi || {}); }
-function setBlogApi(S, patch) {
+export const BLOG_API_DEFAULT = { on: false, endpoint: '', authHeader: 'Authorization', authScheme: 'Bearer', status: 'scheduled', media: 'images' };
+export const BLOG_API_STATUS = { draft: 'Bản nháp (người duyệt trên web)', scheduled: 'Lên lịch theo giờ của slot', publish: 'Đăng ngay' };
+export function blogApiOf(S) { return Object.assign({}, BLOG_API_DEFAULT, S.blogApi || {}); }
+export function setBlogApi(S, patch) {
   const c = Object.assign(blogApiOf(S), {});
   if (patch.endpoint !== undefined) c.endpoint = String(patch.endpoint || '').trim();
   if (patch.authHeader !== undefined) c.authHeader = String(patch.authHeader || '').trim() || 'Authorization';
@@ -595,14 +601,14 @@ function setBlogApi(S, patch) {
   S.blogApi = c; log(S, 'update', 'blogApi', c.on ? 'on' : 'off');
   return { ok: true, api: c };
 }
-function buildBlogPostRequest(cfg, token, payload, test) {
+export function buildBlogPostRequest(cfg, token, payload, test) {
   if (!cfg.endpoint) return { ok: false, error: 'Chưa nhập địa chỉ API của web (Thiết lập → Chuẩn Blog).' };
   const headers = { 'Content-Type': 'application/json' };
   if (token) headers[cfg.authHeader || 'Authorization'] = cfg.authScheme ? `${cfg.authScheme} ${token}` : token;
   const json = test ? { schema: 'autocontent.blog/1', test: true } : Object.assign({}, payload, { status: cfg.status });
   return { ok: true, url: cfg.endpoint, headers, json };
 }
-function parseBlogPostResponse(status, body) {
+export function parseBlogPostResponse(status, body) {
   const b = body || {};
   if (status >= 200 && status < 300) {
     const url = b.url || b.link || b.permalink || (b.data && (b.data.url || b.data.link)) || '';
@@ -612,7 +618,7 @@ function parseBlogPostResponse(status, body) {
   const why = status === 401 || status === 403 ? 'Token không đúng hoặc không có quyền' : status === 404 ? 'Sai địa chỉ API' : status === 409 ? 'Slug đã có trên web' : status === 413 ? 'Bài hoặc ảnh quá lớn với máy chủ web' : status === 422 || status === 400 ? 'Web từ chối dữ liệu' : status >= 500 ? 'Máy chủ web lỗi' : 'Không đăng được';
   return { ok: false, error: `${why} (mã ${status})${msg ? `: ${String(msg).slice(0, 160)}` : ''}.` };
 }
-function blogPostGate(S, s) {
+export function blogPostGate(S, s) {
   if (!s || !isBlogSlot(S, s)) return { ok: false, reason: 'Chỉ slot Blog.' };
   if (!s.text) return { ok: false, reason: 'Slot chưa có bài.' };
   const api = blogApiOf(S);
@@ -622,7 +628,7 @@ function blogPostGate(S, s) {
   return { ok: true, reason: '' };
 }
 // Ghi nhận kết quả gửi lên web; tới giờ đăng (hoặc đăng ngay) thì slot thành Đã đăng với link thật
-function recordWebPost(S, slotId, res) {
+export function recordWebPost(S, slotId, res) {
   const s = byId(S.slots, slotId); if (!s) return { ok: false, error: 'Không tìm thấy slot.' };
   const api = blogApiOf(S);
   s.webPost = { at: S.settings.demoNow, url: res.url || '', id: res.id || '', status: res.status || api.status, endpoint: api.endpoint };
@@ -633,7 +639,7 @@ function recordWebPost(S, slotId, res) {
   return { ok: true, published: s.state === 'PUBLISHED' };
 }
 // Hợp đồng API cho lập trình viên web (tệp Markdown)
-function blogApiDoc(S) {
+export function blogApiDoc(S) {
   const cfg = blogSeoOf(S); const api = blogApiOf(S);
   return `# API nhận bài Blog từ AutoContent
 
@@ -690,7 +696,7 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 `;
 }
 // Lời nhắn thêm cho AI khi viết bài Blog: viết theo Thông tin SEO của slot và Chuẩn Blog
-function blogAiBrief(S, s) {
+export function blogAiBrief(S, s) {
   const cfg = blogSeoOf(S); const seo = slotSeoOf(s);
   return ['# Chuẩn SEO cho bài Blog',
     seo.keyword ? `Từ khoá chính: "${seo.keyword}"${seo.kwSource === 'suggest' ? ' (gợi ý, có thể chỉnh cho tự nhiên)' : ''}. Đặt trong dòng "# Tiêu đề", trong 100 chữ đầu và trong một đề mục "##"; viết tự nhiên, không nhồi (tối đa ${cfg.kwDensityMax}% số chữ).` : 'Chưa có từ khoá: chọn một cụm 2–5 chữ người đọc hay tìm, đặt trong tiêu đề và mở bài.',

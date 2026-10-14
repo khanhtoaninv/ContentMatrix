@@ -1,4 +1,11 @@
 // ---------- 05f · R4: Gói xuất ZIP của tuần đã chốt (mục 5.9, 10.22) ----------
+import { DATA_VERSION, dmyFull, fold, labelOf, sha256Bytes, utf8Bytes } from './01-util.js';
+import { byId, cellAt, cellView, slotColumnId, topicCurrent, topicFileOf, topicsOf, weekLabel, weekLanes, weekOf, weekSlots } from './05-model.js';
+import { PUBLISH_VIA, channelPublish, isValidTs } from './05e-publish.js';
+import { FRAME_RATIOS } from './05i-frames.js';
+import { cuesToSrt } from './05n-media.js';
+import { blogPackage, isBlogSlot } from './05p-blogseo.js';
+import { assetRatioFor, imageInfoOf, mockArt } from './05q-imgspec.js';
 // Tệp: schedule.csv, schedule.json, slots/*.md, matrix.md, topics.md, metrics.csv, assets/*, manifest.json
 
 // ---- Byte, base64, CRC32 ----
@@ -7,7 +14,7 @@ function mdBody(text, level) {
   return String(text || '').split('\n').map(l => { const lb = labelOf(l); return lb ? `${'#'.repeat(level)} ${lb}` : l; }).join('\n')
     .replace(/([^\n])\n(?=[^\n])/g, '$1\n\n');
 }
-function b64ToBytes(b64) {
+export function b64ToBytes(b64) {
   const A = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
   const clean = String(b64).replace(/[^A-Za-z0-9+/]/g, '');
   const out = new Uint8Array(Math.floor(clean.length * 3 / 4));
@@ -18,9 +25,9 @@ function b64ToBytes(b64) {
   }
   return out.slice(0, j);
 }
-function dataUrlBytes(src) { const i = String(src).indexOf(','); return i < 0 ? new Uint8Array(0) : b64ToBytes(src.slice(i + 1)); }
+export function dataUrlBytes(src) { const i = String(src).indexOf(','); return i < 0 ? new Uint8Array(0) : b64ToBytes(src.slice(i + 1)); }
 let CRC_TABLE = null;
-function crc32(bytes) {
+export function crc32(bytes) {
   if (!CRC_TABLE) { CRC_TABLE = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; CRC_TABLE[n] = c >>> 0; } }
   let c = 0xffffffff;
   for (let i = 0; i < bytes.length; i++) c = CRC_TABLE[(c ^ bytes[i]) & 0xff] ^ (c >>> 8);
@@ -28,7 +35,7 @@ function crc32(bytes) {
 }
 
 // ---- ZIP không nén (store), tên tệp UTF-8 ----
-function zipFiles(files, ts) {
+export function zipFiles(files, ts) {
   const t = isValidTs(ts) ? ts : '2026-01-01T00:00';
   const y = Number(t.slice(0, 4)), mo = Number(t.slice(5, 7)), d = Number(t.slice(8, 10)), h = Number(t.slice(11, 13)), mi = Number(t.slice(14, 16));
   const dosTime = (h << 11) | (mi << 5), dosDate = ((y - 1980) << 9) | (mo << 5) | d;
@@ -61,15 +68,15 @@ function zipFiles(files, ts) {
 // ---- Nội dung gói ----
 function csvCell(v) { const s = v == null ? '' : String(v); return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; }
 function csvOf(rows) { return rows.map(r => r.map(csvCell).join(',')).join('\n') + '\n'; }
-function slugOf(text, max) { return fold(text).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, max || 40) || 'x'; }
-function exportFileName(S, weekId) { const w = weekOf(S, weekId); const l = weekLabel(w); return `autocontent-${l.iso}-r${w.revision}.zip`; }
+export function slugOf(text, max) { return fold(text).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, max || 40) || 'x'; }
+export function exportFileName(S, weekId) { const w = weekOf(S, weekId); const l = weekLabel(w); return `autocontent-${l.iso}-r${w.revision}.zip`; }
 // Ảnh mô phỏng (cùng hình với giao diện) ghi ra SVG
-function mockImageSvg(v, label, ratio) {
+export function mockImageSvg(v, label, ratio) {
   const g = mockArt(v.seed, ratio); const std = FRAME_RATIOS[ratio] || [1200, 800];
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${std[0]}" height="${std[1]}" viewBox="0 0 ${g.W} ${g.H}">${g.inner}<text x="4" y="${(g.H * 0.9125).toFixed(1)}" font-family="sans-serif" font-size="5" fill="#fff">Ảnh mô phỏng · ${String(label).replace(/[<&>]/g, '')}</text></svg>\n`;
 }
 const MIME_EXT = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif', 'video/mp4': 'mp4', 'video/webm': 'webm', 'video/quicktime': 'mov' };
-function versionExt(v) {
+export function versionExt(v) {
   if (!v.src) return 'svg';
   const m = /^data:([^;,]+)/.exec(v.src); return (m && MIME_EXT[m[1]]) || v.ext || (v.kind === 'video' ? 'mp4' : 'jpg');
 }
@@ -83,7 +90,7 @@ function slotTitle(S, s) {
   const first = String(s.text || '').split('\n').map(x => x.replace(/^(?:\[[^\]]*\]|#+\s)\s*/, '').trim()).find(Boolean) || '';
   return first.slice(0, 80);
 }
-function buildExportFiles(S, weekId) {
+export function buildExportFiles(S, weekId) {
   const w = weekOf(S, weekId); if (!w) return { ok: false, error: 'Không tìm thấy tuần.' };
   const l = weekLabel(w); const slots = weekSlots(S, weekId);
   const chName = id => { const c = byId(S.channels, id); return c ? (c.short || c.name) : ''; };

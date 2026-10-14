@@ -1,11 +1,16 @@
 // ---------- UI · R4: Xác nhận lịch, đăng bài, số liệu, đồng hồ demo (mục 10.22) ----------
-const VIA_LABEL = { api: 'API riêng', metricool: 'Metricool', postiz: 'Postiz', none: 'Không' };
+import { AC } from '../logic/99-export.js';
+import { ACTIONS, S, view } from './00-state.js';
+import { $, chName, chTag, closeLayer, commit, confirmBox, curWeek, esc, fmtFull, fmtName, fmtNum, fmtPct, icon, layerStack, nowDate, nowTime, openLayer, save, toast, tsLabel } from './01-core.js';
+import { render } from './02-shell.js';
+import { openPreview, pvMText, pvMVal } from './04b-preview.js';
+export const VIA_LABEL = { api: 'API riêng', metricool: 'Metricool', postiz: 'Postiz', none: 'Không' };
 function pubModeText(S, channelId) {
   const p = AC.channelPublish(S, channelId);
   return p.mode === 'auto' ? `Tự động qua ${VIA_LABEL[p.via]}` : 'Thủ công (tự đăng, dán link)';
 }
 // Dòng nhỏ trên thẻ slot: số liệu bài đã đăng, hoặc "Tự đăng hh:mm" khi chờ
-function slotPubLine(s) {
+export function slotPubLine(s) {
   const w = AC.weekOf(S, s.weekId);
   if (s.state === 'PUBLISHED') {
     const m = AC.slotMetricsNow(S, s, liveMs());
@@ -25,9 +30,9 @@ function slotPubLine(s) {
 }
 
 // ---- Số liệu trực tiếp trên thẻ slot (mục 10.23): đồng hồ demo chạy theo giờ thật, số tăng liên tục, nhịp làm mới 30 giây ----
-const LIVE_TICK_MS = 30000;
-const clockOff = () => !!window.__AC_CLOCK_OFF;
-function liveMs() { return clockOff() ? AC.tsToMs(S.settings.demoNow) : AC.clockNowMs(S, Date.now()); }
+export const LIVE_TICK_MS = 30000;
+export const clockOff = () => !!window.__AC_CLOCK_OFF;
+export function liveMs() { return clockOff() ? AC.tsToMs(S.settings.demoNow) : AC.clockNowMs(S, Date.now()); }
 function clockRunning() { return !clockOff() && AC.clockOf(S).running; }
 const liveSeen = {}; // slotId → { vals: {reach, eng, third}, d: {…} } phần tăng của lần làm mới gần nhất
 function liveCellsHtml(s, m, flash) {
@@ -68,7 +73,7 @@ function patchLive() {
   });
   const cb = document.getElementById('clockbtn-t'); if (cb) cb.textContent = `${AC.dmyFull(nowDate())} ${nowTime()}`;
 }
-function liveTick() {
+export function liveTick() {
   if (clockOff() || !S) return;
   const r = AC.clockTick(S, Date.now());
   if (r.changed) save();
@@ -79,7 +84,7 @@ function liveTick() {
 }
 
 // ---- Xác nhận lịch ----
-function confirmBtnHtml(w) {
+export function confirmBtnHtml(w) {
   if (!w || w.status === 'CONFIRMED' || !AC.weekSlots(S, w.id).length) return '';
   const g = AC.confirmGate(S, w.id);
   return `<button class="btn ${g.ok ? 'primary' : ''}" data-act="confirm-week" title="${esc(g.ok ? 'Chốt lịch tuần này' : `${g.reason}: bấm để xem`)}">${icon('check')} Xác nhận lịch</button>`;
@@ -144,7 +149,7 @@ ACTIONS['demo-clock'] = () => {
 };
 
 // ---- Đánh dấu đã đăng / sửa thông tin đăng ----
-async function publishDialog(s) {
+export async function publishDialog(s) {
   const editing = s.state === 'PUBLISHED' && s.pub;
   const at = editing ? s.pub.at : (`${s.date}T${s.time}` <= S.settings.demoNow ? `${s.date}T${s.time}` : S.settings.demoNow);
   const res = await confirmBox({ title: editing ? 'Sửa thông tin đăng' : 'Đánh dấu đã đăng', ok: editing ? 'Lưu' : 'Đánh dấu đã đăng',
@@ -158,7 +163,7 @@ async function publishDialog(s) {
   save(); render(); toast(editing ? 'Đã lưu thông tin đăng.' : 'Đã đánh dấu đã đăng.');
   return true;
 }
-function pubButtonsHtml(s) {
+export function pubButtonsHtml(s) {
   if (s.state === 'PUBLISHED' && s.pub && s.pub.mode === 'auto') return '';
   if (s.state === 'PUBLISHED') return `<button class="btn sm" data-pv="pub">${icon('link')} Sửa thông tin đăng</button><button class="btn ghost sm" data-pv="unpub">Bỏ đánh dấu</button>`;
   const g = AC.publishGate(S, s);
@@ -167,7 +172,7 @@ function pubButtonsHtml(s) {
   return `<button class="btn ${auto ? '' : 'primary'} sm" data-pv="pub" title="${auto ? 'Kênh tự đăng; đánh dấu tay nếu bạn đã đăng trước' : 'Đăng xong thì dán link'}">${icon('check')} Đánh dấu đã đăng</button>`;
 }
 // Thẻ "Đăng bài" và "Số liệu" dưới khung bài (View)
-function pubSectionsHtml(s, n0) {
+export function pubSectionsHtml(s, n0) {
   const w = AC.weekOf(S, s.weekId); let n = n0;
   if (s.state !== 'PUBLISHED' && !(w && w.revision >= 1)) return '';
   const head = (t, r) => `<div class="cfg-h"><span class="cfg-n">${++n}</span><h3>${t}</h3>${r ? `<span class="small faint cfg-r">${r}</span>` : ''}</div>`;

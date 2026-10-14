@@ -1,11 +1,13 @@
 // ---------- Ảnh, video cất trong IndexedDB (mục 10.39) ----------
+import { S } from './00-state.js';
 // S trong bộ nhớ vẫn giữ data URL đầy đủ. Khi lưu, chuỗi data URL dài được thay bằng "idb:<khoá>" trong localStorage,
 // còn nội dung cất ở IndexedDB theo khoá băm nội dung (ảnh giống nhau chỉ cất một lần). Mở trang thì nạp lại.
 // IndexedDB không dùng được thì lưu thẳng vào localStorage như trước.
 const MEDIA_MIN = 4096, MEDIA_DB = 'autocontent-media', MEDIA_OS = 'blobs';
-let mediaOk = false, mediaDbP = null;
+export let mediaOk = false, mediaDbP = null;
+export function setMediaOk(v) { mediaOk = v; }
 const mediaKeyCache = new Map(), mediaKnown = new Set();
-function mediaOpen() {
+export function mediaOpen() {
   if (mediaDbP) return mediaDbP;
   mediaDbP = new Promise((res, rej) => {
     const tm = setTimeout(() => rej(new Error('IndexedDB không phản hồi')), 2500);
@@ -30,7 +32,7 @@ function mediaKey(s) {
 const isBigMedia = v => typeof v === 'string' && v.length > MEDIA_MIN && v.startsWith('data:');
 function mediaTx(mode) { return mediaOpen().then(db => db.transaction(MEDIA_OS, mode).objectStore(MEDIA_OS)); }
 const idbReq = r => new Promise((res, rej) => { r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
-async function mediaPutAll(pend) {
+export async function mediaPutAll(pend) {
   if (!pend.size) return;
   const db = await mediaOpen();
   await new Promise((res, rej) => {
@@ -41,13 +43,13 @@ async function mediaPutAll(pend) {
   pend.forEach((v, k) => mediaKnown.add(k));
 }
 // Chuỗi JSON để ghi localStorage; data URL lớn chưa cất thì đưa vào pend
-function stateJson(pend) {
+export function stateJson(pend) {
   if (!mediaOk) return JSON.stringify(S);
   return JSON.stringify(S, (k, v) => { if (!isBigMedia(v)) return v; const key = mediaKey(v); if (pend && !mediaKnown.has(key)) pend.set(key, v); return 'idb:' + key; });
 }
 // Thay "idb:<khoá>" bằng nội dung; khoá thiếu thì thay bằng ảnh xám và đếm
 const MEDIA_MISSING = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mO8+x8AAuMB8DtXNJsAAAAASUVORK5CYII=';
-async function mediaHydrate(obj) {
+export async function mediaHydrate(obj) {
   const refs = new Set();
   const walk = (o, fn) => { if (Array.isArray(o)) o.forEach((x, i) => typeof x === 'string' ? fn(o, i, x) : walk(x, fn)); else if (o && typeof o === 'object') Object.keys(o).forEach(k => typeof o[k] === 'string' ? fn(o, k, o[k]) : walk(o[k], fn)); };
   walk(obj, (o, k, v) => { if (v.startsWith('idb:')) refs.add(v.slice(4)); });
@@ -59,7 +61,7 @@ async function mediaHydrate(obj) {
   return { missing, refs };
 }
 // Dọn nội dung không còn ai dùng (chạy sau khi nạp)
-async function mediaGc(refs) {
+export async function mediaGc(refs) {
   try {
     const os = await mediaTx('readwrite'); const keys = await idbReq(os.getAllKeys());
     keys.forEach(k => { if (!refs.has(k)) { os.delete(k); mediaKnown.delete(k); } });

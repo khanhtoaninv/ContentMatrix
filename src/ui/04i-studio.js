@@ -1,6 +1,13 @@
 // ---------- UI · Kho tài sản, soạn carousel, chuyển bài sang kênh (mục 10.37) ----------
+import { AC } from '../logic/99-export.js';
+import { ACTIONS, CHANGES, INPUTS, S, view } from './00-state.js';
+import { $, closeAllLayers, closeLayer, commit, confirmBox, esc, fmtFull, fmtNum, icon, imgThumb, openLayer, richText, save, toast } from './01-core.js';
+import { render } from './02-shell.js';
+import { openPreview } from './04b-preview.js';
+import { drawCover, loadImg, storeUse, versionImgSrc } from './04e-frame.js';
+import { AI_SIM_NOTE_TXT } from './04g-assist.js';
 // Ảnh vào kho: nén JPEG cạnh dài ≤1600px (PNG có nền trong suốt giữ PNG ≤1200px) để đỡ tốn bộ nhớ trình duyệt
-function readImageFile(file) {
+export function readImageFile(file) {
   return new Promise((res, rej) => {
     if (!/^image\/(png|jpeg|webp|gif)$/.test(file.type)) return rej(new Error('Chỉ nhận ảnh PNG, JPEG, WebP hoặc GIF.'));
     const rd = new FileReader();
@@ -18,7 +25,7 @@ function readImageFile(file) {
     rd.readAsDataURL(file);
   });
 }
-async function addFilesToLibrary(files, tags) {
+export async function addFilesToLibrary(files, tags) {
   let ok = 0; const errs = [];
   for (const f of files) {
     try { const d = await readImageFile(f); const r = AC.addLibraryItem(S, Object.assign(d, { name: f.name.replace(/\.\w+$/, ''), tags })); if (r.ok) ok++; else errs.push(r.error); }
@@ -27,7 +34,7 @@ async function addFilesToLibrary(files, tags) {
   save(); return { ok, errs };
 }
 // Ảnh đang dùng của ô thành data URL (ảnh mô phỏng vẽ ra JPEG)
-async function versionToDataUrl(v) {
+export async function versionToDataUrl(v) {
   if (v.src) return v.src;
   const img = await loadImg(versionImgSrc(v)); const c = document.createElement('canvas'); c.width = 1200; c.height = 800;
   const g = c.getContext('2d'); drawCover(g, img, 0, 0, 1200, 800); return c.toDataURL('image/jpeg', 0.85);
@@ -35,7 +42,7 @@ async function versionToDataUrl(v) {
 const libGrid = (list, act) => list.length ? `<div class="lib-grid">${list.map(x => `<button class="lib-item" data-${act}="${esc(x.id)}" title="${esc(x.name)}"><img src="${esc(x.src)}" alt="" loading="lazy"><span class="small"><b>${esc(x.name)}</b>${x.tags.length ? `<br><span class="faint">${esc(x.tags.map(t => '#' + t).join(' '))}</span>` : ''}</span></button>`).join('')}</div>` : '<p class="small muted">Không có ảnh hợp.</p>';
 
 // ---------- Setup → Kho tài sản ----------
-function libraryTab() {
+export function libraryTab() {
   const q = view.libQ || '', tag = view.libTag || ''; const list = AC.libraryFind(S, q, tag); const tags = AC.libraryTags(S); const u = storeUse();
   return `<p class="muted">Ảnh dùng chung cho mọi bài: logo, ảnh sản phẩm, ảnh đội ngũ, ảnh đã dùng. Trên ảnh của slot bấm <b>Kho</b> để lấy ảnh từ đây. Ảnh được nén khi thêm vào (JPEG cạnh dài tối đa 1600px; PNG giữ nền trong suốt, tối đa 1200px).</p>
     <div class="row" style="gap:10px;align-items:flex-end;flex-wrap:wrap">
@@ -58,7 +65,7 @@ ACTIONS['lib-del'] = async el => {
 };
 
 // ---------- Soạn carousel theo slide ----------
-function openCarouselEditor(s, onDone) {
+export function openCarouselEditor(s, onDone) {
   const p = AC.carouselParse(s.text); const slideAssets = s.assets.filter(a => /^Slide\s*\d+/i.test(a.name));
   const st = { lead: p.lead, slides: p.slides.map((t, k) => ({ text: t, from: k })) };
   const box = openLayer(`<header class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:nowrap"><div><span class="eyebrow">Soạn carousel · ${esc(fmtFull(s.formatId))}</span><h2>Soạn từng slide</h2><p class="small muted">Mỗi thẻ là một slide: sửa chữ, đổi thứ tự (ảnh đi theo slide), thêm hoặc bỏ slide. Lưu tạo bản sửa mới của slot.</p></div><button class="btn icon ghost" data-act="close-layer" aria-label="Đóng">${icon('close')}</button></header>
@@ -94,7 +101,7 @@ function openCarouselEditor(s, onDone) {
 }
 
 // ---------- Chuyển bài sang kênh khác (mô phỏng) ----------
-function openRepurposeDialog(s) {
+export function openRepurposeDialog(s) {
   const fmts = S.formats.filter(f => f.id !== s.formatId);
   const st = { formatId: (fmts.find(f => f.channelId !== s.channelId) || fmts[0] || {}).id, date: s.date, time: s.time };
   const box = openLayer(`<header class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:nowrap"><div><span class="eyebrow">Chuyển bài sang kênh khác ${AI_SIM_NOTE_TXT}</span><h2>Viết lại cho kênh khác</h2><p class="small muted">Tạo một slot tự do mới từ bài này, viết lại theo khung của Format đích (carousel, kịch bản video, bài Blog, bài ngắn). Ảnh đang dùng được chép sang. Slot gốc giữ nguyên.</p></div><button class="btn icon ghost" data-act="close-layer" aria-label="Đóng">${icon('close')}</button></header>

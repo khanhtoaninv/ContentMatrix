@@ -1,5 +1,8 @@
 // ---------- UI · Khung: menu, thanh trên, thanh tiến độ, điều hướng ----------
-const ACTIONS = {};
+import { AC } from '../logic/99-export.js';
+import { ACTIONS, CHANGES, RENDERERS, S, setS, view } from './00-state.js';
+import { $, attr, closeLayer, commit, confirmBox, curStart, curWeek, esc, icon, mdApply, mdTa, nowDate, nowTime, openLayer, richText, store, toast } from './01-core.js';
+import { paintFrameDraft, paintFrameThumbs } from './04e-frame.js';
 // Trình chỉnh sửa Markdown (mục 10.28; hàm ở 01-core)
 ACTIONS['md'] = el => { const ta = mdTa(el.dataset.for); if (ta) mdApply(ta, el.dataset.op, el.dataset.e); };
 ACTIONS['md-tab'] = el => {
@@ -20,9 +23,8 @@ const SCREENS = [
   { id: 'export', label: 'Export', icon: 'export' },
   { id: 'setup', label: 'Setup', icon: 'setup' },
 ];
-const RENDERERS = {};
 
-function go(target) {
+export function go(target) {
   if (!target) return;
   if (target.screen) { view.screen = target.screen; if (target.screen === 'week') view.scrollToday = true; }
   if (target.setupTab) view.setupTab = target.setupTab;
@@ -31,7 +33,7 @@ function go(target) {
   if (target.action && ACTIONS[target.action]) ACTIONS[target.action]();
 }
 
-function renderNav() {
+export function renderNav() {
   const items = SCREENS.map(s => `<button ${attr({ 'data-act': 'nav', 'data-screen': s.id, 'aria-current': view.screen === s.id ? 'page' : null })}>${icon(s.icon)}<span>${s.label}</span></button>`).join('');
   $('#nav-side').innerHTML = items;
   $('#nav-bottom').innerHTML = items;
@@ -66,11 +68,9 @@ function renderTopbar() {
     <button class="btn sm ghost hide-sm" data-act="reset">Reset</button>
     <button class="btn icon ghost" data-act="more-menu" aria-label="Thêm thao tác">${icon('more')}</button>`;
 }
-function setWeekStart(date) { S.ui.weekStart = AC.mondayOf(date); view.monthAnchor = null; }
+export function setWeekStart(date) { S.ui.weekStart = AC.mondayOf(date); view.monthAnchor = null; }
 ACTIONS['week-step'] = el => { setWeekStart(AC.addDays(curStart(), Number(el.dataset.d))); commit(); };
 ACTIONS['week-today'] = () => { setWeekStart(nowDate()); view.scrollToday = true; commit(); };
-const CHANGES = {};
-const INPUTS = {};
 CHANGES['week-date'] = el => { if (!AC.isValidYMD(el.value)) return toast('Ngày không hợp lệ.', 'bad'); setWeekStart(el.value); commit(); };
 
 ACTIONS['more-menu'] = () => {
@@ -103,17 +103,17 @@ function toggleTheme() {
 ACTIONS['load-demo'] = async () => {
   const ok = await confirmBox({ title: 'Nạp dữ liệu demo?', body: `<p>Toàn bộ dữ liệu hiện có (${S.weeks.length} tuần, ${S.slots.length} slot) sẽ được thay bằng dữ liệu demo Nói Được English: 3 tuần (17 + 9 + 17 slot), mỗi tuần 3 Topic × 5 Cột = 15 ô.</p><p>Muốn giữ dữ liệu hiện tại thì vào Thiết lập → Sao lưu trước.</p>`, ok: 'Nạp dữ liệu demo', danger: true });
   if (!ok) return;
-  S = AC.buildSeed(); view.screen = 'week'; view.weekMode = 'week'; view.scrollToday = true; commit('Đã nạp dữ liệu demo.');
+  setS(AC.buildSeed()); view.screen = 'week'; view.weekMode = 'week'; view.scrollToday = true; commit('Đã nạp dữ liệu demo.');
 };
 ACTIONS.reset = async () => {
   const ok = await confirmBox({ title: 'Reset về trống?', body: `<p>Xóa toàn bộ dữ liệu trên trình duyệt này: ${S.weeks.length} tuần, ${S.slots.length} slot, Thiết lập. Không hoàn tác được.</p><p>Nút "Nạp dữ liệu demo" vẫn dùng được sau khi reset.</p>`, ok: 'Xóa tất cả', danger: true });
   if (!ok) return;
-  S = AC.emptyState(); S.ui.weekStart = AC.mondayOf(nowDate()); view.screen = 'setup'; view.setupTab = 'brand'; commit('Đã reset. Ứng dụng đang trống.');
+  setS(AC.emptyState()); S.ui.weekStart = AC.mondayOf(nowDate()); view.screen = 'setup'; view.setupTab = 'brand'; commit('Đã reset. Ứng dụng đang trống.');
 };
 
 // ---- Thanh tiến độ 7 bước ----
 const STEP_TARGET = [{ screen: 'week', action: 'plan-week' }, { screen: 'matrix' }, { screen: 'matrix' }, { screen: 'matrix' }, { screen: 'matrix' }, { screen: 'week' }, { screen: 'week' }];
-function progressHtml(weekId) {
+export function progressHtml(weekId) {
   const p = AC.weekProgress(S, weekId);
   const cur = p.steps[p.current - 1];
   return `<div class="stack" style="gap:6px">
@@ -133,7 +133,7 @@ function progressHtml(weekId) {
 ACTIONS['toggle-progress'] = () => { view.progressOpen = !view.progressOpen; render(); };
 ACTIONS['goto-step'] = el => go(STEP_TARGET[Number(el.dataset.i)]);
 
-function nextBandHtml(weekId, noApproveAll) {
+export function nextBandHtml(weekId, noApproveAll) {
   const a = AC.nextAction(S, weekId);
   const later = releaseFor(a.step);
   const w = AC.weekOf(S, weekId);
@@ -147,7 +147,7 @@ function nextBandHtml(weekId, noApproveAll) {
 function releaseFor() { return ''; }
 ACTIONS['do-next'] = () => { const a = AC.nextAction(S, AC.weekIdOf(curStart())); go(a.target); };
 
-function lockBannerHtml(w) {
+export function lockBannerHtml(w) {
   if (!w || w.status !== 'CONFIRMED') return '';
   return `<div class="note good row" style="justify-content:space-between"><span>Tuần đã chốt (bản ${w.revision}) nên chỉ xem. Muốn sửa slot, Cột hoặc nội dung thì mở lại tuần.</span><button class="btn sm" data-act="reopen-week">Mở lại để sửa</button></div>`;
 }
@@ -159,7 +159,7 @@ ACTIONS['reopen-week'] = async () => {
   AC.reopenWeek(S, w.id); commit('Tuần đang ở trạng thái Đang sửa.');
 };
 
-function render() {
+export function render() {
   if (!S.ui.weekStart || !AC.isValidYMD(S.ui.weekStart)) S.ui.weekStart = AC.mondayOf(nowDate());
   S.ui.weekStart = AC.mondayOf(S.ui.weekStart);
   renderNav(); renderTopbar();

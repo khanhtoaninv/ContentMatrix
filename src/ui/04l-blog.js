@@ -1,9 +1,20 @@
 // ---------- UI · Blog chuẩn SEO (mục 10.40): Thiết lập → Chuẩn Blog, Thông tin SEO của slot, thân bài có ảnh/video, gắn link, rà soát, gói xuất, gửi lên web ----------
+import { AC } from '../logic/99-export.js';
+import { ACTIONS, CHANGES, S } from './00-state.js';
+import { $, assetKind, commit, confirmBox, curWeek, esc, icon, mdReplace, mdTa, richText, save, toast, tsLabel } from './01-core.js';
+import { render } from './02-shell.js';
+import { openSlot } from './04-week.js';
+import { pvImageBase, pvRefresh, pvWhen } from './04b-preview.js';
+import { apiFetch, apiGenImage, keyFor, keyRememberedFor, maskKey, setKeyFor, videoMetaLine } from './04j-media.js';
+import { imgToolbar } from './04m-imgtools.js';
+import { copyText } from './05-matrix.js';
+import { downloadBytes } from './06-export.js';
+import { lines } from './07-setup.js';
 const BLOG_KEY = 'blogapi';
 const LINK_TYPE_LABEL = { internal: 'Nội bộ', source: 'Nguồn', cta: 'Kêu gọi' };
 
 // ---- Thiết lập → Chuẩn Blog ----
-function blogSetupTab() {
+export function blogSetupTab() {
   const c = AC.blogSeoOf(S), api = AC.blogApiOf(S), tok = keyFor(BLOG_KEY);
   const num = (k, label, hint) => `<div class="field"><label for="bs-${k}">${label}</label><input id="bs-${k}" type="number" min="0" value="${esc(c[k])}" data-bs="${k}">${hint ? `<span class="hint">${hint}</span>` : ''}</div>`;
   const txt = (k, label, ph) => `<div class="field"><label for="bs-${k}">${label}</label><input id="bs-${k}" value="${esc(c[k])}" placeholder="${esc(ph || '')}" data-bs="${k}" spellcheck="false"></div>`;
@@ -66,10 +77,6 @@ ACTIONS['ba-test'] = async () => {
 };
 ACTIONS['ba-doc'] = () => downloadBytes('autocontent-blog-api.md', AC.utf8Bytes(AC.blogApiDoc(S)), 'text/markdown');
 ACTIONS['ba-doc-copy'] = () => copyText(AC.blogApiDoc(S), 'Đã chép tài liệu API.');
-async function copyText(t, msg) {
-  try { await navigator.clipboard.writeText(t); toast(msg); }
-  catch (e) { const ta = document.createElement('textarea'); ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select(); let ok = false; try { ok = document.execCommand('copy'); } catch (er) { ok = false; } ta.remove(); toast(ok ? msg : 'Trình duyệt không cho chép; hãy tải tệp.', ok ? '' : 'bad'); }
-}
 function importPostsText(text, source) {
   const t = String(text || '').trim(); if (!t) return toast('Chưa có nội dung để nhập.', 'bad');
   const isXml = /^<\?xml|<(urlset|sitemapindex)[\s>]/i.test(t);
@@ -91,7 +98,7 @@ ACTIONS['bp-del'] = el => { AC.removeBlogPost(S, el.dataset.id); commit('Đã b�
 ACTIONS['bp-clear'] = async () => { if (!(await confirmBox({ title: 'Xoá cả kho bài?', danger: true, ok: 'Xoá kho', body: '<p>Chỉ xoá danh sách trong app; bài trên web không bị ảnh hưởng.</p>' }))) return; S.blogPosts = []; commit('Đã xoá kho bài.'); };
 
 // ---- Cấu hình slot → Thông tin SEO ----
-function slotSeoSectionHtml(s, locked) {
+export function slotSeoSectionHtml(s, locked) {
   const seo = AC.slotSeoOf(s), c = AC.blogSeoOf(S), conf = AC.keywordConflicts(S, s.id, seo.keyword);
   const dis = locked ? 'disabled' : '';
   const auto = (k, ed) => seo[ed] ? '<span class="small faint">sửa tay · xoá trống để tự tạo lại</span>' : '<span class="small faint">tự tạo theo bài</span>';
@@ -122,7 +129,7 @@ function readSeoForm(box) {
   return { keyword: v('#seo-kw'), keywords: v('#seo-kws'), intent: v('#seo-intent'), author: v('#seo-author'), category: v('#seo-cat'), tags: v('#seo-tags'), slug: v('#seo-slug'), related: v('#seo-rel'), ctaUrl: v('#seo-cta'), ctaText: v('#seo-ctat'), seoTitle: v('#seo-title'), metaDesc: v('#seo-desc'), excerpt: v('#seo-exc'), coverAlt: v('#seo-alt') };
 }
 // Nút trong Cấu hình slot (data-x seo-*); trả true nếu đã xử lý
-function blogCfgAction(s, x, box) {
+export function blogCfgAction(s, x, box) {
   if (x === 'seo-save' || x === 'seo-kwok') {
     const p = readSeoForm(box); if (x === 'seo-kwok') p.confirm = true;
     const r = AC.setSlotSeo(S, s.id, p);
@@ -136,7 +143,7 @@ function blogCfgAction(s, x, box) {
 }
 
 // ---- Thân bài Blog trong Xem như khi đăng: khối chữ, ảnh/video chèn giữa bài, nút + giữa các khối ----
-function blogBodyHtml(s, text, st, canIns) {
+export function blogBodyHtml(s, text, st, canIns) {
   const lines = String(text || '').split('\n');
   const groups = []; let cur = null;
   lines.forEach((l, i) => {
@@ -170,7 +177,7 @@ function blogMediaTools(s, a, i, st, ref, editing) {
 }
 // Khi Sửa bài Blog (mục 10.46): bài dạng khối theo đúng thứ tự: mỗi đoạn chữ là một ô soạn, mỗi ảnh/video là khối có ảnh xem trước và đủ công cụ ngay tại vị trí chèn.
 // #pv-edit (ẩn) giữ bản ghép của cả bài; ghép lại bằng '\n' giữa các khối nên không đổi nội dung.
-function blogBlocksHtml(st) {
+export function blogBlocksHtml(st) {
   const s = st.s; const blocks = []; let cur = null;
   String(st.draft || '').split('\n').forEach(l => {
     const m = /^!\[([^\]]*)\]\(media:([\w-]+)(?:\s+"([^"]*)")?\)\s*$/.exec(l.trim()); const i = m ? AC.blogMediaIndex(s, m[2]) : -1;
@@ -199,7 +206,7 @@ function afterBlogInsert(s, r) {
   if (a && a.kind !== 'video') { if (AC.imageApiOn(S)) { save(); apiGenImage(s, r.index); } else AC.genSlotImage(S, s.id, r.index); }
 }
 // Thao tác b-* trong popup Xem như khi đăng của slot Blog
-async function blogPvAction(s, st, k, b, paint) {
+export async function blogPvAction(s, st, k, b, paint) {
   const i = Number(b.dataset.i);
   if (k === 'b-sel') { st.sel = st.sel === i ? null : i; st.promptOpen = null; st.editOpen = null; st.altOpen = null; return paint(); }
   if (k === 'b-alt') { st.altOpen = st.altOpen === i ? null : i; return paint(); }
@@ -274,7 +281,7 @@ async function blogPostWeb(s, paint) {
   } catch (e) { toast(e.message, 'bad'); }
 }
 // Mục SEO dưới khung bài: rà soát, điểm, gợi ý link, xuất, gửi lên web
-function blogSeoPanelHtml(s, st, n) {
+export function blogSeoPanelHtml(s, st, n) {
   const text = st.edit ? st.draft : s.text; if (!text) return '';
   const a = AC.seoAudit(S, s, text); const must = a.checks.filter(c => c.group === 'must'); const qual = a.checks.filter(c => c.group === 'quality' && !c.na);
   const bad = qual.filter(c => !c.ok);
@@ -303,7 +310,7 @@ function blogSeoPanelHtml(s, st, n) {
   </section>`;
 }
 // Thanh công cụ thêm khi sửa bài Blog: chèn ảnh/video tại con trỏ, gắn link cho chữ đang chọn
-function blogEditTools() { return '<span class="mdsep"></span><button type="button" class="mdb" data-act="b-ins-cursor" title="Chèn ảnh hoặc video tại dòng đang đứng">🖼 Ảnh/video</button><button type="button" class="mdb" data-act="b-link-sel" title="Gắn link cho chữ đang chọn">🔗 Link</button>'; }
+export function blogEditTools() { return '<span class="mdsep"></span><button type="button" class="mdb" data-act="b-ins-cursor" title="Chèn ảnh hoặc video tại dòng đang đứng">🖼 Ảnh/video</button><button type="button" class="mdb" data-act="b-link-sel" title="Gắn link cho chữ đang chọn">🔗 Link</button>'; }
 ACTIONS['b-ins-cursor'] = async () => {
   const ta = mdTa('pv-edit'); if (!ta) return; const s = AC.byId(S.slots, ta.dataset.slot); if (!s) return;
   const pos = ta.selectionEnd; const res = await askBlogMedia(); if (!res) return;

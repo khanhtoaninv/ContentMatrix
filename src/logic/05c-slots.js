@@ -1,4 +1,7 @@
 // ---------- 05c · R3′: Chia bài, thao tác slot (DST-01..07, CAL-13..15) ----------
+import { scoreText } from './04-mock.js';
+import { assignCell, byId, cellView, chooseSlotImage, dealSlots, isLocked, log, refreshSlotFlags, slotColumnId, slotLockMsg, slotWarnings, weekOf, weekSlots, writeSlotFromCell } from './05-model.js';
+import { blogRefreshAuto } from './05p-blogseo.js';
 function slotGuard(S, s) {
   if (!s) return 'Không tìm thấy slot.';
   return slotLockMsg(S, s);
@@ -6,7 +9,7 @@ function slotGuard(S, s) {
 // Đánh dấu "nội dung đã đổi sau khi đăng" khi slot Đã đăng bị đổi bài (tuần Đang sửa)
 function markChanged(s, before) { if (s.state === 'PUBLISHED' && s.text !== before) s.changedAfterPublish = true; }
 // Chia bài (DST-01..05): viết slot trống từ ô; slot của Cột không có ô Đã duyệt giữ "Chưa có bài" kèm lý do
-function dealWeek(S, weekId, at) {
+export function dealWeek(S, weekId, at) {
   const r = dealSlots(S, weekId, at);
   if (!r.ok) return r;
   const w = weekOf(S, weekId);
@@ -20,14 +23,14 @@ function dealWeek(S, weekId, at) {
 }
 function slotSourceCell(S, s) { return s && s.sourceCellId ? byId(S.cells, s.sourceCellId) : null; }
 // Duyệt tất cả slot (10.56): slot Chưa duyệt có bài, không cần cập nhật; withWarned = true thì gồm cả slot có cảnh báo
-function slotsApprovable(S, weekId, withWarned) {
+export function slotsApprovable(S, weekId, withWarned) {
   if (isLocked(S, weekId)) return [];
   return weekSlots(S, weekId).filter(s => s.state === 'DRAFT' && s.text && !s.needsUpdate && (withWarned || !slotWarnings(S, s).length));
 }
-function slotsWarned(S, weekId) {
+export function slotsWarned(S, weekId) {
   return slotsApprovable(S, weekId, true).map(s => ({ slot: s, warnings: slotWarnings(S, s) })).filter(x => x.warnings.length);
 }
-function approveSlotsBulk(S, weekId, at, withWarned) {
+export function approveSlotsBulk(S, weekId, at, withWarned) {
   const list = slotsApprovable(S, weekId, withWarned);
   list.forEach(s => approveSlot(S, s.id, at));
   const left = weekSlots(S, weekId).filter(s => s.state === 'DRAFT').length;
@@ -35,7 +38,7 @@ function approveSlotsBulk(S, weekId, at, withWarned) {
   return { ok: true, approved: list.length, left };
 }
 // Duyệt slot: cần có bài và không "cần cập nhật"
-function approveSlot(S, slotId, at) {
+export function approveSlot(S, slotId, at) {
   const s = byId(S.slots, slotId);
   const err = slotGuard(S, s); if (err) return { ok: false, error: err };
   if (!s.text) return { ok: false, error: 'Slot chưa có bài.' };
@@ -46,7 +49,7 @@ function approveSlot(S, slotId, at) {
   return { ok: true, warnings: slotWarnings(S, s).length };
 }
 // Tạo lại: viết lại từ ô nguồn hiện hành (bản mới vào history; Hoàn tác một lần = dùng lại bản trước)
-function regenSlot(S, slotId, at) {
+export function regenSlot(S, slotId, at) {
   const s = byId(S.slots, slotId);
   const err = slotGuard(S, s); if (err) return { ok: false, error: err };
   if (s.free) return { ok: false, error: 'Slot tự do không có ô nguồn để tạo lại. Hãy sửa bài trực tiếp.' };
@@ -60,7 +63,7 @@ function regenSlot(S, slotId, at) {
   return { ok: true, n: s.genN };
 }
 // Dùng một bản trong history (back/next, Hoàn tác): bài, ô nguồn và dấu theo bản đó; cờ "cần cập nhật" tính lại
-function useSlotVersion(S, slotId, n) {
+export function useSlotVersion(S, slotId, n) {
   const s = byId(S.slots, slotId);
   const err = slotGuard(S, s); if (err) return { ok: false, error: err };
   const h = (s.history || []).find(x => x.n === n);
@@ -78,7 +81,7 @@ function useSlotVersion(S, slotId, n) {
   return { ok: true };
 }
 // Sửa tay bài slot: thêm một bản vào history, slot về Chưa duyệt
-function editSlot(S, slotId, text, at) {
+export function editSlot(S, slotId, text, at) {
   const s = byId(S.slots, slotId);
   const err = slotGuard(S, s); if (err) return { ok: false, error: err };
   if (!s.text && !s.free) return { ok: false, error: 'Slot chưa có bài để sửa.' };
@@ -99,7 +102,7 @@ function editSlot(S, slotId, text, at) {
   return { ok: true, n };
 }
 // "Cần cập nhật": Cập nhật từ ô (viết lại từ bản hiện hành của ô) hoặc Giữ bản slot (bắt buộc lý do)
-function updateSlotFromCell(S, slotId, at) {
+export function updateSlotFromCell(S, slotId, at) {
   const s = byId(S.slots, slotId);
   const err = slotGuard(S, s); if (err) return { ok: false, error: err };
   const cell = slotSourceCell(S, s);
@@ -112,7 +115,7 @@ function updateSlotFromCell(S, slotId, at) {
   log(S, 'update-from-cell', 'slot', slotId);
   return { ok: true };
 }
-function keepSlotVersion(S, slotId, reason) {
+export function keepSlotVersion(S, slotId, reason) {
   const s = byId(S.slots, slotId);
   const err = slotGuard(S, s); if (err) return { ok: false, error: err };
   if (!s.needsUpdate) return { ok: false, error: 'Slot không cần cập nhật.' };
@@ -124,7 +127,7 @@ function keepSlotVersion(S, slotId, reason) {
   return { ok: true };
 }
 // Đổi ô nguồn (DST-06): chỉ ô Đã duyệt cùng Cột; slot viết lại từ ô mới
-function changeSlotCell(S, slotId, cellId, at) {
+export function changeSlotCell(S, slotId, cellId, at) {
   const s = byId(S.slots, slotId); const before = s ? s.text : '';
   const prevN = s ? s.genN : 0;
   const r = assignCell(S, slotId, cellId, at);
@@ -132,7 +135,7 @@ function changeSlotCell(S, slotId, cellId, at) {
   return r;
 }
 // Ô ảnh: chọn phiên bản trước/sau (CAL-14)
-function stepSlotImage(S, slotId, idx, dir) {
+export function stepSlotImage(S, slotId, idx, dir) {
   const s = byId(S.slots, slotId); const a = s && s.assets[idx];
   if (!a || !a.versions.length) return { ok: false, error: 'Chưa có ảnh.' };
   const i = a.versions.findIndex(v => v.n === a.current);

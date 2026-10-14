@@ -1220,3 +1220,6 @@ Mỗi ô Chưa duyệt trong Matrix có nút Duyệt nằm trong cùng thẻ ô,
 
 ## 10.57. Format theo kênh trong một khung (14/10/2026, bản 84)
 Setup → Format: một khung chia đôi. Nửa trái liệt kê các kênh, mỗi kênh một nút kèm số Format; nửa phải hiện Format của kênh đang chọn (tên, Cột nguồn, cấu trúc, quy tắc, asset; nút Sửa, Xóa) và nút Thêm Format đặt sẵn kênh đang chọn. Kênh chưa có Format hiện số 0 màu cảnh báo. Trên điện thoại danh sách kênh nằm ngang phía trên.
+
+## 10.58. Chuẩn hóa mã nguồn cho lập trình viên (14/10/2026, bản 85)
+Không đổi tính năng, giao diện hay dữ liệu. Mã nguồn chuyển sang ES module (mỗi tệp khai báo `import`/`export`), đóng gói bằng Vite (`npm run build`) thành một tệp `dist/index.html` tự chứa như trước; người dùng vẫn `git pull` rồi mở tệp này, không cần cài Node. Dữ liệu giữ khóa `autocontent.state` và cấu trúc cũ. Lập trình viên đọc `DEVELOPERS.md` (lệnh, cách ghép mã, quy ước, sơ đồ module).

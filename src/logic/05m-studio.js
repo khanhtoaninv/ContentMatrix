@@ -1,9 +1,16 @@
 // ---------- Kho tài sản, soạn carousel theo slide, chuyển bài sang kênh khác (mục 10.37) ----------
+import { clone, fold, mondayOf, paraBreak, splitSentences } from './01-util.js';
+import { slidesOf } from './03-rules.js';
+import { addSlotToStart, byId, log, newAsset, nextId, slotColumnId, slotLockMsg } from './05-model.js';
+import { editSlot } from './05c-slots.js';
+import { addSlotImageVersion } from './05i-frames.js';
+import { DEFAULT_CTAS, coreIdea, hookOptions, snippetsFor } from './05k-assist.js';
+import { stampRatios } from './05q-imgspec.js';
 // Kho tài sản và soạn carousel: chạy thật. Chuyển bài sang kênh: MÔ PHỎNG (convertPost ghép lại câu theo khung Format đích).
 
 // ---- Kho tài sản ----
-function libraryOf(S) { return S.library || []; }
-function addLibraryItem(S, it, at) {
+export function libraryOf(S) { return S.library || []; }
+export function addLibraryItem(S, it, at) {
   const name = String((it && it.name) || '').trim().slice(0, 80);
   if (!name) return { ok: false, error: 'Đặt tên cho ảnh.' };
   if (!/^data:image\/(png|jpeg|webp|gif);/.test((it && it.src) || '')) return { ok: false, error: 'Kho chỉ nhận ảnh PNG, JPEG, WebP hoặc GIF.' };
@@ -16,24 +23,24 @@ function normTags(t) {
   const arr = Array.isArray(t) ? t : String(t || '').split(',');
   return arr.map(x => String(x).trim().replace(/^#/, '')).filter(Boolean).filter((x, i, a) => a.indexOf(x) === i).slice(0, 8);
 }
-function updateLibraryItem(S, id, patch) {
+export function updateLibraryItem(S, id, patch) {
   const it = libraryOf(S).find(x => x.id === id); if (!it) return { ok: false, error: 'Không tìm thấy ảnh trong kho.' };
   if (patch.name != null) { const n = String(patch.name).trim().slice(0, 80); if (!n) return { ok: false, error: 'Tên không được để trống.' }; it.name = n; }
   if (patch.tags != null) it.tags = normTags(patch.tags);
   return { ok: true, item: it };
 }
-function deleteLibraryItem(S, id) {
+export function deleteLibraryItem(S, id) {
   const n = libraryOf(S).length; S.library = libraryOf(S).filter(x => x.id !== id);
   return n === S.library.length ? { ok: false, error: 'Không tìm thấy ảnh trong kho.' } : { ok: true };
 }
-function libraryFind(S, q, tag) {
+export function libraryFind(S, q, tag) {
   const f = fold(q || '');
   return libraryOf(S).filter(x => (!tag || x.tags.includes(tag)) && (!f || fold(x.name + ' ' + x.tags.join(' ')).includes(f)));
 }
-function libraryTags(S) { return [...new Set(libraryOf(S).flatMap(x => x.tags))].sort(); }
+export function libraryTags(S) { return [...new Set(libraryOf(S).flatMap(x => x.tags))].sort(); }
 // Số lần ảnh trong kho đã được dùng ở slot
-function libraryUses(S, id) { let n = 0; S.slots.forEach(s => s.assets.forEach(a => a.versions.forEach(v => { if (v.lib && v.lib.id === id) n++; }))); return n; }
-function useLibraryItem(S, slotId, idx, libId, at) {
+export function libraryUses(S, id) { let n = 0; S.slots.forEach(s => s.assets.forEach(a => a.versions.forEach(v => { if (v.lib && v.lib.id === id) n++; }))); return n; }
+export function useLibraryItem(S, slotId, idx, libId, at) {
   const it = libraryOf(S).find(x => x.id === libId); if (!it) return { ok: false, error: 'Không tìm thấy ảnh trong kho.' };
   const m = /^data:image\/(\w+);/.exec(it.src); const ext = m ? (m[1] === 'jpeg' ? 'jpg' : m[1]) : 'jpg';
   return addSlotImageVersion(S, slotId, idx, { src: it.src, ext, lib: { id: it.id, name: it.name } }, at);
@@ -41,17 +48,17 @@ function useLibraryItem(S, slotId, idx, libId, at) {
 
 // ---- Soạn carousel theo slide ----
 // Tách bài carousel: phần trước "Slide 1" (chú thích) và nội dung từng slide
-function carouselParse(text) {
+export function carouselParse(text) {
   const t = String(text || ''); const m = /^\s*Slide\s*\d+\s*[:·.-]/im.exec(t);
   return { lead: m ? t.slice(0, m.index).trim() : '', slides: slidesOf(t) };
 }
-function carouselCompose(lead, slides) {
+export function carouselCompose(lead, slides) {
   const body = slides.map((x, i) => `Slide ${i + 1}: ${String(x).replace(/\s+$/, '')}`).join('\n\n');
   return lead && lead.trim() ? `${lead.trim()}\n\n${body}` : body;
 }
 const isSlideAsset = a => /^Slide\s*\d+/i.test(a.name);
 // slides: [{ text, from }] — from là chỉ số slide cũ (ảnh đi theo), null là slide mới (ô ảnh trống)
-function saveCarouselSlides(S, slotId, lead, slides, at) {
+export function saveCarouselSlides(S, slotId, lead, slides, at) {
   const s = byId(S.slots, slotId); if (!s) return { ok: false, error: 'Không tìm thấy slot.' };
   { const e = slotLockMsg(S, s); if (e) return { ok: false, error: e }; }
   if (!Array.isArray(slides) || !slides.length) return { ok: false, error: 'Carousel cần ít nhất một slide.' };
@@ -73,14 +80,14 @@ function saveCarouselSlides(S, slotId, lead, slides, at) {
 }
 
 // ---- Chuyển bài sang kênh khác (mô phỏng) ----
-function plainSentences(text) {
+export function plainSentences(text) {
   const body = String(text || '').split('\n')
     .filter(l => !/^\s*#\S/.test(l.trim()) || /^\s*#{1,6}\s/.test(l))
     .map(l => l.replace(/^\s*(\[[^\]]+\]|#{1,6}\s+|Slide\s*\d+\s*[:·.-]|[-*•]\s+|\d+[.)]\s+)/i, '').trim())
     .filter(Boolean).map(l => /[.!?…:"”)]$/.test(l) ? l : l + '.').join(' ').replace(/\*\*/g, '');
   return splitSentences(body).filter(x => x.length > 3);
 }
-function convertPost(S, text, toFormatId, ctx) {
+export function convertPost(S, text, toFormatId, ctx) {
   const f = byId(S.formats, toFormatId); if (!f) return { ok: false, error: 'Không tìm thấy Format.' };
   const ch = byId(S.channels, f.channelId);
   const core = coreIdea(text) || 'Bài mới'; const ss = plainSentences(text);
@@ -110,7 +117,7 @@ function convertPost(S, text, toFormatId, ctx) {
   return { ok: true, text: out.replace(/\n{3,}/g, '\n\n').trim(), simulated: true, format: f };
 }
 // Tạo slot tự do mới ở kênh khác từ bài của slot gốc; ảnh đang dùng của ô đầu được chép sang
-function repurposeSlot(S, fromId, req, at) {
+export function repurposeSlot(S, fromId, req, at) {
   const src = byId(S.slots, fromId); if (!src) return { ok: false, error: 'Không tìm thấy slot gốc.' };
   if (!src.text) return { ok: false, error: 'Slot gốc chưa có bài.' };
   const f = byId(S.formats, req.formatId); if (!f) return { ok: false, error: 'Chọn Format đích.' };

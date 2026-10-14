@@ -1,20 +1,23 @@
 // ---------- Ảnh AI thật qua API, ảnh bìa và phụ đề video (mục 10.38) ----------
+import { byId, log, slotLockMsg } from './05-model.js';
+import { FRAME_RATIOS } from './05i-frames.js';
+import { plainSentences } from './05m-studio.js';
 // Gọi API: chạy thật khi người dùng nhập khoá (trình duyệt gọi thẳng nhà cung cấp). Khoá không nằm trong S (không vào bản sao lưu).
 // Phụ đề "Tạo từ bài": MÔ PHỎNG thời gian (chia theo độ dài câu); "Nhận giọng nói" qua API là thật.
 
-const IMAGE_PROVIDERS = {
+export const IMAGE_PROVIDERS = {
   off: { label: 'Mô phỏng (không gọi API)' },
   openai: { label: 'OpenAI', model: 'gpt-image-1', endpoint: 'https://api.openai.com/v1', key: true, stt: true },
   stability: { label: 'Stability AI', model: 'sd3.5-large', endpoint: 'https://api.stability.ai', key: true },
   custom: { label: 'Máy chủ riêng', model: '', endpoint: '', key: false },
 };
-function imageApiOf(S) {
+export function imageApiOf(S) {
   const c = Object.assign({ provider: 'off', model: '', endpoint: '', sttModel: 'whisper-1' }, S.imageApi || {});
   const p = IMAGE_PROVIDERS[c.provider] || IMAGE_PROVIDERS.off;
   return Object.assign(c, { model: c.model || p.model || '', endpoint: c.endpoint || p.endpoint || '' });
 }
-function imageApiOn(S) { return imageApiOf(S).provider !== 'off'; }
-function setImageApi(S, patch) {
+export function imageApiOn(S) { return imageApiOf(S).provider !== 'off'; }
+export function setImageApi(S, patch) {
   const old = imageApiOf(S); const P = patch || {};
   const c = Object.assign({}, old, P);
   if (P.provider && P.provider !== old.provider) { const d = IMAGE_PROVIDERS[P.provider] || {}; if (P.endpoint == null) c.endpoint = d.endpoint || ''; if (P.model == null) c.model = d.model || ''; }
@@ -29,13 +32,13 @@ function setImageApi(S, patch) {
   return { ok: true, api: imageApiOf(S) };
 }
 // Khổ gửi API theo tỉ lệ ô ảnh
-function apiSizeFor(provider, ratio) {
+export function apiSizeFor(provider, ratio) {
   if (provider === 'openai') return ratio === '1:1' ? '1024x1024' : ['4:5', '9:16'].includes(ratio) ? '1024x1536' : '1536x1024';
   if (provider === 'stability') return { '1:1': '1:1', '4:5': '4:5', '9:16': '9:16', '16:9': '16:9', '1.91:1': '21:9' }[ratio] || '1:1';
   const wh = FRAME_RATIOS[ratio] || FRAME_RATIOS['1:1']; return `${wh[0]}x${wh[1]}`;
 }
 // Mô tả yêu cầu HTTP (giao diện dựng fetch). Ảnh gửi kèm ở dạng { file: dataUrl, name }.
-function buildImageRequest(cfg, key, req) {
+export function buildImageRequest(cfg, key, req) {
   const p = IMAGE_PROVIDERS[cfg.provider];
   if (!p || cfg.provider === 'off') return { ok: false, error: 'Chưa bật gọi API ảnh (Setup → AI ảnh & video).' };
   if (p.key && !String(key || '').trim()) return { ok: false, error: 'Chưa nhập khoá API (Setup → AI ảnh & video).' };
@@ -57,7 +60,7 @@ function buildImageRequest(cfg, key, req) {
   return { ok: true, url: cfg.endpoint, headers: Object.assign({ 'Content-Type': 'application/json' }, auth), json: { mode: i2i ? 'i2i' : 'gen', prompt, ratio: req.ratio || '1:1', width: w, height: h, strength: i2i ? strength : undefined, image: i2i ? req.image : undefined, model: cfg.model || undefined } };
 }
 // Đọc kết quả: { ok, src } (data URL) hoặc { ok, url } (giao diện tải tiếp) hoặc lỗi dễ hiểu
-function parseImageResponse(provider, status, body) {
+export function parseImageResponse(provider, status, body) {
   const msg = body && (body.error && (body.error.message || body.error) || body.errors && [].concat(body.errors).join('; ') || body.message || body.detail);
   if (status === 401 || status === 403) return { ok: false, error: 'Khoá API sai, hết hạn hoặc không có quyền dùng model này.' };
   if (status === 429) return { ok: false, error: 'Nhà cung cấp báo vượt hạn mức hoặc hết tín dụng. Thử lại sau.' };
@@ -73,19 +76,19 @@ function parseImageResponse(provider, status, body) {
   return { ok: false, error: 'API không trả về ảnh.' };
 }
 // Kiểm tra khoá (không tốn phí): liệt kê model / xem tài khoản
-function buildCheckRequest(cfg, key) {
+export function buildCheckRequest(cfg, key) {
   if (cfg.provider === 'openai') return { ok: true, url: `${cfg.endpoint}/models`, headers: { Authorization: `Bearer ${String(key || '').trim()}` } };
   if (cfg.provider === 'stability') return { ok: true, url: `${cfg.endpoint}/v1/user/account`, headers: { Authorization: `Bearer ${String(key || '').trim()}` } };
   return { ok: false, error: cfg.provider === 'off' ? 'Đang ở chế độ mô phỏng.' : 'Máy chủ riêng: thử bằng cách Gen một ảnh.' };
 }
 // Nhận giọng nói thành phụ đề (OpenAI)
-function buildSttRequest(cfg, key, file) {
+export function buildSttRequest(cfg, key, file) {
   if (!(IMAGE_PROVIDERS[cfg.provider] || {}).stt) return { ok: false, error: 'Nhận giọng nói cần nhà cung cấp OpenAI (Setup → AI ảnh & video).' };
   if (!String(key || '').trim()) return { ok: false, error: 'Chưa nhập khoá API.' };
   return { ok: true, url: `${cfg.endpoint}/audio/transcriptions`, headers: { Authorization: `Bearer ${String(key).trim()}` },
     form: [['model', cfg.sttModel || 'whisper-1'], ['response_format', 'verbose_json'], ['timestamp_granularities[]', 'segment'], ['language', 'vi'], ['file', { file, name: 'video.' + (((/^data:video\/(\w+)/.exec(file) || [])[1] || 'mp4').replace('quicktime', 'mov')) }]] };
 }
-function parseSttResponse(status, body) {
+export function parseSttResponse(status, body) {
   if (status >= 400) return parseImageResponse('openai', status, body);
   const seg = body && Array.isArray(body.segments) ? body.segments : null;
   if (!seg || !seg.length) return body && body.text ? { ok: true, cues: [{ start: 0, end: Math.max(1, Number(body.duration) || 5), text: String(body.text).trim() }] } : { ok: false, error: 'Không nhận được lời nói trong video.' };
@@ -93,7 +96,7 @@ function parseSttResponse(status, body) {
 }
 
 // ---- Video: ảnh bìa ----
-function videoAt(S, slotId, idx) {
+export function videoAt(S, slotId, idx) {
   const s = byId(S.slots, slotId); const a = s && s.assets[idx];
   if (!a) return { ok: false, error: 'Không tìm thấy ô video.' };
   { const e = slotLockMsg(S, s); if (e) return { ok: false, error: e }; }
@@ -101,7 +104,7 @@ function videoAt(S, slotId, idx) {
   if (!v || v.kind !== 'video') return { ok: false, error: 'Ô này chưa có video.' };
   return { ok: true, s, a, v };
 }
-function setVideoCover(S, slotId, idx, cover, at) {
+export function setVideoCover(S, slotId, idx, cover, at) {
   const r = videoAt(S, slotId, idx); if (!r.ok) return r;
   if (!cover) { delete r.v.cover; log(S, 'video-cover', 'slot', slotId, `${r.a.name} · bỏ bìa`); return { ok: true }; }
   if (!/^data:image\/(png|jpeg|webp);/.test(cover.src || '')) return { ok: false, error: 'Ảnh bìa không hợp lệ.' };
@@ -111,19 +114,19 @@ function setVideoCover(S, slotId, idx, cover, at) {
 }
 
 // ---- Video: phụ đề ----
-const SUB_MAX_CHARS = 84; // 2 dòng × 42 ký tự
-function fmtClock(t) { t = Math.max(0, Number(t) || 0); const m = Math.floor(t / 60); const s = t - m * 60; return `${m}:${s.toFixed(1).padStart(4, '0')}`; }
-function parseClock(x) {
+export const SUB_MAX_CHARS = 84; // 2 dòng × 42 ký tự
+export function fmtClock(t) { t = Math.max(0, Number(t) || 0); const m = Math.floor(t / 60); const s = t - m * 60; return `${m}:${s.toFixed(1).padStart(4, '0')}`; }
+export function parseClock(x) {
   const m = /^\s*(?:(\d+):)?(\d+):(\d+(?:[.,]\d+)?)\s*$/.exec(String(x || '')) || /^\s*(\d+(?:[.,]\d+)?)\s*$/.exec(String(x || ''));
   if (!m) return null;
   if (m.length === 2) return Number(m[1].replace(',', '.'));
   return (Number(m[1] || 0) * 3600) + Number(m[2]) * 60 + Number(m[3].replace(',', '.'));
 }
-function normCues(cues) {
+export function normCues(cues) {
   return (cues || []).map(c => ({ start: Math.max(0, Math.round(Number(c.start) * 1000) / 1000), end: Math.max(0, Math.round(Number(c.end) * 1000) / 1000), text: String(c.text || '').replace(/[ \t]+/g, ' ').trim() }))
     .filter(c => c.text).sort((a, b) => a.start - b.start);
 }
-function validateCues(cues) {
+export function validateCues(cues) {
   if (!cues.length) return 'Chưa có dòng phụ đề nào.';
   if (cues.length > 400) return 'Tối đa 400 dòng phụ đề.';
   for (let i = 0; i < cues.length; i++) {
@@ -135,7 +138,7 @@ function validateCues(cues) {
   return '';
 }
 // Câu của bài để làm phụ đề: bỏ nhãn [..], tiêu đề #, "Slide i:", hashtag; câu dài cắt theo dấu phẩy rồi theo từ
-function scriptLines(text) {
+export function scriptLines(text) {
   const out = [];
   plainSentences(text).forEach(x => {
     x = x.replace(/#[\p{L}\p{N}_]+/gu, '').replace(/\s+/g, ' ').trim(); if (!x) return;
@@ -152,7 +155,7 @@ function scriptLines(text) {
   return out;
 }
 // Mô phỏng: chia thời lượng video theo độ dài từng câu (chưa nghe được video)
-function subtitleDraft(text, duration) {
+export function subtitleDraft(text, duration) {
   const lines = scriptLines(text); if (!lines.length) return { ok: false, error: 'Bài chưa có chữ để làm phụ đề.' };
   const D = Number(duration) > 0 && isFinite(duration) ? Number(duration) : Math.max(5, lines.length * 3);
   const w = lines.map(l => l.length + 10), sum = w.reduce((a, b) => a + b, 0);
@@ -160,10 +163,10 @@ function subtitleDraft(text, duration) {
   const cues = lines.map((l, i) => { const d = D * w[i] / sum; const c = { start: t, end: i === lines.length - 1 ? D : t + d, text: l }; t += d; return c; });
   return { ok: true, cues: normCues(cues), simulated: true };
 }
-function srtTime(t, sep) { const ms = Math.round(t * 1000); const h = Math.floor(ms / 3600000), m = Math.floor(ms / 60000) % 60, s = Math.floor(ms / 1000) % 60; return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}${sep}${String(ms % 1000).padStart(3, '0')}`; }
-function cuesToSrt(cues) { return cues.map((c, i) => `${i + 1}\n${srtTime(c.start, ',')} --> ${srtTime(c.end, ',')}\n${c.text}\n`).join('\n'); }
-function cuesToVtt(cues) { return 'WEBVTT\n\n' + cues.map(c => `${srtTime(c.start, '.')} --> ${srtTime(c.end, '.')}\n${c.text}\n`).join('\n'); }
-function parseSubtitles(text) {
+export function srtTime(t, sep) { const ms = Math.round(t * 1000); const h = Math.floor(ms / 3600000), m = Math.floor(ms / 60000) % 60, s = Math.floor(ms / 1000) % 60; return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}${sep}${String(ms % 1000).padStart(3, '0')}`; }
+export function cuesToSrt(cues) { return cues.map((c, i) => `${i + 1}\n${srtTime(c.start, ',')} --> ${srtTime(c.end, ',')}\n${c.text}\n`).join('\n'); }
+export function cuesToVtt(cues) { return 'WEBVTT\n\n' + cues.map(c => `${srtTime(c.start, '.')} --> ${srtTime(c.end, '.')}\n${c.text}\n`).join('\n'); }
+export function parseSubtitles(text) {
   const t = String(text || '').replace(/\r/g, '').replace(/^\uFEFF/, '');
   const re = /(?:(\d+):)?(\d{1,2}):(\d{2})[.,](\d{1,3})\s*-->\s*(?:(\d+):)?(\d{1,2}):(\d{2})[.,](\d{1,3})[^\n]*\n([\s\S]*?)(?=\n\s*\n|$)/g;
   const sec = (h, m, s, ms) => Number(h || 0) * 3600 + Number(m) * 60 + Number(s) + Number(ms.padEnd(3, '0')) / 1000;
@@ -171,7 +174,7 @@ function parseSubtitles(text) {
   while ((m = re.exec(t))) cues.push({ start: sec(m[1], m[2], m[3], m[4]), end: sec(m[5], m[6], m[7], m[8]), text: m[9].split('\n').filter(l => !/^\d+$/.test(l.trim())).join(' ').replace(/<[^>]+>/g, '') });
   return cues.length ? { ok: true, cues: normCues(cues) } : { ok: false, error: 'Không đọc được tệp phụ đề (cần .srt hoặc .vtt).' };
 }
-function setVideoSubs(S, slotId, idx, cues, source, at) {
+export function setVideoSubs(S, slotId, idx, cues, source, at) {
   const r = videoAt(S, slotId, idx); if (!r.ok) return r;
   if (!cues) { delete r.v.subs; log(S, 'video-subs', 'slot', slotId, `${r.a.name} · bỏ phụ đề`); return { ok: true }; }
   const c = normCues(cues); const e = validateCues(c); if (e) return { ok: false, error: e };
