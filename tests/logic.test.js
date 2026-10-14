@@ -1411,7 +1411,7 @@ test('10.38 Yêu cầu và kết quả API ảnh theo nhà cung cấp', () => {
   const oa = { provider: 'openai', model: 'gpt-image-1', endpoint: 'https://api.openai.com/v1' };
   assert.equal(AC.buildImageRequest(oa, '', { mode: 'gen', prompt: 'x' }).ok, false);
   const g = AC.buildImageRequest(oa, ' sk-1 ', { mode: 'gen', prompt: ' mèo  con ', ratio: '4:5' });
-  assert.equal(g.url, 'https://api.openai.com/v1/images/generations'); assert.equal(g.headers.Authorization, 'Bearer sk-1'); assert.deepEqual(g.json, { model: 'gpt-image-1', prompt: 'mèo con', size: '1024x1536', n: 1 });
+  assert.equal(g.url, 'https://api.openai.com/v1/images/generations'); assert.equal(g.headers.Authorization, 'Bearer sk-1'); assert.deepEqual(g.json, { model: 'gpt-image-1', prompt: 'mèo con', size: '1024x1536', n: 1, quality: 'low' });
   assert.equal(AC.buildImageRequest(oa, 'k', { mode: 'i2i', prompt: 'x' }).ok, false);
   const e = AC.buildImageRequest(oa, 'k', { mode: 'i2i', prompt: 'x', image: 'data:image/png;base64,AA' });
   assert.ok(e.url.endsWith('/images/edits')); assert.deepEqual(e.form.find(x => x[0] === 'image')[1], { file: 'data:image/png;base64,AA', name: 'image.png' });

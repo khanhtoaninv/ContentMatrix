@@ -45,8 +45,8 @@ function buildImageRequest(cfg, key, req) {
   const size = apiSizeFor(cfg.provider, req.ratio || '1:1');
   const auth = key ? { Authorization: `Bearer ${String(key).trim()}` } : {};
   if (cfg.provider === 'openai') {
-    if (!i2i) return { ok: true, url: `${cfg.endpoint}/images/generations`, headers: Object.assign({ 'Content-Type': 'application/json' }, auth), json: { model: cfg.model, prompt, size, n: 1 } };
-    return { ok: true, url: `${cfg.endpoint}/images/edits`, headers: auth, form: [['model', cfg.model], ['prompt', prompt], ['size', size], ['image', { file: req.image, name: 'image.png' }]] };
+    if (!i2i) return { ok: true, url: `${cfg.endpoint}/images/generations`, headers: Object.assign({ 'Content-Type': 'application/json' }, auth), json: { model: cfg.model, prompt, size, n: 1, quality: cfg.quality || 'low' } };
+    return { ok: true, url: `${cfg.endpoint}/images/edits`, headers: auth, form: [['model', cfg.model], ['prompt', prompt], ['size', size], ['quality', cfg.quality || 'low'], ['image', { file: req.image, name: 'image.png' }]] };
   }
   if (cfg.provider === 'stability') {
     const form = [['prompt', prompt], ['model', cfg.model], ['output_format', 'jpeg'], ['mode', i2i ? 'image-to-image' : 'text-to-image']];
