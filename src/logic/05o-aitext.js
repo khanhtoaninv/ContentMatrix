@@ -102,16 +102,19 @@ function aiSystem(S) {
   return [
     'Bạn là người viết content mạng xã hội cho thương hiệu dưới đây. Viết tiếng Việt tự nhiên, đúng giọng văn, câu ngắn dễ đọc trên điện thoại.',
     'Chỉ dùng số liệu, nguồn và sự thật có trong Topic hoặc hồ sơ thương hiệu. Không bịa số liệu, tên người, tên tổ chức.',
+    S.settings.writingRules ? `# Quy tắc viết chung\n${String(S.settings.writingRules).trim()}` : '',
     banned ? `Không dùng các từ phóng đại: ${banned}.` : '',
     `# Hồ sơ thương hiệu\n${S.brand.md || '(chưa có)'}`, `# Giọng văn\n${S.voice.md || '(chưa có)'}`,
     'Trả lời bằng đúng một khối JSON, không thêm chữ nào khác: {"text": "bài viết hoàn chỉnh", "imagePrompt": "mô tả ảnh minh hoạ (tiếng Việt, một câu)", "scores": {"<mã tiêu chí>": 1-5}, "tip": "một gợi ý cải thiện ngắn"}. Chấm điểm trung thực theo các tiêu chí được nêu.',
   ].filter(Boolean).join('\n\n');
 }
+const withSkill = (S, ctx, sys) => { const o = skillOwnerOf(S, ctx); const b = o ? skillBlock(o, `Chỉ dẫn của ${o.layout ? 'Format' : 'Cột'} "${o.name}"`) : ''; return b ? `${sys}\n\n${b}` : sys; };
 const criteriaText = cr => (cr || []).map(c => `- ${c.id}: ${c.name} (trọng số ${c.weight})`).join('\n');
 function cellJob(S, cell, iv, col, context, mock, n) {
-  const user = [`# Việc: viết bài cho Cột "${col.name}"`, col.guideMd || '', col.structure && col.structure.length ? `Bố cục: ${col.structure.join(' → ')}. Mỗi phần mở bằng đề mục "## Tên phần".` : '', rulesLine(col.hardRules || {}),
+  const sk = skillBlock(col, `Chỉ dẫn viết cho Cột "${col.name}"`);
+  const user = [`# Việc: viết bài cho Cột "${col.name}"`, sk || col.guideMd || '', col.structure && col.structure.length ? `Bố cục: ${col.structure.join(' → ')}. Mỗi phần mở bằng đề mục "## Tên phần".` : '', rulesLine(col.hardRules || {}),
     `# Topic: ${iv.title}\n${iv.text}`, context ? `# Bối cảnh tuần\n${context}` : '',
-    `# Bản nháp máy (chỉ để theo bố cục và độ dài; hãy viết lại hay hơn, không chép)\n${mock}`,
+    sk ? '' : `# Bản nháp máy (chỉ để theo bố cục và độ dài; hãy viết lại hay hơn, không chép)\n${mock}`,
     n > 1 ? `Đây là lượt viết thứ ${n}: chọn góc mở bài khác các lượt trước.` : '',
     `# Tiêu chí chấm (1–5)\n${criteriaText(col.criteria)}`].filter(Boolean).join('\n\n');
   return { key: `cell:${cell.id}:${n}`, kind: 'cell', label: `${col.name} · ${iv.title}`, system: aiSystem(S), user, criteria: col.criteria || [] };
@@ -119,11 +122,12 @@ function cellJob(S, cell, iv, col, context, mock, n) {
 function slotJob(S, slot, f, cellText, iv, mock, n) {
   const ch = byId(S.channels, f.channelId) || {};
   const layoutHint = { carousel: 'Viết dạng "Slide 1: …", "Slide 2: …", mỗi slide một đoạn; slide 1 là bìa, slide cuối là CTA.', script: 'Viết kịch bản video ngắn, mỗi cảnh mở bằng nhãn trong ngoặc vuông như "[Hook · 0–3 giây]", "[CTA]".', longscript: 'Viết kịch bản video dài, các phần mở bằng nhãn trong ngoặc vuông có mốc giờ như "[Mở đầu · 0:00]".', article: 'Viết bài blog Markdown: "# Tiêu đề", các phần "## …".', post: 'Viết bài đăng mạng xã hội: đoạn ngắn, xuống dòng giữa các ý.' }[f.layout] || '';
-  const user = [`# Việc: chuyển bài gốc thành bài "${f.name}" cho kênh ${ch.name || ''}`, f.guideMd || '', layoutHint,
-    f.structure && f.structure.length ? `Bố cục: ${f.structure.join(' → ')}.` : '', rulesLine(f.hardRules || {}),
+  const sk = skillBlock(f, `Chỉ dẫn viết cho Format "${f.name}"`);
+  const user = [`# Việc: chuyển bài gốc thành bài "${f.name}" cho kênh ${ch.name || ''}`, sk || f.guideMd || '', layoutHint,
+    !sk && f.structure && f.structure.length ? `Bố cục: ${f.structure.join(' → ')}.` : '', rulesLine(f.hardRules || {}),
     ch.maxChars ? `Kênh giới hạn ${ch.maxChars} ký tự.` : '', ch.maxHashtags != null ? `Kênh cho tối đa ${ch.maxHashtags} hashtag.` : '',
     iv ? `# Topic: ${iv.title}` : '', isBlogSlot(S, slot) ? blogAiBrief(S, slot) : '', `# Bài gốc (đã duyệt)\n${cellText}`,
-    `# Bản nháp máy (chỉ để theo bố cục; hãy viết lại hay hơn)\n${mock}`,
+    sk ? '' : `# Bản nháp máy (chỉ để theo bố cục; hãy viết lại hay hơn)\n${mock}`,
     n > 1 ? `Đây là lượt viết thứ ${n}: thử cách mở bài khác.` : '',
     `# Tiêu chí chấm (1–5)\n${criteriaText(f.criteria)}`].filter(Boolean).join('\n\n');
   return { key: `slot:${slot.id}:${n}`, kind: 'slot', label: `${f.name} · ${slot.date} ${slot.time}`, system: aiSystem(S), user, criteria: f.criteria || [] };
@@ -138,12 +142,12 @@ function aiSlotText(S, slot, f, cellText, iv, mock, n) {
   return takeAiText(`slot:${slot.id}:${n}`);
 }
 // Sửa đoạn, hook, caption bằng AI: lời nhắn (trả lời là chữ hoặc JSON)
-function rewriteJob(S, text, op, instruction) {
+function rewriteJob(S, text, op, instruction, ctx) {
   const what = op === 'custom' ? `Yêu cầu: ${instruction}` : `Cách sửa: ${AI_OPS[op] || op}.`;
-  return { system: aiSystem(S).split('\n\nTrả lời bằng')[0] + '\n\nChỉ trả về đoạn đã sửa, không giải thích, không ngoặc kép bao quanh.', user: `${what}\n\n# Đoạn cần sửa\n${text}` };
+  return { system: withSkill(S, ctx, aiSystem(S).split('\n\nTrả lời bằng')[0]) + '\n\nChỉ trả về đoạn đã sửa, không giải thích, không ngoặc kép bao quanh.', user: `${what}\n\n# Đoạn cần sửa\n${text}` };
 }
-function hooksJob(S, text) {
-  return { system: aiSystem(S).split('\n\nTrả lời bằng')[0], user: `Viết 5 câu mở đầu (hook) thay cho câu đầu của bài dưới đây, mỗi loại một câu: ${Object.entries(HOOK_KINDS).map(([k, v]) => `${k} (${v})`).join(', ')}. Mỗi câu tối đa 20 chữ.\nTrả về JSON: {"hooks": [{"kind": "question", "text": "…"}, …]}\n\n# Bài\n${text}` };
+function hooksJob(S, text, ctx) {
+  return { system: withSkill(S, ctx, aiSystem(S).split('\n\nTrả lời bằng')[0]), user: `Viết 5 câu mở đầu (hook) thay cho câu đầu của bài dưới đây, mỗi loại một câu: ${Object.entries(HOOK_KINDS).map(([k, v]) => `${k} (${v})`).join(', ')}. Mỗi câu tối đa 20 chữ.\nTrả về JSON: {"hooks": [{"kind": "question", "text": "…"}, …]}\n\n# Bài\n${text}` };
 }
 function parseHooks(raw) {
   const j = extractJson(raw); const arr = j && Array.isArray(j.hooks) ? j.hooks : [];
@@ -152,7 +156,7 @@ function parseHooks(raw) {
 }
 function captionsJob(S, text, ctx) {
   const tags = snippetsFor(S, ctx || {}, 'hashtag')[0]; const cta = snippetsFor(S, ctx || {}, 'cta')[0];
-  return { system: aiSystem(S).split('\n\nTrả lời bằng')[0], user: `Viết 3 phương án caption cho bài dưới đây: ngắn (hook + CTA + hashtag), vừa (thêm 2 câu nội dung), đầy đủ (tới 6 câu). ${cta ? `CTA nên dùng: "${cta.text}".` : ''} ${tags ? `Hashtag: ${tags.text}.` : ''}\nTrả về JSON: {"captions": [{"kind": "short", "text": "…"}, {"kind": "medium", "text": "…"}, {"kind": "long", "text": "…"}]}\n\n# Bài\n${text}` };
+  return { system: withSkill(S, ctx, aiSystem(S).split('\n\nTrả lời bằng')[0]), user: `Viết 3 phương án caption cho bài dưới đây: ngắn (hook + CTA + hashtag), vừa (thêm 2 câu nội dung), đầy đủ (tới 6 câu). ${cta ? `CTA nên dùng: "${cta.text}".` : ''} ${tags ? `Hashtag: ${tags.text}.` : ''}\nTrả về JSON: {"captions": [{"kind": "short", "text": "…"}, {"kind": "medium", "text": "…"}, {"kind": "long", "text": "…"}]}\n\n# Bài\n${text}` };
 }
 function parseCaptions(raw) {
   const j = extractJson(raw); const arr = j && Array.isArray(j.captions) ? j.captions : [];

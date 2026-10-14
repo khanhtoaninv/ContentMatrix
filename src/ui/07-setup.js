@@ -11,7 +11,7 @@ function setupTabOk(id) {
 RENDERERS.setup = () => {
   const st = AC.setupStatus(S);
   const tab = view.setupTab;
-  const body = { brand: () => mdTab('brand'), voice: () => mdTab('voice'), channels: channelsTab, columns: columnsTab, topicframe: topicFrameTab, formats: formatsTab, imgstd: imgStdTab, frames: framesTab, snippets: snippetsTab, library: libraryTab, blog: blogSetupTab, imageapi: aiConnectTab, templates: templatesTab, rules: rulesTab, backup: backupTab }[tab]();
+  const body = { brand: () => mdTab('brand'), voice: () => mdTab('voice') + writingRulesSection(), channels: channelsTab, columns: columnsTab, topicframe: topicFrameTab, formats: formatsTab, imgstd: imgStdTab, frames: framesTab, snippets: snippetsTab, library: libraryTab, blog: blogSetupTab, imageapi: aiConnectTab, templates: templatesTab, rules: rulesTab, backup: backupTab }[tab]();
   return `<div class="page-head"><div><span class="eyebrow">Thiết lập</span><h1>${esc(SETUP_TABS.find(t => t[0] === tab)[1])}</h1></div>
       <span class="st ${st.ok ? 'st-done' : 'st-need'}">${st.ok ? 'Thiết lập đủ' : `Chưa đủ: ${st.missing.length} mục`}</span></div>
     ${st.ok ? '' : `<div class="note warn"><b>Chưa lập được tuần.</b> ${st.missing.map(m => esc(m.text)).join(' · ')}. Nút "Nạp dữ liệu demo" luôn dùng được.</div>`}
@@ -221,6 +221,7 @@ ACTIONS['col-edit'] = el => {
       <div class="field"><label for="cf-name">Tên Cột</label><input id="cf-name" value="${esc(c.name)}"></div>
       <label class="check"><input id="cf-active" type="checkbox" ${c.active ? 'checked' : ''}> Đang bật (tuần mới có Cột này)</label>
       <div class="field"><label for="cf-guide">Hướng dẫn viết (Markdown)</label><textarea id="cf-guide">${esc(c.guideMd)}</textarea></div>
+      ${isNew ? '<p class="small muted">Lưu Cột trước, rồi mở lại để nạp Skill.</p>' : skillButtonHtml('col', c)}
       <div class="field"><label for="cf-struct">Cấu trúc bắt buộc (mỗi dòng một đoạn)</label><textarea id="cf-struct" style="min-height:100px">${esc(c.structure.join('\n'))}</textarea><span class="hint">Ô ghi mỗi đoạn bằng đề mục "## Tên đoạn"; thiếu đoạn thì cảnh báo HR-04.</span></div>
       <div class="field"><label for="cf-layout">Khung trình bày (gửi kèm lệnh cho AI)</label><textarea id="cf-layout" style="min-height:130px" placeholder="${esc(AC.defaultLayoutGuide(c))}">${esc(c.layoutGuide || '')}</textarea><span class="hint">Để trống là dùng khung mặc định (chữ mờ). Quy tắc "Trình bày" (HR-13) nhắc khi bài sai khung. <button class="btn sm ghost" type="button" data-x="layout-default">Dùng mặc định</button></span></div>
       <div class="fgrid">
@@ -273,6 +274,7 @@ ACTIONS['fmt-edit'] = el => {
         <div class="field"><label for="ff-layout">Dạng trình bày</label><select id="ff-layout">${Object.entries(AC.LAYOUTS).map(([v, l]) => `<option value="${v}" ${f.layout === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
       </div>
       <div class="field"><label for="ff-guide">Hướng dẫn trình bày (Markdown)</label><textarea id="ff-guide">${esc(f.guideMd)}</textarea></div>
+      ${isNew ? '<p class="small muted">Lưu Format trước, rồi mở lại để nạp Skill.</p>' : skillButtonHtml('fmt', f)}
       <div class="field"><label for="ff-struct">Cấu trúc (mỗi dòng một đoạn)</label><textarea id="ff-struct" style="min-height:90px">${esc(f.structure.join('\n'))}</textarea></div>
       <div class="fgrid">
         <div class="field"><label for="ff-unit">Đơn vị độ dài</label><select id="ff-unit"><option value="chars" ${r.lengthUnit !== 'words' ? 'selected' : ''}>Ký tự</option><option value="words" ${r.lengthUnit === 'words' ? 'selected' : ''}>Chữ</option></select></div>

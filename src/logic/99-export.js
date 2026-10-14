@@ -31,12 +31,13 @@ const AC = {
   IMAGE_PROVIDERS, imageApiOf, imageApiOn, setImageApi, apiSizeFor, buildImageRequest, parseImageResponse, buildCheckRequest, buildSttRequest, parseSttResponse,
   videoAt, setVideoCover, SUB_MAX_CHARS, fmtClock, parseClock, normCues, validateCues, scriptLines, subtitleDraft, srtTime, cuesToSrt, cuesToVtt, parseSubtitles, setVideoSubs,
   TEXT_PROVIDERS, textApiOf, textCfgFor, textApiOn, setTextApi, buildTextRequest, parseTextResponse, extractJson, setAiText, takeAiText, clearAiText, aiPlan, aiScore, parseAiPost,
-  rewriteJob, hooksJob, parseHooks, captionsJob, parseCaptions,
+  aiSystem, rewriteJob, hooksJob, parseHooks, captionsJob, parseCaptions,
   IMG_RATIOS, RATIO_NUM, RATIO_CSS, PLATFORM_IMG_DEFAULT, IMG_STANDARDS, ratioFromName, imgDefaultRatio, assetRatioFor, assetRatioOf, stampRatios, setAssetRatio, setImgDefault, imageSize, versionSize, ratioMismatch, nearestRatio, imageIssues, imageInfoOf, mockArt,
   BLOG_SEO_DEFAULT, BLOG_INTENTS, BLOG_API_DEFAULT, BLOG_API_STATUS, blogSeoOf, setBlogSeo, isBlogSlot, slotSeoOf, vnSlug, setSlotSeo, keywordConflicts, suggestKeyword, confirmKeyword,
   blogH1, linksOf, blogDoc, blogPlain, blogAutoMeta, blogRefreshAuto, seoWeave, blogMediaLine, blogMediaAssets, blogMediaIndex, addBlogMedia, insertBlogMedia, setBlogText, removeBlogMedia, blogMediaIssues, keepBlogMedia,
   utmUrl, linkType, anchorSpots, applyLink, unlinkAt, linkSuggestions, blogTidy, seoAudit, mdToHtml, blogPackage, bytesToB64, parsePostsCsv, parseSitemap, importBlogPosts, updateBlogPost, removeBlogPost, blogInventory,
   blogApiOf, setBlogApi, buildBlogPostRequest, parseBlogPostResponse, blogPostGate, recordWebPost, blogApiDoc, blogAiBrief, slotPublishAt,
+  SKILL_KEEP, SKILL_WARN_CHARS, skillTag, skillsOf, activeSkill, skillRefOf, skillWarnings, addSkill, updateSkill, restoreSkill, setActiveSkill, deleteSkill, skillOwnerOf, skillBlock,
   demoGate, demoRun, demoRunAll, demoTopicKey, demoSetup, demoSetupImpact, SETUP_PARTS,
 };
 if (typeof module !== 'undefined' && module.exports) module.exports = AC;

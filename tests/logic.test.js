@@ -1706,3 +1706,43 @@ test('10.47 · AI chữ qua claude.ai (sample): không cần khoá, không đị
   assert.ok(r.ok); assert.equal(AC.textApiOf(S).provider, 'claudeai'); assert.equal(AC.textApiOn(S), true);
   assert.equal(S.textApi.lightModel, '');
 });
+
+test('10.49 · Skill gắn theo Cột/Format: chỉ dùng 1 Skill, thay guideMd và bản nháp máy, ghi skillRef, giữ 5 bản cũ', () => {
+  const S = seed();
+  const c = S.cells.find(x => x.weekId === T2 && AC.cellView(S, x).state !== 'EMPTY');
+  const col = AC.byId(S.columns, c.columnId);
+  const plain = AC.aiPlan(S, C => AC.regenCell(C, c.id))[0];
+  assert.match(plain.user, /Bản nháp máy/);
+  assert.equal(AC.addSkill(S, col, { name: '', body: 'x' }).ok, false);
+  assert.equal(AC.addSkill(S, col, { name: 'A', body: ' ' }).ok, false);
+  const a = AC.addSkill(S, col, { name: 'Bản A', body: 'QUY TẮC RIÊNG A' }).skill; const b = AC.addSkill(S, col, { name: 'Bản B', body: 'QUY TẮC RIÊNG B' }).skill;
+  assert.equal(col.activeSkillId, a.id); // Skill đầu tiên tự được chọn
+  let job = AC.aiPlan(S, C => AC.regenCell(C, c.id))[0];
+  assert.match(job.user, /QUY TẮC RIÊNG A/); assert.doesNotMatch(job.user, /RIÊNG B/); assert.doesNotMatch(job.user, /Bản nháp máy/);
+  assert.ok(!job.user.includes(col.guideMd));
+  AC.setActiveSkill(col, b.id); job = AC.aiPlan(S, C => AC.regenCell(C, c.id))[0]; assert.match(job.user, /RIÊNG B/);
+  AC.setAiText(job.key, { text: 'Bài AI', provider: 'anthropic', model: 'm', score: null });
+  assert.deepEqual(AC.regenCell(S, c.id).gen.ai.skill, { id: b.id, name: 'Bản B', version: 1 });
+  AC.setActiveSkill(col, ''); job = AC.aiPlan(S, C => AC.regenCell(C, c.id))[0]; assert.match(job.user, /Bản nháp máy/);
+  // phiên bản: sửa nội dung tăng version, lưu tối đa 5 bản cũ, khôi phục tạo bản mới
+  for (let i = 0; i < 7; i++) AC.updateSkill(S, col, a.id, { body: `v${i + 2}` });
+  assert.equal(a.version, 8); assert.equal(a.history.length, 5); assert.equal(a.history[0].version, 7);
+  AC.updateSkill(S, col, a.id, { note: 'chỉ đổi ghi chú' }); assert.equal(a.version, 8);
+  assert.equal(AC.restoreSkill(S, col, a.id, 7).ok, true); assert.equal(a.version, 9); assert.equal(a.body, 'v7');
+  AC.deleteSkill(col, b.id); assert.equal(AC.skillsOf(col).length, 1);
+  assert.ok(AC.skillWarnings('x'.repeat(7000)).length >= 2);
+  assert.equal(AC.skillWarnings('<example>1</example><example>2</example><example>3</example>').length, 0);
+  // Format: slot dùng Skill của Format, sửa đoạn/hook/caption dùng Skill của Format của slot
+  const s = AC.weekSlots(S, T2).find(x => x.text && !x.free && x.state !== 'PUBLISHED'); const f = AC.byId(S.formats, s.formatId);
+  AC.addSkill(S, f, { name: 'F1', body: 'CHỈ DẪN FORMAT' });
+  const js = AC.aiPlan(S, C => AC.regenSlot(C, s.id))[0]; assert.match(js.user, /CHỈ DẪN FORMAT/); assert.doesNotMatch(js.user, /Bản nháp máy/);
+  const ctx = { slotId: s.id, columnId: AC.slotColumnId(S, s), channelId: s.channelId };
+  assert.match(AC.rewriteJob(S, 'đoạn', 'shorter', '', ctx).system, /CHỈ DẪN FORMAT/);
+  assert.match(AC.hooksJob(S, 'đoạn', ctx).system, /CHỈ DẪN FORMAT/); assert.match(AC.captionsJob(S, 'đoạn', ctx).system, /CHỈ DẪN FORMAT/);
+  assert.doesNotMatch(AC.rewriteJob(S, 'đoạn', 'shorter', '').system, /CHỈ DẪN FORMAT/);
+  // Quy tắc viết chung
+  S.settings.writingRules = 'KHÔNG MỞ BÀI BẰNG CÂU HỎI'; assert.match(AC.aiPlan(S, C => AC.regenCell(C, c.id))[0].system, /Quy tắc viết chung[\s\S]*KHÔNG MỞ BÀI/);
+  // Skill đi theo Sao lưu (nằm trong Cột/Format)
+  assert.ok(JSON.stringify(S).includes('CHỈ DẪN FORMAT'));
+  AC.clearAiText();
+});

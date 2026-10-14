@@ -1,7 +1,7 @@
 # AutoContent — Content Matrix MVP — Đặc tả v2.8
 
 **Phiên bản:** 2.8 (thay thế v2.7; tổng hợp các quyết định ngày 13/10/2026 sau khi xem R1′ bản v2.7)
-**Trạng thái:** căn cứ để dựng R1′–R4. R1′, R2′, R3′ và **R4 đã dựng** (13/10/2026; R4 ở mục 10.22, cập nhật 10.23–10.48, bản artifact 73) cùng các điều chỉnh giao diện 10.3–10.21. Từ R4 trở đi, các đợt đánh số không có dấu phẩy (R4, R5, …). Mục 10.x xếp mới nhất lên trên; khi hai mục khác nhau, mục số lớn hơn là hiện hành.
+**Trạng thái:** căn cứ để dựng R1′–R4. R1′, R2′, R3′ và **R4 đã dựng** (13/10/2026; R4 ở mục 10.22, cập nhật 10.23–10.49, bản artifact 74) cùng các điều chỉnh giao diện 10.3–10.21. Từ R4 trở đi, các đợt đánh số không có dấu phẩy (R4, R5, …). Mục 10.x xếp mới nhất lên trên; khi hai mục khác nhau, mục số lớn hơn là hiện hành.
 **Thương hiệu demo:** Nói Được English (dữ liệu mô phỏng). AI chỉ là mô phỏng (mock); Claude thật tắt trong MVP.
 **Thiết bị:** điện thoại và máy tính để bàn đều là mục tiêu chính.
 
@@ -642,6 +642,19 @@ Giữ các kịch bản còn hiệu lực của v2.6: U1–U7, X3–X12, Y1–Y3
 | R5 | Máy chủ, cơ sở dữ liệu, đăng nhập, lịch đăng chạy nền | — |
 | R6 | Nối thật kênh đầu tiên (Metricool hoặc Meta FB + IG) | — |
 | R7 | Nối các kênh còn lại; khớp số liệu bài đăng tay theo link | — |
+
+## 10.49. Skill (bộ chỉ dẫn) gắn theo Cột và Format (14/10/2026, bản 74)
+
+Mỗi Cột và mỗi Format có danh sách Skill riêng (không có thư viện chung). Nạp được nhiều Skill, tại thời điểm gen chỉ dùng đúng một (`activeSkillId`); đổi bằng cách chọn lại. Không chọn thì dùng hướng dẫn cũ (`guideMd`).
+
+- Dữ liệu: `skills` [{id, name, version, body, note, updatedAt, history}] nằm trong Cột/Format nên đi theo Sao lưu. Sửa nội dung tăng version và giữ 5 bản cũ; có thể khôi phục (thành bản mới).
+- Ghép lời nhắn: Skill thay `guideMd`; khi có Skill thì bỏ "bản nháp máy" và dòng Bố cục (Skill tự nêu bố cục), giữ nhãn đầu ra (Slide n, [Hook]) để mã tách được. Quy tắc cứng (độ dài, CTA, từ cấm, số slide) vẫn gửi kèm và thắng Skill.
+- Sửa đoạn, Hook, Caption dùng Skill của Format của slot đang sửa (hoặc Cột của ô).
+- "Quy tắc viết chung" (`settings.writingRules`) cộng vào lời nhắn hệ thống cho mọi lần gen.
+- Bài do AI viết ghi `ai.skill` {id, name, version}; hiện cạnh "Bài do AI viết".
+- Soạn trong Setup (Cột/Format → Quản lý Skill). "Xem AI sẽ đọc gì" cho xem phần chỉ dẫn gửi kèm; "Xuất để so mù" xuất tệp bài có/không Skill đã xáo trộn kèm đáp án ở cuối.
+- Cảnh báo mềm: dài quá 6000 ký tự, thiếu hoặc quá nhiều bài mẫu `<example>` (khuyến nghị 3–5).
+- Chưa đo: Skill có làm bài tốt hơn không (cần so mù); chi phí thực tế.
 
 ## 10.48. Gen ảnh OpenAI mặc định chất lượng thấp (14/10/2026, bản 73)
 

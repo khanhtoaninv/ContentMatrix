@@ -39,7 +39,7 @@ ACTIONS['ai-edit'] = el => {
     if (AC.textApiOn(S)) {
       out.value = 'AI đang viết…'; out.disabled = true; again.disabled = true; ok.disabled = true;
       const ins = st.op === 'custom' ? st.ins : st.n ? `${AC.AI_OPS[st.op]}; viết khác các lần trước (lần ${st.n + 1})` : '';
-      try { out.value = await textCall(AC.rewriteJob(S, src, ins ? 'custom' : st.op, ins), 1500, true); again.disabled = false; ok.disabled = false; }
+      try { out.value = await textCall(AC.rewriteJob(S, src, ins ? 'custom' : st.op, ins, aiCtxOf(ta)), 1500, true); again.disabled = false; ok.disabled = false; }
       catch (e) { out.value = ''; toast('AI không sửa được: ' + e.message, 'bad'); }
       finally { out.disabled = false; }
       box.querySelectorAll('[data-aiop]').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.aiop === st.op)));
@@ -75,7 +75,7 @@ ACTIONS['ai-hooks'] = el => {
   const list = () => {
     if (!AC.textApiOn(S)) return Promise.resolve(st.tab === 'hook' ? AC.hookOptions(ta.value, { n: st.n }) : AC.captionOptions(S, ta.value, Object.assign({ n: st.n }, ctx)));
     const k = `${st.tab}|${st.n}`; if (cache[k]) return cache[k];
-    const job = st.tab === 'hook' ? AC.hooksJob(S, ta.value) : AC.captionsJob(S, ta.value, ctx);
+    const job = st.tab === 'hook' ? AC.hooksJob(S, ta.value, ctx) : AC.captionsJob(S, ta.value, ctx);
     if (st.n) job.user += `\n\nLượt ${st.n + 1}: viết khác các lượt trước.`;
     cache[k] = textCall(job, 2000, true).then(raw => { const r = st.tab === 'hook' ? AC.parseHooks(raw) : AC.parseCaptions(raw); if (!r.ok) throw new Error(r.error); return r.hooks || r.captions; })
       .catch(e => { delete cache[k]; toast('AI không viết được: ' + e.message, 'bad'); return []; });

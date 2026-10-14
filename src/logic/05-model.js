@@ -674,8 +674,8 @@ function writeSlotFromCell(S, slot, cell, at) {
   const sc = (ai && ai.score) || scoreText(text, f.criteria, `${slot.id}|${genN}`);
   const when = at || S.settings.demoNow;
   Object.assign(slot, { sourceCellId: cell.id, sourceStamp: view.stamp, text, prevText: slot.text || null, genN, curN: genN, emptyReason: '', scores: sc.scores, total: sc.total, tip: sc.tip, needsUpdate: false, keepReason: '' });
-  slot.history = (slot.history || []).concat([Object.assign({ n: genN, text, createdAt: when, cellId: cell.id, stamp: view.stamp }, ai ? { ai: { provider: ai.provider, model: ai.model, scored: !!ai.score } } : {})]);
-  if (ai) slot.ai = { provider: ai.provider, model: ai.model, scored: !!ai.score }; else delete slot.ai;
+  slot.history = (slot.history || []).concat([Object.assign({ n: genN, text, createdAt: when, cellId: cell.id, stamp: view.stamp }, ai ? { ai: { provider: ai.provider, model: ai.model, scored: !!ai.score, ...skillTag(f) } } : {})]);
+  if (ai) slot.ai = { provider: ai.provider, model: ai.model, scored: !!ai.score, ...skillTag(f) }; else delete slot.ai;
   if (slot.state !== 'PUBLISHED') slot.state = 'DRAFT';
   layoutSlotImages(S, slot, view.imagePrompt, at);
   if (blog) blogRefreshAuto(S, slot, ai && ai.seo);

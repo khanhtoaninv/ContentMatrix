@@ -1615,8 +1615,8 @@ function writeSlotFromCell(S, slot, cell, at) {
   const sc = (ai && ai.score) || scoreText(text, f.criteria, `${slot.id}|${genN}`);
   const when = at || S.settings.demoNow;
   Object.assign(slot, { sourceCellId: cell.id, sourceStamp: view.stamp, text, prevText: slot.text || null, genN, curN: genN, emptyReason: '', scores: sc.scores, total: sc.total, tip: sc.tip, needsUpdate: false, keepReason: '' });
-  slot.history = (slot.history || []).concat([Object.assign({ n: genN, text, createdAt: when, cellId: cell.id, stamp: view.stamp }, ai ? { ai: { provider: ai.provider, model: ai.model, scored: !!ai.score } } : {})]);
-  if (ai) slot.ai = { provider: ai.provider, model: ai.model, scored: !!ai.score }; else delete slot.ai;
+  slot.history = (slot.history || []).concat([Object.assign({ n: genN, text, createdAt: when, cellId: cell.id, stamp: view.stamp }, ai ? { ai: { provider: ai.provider, model: ai.model, scored: !!ai.score, ...skillTag(f) } } : {})]);
+  if (ai) slot.ai = { provider: ai.provider, model: ai.model, scored: !!ai.score, ...skillTag(f) }; else delete slot.ai;
   if (slot.state !== 'PUBLISHED') slot.state = 'DRAFT';
   layoutSlotImages(S, slot, view.imagePrompt, at);
   if (blog) blogRefreshAuto(S, slot, ai && ai.seo);
@@ -3879,16 +3879,19 @@ function aiSystem(S) {
   return [
     'Bạn là người viết content mạng xã hội cho thương hiệu dưới đây. Viết tiếng Việt tự nhiên, đúng giọng văn, câu ngắn dễ đọc trên điện thoại.',
     'Chỉ dùng số liệu, nguồn và sự thật có trong Topic hoặc hồ sơ thương hiệu. Không bịa số liệu, tên người, tên tổ chức.',
+    S.settings.writingRules ? `# Quy tắc viết chung\n${String(S.settings.writingRules).trim()}` : '',
     banned ? `Không dùng các từ phóng đại: ${banned}.` : '',
     `# Hồ sơ thương hiệu\n${S.brand.md || '(chưa có)'}`, `# Giọng văn\n${S.voice.md || '(chưa có)'}`,
     'Trả lời bằng đúng một khối JSON, không thêm chữ nào khác: {"text": "bài viết hoàn chỉnh", "imagePrompt": "mô tả ảnh minh hoạ (tiếng Việt, một câu)", "scores": {"<mã tiêu chí>": 1-5}, "tip": "một gợi ý cải thiện ngắn"}. Chấm điểm trung thực theo các tiêu chí được nêu.',
   ].filter(Boolean).join('\n\n');
 }
+const withSkill = (S, ctx, sys) => { const o = skillOwnerOf(S, ctx); const b = o ? skillBlock(o, `Chỉ dẫn của ${o.layout ? 'Format' : 'Cột'} "${o.name}"`) : ''; return b ? `${sys}\n\n${b}` : sys; };
 const criteriaText = cr => (cr || []).map(c => `- ${c.id}: ${c.name} (trọng số ${c.weight})`).join('\n');
 function cellJob(S, cell, iv, col, context, mock, n) {
-  const user = [`# Việc: viết bài cho Cột "${col.name}"`, col.guideMd || '', col.structure && col.structure.length ? `Bố cục: ${col.structure.join(' → ')}. Mỗi phần mở bằng đề mục "## Tên phần".` : '', rulesLine(col.hardRules || {}),
+  const sk = skillBlock(col, `Chỉ dẫn viết cho Cột "${col.name}"`);
+  const user = [`# Việc: viết bài cho Cột "${col.name}"`, sk || col.guideMd || '', col.structure && col.structure.length ? `Bố cục: ${col.structure.join(' → ')}. Mỗi phần mở bằng đề mục "## Tên phần".` : '', rulesLine(col.hardRules || {}),
     `# Topic: ${iv.title}\n${iv.text}`, context ? `# Bối cảnh tuần\n${context}` : '',
-    `# Bản nháp máy (chỉ để theo bố cục và độ dài; hãy viết lại hay hơn, không chép)\n${mock}`,
+    sk ? '' : `# Bản nháp máy (chỉ để theo bố cục và độ dài; hãy viết lại hay hơn, không chép)\n${mock}`,
     n > 1 ? `Đây là lượt viết thứ ${n}: chọn góc mở bài khác các lượt trước.` : '',
     `# Tiêu chí chấm (1–5)\n${criteriaText(col.criteria)}`].filter(Boolean).join('\n\n');
   return { key: `cell:${cell.id}:${n}`, kind: 'cell', label: `${col.name} · ${iv.title}`, system: aiSystem(S), user, criteria: col.criteria || [] };
@@ -3896,11 +3899,12 @@ function cellJob(S, cell, iv, col, context, mock, n) {
 function slotJob(S, slot, f, cellText, iv, mock, n) {
   const ch = byId(S.channels, f.channelId) || {};
   const layoutHint = { carousel: 'Viết dạng "Slide 1: …", "Slide 2: …", mỗi slide một đoạn; slide 1 là bìa, slide cuối là CTA.', script: 'Viết kịch bản video ngắn, mỗi cảnh mở bằng nhãn trong ngoặc vuông như "[Hook · 0–3 giây]", "[CTA]".', longscript: 'Viết kịch bản video dài, các phần mở bằng nhãn trong ngoặc vuông có mốc giờ như "[Mở đầu · 0:00]".', article: 'Viết bài blog Markdown: "# Tiêu đề", các phần "## …".', post: 'Viết bài đăng mạng xã hội: đoạn ngắn, xuống dòng giữa các ý.' }[f.layout] || '';
-  const user = [`# Việc: chuyển bài gốc thành bài "${f.name}" cho kênh ${ch.name || ''}`, f.guideMd || '', layoutHint,
-    f.structure && f.structure.length ? `Bố cục: ${f.structure.join(' → ')}.` : '', rulesLine(f.hardRules || {}),
+  const sk = skillBlock(f, `Chỉ dẫn viết cho Format "${f.name}"`);
+  const user = [`# Việc: chuyển bài gốc thành bài "${f.name}" cho kênh ${ch.name || ''}`, sk || f.guideMd || '', layoutHint,
+    !sk && f.structure && f.structure.length ? `Bố cục: ${f.structure.join(' → ')}.` : '', rulesLine(f.hardRules || {}),
     ch.maxChars ? `Kênh giới hạn ${ch.maxChars} ký tự.` : '', ch.maxHashtags != null ? `Kênh cho tối đa ${ch.maxHashtags} hashtag.` : '',
     iv ? `# Topic: ${iv.title}` : '', isBlogSlot(S, slot) ? blogAiBrief(S, slot) : '', `# Bài gốc (đã duyệt)\n${cellText}`,
-    `# Bản nháp máy (chỉ để theo bố cục; hãy viết lại hay hơn)\n${mock}`,
+    sk ? '' : `# Bản nháp máy (chỉ để theo bố cục; hãy viết lại hay hơn)\n${mock}`,
     n > 1 ? `Đây là lượt viết thứ ${n}: thử cách mở bài khác.` : '',
     `# Tiêu chí chấm (1–5)\n${criteriaText(f.criteria)}`].filter(Boolean).join('\n\n');
   return { key: `slot:${slot.id}:${n}`, kind: 'slot', label: `${f.name} · ${slot.date} ${slot.time}`, system: aiSystem(S), user, criteria: f.criteria || [] };
@@ -3915,12 +3919,12 @@ function aiSlotText(S, slot, f, cellText, iv, mock, n) {
   return takeAiText(`slot:${slot.id}:${n}`);
 }
 // Sửa đoạn, hook, caption bằng AI: lời nhắn (trả lời là chữ hoặc JSON)
-function rewriteJob(S, text, op, instruction) {
+function rewriteJob(S, text, op, instruction, ctx) {
   const what = op === 'custom' ? `Yêu cầu: ${instruction}` : `Cách sửa: ${AI_OPS[op] || op}.`;
-  return { system: aiSystem(S).split('\n\nTrả lời bằng')[0] + '\n\nChỉ trả về đoạn đã sửa, không giải thích, không ngoặc kép bao quanh.', user: `${what}\n\n# Đoạn cần sửa\n${text}` };
+  return { system: withSkill(S, ctx, aiSystem(S).split('\n\nTrả lời bằng')[0]) + '\n\nChỉ trả về đoạn đã sửa, không giải thích, không ngoặc kép bao quanh.', user: `${what}\n\n# Đoạn cần sửa\n${text}` };
 }
-function hooksJob(S, text) {
-  return { system: aiSystem(S).split('\n\nTrả lời bằng')[0], user: `Viết 5 câu mở đầu (hook) thay cho câu đầu của bài dưới đây, mỗi loại một câu: ${Object.entries(HOOK_KINDS).map(([k, v]) => `${k} (${v})`).join(', ')}. Mỗi câu tối đa 20 chữ.\nTrả về JSON: {"hooks": [{"kind": "question", "text": "…"}, …]}\n\n# Bài\n${text}` };
+function hooksJob(S, text, ctx) {
+  return { system: withSkill(S, ctx, aiSystem(S).split('\n\nTrả lời bằng')[0]), user: `Viết 5 câu mở đầu (hook) thay cho câu đầu của bài dưới đây, mỗi loại một câu: ${Object.entries(HOOK_KINDS).map(([k, v]) => `${k} (${v})`).join(', ')}. Mỗi câu tối đa 20 chữ.\nTrả về JSON: {"hooks": [{"kind": "question", "text": "…"}, …]}\n\n# Bài\n${text}` };
 }
 function parseHooks(raw) {
   const j = extractJson(raw); const arr = j && Array.isArray(j.hooks) ? j.hooks : [];
@@ -3929,7 +3933,7 @@ function parseHooks(raw) {
 }
 function captionsJob(S, text, ctx) {
   const tags = snippetsFor(S, ctx || {}, 'hashtag')[0]; const cta = snippetsFor(S, ctx || {}, 'cta')[0];
-  return { system: aiSystem(S).split('\n\nTrả lời bằng')[0], user: `Viết 3 phương án caption cho bài dưới đây: ngắn (hook + CTA + hashtag), vừa (thêm 2 câu nội dung), đầy đủ (tới 6 câu). ${cta ? `CTA nên dùng: "${cta.text}".` : ''} ${tags ? `Hashtag: ${tags.text}.` : ''}\nTrả về JSON: {"captions": [{"kind": "short", "text": "…"}, {"kind": "medium", "text": "…"}, {"kind": "long", "text": "…"}]}\n\n# Bài\n${text}` };
+  return { system: withSkill(S, ctx, aiSystem(S).split('\n\nTrả lời bằng')[0]), user: `Viết 3 phương án caption cho bài dưới đây: ngắn (hook + CTA + hashtag), vừa (thêm 2 câu nội dung), đầy đủ (tới 6 câu). ${cta ? `CTA nên dùng: "${cta.text}".` : ''} ${tags ? `Hashtag: ${tags.text}.` : ''}\nTrả về JSON: {"captions": [{"kind": "short", "text": "…"}, {"kind": "medium", "text": "…"}, {"kind": "long", "text": "…"}]}\n\n# Bài\n${text}` };
 }
 function parseCaptions(raw) {
   const j = extractJson(raw); const arr = j && Array.isArray(j.captions) ? j.captions : [];
@@ -4762,6 +4766,65 @@ function mockArt(seed, ratio) {
   return { W, H, inner: `<rect width="${W}" height="${H}" fill="hsl(${h} 45% 82%)"/><circle cx="${num(cx)}" cy="${num(cy)}" r="${num(rad)}" fill="hsl(${h2} 50% 62%)"/><rect x="0" y="${num(H * 0.725)}" width="${W}" height="${num(H * 0.275)}" fill="hsl(${h} 35% 55%)"/>` };
 }
 
+// ---------- 05r · Skill (bộ chỉ dẫn) gắn riêng cho từng Cột và từng Format (mục 10.49) ----------
+// Mỗi Cột/Format có danh sách `skills` [{id, name, version, body, note, updatedAt, history}] và `activeSkillId`.
+// Tại thời điểm gen chỉ dùng đúng một Skill (đang chọn). Không chọn: dùng hướng dẫn cũ (guideMd). Quy tắc cứng luôn thắng Skill.
+const SKILL_KEEP = 5, SKILL_WARN_CHARS = 6000;
+const skillsOf = o => (o && Array.isArray(o.skills)) ? o.skills : [];
+function activeSkill(o) { const id = o && o.activeSkillId; return id ? skillsOf(o).find(s => s.id === id) || null : null; }
+function skillRefOf(o) { const s = activeSkill(o); return s ? { id: s.id, name: s.name, version: s.version } : null; }
+const skillTag = o => { const r = skillRefOf(o); return r ? { skill: r } : {}; };
+function skillWarnings(body) {
+  const w = []; const t = String(body || '');
+  if (t.length > SKILL_WARN_CHARS) w.push(`Skill dài ${t.length} ký tự (> ${SKILL_WARN_CHARS}): tốn phí và dễ loãng; nên rút gọn.`);
+  const ex = (t.match(/<example>/g) || []).length;
+  if (t.trim() && !ex) w.push('Chưa có bài mẫu (<example>…</example>): nên có 3–5 bài mẫu khác nhau.');
+  else if (ex && ex < 3) w.push(`Mới ${ex} bài mẫu; nên 3–5 bài, đa dạng.`);
+  if (ex > 5) w.push(`Có ${ex} bài mẫu; quá nhiều dễ khiến AI chép lại.`);
+  return w;
+}
+function addSkill(S, o, { name, body, note } = {}) {
+  const nm = String(name || '').trim(); if (!nm) return { ok: false, error: 'Skill cần có tên.' };
+  if (!String(body || '').trim()) return { ok: false, error: 'Nội dung Skill đang trống.' };
+  o.skills = skillsOf(o).slice();
+  let k = o.skills.length + 1; while (o.skills.some(s => s.id === `sk-${k}`)) k++;
+  const s = { id: `sk-${k}`, name: nm, version: 1, body: String(body), note: String(note || ''), updatedAt: S.settings.demoNow || '', history: [] };
+  o.skills.push(s); if (!o.activeSkillId) o.activeSkillId = s.id;
+  return { ok: true, skill: s };
+}
+// Sửa Skill: tăng version, giữ SKILL_KEEP bản cũ
+function updateSkill(S, o, id, { name, body, note } = {}) {
+  const s = skillsOf(o).find(x => x.id === id); if (!s) return { ok: false, error: 'Không thấy Skill.' };
+  const nm = name == null ? s.name : String(name).trim(); if (!nm) return { ok: false, error: 'Skill cần có tên.' };
+  const nb = body == null ? s.body : String(body); if (!nb.trim()) return { ok: false, error: 'Nội dung Skill đang trống.' };
+  if (nb !== s.body) {
+    s.history = [{ version: s.version, name: s.name, body: s.body, note: s.note, updatedAt: s.updatedAt }].concat(s.history || []).slice(0, SKILL_KEEP);
+    s.version += 1;
+  }
+  s.name = nm; s.body = nb; if (note != null) s.note = String(note); s.updatedAt = S.settings.demoNow || s.updatedAt;
+  return { ok: true, skill: s };
+}
+function restoreSkill(S, o, id, version) {
+  const s = skillsOf(o).find(x => x.id === id); const h = s && (s.history || []).find(x => x.version === version);
+  if (!h) return { ok: false, error: 'Không thấy bản cũ.' };
+  return updateSkill(S, o, id, { name: h.name, body: h.body, note: h.note });
+}
+function setActiveSkill(o, id) {
+  if (id && !skillsOf(o).some(s => s.id === id)) return { ok: false, error: 'Không thấy Skill.' };
+  o.activeSkillId = id || ''; return { ok: true };
+}
+function deleteSkill(o, id) {
+  o.skills = skillsOf(o).filter(s => s.id !== id); if (o.activeSkillId === id) o.activeSkillId = '';
+  return { ok: true };
+}
+// Chủ của Skill khi sửa đoạn/hook/caption: slot → Format của slot; ô → Cột của ô
+function skillOwnerOf(S, ctx) {
+  if (!ctx) return null;
+  if (ctx.slotId) { const s = byId(S.slots, ctx.slotId); return s ? byId(S.formats, s.formatId) : null; }
+  return ctx.columnId ? byId(S.columns, ctx.columnId) : null;
+}
+const skillBlock = (o, title) => { const s = activeSkill(o); return s ? `# ${title} (Skill "${s.name}" v${s.version}; nếu mâu thuẫn quy tắc cứng về độ dài, CTA, từ cấm thì quy tắc cứng thắng)\n${s.body.trim()}` : ''; };
+
 // ---------- 06a · Tệp Topic demo (mô phỏng, như agent bên ngoài chuẩn bị; mọi số liệu là số kiểm thử) ----------
 // Mỗi Topic khoảng 2.000 chữ (mục 7.2). T3 · Topic 3 cố ý không có "### Trường hợp" (D100).
 
@@ -5539,7 +5602,7 @@ function addCellGen(S, cell, topicVersionN, state, createdAt) {
   const text = ai ? ai.text : mock;
   const sc = (ai && ai.score) || scoreText(text, col.criteria, `${cell.id}|${n}`);
   const gen = { n, topicVersion: topicVersionN, createdAt: createdAt || S.settings.demoNow, text, imagePrompt: (ai && ai.imagePrompt) || writeImagePrompt(iv, col, n), scores: sc.scores, total: sc.total, tip: sc.tip, edits: [] };
-  if (ai) gen.ai = { provider: ai.provider, model: ai.model, scored: !!ai.score };
+  if (ai) gen.ai = { provider: ai.provider, model: ai.model, scored: !!ai.score, ...skillTag(col) };
   cell.gens.push(gen);
   cell.byVersion[topicVersionN] = { state: state || 'DRAFT', currentRef: { genN: n, editRev: 0 }, approvedAt: state === 'APPROVED' ? gen.createdAt : null };
   return gen;
@@ -5647,12 +5710,13 @@ const AC = {
   IMAGE_PROVIDERS, imageApiOf, imageApiOn, setImageApi, apiSizeFor, buildImageRequest, parseImageResponse, buildCheckRequest, buildSttRequest, parseSttResponse,
   videoAt, setVideoCover, SUB_MAX_CHARS, fmtClock, parseClock, normCues, validateCues, scriptLines, subtitleDraft, srtTime, cuesToSrt, cuesToVtt, parseSubtitles, setVideoSubs,
   TEXT_PROVIDERS, textApiOf, textCfgFor, textApiOn, setTextApi, buildTextRequest, parseTextResponse, extractJson, setAiText, takeAiText, clearAiText, aiPlan, aiScore, parseAiPost,
-  rewriteJob, hooksJob, parseHooks, captionsJob, parseCaptions,
+  aiSystem, rewriteJob, hooksJob, parseHooks, captionsJob, parseCaptions,
   IMG_RATIOS, RATIO_NUM, RATIO_CSS, PLATFORM_IMG_DEFAULT, IMG_STANDARDS, ratioFromName, imgDefaultRatio, assetRatioFor, assetRatioOf, stampRatios, setAssetRatio, setImgDefault, imageSize, versionSize, ratioMismatch, nearestRatio, imageIssues, imageInfoOf, mockArt,
   BLOG_SEO_DEFAULT, BLOG_INTENTS, BLOG_API_DEFAULT, BLOG_API_STATUS, blogSeoOf, setBlogSeo, isBlogSlot, slotSeoOf, vnSlug, setSlotSeo, keywordConflicts, suggestKeyword, confirmKeyword,
   blogH1, linksOf, blogDoc, blogPlain, blogAutoMeta, blogRefreshAuto, seoWeave, blogMediaLine, blogMediaAssets, blogMediaIndex, addBlogMedia, insertBlogMedia, setBlogText, removeBlogMedia, blogMediaIssues, keepBlogMedia,
   utmUrl, linkType, anchorSpots, applyLink, unlinkAt, linkSuggestions, blogTidy, seoAudit, mdToHtml, blogPackage, bytesToB64, parsePostsCsv, parseSitemap, importBlogPosts, updateBlogPost, removeBlogPost, blogInventory,
   blogApiOf, setBlogApi, buildBlogPostRequest, parseBlogPostResponse, blogPostGate, recordWebPost, blogApiDoc, blogAiBrief, slotPublishAt,
+  SKILL_KEEP, SKILL_WARN_CHARS, skillTag, skillsOf, activeSkill, skillRefOf, skillWarnings, addSkill, updateSkill, restoreSkill, setActiveSkill, deleteSkill, skillOwnerOf, skillBlock,
   demoGate, demoRun, demoRunAll, demoTopicKey, demoSetup, demoSetupImpact, SETUP_PARTS,
 };
 if (typeof module !== 'undefined' && module.exports) module.exports = AC;

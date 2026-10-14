@@ -13,7 +13,7 @@ function addCellGen(S, cell, topicVersionN, state, createdAt) {
   const text = ai ? ai.text : mock;
   const sc = (ai && ai.score) || scoreText(text, col.criteria, `${cell.id}|${n}`);
   const gen = { n, topicVersion: topicVersionN, createdAt: createdAt || S.settings.demoNow, text, imagePrompt: (ai && ai.imagePrompt) || writeImagePrompt(iv, col, n), scores: sc.scores, total: sc.total, tip: sc.tip, edits: [] };
-  if (ai) gen.ai = { provider: ai.provider, model: ai.model, scored: !!ai.score };
+  if (ai) gen.ai = { provider: ai.provider, model: ai.model, scored: !!ai.score, ...skillTag(col) };
   cell.gens.push(gen);
   cell.byVersion[topicVersionN] = { state: state || 'DRAFT', currentRef: { genN: n, editRev: 0 }, approvedAt: state === 'APPROVED' ? gen.createdAt : null };
   return gen;
