@@ -266,7 +266,7 @@ with sync_playwright() as pw:
     check('Sau duyệt hàng loạt còn 2 ô chưa duyệt', '2 chưa duyệt' in txt(page, '#mx-counts'), txt(page, '#mx-counts'))
     check('10.55 ô Chưa duyệt có nút Duyệt ngay trong Matrix', page.locator('.matrix .cell-ok').count() == 2, str(page.locator('.matrix .cell-ok').count()))
     ok0 = page.locator('.matrix .cell-ok').first
-    check('10.56 nút Duyệt trong thẻ ô: không biểu tượng, nằm trong cùng thẻ, căn trái như slot', ok0.locator('svg').count() == 0 and ok0.inner_text().strip() == 'Duyệt' and ok0.evaluate("e => e.parentElement.classList.contains('cellwrap') && e.parentElement.querySelector('.cellbtn') !== null"))
+    check('10.56 nút Duyệt trong thẻ ô: không biểu tượng, nằm trong cùng thẻ, căn phải trong thẻ như slot', ok0.locator('svg').count() == 0 and ok0.inner_text().strip() == 'Duyệt' and ok0.evaluate("e => e.parentElement.classList.contains('cellwrap') && e.parentElement.querySelector('.cellbtn') !== null && Math.abs(e.parentElement.getBoundingClientRect().right - e.getBoundingClientRect().right) < 16"))
     page.locator('.matrix .cellbtn:has-text("Chưa duyệt")').first.click()
     page.locator('#cell-actions button:has-text("Duyệt")').click()
     check('MTX-04 duyệt ô có cảnh báo: nhắc "Ô này có N cảnh báo"', 'Ô này có' in txt(page, '.dialog'))

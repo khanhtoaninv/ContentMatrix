@@ -995,6 +995,6 @@ body.drag-slot .cal .day { transition: background .12s, box-shadow .12s; }
 .cellwrap.has-ok:hover { box-shadow: var(--shadow); }
 .cellwrap.has-ok > .cellbtn { border: 0; border-radius: 0; background: transparent; box-shadow: none; min-height: 0; }
 .cellwrap.has-ok > .cellbtn:focus-visible { outline-offset: -2px; }
-.cellwrap .cell-ok { justify-self: start; margin: 0 8px 8px; }
+.cellwrap .cell-ok { justify-self: end; margin: 0 8px 8px; }
 
 .tplcal .day-b { min-height: 140px; }
