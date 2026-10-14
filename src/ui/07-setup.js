@@ -202,14 +202,31 @@ function rulesSummary(r, layout) {
 // ---- Cấu hình Matrix (mục 10.53): mỗi vị trí chọn một loại Cột, được trùng; áp cho tuần mới ----
 function matrixTab() {
   const ids = AC.matrixLayout(S); const custom = (S.settings.matrixColumns || []).length > 0;
+  const w = { columnIds: ids };
   const opts = sel => S.columns.map(c => `<option value="${esc(c.id)}" ${c.id === sel ? 'selected' : ''}>${esc(c.name)}${c.active ? '' : ' (đang ẩn)'}</option>`).join('');
-  const lab = (id, i) => { const n = ids.filter(x => x === id).length; return n > 1 ? ` · hiện là "${esc(AC.byId(S.columns, id).name)} ${ids.slice(0, i + 1).filter(x => x === id).length}"` : ''; };
-  return `<p class="muted">Matrix của mỗi tuần có các vị trí Cột theo thứ tự dưới đây (mặc định 5). Mỗi vị trí chọn một loại nội dung trong mục <button class="linkbtn" data-act="setup-tab" data-tab="columns">Cột</button>; được chọn trùng, ví dụ cả 5 vị trí đều là Giải thích. Các vị trí cùng loại dùng chung Skill, hướng dẫn và Format của loại đó.</p>
-    <p class="small muted">Áp cho tuần tạo mới. Tuần đã tạo giữ nguyên; muốn đổi thì thêm, bớt Cột ở màn hình Tuần.</p>
-    <div class="cardlist" id="mx-layout">${ids.map((id, i) => `<div class="citem"><div class="row" style="gap:8px;align-items:center;flex-wrap:wrap"><b>Cột ${i + 1}</b>
-      <select data-change="mx-pos" data-i="${i}" aria-label="Nội dung Cột ${i + 1}">${opts(id)}</select><span class="small muted">${lab(id, i)}</span></div>
-      <div class="row"><button class="btn sm ghost" data-act="mx-move" data-i="${i}" data-d="-1" ${i ? '' : 'disabled'} aria-label="Lên">↑</button><button class="btn sm ghost" data-act="mx-move" data-i="${i}" data-d="1" ${i < ids.length - 1 ? '' : 'disabled'} aria-label="Xuống">↓</button><button class="btn sm ghost danger" data-act="mx-del" data-i="${i}" ${ids.length > 1 ? '' : 'disabled'}>Xóa</button></div></div>`).join('')}</div>
-    <div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn" data-act="mx-add">${icon('plus')} Thêm vị trí Cột</button>${custom ? '<button class="btn ghost" data-act="mx-reset">Về mặc định (các Cột đang bật)</button>' : ''}<span class="small faint">${ids.length} Cột</span></div>`;
+  const meta = id => { const c = AC.byId(S.columns, id); const nf = S.formats.filter(f => f.columnId === id).length; return `${esc(c.structure.join(' → '))} · ${nf ? `${nf} Format` : '<span style="color:var(--warn)">chưa có Format</span>'}${AC.activeSkill(c) ? ` · Skill "${esc(AC.activeSkill(c).name)}"` : ''}`; };
+  const seen = {};
+  const rows = ids.map((id, i) => {
+    const k = seen[id] || 0; seen[id] = k + 1; const lbl = AC.laneLabel(S, w, id, k);
+    return `<li class="mxrow">
+      <span class="mxnum" aria-hidden="true">${i + 1}</span>
+      <div class="mxmain"><label class="sr" for="mx-sel-${i}">Nội dung Cột ${i + 1}</label>
+        <select id="mx-sel-${i}" class="inp" data-change="mx-pos" data-i="${i}">${opts(id)}</select>
+        <span class="small muted">${lbl !== AC.byId(S.columns, id).name ? `Tiêu đề trong Matrix: <b>${esc(lbl)}</b> · ` : ''}${meta(id)}</span></div>
+      <div class="mxacts">
+        <button class="btn icon ghost" data-act="mx-move" data-i="${i}" data-d="-1" ${i ? '' : 'disabled'} aria-label="Đưa Cột ${i + 1} lên" title="Lên">${icon('up')}</button>
+        <button class="btn icon ghost" data-act="mx-move" data-i="${i}" data-d="1" ${i < ids.length - 1 ? '' : 'disabled'} aria-label="Đưa Cột ${i + 1} xuống" title="Xuống">${icon('down')}</button>
+        <button class="btn icon ghost danger" data-act="mx-del" data-i="${i}" ${ids.length > 1 ? '' : 'disabled'} aria-label="Xóa Cột ${i + 1}" title="Xóa">${icon('trash')}</button>
+      </div></li>`;
+  }).join('');
+  return `<section class="panel stack">
+      <header class="row" style="justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap"><div class="stack" style="gap:4px"><h2>Các Cột của Matrix</h2>
+        <p class="small muted">Mỗi vị trí chọn một loại nội dung trong mục Cột; được chọn trùng, ví dụ cả 5 vị trí đều là Giải thích. Các vị trí cùng loại dùng chung Skill, hướng dẫn và Format.</p></div>
+        <span class="st ${custom ? 'st-ok' : 'st-off'}">${ids.length} Cột${custom ? '' : ' · mặc định'}</span></header>
+      <ol class="mxlist" id="mx-layout">${rows}</ol>
+      <div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn" data-act="mx-add">${icon('plus')} Thêm vị trí Cột</button>${custom ? '<button class="btn ghost" data-act="mx-reset">Về mặc định</button>' : ''}</div>
+      <p class="small faint">Áp cho tuần tạo mới. Tuần đã tạo giữ nguyên; muốn đổi thì thêm, bớt Cột ở màn hình Tuần. Sửa nội dung từng loại ở mục Cột.</p>
+    </section>`;
 }
 const mxSet = (ids, msg) => { const r = AC.setMatrixLayout(S, ids); if (!r.ok) return toast(r.error, 'bad'); commit(msg); };
 CHANGES['mx-pos'] = el => { const ids = AC.matrixLayout(S).slice(); ids[+el.dataset.i] = el.value; mxSet(ids, `Đã đổi Cột ${+el.dataset.i + 1}. Tuần mới dùng cấu hình này.`); };

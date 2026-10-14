@@ -291,7 +291,7 @@ with sync_playwright() as pw:
     page.locator('[data-act="topic-import"][data-mode="add"]').click()
     extra = '## Topic thêm kiểm thử\nThông điệp chính: Thêm.\nĐối tượng: Người làm ca.\nGóc nhìn: Thử.\n\n### Số liệu và phát hiện\n' + ('Nội dung đủ dài cho Topic thêm. ' * 40) + '\n\n### Vì sao\n' + ('Vì sao như vậy. ' * 30)
     page.fill('#inp-text', extra); page.wait_for_timeout(200)
-    check('10.51 Nạp thêm: xem trước nêu số Topic sẽ thêm và tổng', 'Thêm 1 Topic' in txt(page, '#inp-preview') and '3/8' in txt(page, '#inp-preview'), txt(page, '#inp-preview')[:200])
+    check('10.51 Nạp thêm: xem trước nêu số Topic sẽ thêm và tổng', 'Thêm 1 Topic' in txt(page, '#inp-preview') and '3/10' in txt(page, '#inp-preview'), txt(page, '#inp-preview')[:200])
     page.locator('#inp-go').click(); page.wait_for_timeout(300)
     check('10.51 Nạp thêm: ma trận có 3 hàng, Topic cũ còn nguyên', page.locator('.matrix .mrow').count() == 3)
     page.locator('.matrix [data-act="topic-remove"]').nth(2).click()

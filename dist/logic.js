@@ -352,7 +352,7 @@ function parseVoice(md) {
 }
 
 // Tệp Topic (v2.7, mục 12.5): tiêu đề # (tùy chọn), Bối cảnh chung (tùy chọn), mỗi Topic một đề mục ##.
-const TOPIC_MIN_LETTERS = 200, TOPIC_MAX = 8, TOPIC_SHORT_WORDS = 300, CONTEXT_MIN_CHARS = 60;
+const TOPIC_MIN_LETTERS = 200, TOPIC_MAX = 10, TOPIC_SHORT_WORDS = 300, CONTEXT_MIN_CHARS = 60;
 const TOPIC_FIELDS = { 'thong diep chinh': 'message', 'thong diep': 'message', 'doi tuong': 'audience', 'goc nhin': 'angle' };
 const CASE_KEYS = ['truong hop', 'cau chuyen'];
 function topicSubsections(text) {

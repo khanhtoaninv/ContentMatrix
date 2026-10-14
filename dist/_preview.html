@@ -980,6 +980,19 @@ body.drag-slot .cal .day { transition: background .12s, box-shadow .12s; }
 .pv-blk textarea.pv-seg:focus { background: #fffdf5; }
 .pv-blk .pv-bblk { margin: 6px 12px; padding: 6px; border: 1px solid var(--line-strong); border-radius: var(--r-s); background: var(--surface, #fff); }
 
+/* Cấu hình Matrix (10.53) */
+.mxlist { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.mxrow { display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-m); background: var(--surface); }
+.mxnum { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; font-weight: 600; font-size: var(--fs-2); background: var(--bg); border: 1px solid var(--line); color: var(--ink-2); }
+.mxmain { display: grid; gap: 4px; min-width: 0; }
+.mxmain select.inp { max-width: 340px; cursor: pointer; }
+.mxacts { display: flex; gap: 2px; }
+.mxacts .btn.icon { width: 34px; min-height: 34px; }
+.mxacts .btn.icon svg { width: 18px; height: 18px; }
+.mxacts .btn.danger { color: var(--bad); }
+.mxacts .btn:disabled { opacity: .35; cursor: default; }
+@media (max-width: 640px) { .mxrow { grid-template-columns: 28px minmax(0, 1fr); } .mxnum { width: 28px; height: 28px; } .mxacts { grid-column: 2; } .mxmain select.inp { max-width: none; } }
+
 </style>
 <div class="app" id="app">
   <aside class="rail" aria-label="Điều hướng chính">
@@ -1352,7 +1365,7 @@ function parseVoice(md) {
 }
 
 // Tệp Topic (v2.7, mục 12.5): tiêu đề # (tùy chọn), Bối cảnh chung (tùy chọn), mỗi Topic một đề mục ##.
-const TOPIC_MIN_LETTERS = 200, TOPIC_MAX = 8, TOPIC_SHORT_WORDS = 300, CONTEXT_MIN_CHARS = 60;
+const TOPIC_MIN_LETTERS = 200, TOPIC_MAX = 10, TOPIC_SHORT_WORDS = 300, CONTEXT_MIN_CHARS = 60;
 const TOPIC_FIELDS = { 'thong diep chinh': 'message', 'thong diep': 'message', 'doi tuong': 'audience', 'goc nhin': 'angle' };
 const CASE_KEYS = ['truong hop', 'cau chuyen'];
 function topicSubsections(text) {
@@ -6911,7 +6924,7 @@ const ICONS = {
   matrix: '<rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/>',
   export: '<path d="M12 4v11M7.5 10.5L12 15l4.5-4.5M5 19h14"/>',
   setup: '<circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7"/>',
-  plus: '<path d="M12 5v14M5 12h14"/>', left: '<path d="M15 5l-7 7 7 7"/>', right: '<path d="M9 5l7 7-7 7"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>', up: '<path d="M12 19V5M6 11l6-6 6 6"/>', down: '<path d="M12 5v14M6 13l6 6 6-6"/>', trash: '<path d="M4 7h16M9 7V4.5h6V7M6.5 7l1 12.5h9l1-12.5M10 11v5.5M14 11v5.5"/>', left: '<path d="M15 5l-7 7 7 7"/>', right: '<path d="M9 5l7 7-7 7"/>',
   spark: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 16l.7 1.8 1.8.7-1.8.7L19 21l-.7-1.8-1.8-.7 1.8-.7z"/>', gallery: '<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M20.5 16l-5-5-8 8.5"/>',
   close: '<path d="M6 6l12 12M18 6L6 18"/>', edit: '<path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4"/>', upload: '<path d="M12 16V4M7 9l5-5 5 5M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/>', check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>', gear: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h0a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5h0a1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v0a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>', eye: '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>', more: '<circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/>',
   heart: '<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/>', msg: '<path d="M5 5h14v10H9l-4 4z"/>',
@@ -11003,14 +11016,31 @@ function rulesSummary(r, layout) {
 // ---- Cấu hình Matrix (mục 10.53): mỗi vị trí chọn một loại Cột, được trùng; áp cho tuần mới ----
 function matrixTab() {
   const ids = AC.matrixLayout(S); const custom = (S.settings.matrixColumns || []).length > 0;
+  const w = { columnIds: ids };
   const opts = sel => S.columns.map(c => `<option value="${esc(c.id)}" ${c.id === sel ? 'selected' : ''}>${esc(c.name)}${c.active ? '' : ' (đang ẩn)'}</option>`).join('');
-  const lab = (id, i) => { const n = ids.filter(x => x === id).length; return n > 1 ? ` · hiện là "${esc(AC.byId(S.columns, id).name)} ${ids.slice(0, i + 1).filter(x => x === id).length}"` : ''; };
-  return `<p class="muted">Matrix của mỗi tuần có các vị trí Cột theo thứ tự dưới đây (mặc định 5). Mỗi vị trí chọn một loại nội dung trong mục <button class="linkbtn" data-act="setup-tab" data-tab="columns">Cột</button>; được chọn trùng, ví dụ cả 5 vị trí đều là Giải thích. Các vị trí cùng loại dùng chung Skill, hướng dẫn và Format của loại đó.</p>
-    <p class="small muted">Áp cho tuần tạo mới. Tuần đã tạo giữ nguyên; muốn đổi thì thêm, bớt Cột ở màn hình Tuần.</p>
-    <div class="cardlist" id="mx-layout">${ids.map((id, i) => `<div class="citem"><div class="row" style="gap:8px;align-items:center;flex-wrap:wrap"><b>Cột ${i + 1}</b>
-      <select data-change="mx-pos" data-i="${i}" aria-label="Nội dung Cột ${i + 1}">${opts(id)}</select><span class="small muted">${lab(id, i)}</span></div>
-      <div class="row"><button class="btn sm ghost" data-act="mx-move" data-i="${i}" data-d="-1" ${i ? '' : 'disabled'} aria-label="Lên">↑</button><button class="btn sm ghost" data-act="mx-move" data-i="${i}" data-d="1" ${i < ids.length - 1 ? '' : 'disabled'} aria-label="Xuống">↓</button><button class="btn sm ghost danger" data-act="mx-del" data-i="${i}" ${ids.length > 1 ? '' : 'disabled'}>Xóa</button></div></div>`).join('')}</div>
-    <div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn" data-act="mx-add">${icon('plus')} Thêm vị trí Cột</button>${custom ? '<button class="btn ghost" data-act="mx-reset">Về mặc định (các Cột đang bật)</button>' : ''}<span class="small faint">${ids.length} Cột</span></div>`;
+  const meta = id => { const c = AC.byId(S.columns, id); const nf = S.formats.filter(f => f.columnId === id).length; return `${esc(c.structure.join(' → '))} · ${nf ? `${nf} Format` : '<span style="color:var(--warn)">chưa có Format</span>'}${AC.activeSkill(c) ? ` · Skill "${esc(AC.activeSkill(c).name)}"` : ''}`; };
+  const seen = {};
+  const rows = ids.map((id, i) => {
+    const k = seen[id] || 0; seen[id] = k + 1; const lbl = AC.laneLabel(S, w, id, k);
+    return `<li class="mxrow">
+      <span class="mxnum" aria-hidden="true">${i + 1}</span>
+      <div class="mxmain"><label class="sr" for="mx-sel-${i}">Nội dung Cột ${i + 1}</label>
+        <select id="mx-sel-${i}" class="inp" data-change="mx-pos" data-i="${i}">${opts(id)}</select>
+        <span class="small muted">${lbl !== AC.byId(S.columns, id).name ? `Tiêu đề trong Matrix: <b>${esc(lbl)}</b> · ` : ''}${meta(id)}</span></div>
+      <div class="mxacts">
+        <button class="btn icon ghost" data-act="mx-move" data-i="${i}" data-d="-1" ${i ? '' : 'disabled'} aria-label="Đưa Cột ${i + 1} lên" title="Lên">${icon('up')}</button>
+        <button class="btn icon ghost" data-act="mx-move" data-i="${i}" data-d="1" ${i < ids.length - 1 ? '' : 'disabled'} aria-label="Đưa Cột ${i + 1} xuống" title="Xuống">${icon('down')}</button>
+        <button class="btn icon ghost danger" data-act="mx-del" data-i="${i}" ${ids.length > 1 ? '' : 'disabled'} aria-label="Xóa Cột ${i + 1}" title="Xóa">${icon('trash')}</button>
+      </div></li>`;
+  }).join('');
+  return `<section class="panel stack">
+      <header class="row" style="justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap"><div class="stack" style="gap:4px"><h2>Các Cột của Matrix</h2>
+        <p class="small muted">Mỗi vị trí chọn một loại nội dung trong mục Cột; được chọn trùng, ví dụ cả 5 vị trí đều là Giải thích. Các vị trí cùng loại dùng chung Skill, hướng dẫn và Format.</p></div>
+        <span class="st ${custom ? 'st-ok' : 'st-off'}">${ids.length} Cột${custom ? '' : ' · mặc định'}</span></header>
+      <ol class="mxlist" id="mx-layout">${rows}</ol>
+      <div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn" data-act="mx-add">${icon('plus')} Thêm vị trí Cột</button>${custom ? '<button class="btn ghost" data-act="mx-reset">Về mặc định</button>' : ''}</div>
+      <p class="small faint">Áp cho tuần tạo mới. Tuần đã tạo giữ nguyên; muốn đổi thì thêm, bớt Cột ở màn hình Tuần. Sửa nội dung từng loại ở mục Cột.</p>
+    </section>`;
 }
 const mxSet = (ids, msg) => { const r = AC.setMatrixLayout(S, ids); if (!r.ok) return toast(r.error, 'bad'); commit(msg); };
 CHANGES['mx-pos'] = el => { const ids = AC.matrixLayout(S).slice(); ids[+el.dataset.i] = el.value; mxSet(ids, `Đã đổi Cột ${+el.dataset.i + 1}. Tuần mới dùng cấu hình này.`); };

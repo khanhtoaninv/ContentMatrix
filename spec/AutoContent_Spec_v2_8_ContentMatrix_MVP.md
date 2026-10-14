@@ -18,7 +18,7 @@
 | Chủ đề | v2.7 | v2.8 |
 |---|---|---|
 | Tên đầu vào | Input | **Topic** (nhãn giao diện "Topic"; "Chủ đề" dành cho chủ đề chung của tuần) (D101) |
-| Số hàng | 1–5, cài đặt "Input mỗi tuần" | **Tự do** (kỹ thuật tối đa 8 để giữ trang gọn); bỏ cài đặt (D101) |
+| Số hàng | 1–5, cài đặt "Input mỗi tuần" | **Tự do** (kỹ thuật tối đa 10, từ bản 79; trước là 8); bỏ cài đặt (D101) |
 | Viết ma trận | Chỉ viết ô cần dùng (D98) | **Viết mọi ô** (Topic × Cột); không còn "ô cần dùng / không có slot dùng" (D102) |
 | Tạo tuần | Bước riêng, sao lịch mẫu duy nhất | **Bỏ bước tạo tuần**: lịch liên tục; **Lập tuần** = chọn **Tuần mẫu** (D103, D104) |
 | Lịch mẫu | Một lịch mẫu 17 slot | **Nhiều Tuần mẫu**, đặt tên, xếp thứ tự xoay vòng, app gợi ý mẫu kế tiếp (D104) |
@@ -32,7 +32,7 @@
 
 | # | Quyết định | Thay |
 |---|---|---|
-| D101 | **Input đổi tên thành Topic.** Số Topic của một tuần do tệp nạp vào quyết định (kỹ thuật tối đa 8). Bỏ cài đặt "số Input mỗi tuần" và cảnh báo "số Input khác cài đặt". Topic **thuộc về tuần** (mặc định). | D94 (phần 1–5), M-6 |
+| D101 | **Input đổi tên thành Topic.** Số Topic của một tuần do tệp nạp vào quyết định (kỹ thuật tối đa 10, từ bản 79). Bỏ cài đặt "số Input mỗi tuần" và cảnh báo "số Input khác cài đặt". Topic **thuộc về tuần** (mặc định). | D94 (phần 1–5), M-6 |
 | D102 | **Phương án B: Matrix viết toàn bộ ô, slot viết lại từ ô.** Chuỗi là Topic → ô (15 ô với 3 Topic × 5 Cột) → duyệt ô → Chia bài → slot. Ô là **nội dung gốc đã duyệt** và là nguồn duy nhất của slot; slot viết lại từ ô theo Format (độ dài, cấu trúc, tông kênh, hashtag, CTA), không chỉ "chỉnh giọng". Lý do chọn B thay vì viết thẳng từ Topic vào slot: (1) giữ một điểm duyệt nội dung gốc, người duyệt so sánh được các Topic cùng một Cột; (2) mỗi slot chỉ còn bài toán trình bày, ít rủi ro thêm ý hoặc số liệu ngoài nguồn; (3) một ô nuôi được nhiều slot (TikTok và Reels) mà không viết lại từ đầu; (4) chi phí thêm 1 ô so với v2.7 (15 so với 14) là không đáng kể. Bỏ "ô cần dùng" và "không có slot dùng". | D98 |
 | D103 | **Lịch liên tục cả năm, không có bước "Tạo tuần".** Bản ghi tuần tạo khi người dùng chạm tới (chọn Tuần mẫu, nạp Topic, hoặc thêm slot bằng **+**). Tuần chưa chạm tới hiện trống. Điều hướng: mũi tên tuần trước/sau, ô chọn ngày, nút **Tuần này**, lịch tháng (mọi ngày bấm được). | WK-01 |
 | D104 | **Tuần mẫu:** nhiều Tuần mẫu có tên, mỗi mẫu là danh sách slot (thứ, giờ, kênh, Format) đủ hoặc không đủ 7 ngày; thứ tự do người dùng sắp ở Setup là **thứ tự xoay vòng**; khi Lập tuần app **gợi ý** mẫu kế tiếp sau mẫu của tuần liền trước (không có tuần trước thì mẫu đầu). **Nút Tuần mẫu bị khóa khi tuần đã có ít nhất một slot hoặc đã chốt**; muốn dùng lại phải xóa hết slot. Slot tạo ra **chỉ có ngày, giờ, kênh, Format**; nội dung và ô ảnh trống. Sau đó người dùng thêm/sửa/xóa slot bằng tay. Sửa Tuần mẫu không đổi tuần đã lập. | Lịch mẫu duy nhất |
@@ -377,7 +377,7 @@ Tất cả nằm trong `S` (localStorage, khóa `autocontent.state`), `DATA_VERS
 |---|---|---|
 | TPC-01 | Nạp **một tệp .md** (hoặc dán) theo 12.5: tiêu đề `#` (tùy chọn), Bối cảnh chung (tùy chọn), mỗi Topic một đề mục `##`. Không có `##` thì cả tệp là 1 Topic. Nạp được cả khi tuần chưa có slot | P0 |
 | TPC-02 | Trường tùy chọn ở đầu mỗi Topic: `Thông điệp chính:`, `Đối tượng:`, `Góc nhìn:` | P0 |
-| TPC-03 | Lỗi (không nạp, giữ dữ liệu cũ): tệp rỗng hoặc dưới 200 ký tự chữ; hơn 8 Topic. Cảnh báo (vẫn nạp): Topic dưới 300 chữ; Topic không có trường hợp cụ thể (D100) | P0 |
+| TPC-03 | Lỗi (không nạp, giữ dữ liệu cũ): tệp rỗng hoặc dưới 200 ký tự chữ; hơn 10 Topic. Cảnh báo (vẫn nạp): Topic dưới 300 chữ; Topic không có trường hợp cụ thể (D100) | P0 |
 | TPC-04 | Nạp lại: Topic khớp theo thứ tự; nội dung đổi → phiên bản mới; hộp xác nhận nêu Topic đổi / thêm / bớt, số ô và slot bị ảnh hưởng | P0 |
 | TPC-05 | Xem: mỗi hàng Matrix có tên Topic bấm được để đọc nguyên văn, số chữ, phiên bản, cảnh báo | P0 |
 | TPC-06 | **Tìm trong Topic** (ở Matrix): không phân biệt hoa thường và dấu; lọc các hàng có chỗ khớp; số chỗ khớp; tô sáng khi mở Topic | P0 |
@@ -593,7 +593,7 @@ Như v2.6 (UX-01..UX-11), đổi Idea/Input thành Topic: ma trận điện tho�
 | V8-04 | Điều hướng tuần: mũi tên ±7 ngày, ô chọn ngày, Tuần này; lịch tháng mọi ngày bấm được và mở được tuần chưa lập. |
 | V8-05 | Lập tuần ở tuần trống: hộp Tuần mẫu gợi ý đúng mẫu kế tiếp, xem trước đúng số slot, **Tạo slot** tạo slot trống (không nội dung, ô ảnh trống); nút Tuần mẫu khóa ngay sau đó. |
 | V8-06 | Nút Tuần mẫu khóa khi tuần có slot hoặc đã chốt, có lý do; xóa hết slot thì mở lại. |
-| V8-07 | Nạp tệp Topic: 3 Topic + Bối cảnh chung; không `##` → 1 Topic; 9 Topic → lỗi "tối đa 8", không nạp; tệp rỗng → lỗi; Topic ngắn hoặc thiếu trường hợp → cảnh báo, vẫn nạp; nạp được khi tuần chưa lập. |
+| V8-07 | Nạp tệp Topic: 3 Topic + Bối cảnh chung; không `##` → 1 Topic; 11 Topic → lỗi "tối đa 10", không nạp; tệp rỗng → lỗi; Topic ngắn hoặc thiếu trường hợp → cảnh báo, vẫn nạp; nạp được khi tuần chưa lập. |
 | V8-08 | Nạp lại tệp với Topic 3 đổi → Topic 3 có v2; ô của v2 trống; slot dùng ô của Topic 3 cần cập nhật; Topic khác giữ nguyên. |
 | V8-09 | Tìm "dang chuyen" (không dấu) trong Matrix lọc đúng hàng Topic và hiện số chỗ khớp. |
 | V8-10 | Hủy Topic: hộp xác nhận nêu số ô và slot; sau hủy còn đúng số hàng và ô; slot dùng ô về "Chưa có bài". |
@@ -1150,7 +1150,7 @@ Ngộ nhận: … Thực tế: …
 3. Mỗi `##` là một Topic; tên Topic là chữ của đề mục. Không có `##` thì cả tệp là 1 Topic.
 4. Các dòng `Thông điệp chính:`, `Đối tượng:`, `Góc nhìn:` ngay đầu Topic là trường tùy chọn.
 5. Các đề mục `###` trong Topic là tùy chọn; nếu có, mock và AI dùng chúng để lấy đúng chất liệu cho từng Cột. Topic có `### Trường hợp` (hoặc "Câu chuyện") được coi là có trường hợp cụ thể.
-6. Lỗi: tệp rỗng hoặc dưới 200 ký tự chữ; hơn 8 Topic. Số Topic khác nhau giữa các tuần là bình thường (không còn cảnh báo). Dòng giống chỉ thị chỉ là văn bản.
+6. Lỗi: tệp rỗng hoặc dưới 200 ký tự chữ; hơn 10 Topic. Số Topic khác nhau giữa các tuần là bình thường (không còn cảnh báo). Dòng giống chỉ thị chỉ là văn bản.
 
 **Lệnh mẫu cho agent bên ngoài** (app cung cấp nút sao chép):
 
@@ -1205,3 +1205,6 @@ Trình sửa Skill có nút "Chọn tệp Skill (.md)". Tệp .md/.markdown/.txt
 
 ## 10.53. Cấu hình Matrix (14/10/2026, bản 78)
 Setup → Cấu hình Matrix: danh sách vị trí Cột (mặc định 5 = các Cột đang bật). Mỗi vị trí chọn một loại nội dung từ mục Cột; được chọn trùng. Có Thêm vị trí, Xóa, đổi thứ tự, Về mặc định. Áp cho tuần tạo mới; tuần đã tạo giữ nguyên và vẫn thêm/bớt Cột ở màn hình Tuần (được thêm loại đã có). Khi một loại xuất hiện nhiều lần, tiêu đề ghi số thứ tự ("Giải thích 1", "Giải thích 2"). Các vị trí cùng loại dùng chung Skill, hướng dẫn, Format; khi AI viết một ô, các bài đã có ở vị trí cùng loại của cùng Topic được gửi kèm để AI chọn góc khác; cảnh báo trùng nội dung cũng so với các ô đó. Chia bài lấy ô Đã duyệt từ mọi vị trí cùng loại.
+
+## 10.54. Tối đa 10 Topic, giao diện Cấu hình Matrix (14/10/2026, bản 79)
+Mỗi tuần tối đa 10 Topic (tệp nạp hơn 10 Topic báo lỗi, không nạp; Nạp thêm không vượt 10). Cấu hình Matrix hiển thị trong một panel: mỗi vị trí một hàng gồm số thứ tự, ô chọn loại Cột cùng kiểu ô nhập của app, dòng phụ (cấu trúc, số Format, Skill đang dùng, tiêu đề trong Matrix khi trùng loại) và ba nút biểu tượng Lên, Xuống, Xóa.

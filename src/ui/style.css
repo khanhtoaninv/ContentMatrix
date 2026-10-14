@@ -974,3 +974,16 @@ body.drag-slot .cal .day { transition: background .12s, box-shadow .12s; }
 .pv-blk textarea.pv-seg { border: 0; border-radius: 0; box-shadow: none; outline: none; width: 100%; resize: none; overflow: hidden; background: transparent; font-family: var(--f-body); font-size: var(--fs-4); line-height: 1.5; padding: 8px 12px; color: inherit; min-height: 2.4em; }
 .pv-blk textarea.pv-seg:focus { background: #fffdf5; }
 .pv-blk .pv-bblk { margin: 6px 12px; padding: 6px; border: 1px solid var(--line-strong); border-radius: var(--r-s); background: var(--surface, #fff); }
+
+/* Cấu hình Matrix (10.53) */
+.mxlist { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.mxrow { display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-m); background: var(--surface); }
+.mxnum { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; font-weight: 600; font-size: var(--fs-2); background: var(--bg); border: 1px solid var(--line); color: var(--ink-2); }
+.mxmain { display: grid; gap: 4px; min-width: 0; }
+.mxmain select.inp { max-width: 340px; cursor: pointer; }
+.mxacts { display: flex; gap: 2px; }
+.mxacts .btn.icon { width: 34px; min-height: 34px; }
+.mxacts .btn.icon svg { width: 18px; height: 18px; }
+.mxacts .btn.danger { color: var(--bad); }
+.mxacts .btn:disabled { opacity: .35; cursor: default; }
+@media (max-width: 640px) { .mxrow { grid-template-columns: 28px minmax(0, 1fr); } .mxnum { width: 28px; height: 28px; } .mxacts { grid-column: 2; } .mxmain select.inp { max-width: none; } }
