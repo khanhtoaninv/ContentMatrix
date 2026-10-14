@@ -287,16 +287,29 @@ ACTIONS['col-edit'] = el => {
 };
 
 // ---- Format ----
+// Format theo kênh (10.57): một khung, kênh ở nửa trái, Format của kênh đang chọn ở nửa phải
 function formatsTab() {
+  if (!S.channels.length) return '<p class="muted">Chưa có kênh nên chưa thêm được Format. Thêm kênh ở mục Kênh trước.</p>';
+  if (!AC.byId(S.channels, view.fmtCh)) view.fmtCh = S.channels[0].id;
+  const ch = AC.byId(S.channels, view.fmtCh);
+  const fs = S.formats.filter(f => f.channelId === ch.id);
+  const left = S.channels.map(c => { const n = S.formats.filter(f => f.channelId === c.id).length; const on = c.id === ch.id;
+    return `<button class="fmtch ${on ? 'on' : ''}" role="tab" aria-selected="${on}" data-act="fmt-channel" data-id="${esc(c.id)}">${chTag(c.id, c.name)}<span class="n ${n ? '' : 'zero'}" aria-label="${n} Format">${n}</span></button>`; }).join('');
+  const cards = fs.map(f => `<div class="citem"><div class="stack" style="gap:4px"><b>${esc(f.name)}</b><span class="small muted">Cột nguồn: ${esc(colName(f.columnId))} · ${esc(f.structure.join(' → '))}</span><span class="small">${esc(rulesSummary(f.hardRules, f.layout))}${f.assetNeeds.length ? ` · asset: ${esc(f.assetNeeds.map(a => a.name).join(', '))}` : ''}</span></div>
+        <div class="row"><button class="btn sm" data-act="fmt-edit" data-id="${esc(f.id)}">Sửa</button><button class="btn sm ghost danger" data-act="fmt-delete" data-id="${esc(f.id)}">Xóa</button></div></div>`).join('');
   return `<p class="muted">Format là cách trình bày một Cột trên một kênh. Mỗi Format thuộc đúng một kênh và đúng một Cột nguồn.</p>
-    ${S.channels.map(ch => { const fs = S.formats.filter(f => f.channelId === ch.id); return `<section class="stack" style="gap:8px"><h2>${chTag(ch.id, ch.name).replace('class="ch ', 'style="font-size:inherit" class="ch ')} <span class="small faint">${fs.length} Format</span></h2>
-      <div class="cardlist">${fs.map(f => `<div class="citem"><div class="stack" style="gap:4px"><b>${esc(f.name)}</b><span class="small muted">Cột nguồn: ${esc(colName(f.columnId))} · ${esc(f.structure.join(' → '))}</span><span class="small">${esc(rulesSummary(f.hardRules, f.layout))}${f.assetNeeds.length ? ` · asset: ${esc(f.assetNeeds.map(a => a.name).join(', '))}` : ''}</span></div>
-        <div class="row"><button class="btn sm" data-act="fmt-edit" data-id="${esc(f.id)}">Sửa</button><button class="btn sm ghost danger" data-act="fmt-delete" data-id="${esc(f.id)}">Xóa</button></div></div>`).join('') || '<p class="small faint">Kênh này chưa có Format.</p>'}</div></section>`; }).join('')}
-    <div class="row"><button class="btn" data-act="fmt-edit">${icon('plus')} Thêm Format</button><button class="btn ghost" data-act="show-template" data-t="format">Xem mẫu Format</button></div>`;
+    <section class="panel fmtsplit" aria-label="Format theo kênh">
+      <div class="fmtl" role="tablist" aria-label="Kênh">${left}</div>
+      <div class="fmtr" role="tabpanel"><header class="row" style="justify-content:space-between;gap:8px;flex-wrap:wrap"><div class="stack" style="gap:2px"><span class="eyebrow">Kênh</span><h2>${esc(ch.name)}</h2></div>
+        <div class="row" style="gap:8px"><span class="small faint">${fs.length} Format</span><button class="btn sm" data-act="fmt-edit" data-ch="${esc(ch.id)}">${icon('plus')} Thêm Format</button></div></header>
+        <div class="cardlist">${cards || '<p class="small faint">Kênh này chưa có Format.</p>'}</div></div>
+    </section>
+    <div class="row"><button class="btn ghost" data-act="show-template" data-t="format">Xem mẫu Format</button></div>`;
 }
+ACTIONS['fmt-channel'] = el => { view.fmtCh = el.dataset.id; render(); };
 ACTIONS['fmt-edit'] = el => {
   const isNew = !el.dataset.id;
-  const f = isNew ? { id: '', kind: '', name: '', channelId: '', columnId: '', layout: 'post', structure: ['Hook', 'Thân bài', 'CTA'], guideMd: '', hardRules: { lengthUnit: 'chars', min: 300, max: 1000, requireCta: true, ctaType: 'action', hashtagMax: 3, slideMin: null, slideMax: null, wordsPerSlideMax: null, extraBanned: [] }, criteria: AC.clone(AC.DEFAULT_SLOT_CRITERIA), assetNeeds: [] } : AC.clone(AC.byId(S.formats, el.dataset.id));
+  const f = isNew ? { id: '', kind: '', name: '', channelId: el.dataset.ch || '', columnId: '', layout: 'post', structure: ['Hook', 'Thân bài', 'CTA'], guideMd: '', hardRules: { lengthUnit: 'chars', min: 300, max: 1000, requireCta: true, ctaType: 'action', hashtagMax: 3, slideMin: null, slideMax: null, wordsPerSlideMax: null, extraBanned: [] }, criteria: AC.clone(AC.DEFAULT_SLOT_CRITERIA), assetNeeds: [] } : AC.clone(AC.byId(S.formats, el.dataset.id));
   const r = f.hardRules;
   const box = openLayer(`
     <header><div><span class="eyebrow">${isNew ? 'Format mới' : 'Sửa Format'}</span><h2>${esc(f.name ? fmtFull(f.id) : 'Format mới')}</h2></div><button class="btn icon ghost" data-act="close-layer" aria-label="Đóng">${icon('close')}</button></header>

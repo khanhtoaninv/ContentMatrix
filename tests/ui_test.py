@@ -1364,6 +1364,22 @@ with sync_playwright() as pw:
     check('10.53 không lỗi trang', not errs, '; '.join(errs))
     ctx.close()
 
+    # ---------- 10.57 Format theo kênh ----------
+    ctx, page, errs = fresh(p)
+    page.locator('#nav-side button:has-text("Setup")').click(); page.wait_for_timeout(300)
+    page.locator('[data-act="setup-tab"][data-tab="formats"]').click(); page.wait_for_timeout(300)
+    nch = page.evaluate("() => window.__AC_S().channels.length")
+    check('10.57 Format: một khung, kênh ở bên trái (mỗi kênh một nút kèm số Format)', page.locator('.fmtsplit .fmtl .fmtch').count() == nch and page.locator('.fmtsplit .fmtr').count() == 1, str(nch))
+    page.locator('.fmtch').nth(1).click(); page.wait_for_timeout(150)
+    chid = page.evaluate("() => window.__AC_S().channels[1].id")
+    nf = page.evaluate("(id) => window.__AC_S().formats.filter(f => f.channelId === id).length", chid)
+    check('10.57 chọn kênh: bên phải chỉ hiện Format của kênh đó', page.locator('.fmtr .citem').count() == nf and page.locator('.fmtch.on').count() == 1, f'{nf}')
+    page.locator('.fmtr [data-act="fmt-edit"][data-ch]').click(); page.wait_for_timeout(150)
+    check('10.57 Thêm Format từ kênh đang chọn: kênh được chọn sẵn', page.locator('#ff-ch').input_value() == chid)
+    page.keyboard.press('Escape'); page.wait_for_timeout(100)
+    check('10.57 không lỗi trang', not errs, '; '.join(errs))
+    ctx.close()
+
     # ---------- localStorage bị chặn ----------
     ctx = p.new_context(viewport={'width': 1200, 'height': 800})
     page = ctx.new_page(); errs = []

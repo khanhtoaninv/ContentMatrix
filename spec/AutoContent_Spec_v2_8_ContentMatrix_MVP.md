@@ -1217,3 +1217,6 @@ Mỗi ô Chưa duyệt trong Matrix có nút Duyệt nằm trong cùng thẻ ô,
 - Matrix: nút Duyệt trong thẻ ô không có biểu tượng, cùng kiểu nút Duyệt của slot, căn lề phải trong thẻ (bản 83); nút "Duyệt hàng loạt" đổi tên "Duyệt tất cả" (hộp xác nhận tên "Duyệt tất cả").
 - Dashboard: dải "Việc tiếp theo" có nút "Duyệt tất cả" ở bước 4 (duyệt ô) và bước 6 (duyệt slot), cùng hộp xác nhận: mặc định duyệt mục không cảnh báo, có ô đánh dấu duyệt cả mục có cảnh báo kèm danh sách.
 - Setup → Tuần mẫu: slot mẫu hiện trên lịch 7 ngày cùng bố cục lịch tuần (giờ, kênh, Format, Cột); dấu + ở từng ngày thêm slot vào ngày đó; bấm slot mở hộp sửa Thứ, Giờ, Kênh, Format hoặc Xóa slot; trên điện thoại lịch xếp theo ngày dọc.
+
+## 10.57. Format theo kênh trong một khung (14/10/2026, bản 84)
+Setup → Format: một khung chia đôi. Nửa trái liệt kê các kênh, mỗi kênh một nút kèm số Format; nửa phải hiện Format của kênh đang chọn (tên, Cột nguồn, cấu trúc, quy tắc, asset; nút Sửa, Xóa) và nút Thêm Format đặt sẵn kênh đang chọn. Kênh chưa có Format hiện số 0 màu cảnh báo. Trên điện thoại danh sách kênh nằm ngang phía trên.

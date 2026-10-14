@@ -998,3 +998,20 @@ body.drag-slot .cal .day { transition: background .12s, box-shadow .12s; }
 .cellwrap .cell-ok { justify-self: end; margin: 0 8px 8px; }
 
 .tplcal .day-b { min-height: 140px; }
+
+/* Format theo kênh (10.57) */
+.fmtsplit { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 0; padding: 0; overflow: hidden; }
+.fmtl { display: flex; flex-direction: column; gap: 2px; padding: 8px; border-right: 1px solid var(--line); background: var(--surface-2); }
+.fmtch { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; min-height: 40px; padding: 6px 10px; border: 1px solid transparent; border-radius: var(--r-s); background: transparent; cursor: pointer; text-align: left; }
+.fmtch .ch { min-width: 0; }
+.fmtch .ch .chn { position: static; width: auto; height: auto; clip: auto; overflow: visible; white-space: normal; }
+.fmtch:hover { background: var(--surface); }
+.fmtch.on { background: var(--surface); border-color: var(--line-strong); box-shadow: var(--shadow); font-weight: 600; }
+.fmtch .n { min-width: 24px; text-align: center; font-size: var(--fs-1); padding: 1px 7px; border-radius: 999px; background: var(--bg); color: var(--ink-2); }
+.fmtch .n.zero { color: var(--warn); }
+.fmtr { display: grid; gap: 12px; padding: 14px 16px; align-content: start; min-width: 0; }
+@media (max-width: 760px) {
+  .fmtsplit { grid-template-columns: 1fr; }
+  .fmtl { flex-direction: row; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--line); }
+  .fmtch { width: auto; flex: 0 0 auto; }
+}
