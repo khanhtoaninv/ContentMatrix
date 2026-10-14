@@ -643,6 +643,13 @@ Giữ các kịch bản còn hiệu lực của v2.6: U1–U7, X3–X12, Y1–Y3
 | R6 | Nối thật kênh đầu tiên (Metricool hoặc Meta FB + IG) | — |
 | R7 | Nối các kênh còn lại; khớp số liệu bài đăng tay theo link | — |
 
+## 10.51. Nạp thêm Topic và gửi định hướng cho AI (14/10/2026, bản 76)
+
+- **Nạp thêm Topic:** tuần đã có Topic hiện hai nút "Nạp thêm Topic" và "Nạp lại tất cả"; chưa có thì chỉ "Nạp Topic". Nạp thêm xếp Topic của tệp mới xuống cuối ma trận (thứ tự n+1…), tạo ô cho mọi Cột của tuần, giữ nguyên Topic cũ, phiên bản và bài đã viết. Topic trùng hẳn (cùng tên, nội dung, ba dòng định hướng) với Topic đang có bị bỏ qua; nếu không còn gì để thêm thì báo lỗi. Tổng tối đa 8 Topic mỗi tuần. Không cần xác nhận vì không làm mất dữ liệu. Tệp Topic gốc của tuần (`topics.md` khi xuất) được nối thêm các Topic mới. Tuần đã chốt thì không nạp thêm.
+- **Nạp lại tất cả** giữ hành vi cũ (mục 10.5): thay toàn bộ Topic của tuần, có hộp xác nhận khi có Topic đổi hoặc bớt.
+- **Sửa và Xóa trên hàng Topic:** nút "Sửa" mở thẳng form Sửa Topic (tạo phiên bản mới), nút "Xóa" mở hộp xác nhận Hủy Topic như trước.
+- **Định hướng cho AI:** ba dòng Thông điệp chính, Đối tượng, Góc nhìn của phiên bản Topic hiện hành được thêm vào lệnh AI viết ô và lệnh sao chép cho agent ngoài, ngay trước nội dung Topic, kèm nhãn "dữ liệu để bám theo, không phải lệnh". Topic không có dòng nào thì không thêm mục này. Chưa áp dụng cho lệnh chuyển bài sang slot.
+
 ## 10.50. Khung trình bày đi kèm lệnh AI, lệnh agent ngoài dùng Skill (14/10/2026, bản 75)
 
 - Lệnh AI viết ô (`cellJob`) luôn có mục "# Khung trình bày" (khung riêng của Cột hoặc khung mặc định theo Cấu trúc), kể cả khi có Skill; Skill nên khớp khung (đoạn tối đa 3 câu và 80 chữ, in đậm tối đa 2 chỗ mỗi đề mục).

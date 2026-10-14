@@ -41,7 +41,7 @@ function mxTableHtml(w) {
     return `<b>Topic ${r.order}</b> <span class="faint">v${v.n}/${r.versions.length}</span>${q && n ? ` <span class="small muted">· ${n} chỗ khớp</span>` : ''}<br>
       <button class="linkbtn small" data-act="open-topic" data-id="${esc(r.id)}">${esc(v.title)}</button><br>
       <span class="small muted">${v.words.toLocaleString('vi-VN')} chữ</span>${tw.length ? ` <span class="small" style="color:var(--warn)">· ${tw.length} lưu ý</span>` : ''}<br>
-      ${locked ? '' : `<button class="linkbtn small danger" data-act="topic-remove" data-id="${esc(r.id)}">Hủy Topic</button>`}`;
+      ${locked ? '' : `<button class="linkbtn small" data-act="topic-edit" data-id="${esc(r.id)}">Sửa</button> · <button class="linkbtn small danger" data-act="topic-remove" data-id="${esc(r.id)}">Xóa</button>`}`;
   };
   const head = `<div class="mc mhd">Topic \\ Cột</div>${cols.map(c => `<div class="mc mhd">${esc(c.name)}</div>`).join('')}`;
   const rowsHtml = ms.map(m => `<div class="mc mrow">${rowHead(m)}</div>${cols.map(col => `<div class="mc">${cellBtnHtml(w, m.r, col)}</div>`).join('')}`).join('');
@@ -55,7 +55,9 @@ RENDERERS.matrix = () => {
   const rows = w ? AC.topicsOf(S, w.id) : [];
   const locked = !!w && w.status === 'CONFIRMED';
   const wid = AC.weekIdOf(start);
-  const importBtn = locked ? '' : `<button class="btn ${rows.length ? '' : 'primary'}" data-act="topic-import">${icon('plus')} ${rows.length ? 'Nạp lại Topic' : 'Nạp Topic'}</button>`;
+  const importBtn = locked ? '' : rows.length
+    ? `<button class="btn primary" data-act="topic-import" data-mode="add">${icon('plus')} Nạp thêm Topic</button><button class="btn ghost" data-act="topic-import" data-mode="replace">Nạp lại tất cả</button>`
+    : `<button class="btn primary" data-act="topic-import" data-mode="replace">${icon('plus')} Nạp Topic</button>`;
   const helpBtns = `<button class="btn ghost" data-act="show-template" data-t="topic">Xem tệp mẫu</button><button class="btn ghost" data-act="show-template" data-t="agentPrompt">Lệnh cho agent bên ngoài</button>`;
   const gate = AC.dealGate(S, wid);
   const head = `<div class="page-head"><div><span class="eyebrow">Matrix · ${esc(l.range)}</span><h1>${file && file.theme ? esc(file.theme) : 'Ma trận Topic × Cột'}</h1><p class="sub">Matrix đi theo tuần đang chọn ở Dashboard. Hàng là Topic, cột là Cột nội dung; mỗi ô viết một lần rồi Chia bài cho slot.</p></div></div>`;
@@ -232,16 +234,22 @@ function foldMarks(text, q) {
   return r;
 }
 // ---- Nạp tệp Topic (INP-01..04) ----
-ACTIONS['topic-import'] = () => {
+let topicImportMode = 'replace'; // 'replace' = nạp lại cả tuần; 'add' = nạp thêm vào cuối (mục 10.51)
+ACTIONS['topic-import'] = el => {
   const w = curWeek();
   const had = !!w && AC.topicsOf(S, w.id).length > 0;
-  openLayer(`<h2>${had ? 'Nạp lại Topic' : 'Nạp Topic'}</h2>
-    <p class="small muted">Một tệp .md: tiêu đề # (tùy chọn), Bối cảnh chung (tùy chọn), mỗi Topic một đề mục ##. Không có ## thì cả tệp là 1 Topic. Số Topic tùy bạn (kỹ thuật tối đa ${AC.TOPIC_MAX}).${had ? ' Topic có nội dung đổi sẽ thành phiên bản mới; Topic không đổi giữ nguyên.' : ''}</p>
+  topicImportMode = had && el && el.dataset && el.dataset.mode === 'add' ? 'add' : 'replace';
+  const add = topicImportMode === 'add';
+  const nHave = had ? AC.topicsOf(S, w.id).length : 0;
+  openLayer(`<h2>${add ? 'Nạp thêm Topic' : had ? 'Nạp lại tất cả Topic' : 'Nạp Topic'}</h2>
+    <p class="small muted">${add
+      ? `Tuần đang có ${nHave} Topic. Các Topic trong tệp mới được xếp xuống cuối ma trận; Topic cũ và bài đã viết giữ nguyên. Tối đa ${AC.TOPIC_MAX} Topic mỗi tuần. Topic trùng hẳn (cùng tên và nội dung) với Topic đã có sẽ được bỏ qua.`
+      : `Một tệp .md: tiêu đề # (tùy chọn), Bối cảnh chung (tùy chọn), mỗi Topic một đề mục ##. Không có ## thì cả tệp là 1 Topic. Số Topic tùy bạn (kỹ thuật tối đa ${AC.TOPIC_MAX}).${had ? ' Nạp lại thay toàn bộ Topic của tuần: Topic có nội dung đổi sẽ thành phiên bản mới, Topic không còn trong tệp bị loại. Muốn giữ Topic cũ thì dùng "Nạp thêm Topic".' : ''}`}</p>
     <div class="row"><label class="btn sm" for="inp-file">Chọn tệp .md</label><input id="inp-file" type="file" accept=".md,.markdown,.txt,text/markdown,text/plain" class="sr" data-change="topic-file"></div>
     <div class="field"><label for="inp-text">Hoặc dán nội dung tệp</label><textarea id="inp-text" spellcheck="false" style="min-height:220px;font-family:var(--f-mono);font-size:var(--fs-2)" data-input="topic-text"></textarea></div>
     <div id="inp-preview" class="small muted" aria-live="polite">Chưa có nội dung.</div>
     <div id="inp-norm"></div>
-    <div class="actions"><button class="btn ghost" data-act="close-layer">Hủy</button><button class="btn primary" id="inp-go" data-act="topic-go" disabled>Nạp Topic</button></div>`, 'dialog').classList.add('wide');
+    <div class="actions"><button class="btn ghost" data-act="close-layer">Hủy</button><button class="btn primary" id="inp-go" data-act="topic-go" disabled>${add ? 'Thêm Topic' : 'Nạp Topic'}</button></div>`, 'dialog').classList.add('wide');
 };
 function inputPreview() {
   const ta = document.getElementById('inp-text'), pv = document.getElementById('inp-preview'), go = document.getElementById('inp-go');
@@ -249,9 +257,15 @@ function inputPreview() {
   if (!ta || !pv) return;
   const nb = document.getElementById('inp-norm'); if (nb) nb.innerHTML = '';
   if (!ta.value.trim()) { pv.className = 'small muted'; pv.textContent = 'Chưa có nội dung.'; go.disabled = true; return; }
-  const r = AC.previewTopics(S, AC.weekIdOf(curStart()), ta.value);
+  const add = topicImportMode === 'add';
+  const r = add ? AC.previewAddTopics(S, AC.weekIdOf(curStart()), ta.value) : AC.previewTopics(S, AC.weekIdOf(curStart()), ta.value);
   if (nb && r.normalized) nb.innerHTML = topicNormHtml(r);
   if (!r.ok) { pv.className = 'note bad'; pv.textContent = r.errors.map(e => e.text).join(' '); go.disabled = true; return; }
+  if (add) {
+    pv.className = r.warnings.length ? 'note warn' : 'note good';
+    pv.innerHTML = `<b>Thêm ${r.add.length} Topic</b> (tổng sau khi thêm: ${r.total}/${AC.TOPIC_MAX}): ${r.add.map(i => `${esc(i.title)} (${i.words} chữ)`).join(' · ')}${r.skipped.length ? `<br>Bỏ qua ${r.skipped.length} Topic đã có: ${r.skipped.map(i => esc(i.title)).join(' · ')}` : ''}${r.warnings.length ? `<br>${r.warnings.map(x => esc(x.text)).join('<br>')}` : ''}`;
+    go.disabled = false; return;
+  }
   const ch = r.changes;
   const diff = w && AC.topicsOf(S, w.id).length ? ` · đổi ${ch.changed.length}, thêm ${ch.added.length}, bớt ${ch.removed.length}, giữ ${ch.same.length}` : '';
   pv.className = r.warnings.length ? 'note warn' : 'note good';
@@ -279,6 +293,12 @@ ACTIONS['topic-go'] = async () => {
   const ta = document.getElementById('inp-text'); if (!ta) return;
   const w = ensureCurWeek(); if (!w) return toast('Không mở được tuần.', 'bad');
   const md = ta.value;
+  if (topicImportMode === 'add') {
+    const ra = AC.addTopics(S, w.id, md);
+    if (!ra.ok) { toast(ra.errors[0].text, 'bad'); return; }
+    closeLayer(); save(); render(); toast(`Đã thêm ${ra.add.length} Topic${ra.skipped.length ? `, bỏ qua ${ra.skipped.length} trùng` : ''}.`);
+    return;
+  }
   const p = AC.previewTopics(S, w.id, md);
   if (!p.ok) { toast(p.errors[0].text, 'bad'); return; }
   const ch = p.changes;

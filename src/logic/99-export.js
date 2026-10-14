@@ -15,7 +15,7 @@ const AC = {
   validateFormat, validateColumn, formatUsage, deleteFormat,
   templatesSorted, templateOf, templateWarnings, templateEmptyDays, templateColumnCounts, addWeekTemplate, deleteWeekTemplate, moveWeekTemplate, suggestTemplateId, previewTemplateWeek, canApplyTemplate, applyTemplateWeek,
   weekIdOf, weekOf, isLocked, weekLabel, weekLabelOf, weekSlots, ensureWeek, addSlot, addSlotToStart, updateSlot, deleteSlot, slotLockMsg, moveSlotCheck, moveSlot, undoMoveSlot, reopenWeek, validateSlotInput, clearSlotContent,
-  topicsOf, topicCurrent, topicFileOf, previewTopics, importTopics, topicWarnings, topicImpact, removeTopic, ensureCells,
+  topicsOf, topicCurrent, topicFileOf, previewTopics, importTopics, previewAddTopics, addTopics, topicWarnings, topicImpact, removeTopic, ensureCells,
   cellsOf, cellAt, cellView, slotsUsingCell, addWeekColumn, removeWeekColumn, removeColumnImpact, refreshSlotFlags,
   dealGate, dealSlots, writeSlotFromCell, slotCellChoices, assignCell, slotWriteGate, writeSlotNow, composeAssetPrompt, genSlotImage, uploadSlotImage, addSlotAsset, slotColumnId, editSlotImage, removeSlotAsset, setSlotImagePrompt, chooseSlotImage, assetRef,
   cellWarnings, slotWarnings, matrixCounts, slotCounts, imageCounts, weekProgress, nextAction, weekKpi, weekForDate,

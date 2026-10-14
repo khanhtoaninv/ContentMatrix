@@ -546,6 +546,48 @@ function importTopics(S, weekId, md, at) {
   log(S, 'import', 'topics', weekId, `${r.topics.length} Topic · đổi ${ch.changed.length}, thêm ${ch.added.length}, bớt ${ch.removed.length}`);
   return r;
 }
+// ---- Nạp thêm Topic (mục 10.51): xếp Topic của tệp mới xuống cuối tuần, không đụng Topic đang có ----
+const topicFieldLines = f => [['Thông điệp chính', 'message'], ['Đối tượng', 'audience'], ['Góc nhìn', 'angle']].filter(([, k]) => f && f[k]).map(([n, k]) => `${n}: ${f[k]}`);
+function previewAddTopics(S, weekId, md) {
+  const n = normalizeTopicMd(S, md);
+  const r = Object.assign(parseTopics(n.md), { normalized: n });
+  if (r.errors.length) return Object.assign({ ok: false }, r);
+  const rows = topicsOf(S, weekId);
+  const add = [], skipped = [];
+  r.topics.forEach(p => { (rows.some(row => sameTopicContent(topicCurrent(row), p)) ? skipped : add).push(p); });
+  if (rows.length + add.length > TOPIC_MAX) {
+    return Object.assign({ ok: false }, r, { errors: [{ text: `Tuần đã có ${rows.length} Topic, thêm ${add.length} sẽ vượt tối đa ${TOPIC_MAX}. Hủy bớt Topic hoặc nạp ít hơn.` }] });
+  }
+  if (!add.length) return Object.assign({ ok: false }, r, { errors: [{ text: 'Mọi Topic trong tệp đã có trong tuần (trùng tên và nội dung), không có gì để thêm.' }] });
+  return Object.assign({ ok: true }, r, { add, skipped, total: rows.length + add.length });
+}
+function addTopics(S, weekId, md, at) {
+  const w = weekOf(S, weekId);
+  if (!w) return { ok: false, errors: [{ text: 'Không tìm thấy tuần.' }] };
+  if (isLocked(S, weekId)) return { ok: false, errors: [{ text: 'Tuần đã chốt. Bấm "Mở lại để sửa" trước.' }] };
+  const r = previewAddTopics(S, weekId, md);
+  if (!r.ok) return r;
+  const now = at || S.settings.demoNow;
+  r.add.forEach(p => {
+    const k = topicsOf(S, weekId).length + 1;
+    S.topics.push({ id: uniqueTopicId(S, w, k), weekId, order: k, currentVersion: 1, versions: [{ n: 1, title: p.title, text: p.text, fields: clone(p.fields), words: p.words, hasCase: p.hasCase, createdAt: now, reason: 'imported' }] });
+  });
+  ensureCells(S, weekId);
+  refreshSlotFlags(S, weekId);
+  const block = r.add.map(p => [`## ${p.title}`, ...topicFieldLines(p.fields), '', p.text].join('\n')).join('\n\n');
+  const old = topicFileOf(S, weekId);
+  if (old) {
+    old.md = `${String(old.md || '').trimEnd()}\n\n${block}\n`; old.rawMd = undefined;
+    if (!old.context && r.context) old.context = r.context;
+    if (!old.title && r.title) old.title = r.title;
+    if (!old.theme && r.theme) old.theme = r.theme;
+    old.warnings = (old.warnings || []).concat(r.warnings);
+  } else {
+    S.topicFiles = (S.topicFiles || []).concat([{ weekId, md: `${block}\n`, title: r.title, theme: r.theme, context: r.context, importedAt: now, warnings: r.warnings }]);
+  }
+  log(S, 'import', 'topics', weekId, `thêm ${r.add.length} Topic${r.skipped.length ? `, bỏ qua ${r.skipped.length} trùng` : ''}`);
+  return r;
+}
 function dropTopicRow(S, weekId, row) {
   const ids = new Set(cellsOf(S, weekId).filter(c => c.topicId === row.id).map(c => c.id));
   weekSlots(S, weekId).forEach(s => { if (s.sourceCellId && ids.has(s.sourceCellId)) clearSlotContent(s); });

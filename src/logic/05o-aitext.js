@@ -114,7 +114,7 @@ function cellJob(S, cell, iv, col, context, mock, n) {
   const sk = skillBlock(col, `Chỉ dẫn viết cho Cột "${col.name}"`);
   const user = [`# Việc: viết bài cho Cột "${col.name}"`, sk || col.guideMd || '', col.structure && col.structure.length ? `Bố cục: ${col.structure.join(' → ')}. Mỗi phần mở bằng đề mục "## Tên phần".` : '', rulesLine(col.hardRules || {}),
     `# Khung trình bày\n${columnLayoutGuide(col)}`,
-    `# Topic: ${iv.title}\n${iv.text}`, context ? `# Bối cảnh tuần\n${context}` : '',
+    `# Topic: ${iv.title}\n${topicDirection(iv) ? topicDirection(iv) + '\n\n' : ''}${iv.text}`, context ? `# Bối cảnh tuần\n${context}` : '',
     sk ? '' : `# Bản nháp máy (chỉ để theo bố cục và độ dài; hãy viết lại hay hơn, không chép)\n${mock}`,
     n > 1 ? `Đây là lượt viết thứ ${n}: chọn góc mở bài khác các lượt trước.` : '',
     `# Tiêu chí chấm (1–5)\n${criteriaText(col.criteria)}`].filter(Boolean).join('\n\n');

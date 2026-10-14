@@ -1759,3 +1759,37 @@ test('10.50 · Khung trình bày đi kèm lệnh AI thật; lệnh sao chép cho
   const p = AC.cellPrompt(S, c.id);
   assert.match(p, /SKILL CHO AGENT/); assert.doesNotMatch(p, /Chức năng của Cột/); assert.ok(!p.includes(col.guideMd));
 });
+
+test('10.51 · Nạp thêm Topic: xếp xuống cuối, giữ Topic cũ, bỏ qua trùng, tối đa 8; ba dòng định hướng đến AI', () => {
+  const S = seed();
+  const wk = 'w-2026-10-26';
+  AC.ensureWeek(S, '2026-10-26');
+  const mk = (title, extra = '') => `## ${title}\nThông điệp chính: Thông điệp của ${title}.\nĐối tượng: Người làm ca ${title}.\nGóc nhìn: Góc nhìn của ${title}.\n\n### Số liệu và phát hiện\nMột đoạn dài đủ chữ cho Topic ${title}. ${'Nội dung giải thích khá dài. '.repeat(40)}${extra}\n\n### Vì sao\n${'Vì sao mà như vậy. '.repeat(30)}\n`;
+  assert.equal(AC.importTopics(S, wk, mk('Một')).ok, true);
+  assert.equal(AC.topicsOf(S, wk).length, 1);
+  const r2 = AC.addTopics(S, wk, mk('Hai'));
+  assert.equal(r2.ok, true); assert.equal(AC.topicsOf(S, wk).length, 2);
+  assert.equal(AC.topicCurrent(AC.topicsOf(S, wk)[0]).title, 'Một'); assert.equal(AC.topicCurrent(AC.topicsOf(S, wk)[1]).title, 'Hai');
+  assert.equal(AC.topicsOf(S, wk)[1].order, 2);
+  // mỗi Cột của tuần có ô cho Topic mới
+  const cols = AC.weekOf(S, wk).columnIds.length; assert.equal(S.cells.filter(c => c.weekId === wk && c.topicId === AC.topicsOf(S, wk)[1].id).length, cols);
+  // trùng hẳn thì bỏ qua và báo lỗi khi không còn gì để thêm
+  assert.equal(AC.addTopics(S, wk, mk('Hai')).ok, false);
+  const r3 = AC.addTopics(S, wk, mk('Hai') + '\n' + mk('Ba')); assert.equal(r3.ok, true); assert.equal(r3.add.length, 1); assert.equal(r3.skipped.length, 1);
+  assert.equal(AC.topicsOf(S, wk).length, 3);
+  // tệp gốc của tuần nối thêm Topic mới
+  const f = AC.topicFileOf(S, wk); assert.match(f.md, /## Ba/); assert.match(f.md, /Đối tượng: Người làm ca Ba/);
+  // vượt 8 thì từ chối
+  for (let i = 4; i <= 8; i++) assert.equal(AC.addTopics(S, wk, mk('T' + i)).ok, true);
+  const over = AC.addTopics(S, wk, mk('Chín')); assert.equal(over.ok, false); assert.match(over.errors[0].text, /tối đa 8/);
+  // tuần đã chốt thì không thêm được
+  // ba dòng định hướng có trong lệnh gửi AI (ô) và lệnh sao chép cho agent ngoài
+  const row = AC.topicsOf(S, wk)[1]; const cell = S.cells.find(c => c.topicId === row.id && AC.byId(S.columns, c.columnId).kind === 'giaithich');
+  const job = AC.aiPlan(S, C => AC.regenCell(C, cell.id))[0];
+  assert.match(job.user, /Định hướng của người biên tập[\s\S]*Thông điệp chính: Thông điệp của Hai[\s\S]*Đối tượng: Người làm ca Hai[\s\S]*Góc nhìn: Góc nhìn của Hai/);
+  assert.match(AC.cellPrompt(S, cell.id), /Đối tượng: Người làm ca Hai/);
+  // Topic không có ba dòng thì không thêm mục định hướng
+  const S2 = seed(); AC.ensureWeek(S2, '2026-10-26'); AC.importTopics(S2, wk, '## Trơn\n\n### Vì sao\n' + 'Một câu đủ dài để thành Topic. '.repeat(30));
+  const c2 = S2.cells.find(c => c.weekId === wk && AC.byId(S2.columns, c.columnId).kind === 'giaithich');
+  assert.doesNotMatch(AC.aiPlan(S2, C => AC.regenCell(C, c2.id))[0].user, /Định hướng của người biên tập/);
+});
