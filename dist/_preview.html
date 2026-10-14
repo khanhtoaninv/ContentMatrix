@@ -993,9 +993,14 @@ body.drag-slot .cal .day { transition: background .12s, box-shadow .12s; }
 .mxacts .btn:disabled { opacity: .35; cursor: default; }
 @media (max-width: 640px) { .mxrow { grid-template-columns: 28px minmax(0, 1fr); } .mxnum { width: 28px; height: 28px; } .mxacts { grid-column: 2; } .mxmain select.inp { max-width: none; } }
 
-/* Duyệt ngay trên ô (10.55) */
-.cellwrap { display: grid; gap: 4px; }
-.cellwrap .cell-ok { justify-self: start; min-height: 28px; padding: 2px 10px; }
+/* Duyệt ngay trên ô (10.55): nút nằm trong cùng thẻ với nội dung ô */
+.cellwrap { display: grid; }
+.cellwrap.has-ok { border: 1px solid var(--line); border-radius: var(--r-s); background: var(--surface); overflow: hidden; }
+.cellwrap.has-ok.need { border-left: 3px solid var(--mark); background: color-mix(in srgb, var(--mark-soft) 35%, var(--surface)); }
+.cellwrap.has-ok:hover { box-shadow: var(--shadow); }
+.cellwrap.has-ok > .cellbtn { border: 0; border-radius: 0; background: transparent; box-shadow: none; min-height: 0; }
+.cellwrap.has-ok > .cellbtn:focus-visible { outline-offset: -2px; }
+.cellwrap .cell-ok { justify-self: start; margin: 0 8px 8px; min-height: 28px; padding: 2px 10px; }
 .cellwrap .cell-ok svg { width: 15px; height: 15px; }
 
 </style>
@@ -10358,7 +10363,7 @@ function cellBtnHtml(w, row, col) {
   const used = AC.slotsUsingCell(S, c.id).length;
   const quick = v.state === 'DRAFT' && w.status !== 'CONFIRMED' && AC.topicCurrent(row)
     ? `<button class="btn sm cell-ok ${ws.length ? '' : 'primary'}" data-act="cell-approve-quick" data-id="${esc(c.id)}" aria-label="Duyệt ô Topic ${row.order}, Cột ${esc(col.label || col.name)}${ws.length ? ` (có ${ws.length} cảnh báo)` : ''}">${icon('check')} Duyệt</button>` : '';
-  return `<div class="cellwrap"><button class="cellbtn ${need ? 'need' : ''}" data-act="open-cell" data-id="${esc(c.id)}" aria-label="Topic ${row.order}, Cột ${esc(col.label || col.name)}: ${label}">
+  return `<div class="cellwrap${quick ? ` has-ok${need ? ' need' : ''}` : ''}"><button class="cellbtn ${need ? 'need' : ''}" data-act="open-cell" data-id="${esc(c.id)}" aria-label="Topic ${row.order}, Cột ${esc(col.label || col.name)}: ${label}">
       <span class="row" style="justify-content:space-between;gap:4px"><span class="st ${cls}">${label}</span>${v.gen ? `<span class="mono small">${v.gen.total}</span>` : ''}</span>
       ${ws.length ? `<span class="small" style="color:${sum.errors ? 'var(--bad)' : 'var(--warn)'}">${sum.label}</span>` : ''}
       ${noCase ? `<span class="small muted">Topic không có trường hợp${v.state === 'EMPTY' ? ' · nên Hủy' : ''}</span>` : ''}

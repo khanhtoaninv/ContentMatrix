@@ -25,7 +25,7 @@ function cellBtnHtml(w, row, col) {
   const used = AC.slotsUsingCell(S, c.id).length;
   const quick = v.state === 'DRAFT' && w.status !== 'CONFIRMED' && AC.topicCurrent(row)
     ? `<button class="btn sm cell-ok ${ws.length ? '' : 'primary'}" data-act="cell-approve-quick" data-id="${esc(c.id)}" aria-label="Duyệt ô Topic ${row.order}, Cột ${esc(col.label || col.name)}${ws.length ? ` (có ${ws.length} cảnh báo)` : ''}">${icon('check')} Duyệt</button>` : '';
-  return `<div class="cellwrap"><button class="cellbtn ${need ? 'need' : ''}" data-act="open-cell" data-id="${esc(c.id)}" aria-label="Topic ${row.order}, Cột ${esc(col.label || col.name)}: ${label}">
+  return `<div class="cellwrap${quick ? ` has-ok${need ? ' need' : ''}` : ''}"><button class="cellbtn ${need ? 'need' : ''}" data-act="open-cell" data-id="${esc(c.id)}" aria-label="Topic ${row.order}, Cột ${esc(col.label || col.name)}: ${label}">
       <span class="row" style="justify-content:space-between;gap:4px"><span class="st ${cls}">${label}</span>${v.gen ? `<span class="mono small">${v.gen.total}</span>` : ''}</span>
       ${ws.length ? `<span class="small" style="color:${sum.errors ? 'var(--bad)' : 'var(--warn)'}">${sum.label}</span>` : ''}
       ${noCase ? `<span class="small muted">Topic không có trường hợp${v.state === 'EMPTY' ? ' · nên Hủy' : ''}</span>` : ''}
