@@ -1211,3 +1211,9 @@ Mỗi tuần tối đa 10 Topic (tệp nạp hơn 10 Topic báo lỗi, không n�
 
 ## 10.55. Duyệt ô ngay trong Matrix và duyệt hàng loạt gồm ô có cảnh báo (14/10/2026, bản 80)
 Mỗi ô Chưa duyệt trong Matrix có nút Duyệt nằm trong cùng thẻ ô, dưới phần nội dung (bản 81); ô không cảnh báo duyệt luôn, ô có cảnh báo hỏi "Duyệt ô có cảnh báo?" rồi duyệt, không mở hộp chi tiết. Nút Duyệt hàng loạt hiện khi có ô Chưa duyệt, ghi tổng số ô; hộp xác nhận duyệt các ô không cảnh báo và có ô đánh dấu "Duyệt cả N ô có cảnh báo" kèm danh sách Topic × Cột và số cảnh báo (mặc định không chọn; nếu không có ô sạch nào thì chọn sẵn).
+
+## 10.56. Chỉnh giao diện Matrix, Tuần mẫu, Dashboard (14/10/2026, bản 82)
+- Setup: mục "Cấu hình Matrix" đổi tên "Matrix"; dòng chọn Cột chỉ còn ô chọn (và "Tiêu đề trong Matrix" khi một loại Cột đứng nhiều vị trí).
+- Matrix: nút Duyệt trong thẻ ô không có biểu tượng, cùng kiểu nút Duyệt của slot, căn lề trái thẻ; nút "Duyệt hàng loạt" đổi tên "Duyệt tất cả" (hộp xác nhận tên "Duyệt tất cả").
+- Dashboard: dải "Việc tiếp theo" có nút "Duyệt tất cả" ở bước 4 (duyệt ô) và bước 6 (duyệt slot), cùng hộp xác nhận: mặc định duyệt mục không cảnh báo, có ô đánh dấu duyệt cả mục có cảnh báo kèm danh sách.
+- Setup → Tuần mẫu: slot mẫu hiện trên lịch 7 ngày cùng bố cục lịch tuần (giờ, kênh, Format, Cột); dấu + ở từng ngày thêm slot vào ngày đó; bấm slot mở hộp sửa Thứ, Giờ, Kênh, Format hoặc Xóa slot; trên điện thoại lịch xếp theo ngày dọc.

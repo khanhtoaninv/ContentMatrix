@@ -19,6 +19,21 @@ function dealWeek(S, weekId, at) {
   return r;
 }
 function slotSourceCell(S, s) { return s && s.sourceCellId ? byId(S.cells, s.sourceCellId) : null; }
+// Duyệt tất cả slot (10.56): slot Chưa duyệt có bài, không cần cập nhật; withWarned = true thì gồm cả slot có cảnh báo
+function slotsApprovable(S, weekId, withWarned) {
+  if (isLocked(S, weekId)) return [];
+  return weekSlots(S, weekId).filter(s => s.state === 'DRAFT' && s.text && !s.needsUpdate && (withWarned || !slotWarnings(S, s).length));
+}
+function slotsWarned(S, weekId) {
+  return slotsApprovable(S, weekId, true).map(s => ({ slot: s, warnings: slotWarnings(S, s) })).filter(x => x.warnings.length);
+}
+function approveSlotsBulk(S, weekId, at, withWarned) {
+  const list = slotsApprovable(S, weekId, withWarned);
+  list.forEach(s => approveSlot(S, s.id, at));
+  const left = weekSlots(S, weekId).filter(s => s.state === 'DRAFT').length;
+  if (list.length) log(S, 'approve-bulk', 'slots', weekId, `${list.length} slot`);
+  return { ok: true, approved: list.length, left };
+}
 // Duyệt slot: cần có bài và không "cần cập nhật"
 function approveSlot(S, slotId, at) {
   const s = byId(S.slots, slotId);

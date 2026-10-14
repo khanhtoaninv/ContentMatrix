@@ -24,7 +24,7 @@ function cellBtnHtml(w, row, col) {
   const noCase = col.kind === 'cauchuyen' && !(AC.topicCurrent(row) || {}).hasCase;
   const used = AC.slotsUsingCell(S, c.id).length;
   const quick = v.state === 'DRAFT' && w.status !== 'CONFIRMED' && AC.topicCurrent(row)
-    ? `<button class="btn sm cell-ok ${ws.length ? '' : 'primary'}" data-act="cell-approve-quick" data-id="${esc(c.id)}" aria-label="Duyệt ô Topic ${row.order}, Cột ${esc(col.label || col.name)}${ws.length ? ` (có ${ws.length} cảnh báo)` : ''}">${icon('check')} Duyệt</button>` : '';
+    ? `<button class="slot-ok cell-ok" data-act="cell-approve-quick" data-id="${esc(c.id)}" aria-label="Duyệt ô Topic ${row.order}, Cột ${esc(col.label || col.name)}${ws.length ? ` (có ${ws.length} cảnh báo)` : ''}">Duyệt</button>` : '';
   return `<div class="cellwrap${quick ? ` has-ok${need ? ' need' : ''}` : ''}"><button class="cellbtn ${need ? 'need' : ''}" data-act="open-cell" data-id="${esc(c.id)}" aria-label="Topic ${row.order}, Cột ${esc(col.label || col.name)}: ${label}">
       <span class="row" style="justify-content:space-between;gap:4px"><span class="st ${cls}">${label}</span>${v.gen ? `<span class="mono small">${v.gen.total}</span>` : ''}</span>
       ${ws.length ? `<span class="small" style="color:${sum.errors ? 'var(--bad)' : 'var(--warn)'}">${sum.label}</span>` : ''}
@@ -67,7 +67,7 @@ RENDERERS.matrix = () => {
   if (!rows.length) return `${head}${lockBannerHtml(w)}${demo}<section class="focus">${progressHtml(wid)}</section>
     <div class="empty"><p>Tuần này chưa có Topic. Nạp một tệp .md gồm Bối cảnh chung và các Topic (mỗi Topic một đề mục ##, khoảng 2.000 chữ), do bạn hoặc agent bên ngoài chuẩn bị. Số Topic tùy bạn.${w ? '' : ' Tuần chưa có slot nhưng bạn vẫn nạp Topic trước được; Lập tuần ở Dashboard.'}</p><div class="row">${importBtn}${helpBtns}</div></div>`;
   const words = rows.reduce((a, r) => a + ((AC.topicCurrent(r) || {}).words || 0), 0);
-  return `${head}${lockBannerHtml(w)}${demo}<section class="focus">${nextBandHtml(wid)}${progressHtml(wid)}</section>
+  return `${head}${lockBannerHtml(w)}${demo}<section class="focus">${nextBandHtml(wid, true)}${progressHtml(wid)}</section>
     <section class="work stack" aria-label="Ma trận">
       <div class="work-bar"><div class="row small muted" id="mx-counts">${mxCountsHtml(w)}</div></div>
       ${mxToolsHtml(w, gate)}
@@ -90,7 +90,7 @@ function mxToolsHtml(w, gate) {
     : `<button class="btn ${wg.ok ? 'primary' : ''}" data-act="mx-write" ${wg.ok ? '' : 'disabled'} title="${esc(wg.ok ? `Viết ${wg.count} ô Trống` : wg.reasons.join('; '))}">Viết ma trận${wg.ok ? ` (${wg.count} ô)` : ''}</button>`;
   return `<div class="row" id="mx-tools">
       ${writeBtn}
-      ${bulk && !run ? `<button class="btn" data-act="mx-bulk">${icon('check')} Duyệt hàng loạt (${bulk} ô)</button>` : ''}
+      ${bulk && !run ? `<button class="btn" data-act="mx-bulk">Duyệt tất cả (${bulk} ô)</button>` : ''}
       <button class="btn ${gate.ok && !run ? 'primary' : ''}" data-act="mx-deal" data-testid="deal" ${gate.ok && !run ? '' : 'disabled'} title="${esc(gate.ok ? `Viết ${gate.willFill} slot còn trống từ ô Đã duyệt` : 'Chưa bật: ' + gate.reasons.join('; '))}">Chia bài${gate.ok ? ` (${gate.willFill} slot)` : ''}</button>
     </div>
     <p class="small faint" id="deal-why">${!wg.ok && !run ? `Viết ma trận: ${esc(wg.reasons.join('; '))}. ` : ''}${gate.ok ? `Chia bài sẽ điền ${gate.willFill} slot còn trống; slot đã có bài giữ nguyên.` : `Chia bài chưa bật: ${esc(gate.reasons.join('; '))}.`}</p>`;
@@ -133,20 +133,26 @@ async function mxStep() {
 }
 const MX_DELAY = 160;   // mô phỏng thời gian AI viết một ô
 ACTIONS['mx-stop'] = () => { if (view.mxRun) view.mxRun.stop = true; };
-ACTIONS['mx-bulk'] = async () => {
-  const w = curWeek(); if (!w) return;
-  const clean = AC.bulkApprovable(S, w.id); const warned = AC.bulkWarned(S, w.id);
-  const name = c => { const r = AC.byId(S.topics, c.topicId); return `Topic ${r ? r.order : '?'} × ${AC.cellLabel(S, c)}`; };
-  const extra = warned.length ? `<label class="check"><input type="checkbox" data-collect="all" ${clean.length ? '' : 'checked'}> Duyệt cả ${warned.length} ô có cảnh báo</label>
-    <ul class="small" style="max-height:180px;overflow:auto;margin:6px 0 0">${warned.map(x => `<li>${esc(name(x.cell))}: ${esc(AC.summarizeWarnings(x.warnings).label)}</li>`).join('')}</ul>` : '';
-  const res = await confirmBox({ title: 'Duyệt hàng loạt', ok: 'Duyệt', extra,
-    body: `<p>${clean.length} ô Chưa duyệt không có cảnh báo sẽ được duyệt.${warned.length ? ` ${warned.length} ô có cảnh báo (chỉ để tham khảo): đánh dấu ô bên dưới nếu muốn duyệt luôn, hoặc để lại xem từng ô.` : ''}</p>` });
+// Duyệt tất cả (10.56): dùng chung cho ô (Matrix, Dashboard bước 4) và slot (Dashboard bước 6)
+async function approveAllFlow(kind, w) {
+  const isCell = kind === 'cell';
+  const clean = isCell ? AC.bulkApprovable(S, w.id) : AC.slotsApprovable(S, w.id);
+  const warned = isCell ? AC.bulkWarned(S, w.id) : AC.slotsWarned(S, w.id);
+  const unit = isCell ? 'ô' : 'slot';
+  const name = x => { if (isCell) { const r = AC.byId(S.topics, x.cell.topicId); return `Topic ${r ? r.order : '?'} × ${AC.cellLabel(S, x.cell)}`; } return `${x.slot.time} ${AC.dmy(x.slot.date)} · ${fmtName(x.slot.formatId)}`; };
+  if (!clean.length && !warned.length) return toast(`Không có ${unit} nào chờ duyệt.`, 'bad');
+  const extra = warned.length ? `<label class="check"><input type="checkbox" data-collect="all" ${clean.length ? '' : 'checked'}> Duyệt cả ${warned.length} ${unit} có cảnh báo</label>
+    <ul class="small" style="max-height:180px;overflow:auto;margin:6px 0 0">${warned.map(x => `<li>${esc(name(x))}: ${esc(AC.summarizeWarnings(x.warnings).label)}</li>`).join('')}</ul>` : '';
+  const res = await confirmBox({ title: 'Duyệt tất cả', ok: 'Duyệt', extra,
+    body: `<p>${clean.length} ${unit} Chưa duyệt không có cảnh báo sẽ được duyệt.${warned.length ? ` ${warned.length} ${unit} có cảnh báo (chỉ để tham khảo): đánh dấu ô bên dưới nếu muốn duyệt luôn, hoặc để lại xem từng ${unit}.` : ''}</p>` });
   if (!res) return;
   const all = res === true ? false : !!res.all;
-  if (!all && !clean.length) return toast('Chưa duyệt ô nào: đánh dấu "Duyệt cả ô có cảnh báo" hoặc duyệt từng ô.', 'bad');
-  const r = AC.approveCellsBulk(S, w.id, null, all);
-  commit(`Đã duyệt ${r.approved} ô.${r.left ? ` Còn ${r.left} ô chưa duyệt.` : ''}`);
-};
+  if (!all && !clean.length) return toast(`Chưa duyệt ${unit} nào: đánh dấu "Duyệt cả ${unit} có cảnh báo" hoặc duyệt từng ${unit}.`, 'bad');
+  const r = isCell ? AC.approveCellsBulk(S, w.id, null, all) : AC.approveSlotsBulk(S, w.id, null, all);
+  commit(`Đã duyệt ${r.approved} ${unit}.${r.left ? ` Còn ${r.left} ${unit} chưa duyệt.` : ''}`);
+}
+ACTIONS['mx-bulk'] = () => { const w = curWeek(); if (w) return approveAllFlow('cell', w); };
+ACTIONS['approve-all'] = () => { const w = curWeek(); if (!w) return; return approveAllFlow(AC.weekProgress(S, w.id).current === 6 ? 'slot' : 'cell', w); };
 function searchCountText(w) { const q = (view.tpcSearch || '').trim(); return q ? `${topicMatches(w).length} Topic khớp "${q}"` : ''; }
 INPUTS['topic-search'] = el => {
   view.tpcSearch = el.value;

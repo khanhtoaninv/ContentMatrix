@@ -1,6 +1,6 @@
 // ---------- UI · Thiết lập (SCR-12..19) ----------
 const SETUP_TABS = [
-  ['brand', 'Thương hiệu'], ['voice', 'Giọng văn'], ['channels', 'Kênh'], ['matrix', 'Cấu hình Matrix'], ['columns', 'Cột'], ['topicframe', 'Khung Topic'],
+  ['brand', 'Thương hiệu'], ['voice', 'Giọng văn'], ['channels', 'Kênh'], ['matrix', 'Matrix'], ['columns', 'Cột'], ['topicframe', 'Khung Topic'],
   ['formats', 'Format'], ['imgstd', 'Chuẩn ảnh'], ['frames', 'Frame ảnh'], ['snippets', 'Hashtag & CTA'], ['library', 'Kho tài sản'], ['blog', 'Chuẩn Blog'], ['imageapi', 'Kết nối AI'], ['templates', 'Tuần mẫu'], ['rules', 'Quy tắc & tiêu chí'], ['backup', 'Sao lưu & demo'],
 ];
 function setupTabOk(id) {
@@ -204,7 +204,6 @@ function matrixTab() {
   const ids = AC.matrixLayout(S); const custom = (S.settings.matrixColumns || []).length > 0;
   const w = { columnIds: ids };
   const opts = sel => S.columns.map(c => `<option value="${esc(c.id)}" ${c.id === sel ? 'selected' : ''}>${esc(c.name)}${c.active ? '' : ' (đang ẩn)'}</option>`).join('');
-  const meta = id => { const c = AC.byId(S.columns, id); const nf = S.formats.filter(f => f.columnId === id).length; return `${esc(c.structure.join(' → '))} · ${nf ? `${nf} Format` : '<span style="color:var(--warn)">chưa có Format</span>'}${AC.activeSkill(c) ? ` · Skill "${esc(AC.activeSkill(c).name)}"` : ''}`; };
   const seen = {};
   const rows = ids.map((id, i) => {
     const k = seen[id] || 0; seen[id] = k + 1; const lbl = AC.laneLabel(S, w, id, k);
@@ -212,7 +211,7 @@ function matrixTab() {
       <span class="mxnum" aria-hidden="true">${i + 1}</span>
       <div class="mxmain"><label class="sr" for="mx-sel-${i}">Nội dung Cột ${i + 1}</label>
         <select id="mx-sel-${i}" class="inp" data-change="mx-pos" data-i="${i}">${opts(id)}</select>
-        <span class="small muted">${lbl !== AC.byId(S.columns, id).name ? `Tiêu đề trong Matrix: <b>${esc(lbl)}</b> · ` : ''}${meta(id)}</span></div>
+        ${lbl !== AC.byId(S.columns, id).name ? `<span class="small muted">Tiêu đề trong Matrix: <b>${esc(lbl)}</b></span>` : ''}</div>
       <div class="mxacts">
         <button class="btn icon ghost" data-act="mx-move" data-i="${i}" data-d="-1" ${i ? '' : 'disabled'} aria-label="Đưa Cột ${i + 1} lên" title="Lên">${icon('up')}</button>
         <button class="btn icon ghost" data-act="mx-move" data-i="${i}" data-d="1" ${i < ids.length - 1 ? '' : 'disabled'} aria-label="Đưa Cột ${i + 1} xuống" title="Xuống">${icon('down')}</button>
@@ -236,7 +235,7 @@ ACTIONS['mx-move'] = el => { const ids = AC.matrixLayout(S).slice(); const i = +
 ACTIONS['mx-reset'] = () => { S.settings.matrixColumns = []; commit('Đã về mặc định: tuần mới lấy các Cột đang bật.'); };
 function columnsTab() {
   const active = S.columns.filter(c => c.active).length;
-  return `<p class="muted">Cột là chức năng nội dung (giải thích, hướng dẫn…), không phải định dạng; định dạng thuộc về Format. Đây là danh sách loại Cột để chọn; số Cột và thứ tự Cột của tuần mới đặt ở mục <button class="linkbtn" data-act="setup-tab" data-tab="matrix">Cấu hình Matrix</button>. Mỗi Cột cần ít nhất 1 Format.</p>
+  return `<p class="muted">Cột là chức năng nội dung (giải thích, hướng dẫn…), không phải định dạng; định dạng thuộc về Format. Đây là danh sách loại Cột để chọn; số Cột và thứ tự Cột của tuần mới đặt ở mục <button class="linkbtn" data-act="setup-tab" data-tab="matrix">Matrix</button>. Mỗi Cột cần ít nhất 1 Format.</p>
     <div class="cardlist">${S.columns.map(c => { const nf = S.formats.filter(f => f.columnId === c.id).length; return `<div class="citem ${c.active ? '' : 'off'}">
       <div class="stack" style="gap:4px"><b>${esc(c.name)}</b>${c.active ? '' : ' <span class="st st-off">Đang ẩn</span>'}
         <span class="small muted">${esc(c.structure.join(' → '))}</span>
@@ -398,18 +397,52 @@ function templatesTab() {
       ${emptyDays.length ? `<div class="note warn">Ngày chưa có slot: ${emptyDays.map(d => esc(AC.WEEKDAY_LONG[d])).join(', ')}.</div>` : ''}
       ${warns.length ? `<div class="note warn">${warns.map(w => esc(w.text)).join('<br>')}</div>` : ''}
       ${list.length ? '' : '<div class="note bad">Tuần mẫu này chưa có slot nên không được gợi ý và không dùng được.</div>'}
-      <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Thứ</th><th>Giờ</th><th>Kênh</th><th>Format</th><th>Cột</th><th><span class="sr">Xóa</span></th></tr></thead><tbody>
-      ${list.map(t => `<tr>
-        <td><select class="inp" id="tp-d-${esc(t.id)}" data-change="tpl-edit" data-id="${esc(t.id)}" data-k="weekday" aria-label="Thứ">${[1, 2, 3, 4, 5, 6, 7].map(d => `<option value="${d}" ${t.weekday === d ? 'selected' : ''}>${AC.WEEKDAY_LONG[d]}</option>`).join('')}</select></td>
-        <td><input class="inp mono" id="tp-t-${esc(t.id)}" type="time" value="${esc(t.time)}" data-change="tpl-edit" data-id="${esc(t.id)}" data-k="time" aria-label="Giờ" style="min-width:100px"></td>
-        <td><select class="inp" id="tp-c-${esc(t.id)}" data-change="tpl-edit" data-id="${esc(t.id)}" data-k="channelId" aria-label="Kênh">${channelOptions(t.channelId)}</select></td>
-        <td><select class="inp" id="tp-f-${esc(t.id)}" data-change="tpl-edit" data-id="${esc(t.id)}" data-k="formatId" aria-label="Format" style="min-width:200px">${formatOptions(t.channelId, t.formatId)}</select></td>
-        <td class="small">${esc(colName(colOf(t)))}</td>
-        <td><button class="btn sm ghost danger" data-act="tpl-delete" data-id="${esc(t.id)}">Xóa</button></td></tr>`).join('')}
-      </tbody></table></div>
-      <div><button class="btn" data-act="tpl-add">${icon('plus')} Thêm slot mẫu</button></div>
+      ${tplCalHtml(list, colOf)}
+      <div><button class="btn" data-act="tpl-add" data-day="1">${icon('plus')} Thêm slot mẫu</button></div>
     </section>`;
 }
+// Lịch của Tuần mẫu (10.56): cùng bố cục với lịch tuần; bấm slot để sửa, dấu + để thêm slot vào ngày
+function tplCalHtml(list, colOf) {
+  const days = [1, 2, 3, 4, 5, 6, 7];
+  const plus = d => `<button class="addslot" data-act="tpl-add" data-day="${d}" aria-label="Thêm slot mẫu ${esc(AC.WEEKDAY_LONG[d])}">${icon('plus')}</button>`;
+  const chip = t => `<button class="slot" data-act="tpl-slot-edit" data-id="${esc(t.id)}" aria-label="${esc(`${AC.WEEKDAY_LONG[t.weekday]} ${t.time} ${chName(t.channelId)} ${fmtName(t.formatId)}`)}">
+      <span class="top"><span class="t mono">${esc(t.time)}</span>${chTag(t.channelId)}</span>
+      <span class="fmt">${esc(fmtName(t.formatId))}</span>
+      <span class="seg-col">${esc(colName(colOf(t)))}</span></button>`;
+  const grid = `<div class="cal" role="grid" aria-label="Lịch Tuần mẫu">${days.map(d => `
+    <div class="day" role="gridcell"><div class="day-h"><span><b>${AC.WEEKDAY_SHORT[d]}</b></span>${plus(d)}</div>
+      <div class="day-b">${list.filter(t => t.weekday === d).map(chip).join('') || '<span class="small faint">Không có slot</span>'}</div></div>`).join('')}</div>`;
+  const dl = `<div class="daylist">${days.map(d => { const ds = list.filter(t => t.weekday === d); return `<div class="dl-day"><div class="day-h"><span><b>${AC.WEEKDAY_LONG[d]}</b></span>${plus(d)}</div>
+      ${ds.length ? `<div class="dl-slots">${ds.map(chip).join('')}</div>` : ''}</div>`; }).join('')}</div>`;
+  return `<div class="tplcal">${grid}${dl}</div>`;
+}
+ACTIONS['tpl-slot-edit'] = el => {
+  const tpl = curTemplate(); const t = tpl && tpl.slots.find(x => x.id === el.dataset.id); if (!t) return;
+  const box = openLayer(`<h2>Sửa slot mẫu</h2>
+    <div class="fgrid">
+      <div class="field"><label for="ts-d">Thứ</label><select id="ts-d">${[1, 2, 3, 4, 5, 6, 7].map(d => `<option value="${d}" ${t.weekday === d ? 'selected' : ''}>${AC.WEEKDAY_LONG[d]}</option>`).join('')}</select></div>
+      <div class="field"><label for="ts-t">Giờ</label><input id="ts-t" type="time" value="${esc(t.time)}"></div>
+    </div>
+    <div class="field"><label for="ts-c">Kênh</label><select id="ts-c">${channelOptions(t.channelId)}</select></div>
+    <div class="field"><label for="ts-f">Format</label><select id="ts-f">${formatOptions(t.channelId, t.formatId)}</select><span class="hint" id="ts-col">Cột: ${esc(colName((AC.byId(S.formats, t.formatId) || {}).columnId))}</span></div>
+    <span class="err" id="ts-err" role="alert"></span>
+    <div class="actions"><button class="btn danger" data-x="del" style="margin-right:auto">Xóa slot</button><button class="btn" data-x="no">Hủy</button><button class="btn primary" data-x="save">Lưu</button></div>`, 'dialog');
+  const colHint = () => { const f = AC.byId(S.formats, $('#ts-f', box).value); $('#ts-col', box).textContent = `Cột: ${f ? colName(f.columnId) : '(chưa có Format)'}`; };
+  box.addEventListener('change', e => {
+    if (e.target.id === 'ts-c') { $('#ts-f', box).innerHTML = formatOptions(e.target.value, ''); }
+    if (e.target.id === 'ts-c' || e.target.id === 'ts-f') colHint();
+  });
+  box.addEventListener('click', e => {
+    const b = e.target.closest('[data-x]'); if (!b) return;
+    if (b.dataset.x === 'no') return closeLayer();
+    if (b.dataset.x === 'del') { tpl.slots = tpl.slots.filter(x => x.id !== t.id); closeLayer(); return commit('Đã xóa slot mẫu.'); }
+    const time = $('#ts-t', box).value, fid = $('#ts-f', box).value;
+    if (!AC.isValidTime(time)) { $('#ts-err', box).textContent = 'Giờ không hợp lệ.'; return; }
+    if (!fid) { $('#ts-err', box).textContent = 'Kênh này chưa có Format. Chọn kênh khác hoặc tạo Format trước.'; return; }
+    Object.assign(t, { weekday: Number($('#ts-d', box).value), time, channelId: $('#ts-c', box).value, formatId: fid });
+    closeLayer(); commit('Đã lưu slot mẫu.');
+  });
+};
 ACTIONS['tpl-select'] = el => { view.tplSel = el.dataset.id; render(); };
 ACTIONS['tpl-new'] = () => { const t = AC.addWeekTemplate(S, '', null); view.tplSel = t.id; commit('Đã thêm Tuần mẫu mới. Đặt tên và thêm slot mẫu.'); };
 ACTIONS['tpl-dup'] = el => { const src = AC.templateOf(S, el.dataset.id); const t = AC.addWeekTemplate(S, `${src.name} (bản sao)`, src.id); view.tplSel = t.id; commit('Đã nhân bản Tuần mẫu.'); };
@@ -422,16 +455,12 @@ ACTIONS['tpl-del'] = async el => {
   AC.deleteWeekTemplate(S, t.id); view.tplSel = null; commit('Đã xóa Tuần mẫu.');
 };
 CHANGES['tpl-name'] = el => { const t = AC.templateOf(S, el.dataset.id); const v = el.value.trim(); if (!v) { toast('Tên không được để trống.', 'bad'); return render(); } t.name = v; commit(); };
-CHANGES['tpl-edit'] = el => {
-  const tpl = curTemplate(); const t = tpl.slots.find(x => x.id === el.dataset.id); const k = el.dataset.k;
-  if (k === 'weekday') t.weekday = Number(el.value);
-  if (k === 'time') { if (!AC.isValidTime(el.value)) { toast('Giờ không hợp lệ.', 'bad'); return render(); } t.time = el.value; }
-  if (k === 'channelId') { t.channelId = el.value; const f = S.formats.find(x => x.channelId === el.value); t.formatId = f ? f.id : ''; if (!f) toast('Kênh này chưa có Format; slot mẫu sẽ bị bỏ qua khi lập tuần.', 'bad'); }
-  if (k === 'formatId') t.formatId = el.value;
-  commit();
+ACTIONS['tpl-add'] = el => {
+  const tpl = curTemplate(); const f = S.formats[0]; if (!tpl) return; if (!f) return toast('Cần có ít nhất một Format trước.', 'bad');
+  const day = Number(el && el.dataset && el.dataset.day) || 1;
+  const t = { id: AC.nextId(S, 'tpl'), weekday: day, time: '09:00', channelId: f.channelId, formatId: f.id }; tpl.slots.push(t);
+  commit(`Đã thêm slot mẫu ${AC.WEEKDAY_LONG[day]} 09:00. Bấm vào slot để chỉnh giờ, kênh và Format.`);
 };
-ACTIONS['tpl-add'] = () => { const tpl = curTemplate(); const f = S.formats[0]; if (!tpl) return; if (!f) return toast('Cần có ít nhất một Format trước.', 'bad'); tpl.slots.push({ id: AC.nextId(S, 'tpl'), weekday: 1, time: '09:00', channelId: f.channelId, formatId: f.id }); commit('Đã thêm slot mẫu Thứ Hai 09:00. Chỉnh thứ, giờ, kênh và Format trong bảng.'); };
-ACTIONS['tpl-delete'] = el => { const tpl = curTemplate(); tpl.slots = tpl.slots.filter(t => t.id !== el.dataset.id); commit('Đã xóa slot mẫu.'); };
 
 // ---- Quy tắc & tiêu chí ----
 function rulesTab() {

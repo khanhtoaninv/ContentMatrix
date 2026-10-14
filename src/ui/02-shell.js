@@ -133,12 +133,14 @@ function progressHtml(weekId) {
 ACTIONS['toggle-progress'] = () => { view.progressOpen = !view.progressOpen; render(); };
 ACTIONS['goto-step'] = el => go(STEP_TARGET[Number(el.dataset.i)]);
 
-function nextBandHtml(weekId) {
+function nextBandHtml(weekId, noApproveAll) {
   const a = AC.nextAction(S, weekId);
   const later = releaseFor(a.step);
+  const w = AC.weekOf(S, weekId);
+  const canAll = !noApproveAll && !!w && w.status !== 'CONFIRMED' && !a.done && ((a.step === 4 && AC.bulkApprovable(S, weekId, true).length) || (a.step === 6 && AC.slotsApprovable(S, weekId, true).length));
   return `<section class="nextband" aria-label="Việc tiếp theo">
     <div class="what"><span class="eyebrow">Việc tiếp theo</span><strong>${esc(a.label)}</strong><span>${esc(a.detail || '')}${later ? ` · Nút thao tác có từ đợt ${esc(later)}` : ''}</span></div>
-    ${a.done ? '' : `<button class="btn primary" data-act="do-next">${esc(later ? 'Xem màn hình' : a.label)}</button>`}
+    ${a.done ? '' : `<div class="row" style="gap:8px;flex-wrap:wrap">${canAll ? '<button class="btn" data-act="approve-all">Duyệt tất cả</button>' : ''}<button class="btn primary" data-act="do-next">${esc(later ? 'Xem màn hình' : a.label)}</button></div>`}
   </section>`;
 }
 // Từ R4 mọi bước đều thao tác được

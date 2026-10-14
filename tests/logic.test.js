@@ -1836,3 +1836,15 @@ test('10.55 · Duyệt hàng loạt gồm cả ô có cảnh báo khi chọn', (
   assert.equal(AC.approveCellsBulk(S2, w.id).approved, clean); assert.equal(AC.bulkWarned(S2, w.id).length, warned);
   const r = AC.approveCellsBulk(S, w.id, null, true); assert.equal(r.approved, warned + clean); assert.equal(AC.bulkApprovable(S, w.id, true).length, 0);
 });
+
+test('10.56 · Duyệt tất cả slot: mặc định chỉ slot không cảnh báo, chọn thì gồm cả slot có cảnh báo', () => {
+  const S = seed();
+  const w = S.weeks.find(x => x.status !== 'CONFIRMED' && AC.slotsApprovable(S, x.id, true).length);
+  assert.ok(w, 'cần tuần có slot Chưa duyệt');
+  const all = AC.slotsApprovable(S, w.id, true).length, clean = AC.slotsApprovable(S, w.id).length, warned = AC.slotsWarned(S, w.id).length;
+  assert.equal(all, clean + warned);
+  const S2 = AC.clone(S);
+  assert.equal(AC.approveSlotsBulk(S2, w.id).approved, clean);
+  assert.equal(AC.approveSlotsBulk(S, w.id, null, true).approved, all);
+  assert.equal(AC.slotsApprovable(S, w.id, true).length, 0);
+});

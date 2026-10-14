@@ -2196,6 +2196,21 @@ function dealWeek(S, weekId, at) {
   return r;
 }
 function slotSourceCell(S, s) { return s && s.sourceCellId ? byId(S.cells, s.sourceCellId) : null; }
+// Duyệt tất cả slot (10.56): slot Chưa duyệt có bài, không cần cập nhật; withWarned = true thì gồm cả slot có cảnh báo
+function slotsApprovable(S, weekId, withWarned) {
+  if (isLocked(S, weekId)) return [];
+  return weekSlots(S, weekId).filter(s => s.state === 'DRAFT' && s.text && !s.needsUpdate && (withWarned || !slotWarnings(S, s).length));
+}
+function slotsWarned(S, weekId) {
+  return slotsApprovable(S, weekId, true).map(s => ({ slot: s, warnings: slotWarnings(S, s) })).filter(x => x.warnings.length);
+}
+function approveSlotsBulk(S, weekId, at, withWarned) {
+  const list = slotsApprovable(S, weekId, withWarned);
+  list.forEach(s => approveSlot(S, s.id, at));
+  const left = weekSlots(S, weekId).filter(s => s.state === 'DRAFT').length;
+  if (list.length) log(S, 'approve-bulk', 'slots', weekId, `${list.length} slot`);
+  return { ok: true, approved: list.length, left };
+}
 // Duyệt slot: cần có bài và không "cần cập nhật"
 function approveSlot(S, slotId, at) {
   const s = byId(S.slots, slotId);
@@ -5784,7 +5799,7 @@ const AC = {
   buildSeed, addCellGen, cancelCell, log,
   cellNoCase, genText, genImagePrompt, writeQueue, writeGate, writeCellNow, writeMatrix, approveCell, regenCell, editCell, cancelCellNow, useCellGen,
   bulkApprovable, bulkWarned, approveCellsBulk, topicVersionImpact, editTopic, useTopicVersion, noCaseEmptyCount,
-  dealWeek, approveSlot, regenSlot, useSlotVersion, editSlot, updateSlotFromCell, keepSlotVersion, changeSlotCell, stepSlotImage,
+  dealWeek, approveSlot, slotsApprovable, slotsWarned, approveSlotsBulk, regenSlot, useSlotVersion, editSlot, updateSlotFromCell, keepSlotVersion, changeSlotCell, stepSlotImage,
   tsToMs, msToTs, tsAddMin, isValidTs, slotTs, PLATFORMS, PUBLISH_VIA, METRICS_VIA, MILESTONES, defaultPublish, channelPlatform, channelPublish, setChannelPublish,
   metricDefs, metricTotals, slotMetricsNow, slotHeadline, liveFrac, clockNowMs, clockTick, setClockRunning, clockOf, syncMetrics, syncSlotMetrics, mockPostUrl, confirmGate, confirmSummary, confirmWeek, runScheduler,
   publishGate, markPublished, unmarkPublished, setDemoNow, reportStats, isOnTime, migrateState, sha256Bytes, utf8Bytes,
