@@ -1310,6 +1310,20 @@ with sync_playwright() as pw:
     check('10.42 không lỗi trang', not errs, '; '.join(errs))
     ctx.close()
 
+    # ---------- 10.52 Nạp Skill từ tệp ----------
+    ctx, page, errs = fresh(p)
+    page.locator('#nav-side button:has-text("Setup")').click(); page.wait_for_timeout(300)
+    page.locator('[data-act="setup-tab"][data-tab="columns"]').click(); page.wait_for_timeout(300)
+    page.locator('#main button:has-text("Sửa")').first.click(); page.wait_for_timeout(300)
+    page.locator('[data-act="skill-open"]').first.click(); page.wait_for_timeout(300)
+    page.locator('[data-x="new"]').click(); page.wait_for_timeout(300)
+    page.locator('#sk-file').set_input_files({'name': 'cot-demo.md', 'mimeType': 'text/markdown', 'buffer': '---\nname: x\n---\n# Skill demo\nViết ngắn.'.encode()}); page.wait_for_timeout(400)
+    check('10.52 nạp tệp Skill: điền nội dung (bỏ phần đầu ---), tên lấy từ tên tệp', page.locator('#sk-body').input_value() == '# Skill demo\nViết ngắn.' and page.locator('#sk-name').input_value() == 'cot-demo', page.locator('#sk-body').input_value())
+    page.locator('button[data-x="save"]:text-is("Lưu")').click(); page.wait_for_timeout(300)
+    check('10.52 lưu Skill nạp từ tệp: có trong danh sách', 'cot-demo' in page.locator('.drawer, #layer, body').first.inner_text() or page.locator('text=cot-demo').count() >= 1)
+    check('10.52 không lỗi trang', not errs, '; '.join(errs))
+    ctx.close()
+
     # ---------- localStorage bị chặn ----------
     ctx = p.new_context(viewport={'width': 1200, 'height': 800})
     page = ctx.new_page(); errs = []

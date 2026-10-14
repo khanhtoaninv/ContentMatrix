@@ -1198,3 +1198,7 @@ Ngộ nhận: … Thực tế: …
 ---
 
 *Hết tài liệu v2.8.*
+
+
+## 10.52. Nạp Skill từ tệp (14/10/2026, bản 77)
+Trình sửa Skill có nút "Chọn tệp Skill (.md)". Tệp .md/.markdown/.txt tối đa 2 MB được đọc tại trình duyệt; phần đầu dạng `---…---` bị bỏ; nội dung thay ô Nội dung; tên Skill lấy từ tên tệp nếu ô tên trống. Không lưu tự động: người dùng bấm Lưu (Skill mới) hoặc Lưu (Skill đang sửa, tăng phiên bản, giữ bản cũ). Cảnh báo độ dài và số ví dụ chạy lại sau khi nạp.

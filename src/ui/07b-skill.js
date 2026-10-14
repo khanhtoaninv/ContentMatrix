@@ -16,6 +16,7 @@ function openSkillLayer(kind, id, editId) {
   if (edit) {
     html = `<header><div><span class="eyebrow">${what} ${esc(o.name)}</span><h2>${edit.id ? `Sửa Skill (đang ở v${edit.version})` : 'Skill mới'}</h2></div><button class="btn icon ghost" data-x="back" aria-label="Quay lại">${icon('close')}</button></header>
     <div class="body">
+      <div class="field"><label>Nạp từ tệp</label><div class="row"><label class="btn sm" for="sk-file">Chọn tệp Skill (.md)</label><input id="sk-file" type="file" accept=".md,.markdown,.txt,text/markdown,text/plain" class="sr"></div><span class="hint" id="sk-file-msg">Nội dung tệp sẽ thay ô Nội dung bên dưới (chưa lưu cho đến khi bấm Lưu). Phần đầu tệp dạng ---…--- được bỏ đi.</span></div>
       <div class="field"><label for="sk-name">Tên Skill</label><input id="sk-name" value="${esc(edit.name)}" placeholder="Ví dụ: Carousel 7 slide, giọng gần gũi"></div>
       <div class="field"><label for="sk-body">Nội dung (Markdown). Gợi ý khung: Dùng khi · Mục tiêu bài · Cấu trúc · Giọng và nhịp câu · Nên / Không nên · 3–5 bài mẫu trong &lt;example&gt;…&lt;/example&gt; · Nguồn của quy tắc</label><textarea id="sk-body" spellcheck="false" style="min-height:320px">${esc(edit.body)}</textarea><span class="hint" id="sk-warn" role="status"></span></div>
       <div class="field"><label for="sk-note">Ghi chú / nguồn (không gửi cho AI)</label><input id="sk-note" value="${esc(edit.note)}"></div>
@@ -39,6 +40,21 @@ function openSkillLayer(kind, id, editId) {
   const box = openLayer(html, 'drawer', b => {
     const warn = () => { const w = $('#sk-warn', b); if (w) w.textContent = AC.skillWarnings($('#sk-body', b).value).join(' '); };
     warn(); const ta = $('#sk-body', b); if (ta) ta.addEventListener('input', warn);
+    b.addEventListener('change', e => {
+      if (e.target.id !== 'sk-file') return;
+      const f = e.target.files && e.target.files[0]; if (!f) return;
+      if (f.size > 2 * 1024 * 1024) { toast('Tệp quá lớn (tối đa 2 MB).', 'bad'); return; }
+      const rd = new FileReader();
+      rd.onload = () => {
+        const text = String(rd.result || '').replace(/^\uFEFF/, '').replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, '').trim();
+        $('#sk-body', b).value = text;
+        const nm = $('#sk-name', b); if (!nm.value.trim()) nm.value = f.name.replace(/\.(md|markdown|txt)$/i, '');
+        $('#sk-file-msg', b).textContent = `Đã nạp "${f.name}" (${text.length.toLocaleString('vi-VN')} ký tự). Bấm Lưu để giữ.`;
+        warn();
+      };
+      rd.onerror = () => toast('Không đọc được tệp.', 'bad');
+      rd.readAsText(f);
+    });
     b.addEventListener('change', e => { if (e.target.name === 'sk-pick') { AC.setActiveSkill(o, e.target.value); save(); render(); toast(e.target.value ? 'Đã chọn Skill. Gen lần sau sẽ dùng Skill này.' : 'Đã tắt Skill. Gen lần sau dùng hướng dẫn mặc định.'); } });
     b.addEventListener('click', async e => {
       const x = e.target.closest('[data-x]'); if (!x) return; const k = x.dataset.x;
