@@ -288,7 +288,7 @@ function ensureWeek(S, startDate) {
   if (weekdayOf(startDate) !== 1) return { ok: false, error: `${dmyFull(startDate)} không phải thứ Hai. Chọn thứ Hai ${dmyFull(mondayOf(startDate))}.` };
   const have = weekOf(S, weekIdOf(startDate));
   if (have) return { ok: true, week: have, created: false };
-  const w = { id: weekIdOf(startDate), startDate, status: 'DRAFT', columnIds: S.columns.filter(c => c.active).map(c => c.id), confirmedAt: null, revision: 0, templateId: null, dealtAt: null };
+  const w = { id: weekIdOf(startDate), startDate, status: 'DRAFT', columnIds: matrixLayout(S), confirmedAt: null, revision: 0, templateId: null, dealtAt: null };
   S.weeks.push(w);
   log(S, 'create', 'week', w.id);
   return { ok: true, week: w, created: true };
@@ -401,7 +401,29 @@ function reopenWeek(S, weekId) {
 function topicsOf(S, weekId) { return S.topics.filter(i => i.weekId === weekId).sort((a, b) => a.order - b.order); }
 function topicCurrent(row) { return row.currentVersion == null ? null : row.versions.find(v => v.n === row.currentVersion) || null; }
 function cellsOf(S, weekId) { return S.cells.filter(c => c.weekId === weekId); }
-function cellAt(S, weekId, topicId, columnId) { return S.cells.find(c => c.weekId === weekId && c.topicId === topicId && c.columnId === columnId); }
+function cellAt(S, weekId, topicId, columnId, k) { k = k || 0; return S.cells.find(c => c.weekId === weekId && c.topicId === topicId && c.columnId === columnId && (c.k || 0) === k); }
+// Vị trí Cột của tuần (10.53): một loại Cột có thể đứng ở nhiều vị trí; k là lần xuất hiện thứ mấy của loại đó (0, 1, …)
+function weekLanes(S, w) {
+  const seen = {};
+  return (w ? w.columnIds : []).map((colId, pos) => { const k = seen[colId] || 0; seen[colId] = k + 1; return { pos, colId, k }; })
+    .map(l => Object.assign(l, { label: laneLabel(S, w, l.colId, l.k) }));
+}
+function laneLabel(S, w, colId, k) {
+  const col = byId(S.columns, colId); const name = col ? col.name : '?';
+  return w && w.columnIds.filter(x => x === colId).length > 1 ? `${name} ${(k || 0) + 1}` : name;
+}
+function cellLabel(S, cell) { return laneLabel(S, weekOf(S, cell.weekId), cell.columnId, cell.k || 0); }
+// Cấu hình Matrix (10.53): danh sách loại Cột theo vị trí cho tuần mới; chưa cấu hình thì lấy các Cột đang bật
+function matrixLayout(S) {
+  const ids = (S.settings.matrixColumns || []).filter(id => byId(S.columns, id));
+  return ids.length ? ids : S.columns.filter(c => c.active).map(c => c.id);
+}
+function setMatrixLayout(S, ids) {
+  const clean = (ids || []).filter(id => byId(S.columns, id));
+  if (!clean.length) return { ok: false, error: 'Matrix cần ít nhất 1 Cột.' };
+  S.settings.matrixColumns = clean; log(S, 'matrix-layout', 'settings', '', clean.join(','));
+  return { ok: true };
+}
 function cellView(S, cell) {
   const row = byId(S.topics, cell.topicId);
   const v = row ? row.currentVersion : null;
@@ -419,30 +441,33 @@ function sameStamp(a, b) { return !!a && !!b && a.cellId === b.cellId && a.topic
 function slotsUsingCell(S, cellId) { return S.slots.filter(s => s.sourceCellId === cellId); }
 function addWeekColumn(S, weekId, columnId) {
   const w = weekOf(S, weekId);
-  if (!w || w.columnIds.includes(columnId) || !byId(S.columns, columnId)) return { ok: false };
+  if (!w || !byId(S.columns, columnId)) return { ok: false };
   if (isLocked(S, weekId)) return { ok: false, error: 'Tuần đã chốt.' };
+  const k = w.columnIds.filter(x => x === columnId).length;
   w.columnIds.push(columnId);
   let added = 0;
-  topicsOf(S, weekId).forEach(i => { S.cells.push({ id: nextId(S, 'cell'), weekId, topicId: i.id, columnId, gens: [], byVersion: {} }); added++; });
+  topicsOf(S, weekId).forEach(i => { S.cells.push(Object.assign({ id: nextId(S, 'cell'), weekId, topicId: i.id, columnId, gens: [], byVersion: {} }, k ? { k } : {})); added++; });
   log(S, 'add-column', 'week', weekId, columnId);
   return { ok: true, cellsAdded: added };
 }
-function removeColumnImpact(S, weekId, columnId) {
-  const cells = cellsOf(S, weekId).filter(c => c.columnId === columnId);
+function removeColumnImpact(S, weekId, columnId, k) {
+  const cells = cellsOf(S, weekId).filter(c => c.columnId === columnId && (c.k || 0) === (k || 0));
   const ids = new Set(cells.map(c => c.id));
   const slots = weekSlots(S, weekId).filter(s => s.sourceCellId && ids.has(s.sourceCellId));
   return { cells: cells.length, cellsWithContent: cells.filter(c => c.gens.length).length, slots: slots.length };
 }
-function removeWeekColumn(S, weekId, columnId) {
-  const w = weekOf(S, weekId);
-  if (!w || !w.columnIds.includes(columnId)) return { ok: false };
+function removeWeekColumn(S, weekId, columnId, k) {
+  const w = weekOf(S, weekId); k = k || 0;
+  if (!w || w.columnIds.filter(x => x === columnId).length <= k) return { ok: false };
   if (isLocked(S, weekId)) return { ok: false, error: 'Tuần đã chốt.' };
   if (w.columnIds.length <= 1) return { ok: false, error: 'Tuần cần ít nhất 1 Cột.' };
-  const impact = removeColumnImpact(S, weekId, columnId);
-  const ids = new Set(cellsOf(S, weekId).filter(c => c.columnId === columnId).map(c => c.id));
+  const impact = removeColumnImpact(S, weekId, columnId, k);
+  const ids = new Set(cellsOf(S, weekId).filter(c => c.columnId === columnId && (c.k || 0) === k).map(c => c.id));
   weekSlots(S, weekId).forEach(s => { if (s.sourceCellId && ids.has(s.sourceCellId)) clearSlotContent(s); });
   S.cells = S.cells.filter(c => !ids.has(c.id));
-  w.columnIds = w.columnIds.filter(id => id !== columnId);
+  cellsOf(S, weekId).forEach(c => { if (c.columnId === columnId && (c.k || 0) > k) { c.k -= 1; if (!c.k) delete c.k; } }); // các vị trí cùng loại phía sau lùi lên
+  let seen = -1; const at = w.columnIds.findIndex(id => id === columnId && ++seen === k);
+  w.columnIds.splice(at, 1);
   log(S, 'remove-column', 'week', weekId, columnId);
   return { ok: true, impact };
 }
@@ -472,7 +497,7 @@ function topicNumbersOf(S, cell) {
 }
 function cellWarnings(S, cell, text) {
   const col = byId(S.columns, cell.columnId); if (!col) return [];
-  const others = cellsOf(S, cell.weekId).filter(c => c.topicId !== cell.topicId).map(c => cellView(S, c).text).filter(Boolean);
+  const others = cellsOf(S, cell.weekId).filter(c => c.id !== cell.id && (c.topicId !== cell.topicId || c.columnId === cell.columnId)).map(c => cellView(S, c).text).filter(Boolean);
   return checkRules(text, Object.assign(ruleCtxBase(S), { kind: 'cell', rules: col.hardRules, structure: col.structure, layout: 'labeled',
     topicNumbers: topicNumbersOf(S, cell), otherCellTexts: others })).concat(layoutIssues(text));
 }
@@ -485,8 +510,8 @@ function topicWarnings(S, row, v) {
 }
 function ensureCells(S, weekId) {
   const w = weekOf(S, weekId);
-  topicsOf(S, weekId).forEach(i => w.columnIds.forEach(colId => {
-    if (!cellAt(S, weekId, i.id, colId)) S.cells.push({ id: nextId(S, 'cell'), weekId, topicId: i.id, columnId: colId, gens: [], byVersion: {} });
+  topicsOf(S, weekId).forEach(i => weekLanes(S, w).forEach(({ colId, k }) => {
+    if (!cellAt(S, weekId, i.id, colId, k)) S.cells.push(Object.assign({ id: nextId(S, 'cell'), weekId, topicId: i.id, columnId: colId, gens: [], byVersion: {} }, k ? { k } : {}));
   }));
 }
 // ---- Nạp tệp Topic (TPC-01..04) ----
@@ -652,15 +677,16 @@ function dealSlots(S, weekId, at) {
   const N = rows.length; const written = [];
   const usage = new Map();
   S.slots.filter(s => s.weekId === weekId && s.sourceCellId).forEach(s => usage.set(s.sourceCellId, (usage.get(s.sourceCellId) || 0) + 1));
-  w.columnIds.forEach((colId, c) => {
+  [...new Set(w.columnIds)].forEach((colId, c) => {
     weekSlots(S, weekId).filter(s => { const f = byId(S.formats, s.formatId); return f && !s.free && slotColumnId(S, s) === colId; }).forEach((s, k) => {
       if (s.state !== 'EMPTY' || s.sourceCellId || s.free) return;
       let best = null;
       for (let t = 0; t < N; t++) {
-        const cell = cellAt(S, weekId, rows[(c + k + t) % N].id, colId);
-        if (!cell || cellView(S, cell).state !== 'APPROVED') continue;
-        const u = usage.get(cell.id) || 0;
-        if (!best || u < best.u) best = { cell, u };
+        const tid = rows[(c + k + t) % N].id;
+        cellsOf(S, weekId).filter(x => x.topicId === tid && x.columnId === colId && cellView(S, x).state === 'APPROVED').forEach(cell => { // mọi vị trí cùng loại Cột
+          const u = usage.get(cell.id) || 0;
+          if (!best || u < best.u) best = { cell, u };
+        });
       }
       if (!best) return;
       writeSlotFromCell(S, s, best.cell, at);

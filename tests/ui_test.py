@@ -1324,6 +1324,25 @@ with sync_playwright() as pw:
     check('10.52 không lỗi trang', not errs, '; '.join(errs))
     ctx.close()
 
+    # ---------- 10.53 Cấu hình Matrix ----------
+    ctx, page, errs = fresh(p)
+    page.locator('#nav-side button:has-text("Setup")').click(); page.wait_for_timeout(300)
+    page.locator('[data-act="setup-tab"][data-tab="matrix"]').click(); page.wait_for_timeout(300)
+    n0 = page.locator('select[data-change="mx-pos"]').count()
+    check('10.53 Cấu hình Matrix: mặc định 5 vị trí Cột', n0 == 5, str(n0))
+    gid = page.evaluate("() => window.__AC_S().columns.find(c => c.kind === 'giaithich').id")
+    for i in range(5):
+        page.locator(f'select[data-change="mx-pos"][data-i="{i}"]').select_option(gid); page.wait_for_timeout(150)
+    page.locator('[data-act="mx-add"]').click(); page.wait_for_timeout(200)
+    st = page.evaluate("() => window.__AC_S().settings.matrixColumns")
+    check('10.53 chọn cả 5 vị trí là Giải thích rồi thêm vị trí 6', st == [gid] * 6 and 'Giải thích 6' in page.locator('#main').inner_text(), str(st))
+    page.locator('[data-act="mx-del"][data-i="5"]').click(); page.wait_for_timeout(200)
+    check('10.53 xóa vị trí: còn 5', page.locator('select[data-change="mx-pos"]').count() == 5)
+    page.locator('[data-act="mx-reset"]').click(); page.wait_for_timeout(200)
+    check('10.53 về mặc định', page.evaluate("() => (window.__AC_S().settings.matrixColumns || []).length") == 0 and page.locator('select[data-change="mx-pos"]').count() == 5)
+    check('10.53 không lỗi trang', not errs, '; '.join(errs))
+    ctx.close()
+
     # ---------- localStorage bị chặn ----------
     ctx = p.new_context(viewport={'width': 1200, 'height': 800})
     page = ctx.new_page(); errs = []

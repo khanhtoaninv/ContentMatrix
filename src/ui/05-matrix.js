@@ -14,7 +14,7 @@ function mxCountsHtml(w) {
   return `<span>${mc.total} ô:</span><span class="st st-ok">${mc.APPROVED} đã duyệt</span><span class="st st-need">${mc.DRAFT} chưa duyệt</span><span class="st st-need">${mc.EMPTY} trống</span><span class="st st-off">${mc.CANCELLED} đã hủy</span>`;
 }
 function cellBtnHtml(w, row, col) {
-  const c = AC.cellAt(S, w.id, row.id, col.id);
+  const c = AC.cellAt(S, w.id, row.id, col.id, col.k);
   if (!c) return '<span class="faint small">—</span>';
   const v = AC.cellView(S, c);
   const [label, cls] = CELL_STATE[v.state];
@@ -23,7 +23,7 @@ function cellBtnHtml(w, row, col) {
   const need = v.state === 'DRAFT' || v.state === 'EMPTY';
   const noCase = col.kind === 'cauchuyen' && !(AC.topicCurrent(row) || {}).hasCase;
   const used = AC.slotsUsingCell(S, c.id).length;
-  return `<button class="cellbtn ${need ? 'need' : ''}" data-act="open-cell" data-id="${esc(c.id)}" aria-label="Topic ${row.order}, Cột ${esc(col.name)}: ${label}">
+  return `<button class="cellbtn ${need ? 'need' : ''}" data-act="open-cell" data-id="${esc(c.id)}" aria-label="Topic ${row.order}, Cột ${esc(col.label || col.name)}: ${label}">
       <span class="row" style="justify-content:space-between;gap:4px"><span class="st ${cls}">${label}</span>${v.gen ? `<span class="mono small">${v.gen.total}</span>` : ''}</span>
       ${ws.length ? `<span class="small" style="color:${sum.errors ? 'var(--bad)' : 'var(--warn)'}">${sum.label}</span>` : ''}
       ${noCase ? `<span class="small muted">Topic không có trường hợp${v.state === 'EMPTY' ? ' · nên Hủy' : ''}</span>` : ''}
@@ -32,7 +32,7 @@ function cellBtnHtml(w, row, col) {
     </button>`;
 }
 function mxTableHtml(w) {
-  const cols = w.columnIds.map(id => AC.byId(S.columns, id)).filter(Boolean);
+  const cols = AC.weekLanes(S, w).map(l => { const c = AC.byId(S.columns, l.colId); return c ? Object.assign({}, c, { k: l.k, label: l.label }) : null; }).filter(Boolean); // mỗi vị trí Cột một cột hiển thị (10.53)
   const ms = topicMatches(w); const q = (view.tpcSearch || '').trim();
   const locked = w.status === 'CONFIRMED';
   if (!ms.length) return `<p class="muted small" style="padding:8px 2px">Không có Topic nào chứa "${esc(q)}".</p>`;
@@ -43,9 +43,9 @@ function mxTableHtml(w) {
       <span class="small muted">${v.words.toLocaleString('vi-VN')} chữ</span>${tw.length ? ` <span class="small" style="color:var(--warn)">· ${tw.length} lưu ý</span>` : ''}<br>
       ${locked ? '' : `<button class="linkbtn small" data-act="topic-edit" data-id="${esc(r.id)}">Sửa</button> · <button class="linkbtn small danger" data-act="topic-remove" data-id="${esc(r.id)}">Xóa</button>`}`;
   };
-  const head = `<div class="mc mhd">Topic \\ Cột</div>${cols.map(c => `<div class="mc mhd">${esc(c.name)}</div>`).join('')}`;
+  const head = `<div class="mc mhd">Topic \\ Cột</div>${cols.map(c => `<div class="mc mhd">${esc(c.label)}</div>`).join('')}`;
   const rowsHtml = ms.map(m => `<div class="mc mrow">${rowHead(m)}</div>${cols.map(col => `<div class="mc">${cellBtnHtml(w, m.r, col)}</div>`).join('')}`).join('');
-  const cards = ms.map(m => `<section class="panel mcard"><div>${rowHead(m)}</div><div class="cells">${cols.map(col => `<div class="stack" style="gap:4px"><span class="small muted">${esc(col.name)}</span>${cellBtnHtml(w, m.r, col)}</div>`).join('')}</div></section>`).join('');
+  const cards = ms.map(m => `<section class="panel mcard"><div>${rowHead(m)}</div><div class="cells">${cols.map(col => `<div class="stack" style="gap:4px"><span class="small muted">${esc(col.label)}</span>${cellBtnHtml(w, m.r, col)}</div>`).join('')}</div></section>`).join('');
   return `<div class="matrix-wrap"><div class="matrix" style="grid-template-columns: 190px repeat(${cols.length}, minmax(130px, 1fr))">${head}${rowsHtml}</div></div><div class="mcards">${cards}</div>`;
 }
 
@@ -351,7 +351,7 @@ function showCell(cellId, browseN) {
   closeAllLayers();
   // Chi tiết Cell giữa màn hình (mục 10.15), phân cấp như Topic (mục 10.27): định hướng Cột → bài của ô → cảnh báo, điểm → ảnh → slot → lịch sử (thu gọn)
   const cellBox = openLayer(`
-    <header><div class="dv-head"><span class="eyebrow">Topic ${row.order}${iv ? ` v${iv.n}` : ''} × Cột ${esc(col.name)}</span><h2>${esc(iv ? iv.title : '')}</h2>
+    <header><div class="dv-head"><span class="eyebrow">Topic ${row.order}${iv ? ` v${iv.n}` : ''} × Cột ${esc(AC.cellLabel(S, c))}</span><h2>${esc(iv ? iv.title : '')}</h2>
       <div class="row dv-meta"><span class="st ${cls}">${label}</span>${g ? `<span class="small muted">${isCur ? '' : '<b>Đang xem bản cũ</b> · '}bản ${g.n}/${c.gens.length}${rev ? ` · sửa tay lần ${rev}` : ''} · viết từ Topic v${g.topicVersion} · <span class="mono">${esc(g.createdAt.replace('T', ' '))}</span></span>` : ''}</div>
       <div class="row dv-acts" id="cell-actions">
         ${c.gens.length > 1 ? `<button class="btn icon" data-act="open-cell" data-id="${esc(c.id)}" data-gen="${prev ? prev.n : ''}" ${prev ? '' : 'disabled'} aria-label="Bản trước">${icon('left')}</button><button class="btn icon" data-act="open-cell" data-id="${esc(c.id)}" data-gen="${next ? next.n : ''}" ${next ? '' : 'disabled'} aria-label="Bản sau">${icon('right')}</button>` : ''}

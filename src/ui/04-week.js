@@ -149,37 +149,37 @@ ACTIONS['month-step'] = el => {
 
 function weekColumnsHtml(w) {
   const locked = w.status === 'CONFIRMED';
-  const inWeek = w.columnIds.map(id => AC.byId(S.columns, id)).filter(Boolean);
-  const avail = S.columns.filter(c => !w.columnIds.includes(c.id));
+  const inWeek = AC.weekLanes(S, w).filter(l => AC.byId(S.columns, l.colId));
+  const avail = S.columns;
   return `<section class="panel quiet" aria-label="Cột của tuần">
     <header><div><span class="eyebrow">Cột của tuần</span><h2>${inWeek.length} Cột${AC.topicsOf(S, w.id).length ? ` · ma trận ${AC.topicsOf(S, w.id).length * inWeek.length} ô` : ' · ma trận có sau khi nạp Topic'}</h2></div><span class="small faint">Cột là chức năng nội dung; mặc định 5, thêm hoặc bớt được</span></header>
     <div class="colchips">
-      ${inWeek.map(c => `<span class="colchip">${esc(c.name)}${locked ? '' : `<button data-act="remove-col" data-col="${esc(c.id)}" aria-label="Bớt Cột ${esc(c.name)}" title="Bớt Cột">×</button>`}</span>`).join('')}
+      ${inWeek.map(l => `<span class="colchip">${esc(l.label)}${locked ? '' : `<button data-act="remove-col" data-col="${esc(l.colId)}" data-k="${l.k}" aria-label="Bớt Cột ${esc(l.label)}" title="Bớt Cột">×</button>`}</span>`).join('')}
       ${!locked && avail.length ? `<button class="colchip add" data-act="add-col">${icon('plus')} Thêm Cột</button>` : ''}
     </div>
   </section>`;
 }
 ACTIONS['remove-col'] = async el => {
-  const w = curWeek(); const colId = el.dataset.col;
+  const w = curWeek(); const colId = el.dataset.col; const k = +(el.dataset.k || 0);
   if (w.columnIds.length <= 1) return toast('Tuần cần ít nhất 1 Cột.', 'bad');
-  const imp = AC.removeColumnImpact(S, w.id, colId);
-  const fmtSlots = AC.weekSlots(S, w.id).filter(s => { const f = AC.byId(S.formats, s.formatId); return !s.free && f && AC.slotColumnId(S, s) === colId; }).length;
-  const ok = await confirmBox({ title: `Bớt Cột "${colName(colId)}"?`, danger: true, ok: 'Bớt Cột',
+  const imp = AC.removeColumnImpact(S, w.id, colId, k); const lbl = AC.laneLabel(S, w, colId, k); const dup = w.columnIds.filter(x => x === colId).length > 1;
+  const fmtSlots = dup ? 0 : AC.weekSlots(S, w.id).filter(s => { const f = AC.byId(S.formats, s.formatId); return !s.free && f && AC.slotColumnId(S, s) === colId; }).length;
+  const ok = await confirmBox({ title: `Bớt Cột "${lbl}"?`, danger: true, ok: 'Bớt Cột',
     body: `<p>Ma trận còn ${AC.topicsOf(S, w.id).length * (w.columnIds.length - 1)} ô.</p><ul>
       <li>${imp.cells} ô của Cột này bị loại khỏi tuần${imp.cellsWithContent ? ` (${imp.cellsWithContent} ô đã có bài, mất cả lịch sử)` : ''}.</li>
       <li>${imp.slots} slot đang lấy bài từ Cột này chuyển "Chưa có bài".</li>
       ${fmtSlots ? `<li>${fmtSlots} slot dùng Format của Cột này sẽ không có ô nguồn cho tới khi bạn bật lại Cột hoặc đổi Format.</li>` : ''}</ul>` });
   if (!ok) return;
-  const r = AC.removeWeekColumn(S, w.id, colId);
+  const r = AC.removeWeekColumn(S, w.id, colId, k);
   if (!r.ok) return toast(r.error || 'Không bớt được Cột.', 'bad');
-  commit(`Đã bớt Cột "${colName(colId)}".`);
+  commit(`Đã bớt Cột "${lbl}".`);
 };
 ACTIONS['add-col'] = async () => {
   const w = curWeek();
-  const avail = S.columns.filter(c => !w.columnIds.includes(c.id));
+  const avail = S.columns;
   const res = await confirmBox({ title: 'Thêm Cột cho tuần', ok: 'Thêm Cột',
     body: `<p>Thêm Cột tạo thêm ${Math.max(1, AC.topicsOf(S, w.id).length)} ô trống trong ma trận (mỗi Topic một ô).</p>`,
-    extra: `<div class="field"><label for="add-col-sel">Cột</label><select id="add-col-sel" data-collect="col">${avail.map(c => `<option value="${esc(c.id)}">${esc(c.name)}${c.active ? '' : ' (đang ẩn ở Thiết lập)'}</option>`).join('')}</select></div>` });
+    extra: `<div class="field"><label for="add-col-sel">Cột</label><select id="add-col-sel" data-collect="col">${avail.map(c => `<option value="${esc(c.id)}">${esc(c.name)}${w.columnIds.includes(c.id) ? ' (thêm một vị trí nữa)' : ''}${c.active ? '' : ' (đang ẩn ở Thiết lập)'}</option>`).join('')}</select></div>` });
   if (!res) return;
   const r = AC.addWeekColumn(S, w.id, res.col);
   if (!r.ok) return toast(r.error || 'Không thêm được Cột.', 'bad');

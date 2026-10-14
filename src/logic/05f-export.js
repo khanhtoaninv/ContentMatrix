@@ -131,10 +131,10 @@ function buildExportFiles(S, weekId) {
   topicsOf(S, weekId).forEach(row => {
     const tv = topicCurrent(row); if (!tv) return;
     mx.push(`## Topic ${row.order} · ${tv.title} (v${tv.n})`, '');
-    w.columnIds.forEach(colId => {
-      const c = cellAt(S, weekId, row.id, colId); if (!c) return;
+    weekLanes(S, w).forEach(({ colId, k, label }) => {
+      const c = cellAt(S, weekId, row.id, colId, k); if (!c) return;
       const cv = cellView(S, c);
-      mx.push(`### ${colName(colId)} · ${cv.state}`, '', cv.text ? mdBody(cv.text, 4) : '(trống)', '');
+      mx.push(`### ${label} · ${cv.state}`, '', cv.text ? mdBody(cv.text, 4) : '(trống)', '');
       if (cv.imagePrompt) mx.push(`Gợi ý ảnh: ${cv.imagePrompt}`, '');
     });
   });

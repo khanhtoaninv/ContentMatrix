@@ -1,6 +1,6 @@
 // ---------- UI · Thiết lập (SCR-12..19) ----------
 const SETUP_TABS = [
-  ['brand', 'Thương hiệu'], ['voice', 'Giọng văn'], ['channels', 'Kênh'], ['columns', 'Cột'], ['topicframe', 'Khung Topic'],
+  ['brand', 'Thương hiệu'], ['voice', 'Giọng văn'], ['channels', 'Kênh'], ['matrix', 'Cấu hình Matrix'], ['columns', 'Cột'], ['topicframe', 'Khung Topic'],
   ['formats', 'Format'], ['imgstd', 'Chuẩn ảnh'], ['frames', 'Frame ảnh'], ['snippets', 'Hashtag & CTA'], ['library', 'Kho tài sản'], ['blog', 'Chuẩn Blog'], ['imageapi', 'Kết nối AI'], ['templates', 'Tuần mẫu'], ['rules', 'Quy tắc & tiêu chí'], ['backup', 'Sao lưu & demo'],
 ];
 function setupTabOk(id) {
@@ -11,7 +11,7 @@ function setupTabOk(id) {
 RENDERERS.setup = () => {
   const st = AC.setupStatus(S);
   const tab = view.setupTab;
-  const body = { brand: () => mdTab('brand'), voice: () => mdTab('voice') + writingRulesSection(), channels: channelsTab, columns: columnsTab, topicframe: topicFrameTab, formats: formatsTab, imgstd: imgStdTab, frames: framesTab, snippets: snippetsTab, library: libraryTab, blog: blogSetupTab, imageapi: aiConnectTab, templates: templatesTab, rules: rulesTab, backup: backupTab }[tab]();
+  const body = { brand: () => mdTab('brand'), voice: () => mdTab('voice') + writingRulesSection(), channels: channelsTab, matrix: matrixTab, columns: columnsTab, topicframe: topicFrameTab, formats: formatsTab, imgstd: imgStdTab, frames: framesTab, snippets: snippetsTab, library: libraryTab, blog: blogSetupTab, imageapi: aiConnectTab, templates: templatesTab, rules: rulesTab, backup: backupTab }[tab]();
   return `<div class="page-head"><div><span class="eyebrow">Thiết lập</span><h1>${esc(SETUP_TABS.find(t => t[0] === tab)[1])}</h1></div>
       <span class="st ${st.ok ? 'st-done' : 'st-need'}">${st.ok ? 'Thiết lập đủ' : `Chưa đủ: ${st.missing.length} mục`}</span></div>
     ${st.ok ? '' : `<div class="note warn"><b>Chưa lập được tuần.</b> ${st.missing.map(m => esc(m.text)).join(' · ')}. Nút "Nạp dữ liệu demo" luôn dùng được.</div>`}
@@ -199,9 +199,27 @@ function rulesSummary(r, layout) {
   parts.push(r.requireCta ? (r.ctaType === 'question' ? 'kết bằng câu hỏi' : 'có CTA') : 'không bắt buộc CTA');
   return parts.join(' · ');
 }
+// ---- Cấu hình Matrix (mục 10.53): mỗi vị trí chọn một loại Cột, được trùng; áp cho tuần mới ----
+function matrixTab() {
+  const ids = AC.matrixLayout(S); const custom = (S.settings.matrixColumns || []).length > 0;
+  const opts = sel => S.columns.map(c => `<option value="${esc(c.id)}" ${c.id === sel ? 'selected' : ''}>${esc(c.name)}${c.active ? '' : ' (đang ẩn)'}</option>`).join('');
+  const lab = (id, i) => { const n = ids.filter(x => x === id).length; return n > 1 ? ` · hiện là "${esc(AC.byId(S.columns, id).name)} ${ids.slice(0, i + 1).filter(x => x === id).length}"` : ''; };
+  return `<p class="muted">Matrix của mỗi tuần có các vị trí Cột theo thứ tự dưới đây (mặc định 5). Mỗi vị trí chọn một loại nội dung trong mục <button class="linkbtn" data-act="setup-tab" data-tab="columns">Cột</button>; được chọn trùng, ví dụ cả 5 vị trí đều là Giải thích. Các vị trí cùng loại dùng chung Skill, hướng dẫn và Format của loại đó.</p>
+    <p class="small muted">Áp cho tuần tạo mới. Tuần đã tạo giữ nguyên; muốn đổi thì thêm, bớt Cột ở màn hình Tuần.</p>
+    <div class="cardlist" id="mx-layout">${ids.map((id, i) => `<div class="citem"><div class="row" style="gap:8px;align-items:center;flex-wrap:wrap"><b>Cột ${i + 1}</b>
+      <select data-change="mx-pos" data-i="${i}" aria-label="Nội dung Cột ${i + 1}">${opts(id)}</select><span class="small muted">${lab(id, i)}</span></div>
+      <div class="row"><button class="btn sm ghost" data-act="mx-move" data-i="${i}" data-d="-1" ${i ? '' : 'disabled'} aria-label="Lên">↑</button><button class="btn sm ghost" data-act="mx-move" data-i="${i}" data-d="1" ${i < ids.length - 1 ? '' : 'disabled'} aria-label="Xuống">↓</button><button class="btn sm ghost danger" data-act="mx-del" data-i="${i}" ${ids.length > 1 ? '' : 'disabled'}>Xóa</button></div></div>`).join('')}</div>
+    <div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn" data-act="mx-add">${icon('plus')} Thêm vị trí Cột</button>${custom ? '<button class="btn ghost" data-act="mx-reset">Về mặc định (các Cột đang bật)</button>' : ''}<span class="small faint">${ids.length} Cột</span></div>`;
+}
+const mxSet = (ids, msg) => { const r = AC.setMatrixLayout(S, ids); if (!r.ok) return toast(r.error, 'bad'); commit(msg); };
+CHANGES['mx-pos'] = el => { const ids = AC.matrixLayout(S).slice(); ids[+el.dataset.i] = el.value; mxSet(ids, `Đã đổi Cột ${+el.dataset.i + 1}. Tuần mới dùng cấu hình này.`); };
+ACTIONS['mx-add'] = () => { const ids = AC.matrixLayout(S).slice(); ids.push(ids[ids.length - 1] || S.columns[0].id); mxSet(ids, `Đã thêm Cột ${ids.length}. Chọn nội dung cho Cột này.`); };
+ACTIONS['mx-del'] = el => { const ids = AC.matrixLayout(S).slice(); ids.splice(+el.dataset.i, 1); mxSet(ids, `Đã xóa Cột ${+el.dataset.i + 1}. Matrix tuần mới còn ${ids.length} Cột.`); };
+ACTIONS['mx-move'] = el => { const ids = AC.matrixLayout(S).slice(); const i = +el.dataset.i, j = i + +el.dataset.d; [ids[i], ids[j]] = [ids[j], ids[i]]; mxSet(ids, 'Đã đổi thứ tự Cột.'); };
+ACTIONS['mx-reset'] = () => { S.settings.matrixColumns = []; commit('Đã về mặc định: tuần mới lấy các Cột đang bật.'); };
 function columnsTab() {
   const active = S.columns.filter(c => c.active).length;
-  return `<p class="muted">Cột là chức năng nội dung (giải thích, hướng dẫn…), không phải định dạng; định dạng thuộc về Format. Đang bật ${active} Cột; tuần mới lấy các Cột đang bật (mặc định 5). Mỗi Cột cần ít nhất 1 Format.</p>
+  return `<p class="muted">Cột là chức năng nội dung (giải thích, hướng dẫn…), không phải định dạng; định dạng thuộc về Format. Đây là danh sách loại Cột để chọn; số Cột và thứ tự Cột của tuần mới đặt ở mục <button class="linkbtn" data-act="setup-tab" data-tab="matrix">Cấu hình Matrix</button>. Mỗi Cột cần ít nhất 1 Format.</p>
     <div class="cardlist">${S.columns.map(c => { const nf = S.formats.filter(f => f.columnId === c.id).length; return `<div class="citem ${c.active ? '' : 'off'}">
       <div class="stack" style="gap:4px"><b>${esc(c.name)}</b>${c.active ? '' : ' <span class="st st-off">Đang ẩn</span>'}
         <span class="small muted">${esc(c.structure.join(' → '))}</span>

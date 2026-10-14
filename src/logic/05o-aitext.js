@@ -110,11 +110,18 @@ function aiSystem(S) {
 }
 const withSkill = (S, ctx, sys) => { const o = skillOwnerOf(S, ctx); const b = o ? skillBlock(o, `Chỉ dẫn của ${o.layout ? 'Format' : 'Cột'} "${o.name}"`) : ''; return b ? `${sys}\n\n${b}` : sys; };
 const criteriaText = cr => (cr || []).map(c => `- ${c.id}: ${c.name} (trọng số ${c.weight})`).join('\n');
+// Các vị trí khác cùng loại Cột, cùng Topic đã có bài (10.53): nhắc AI chọn góc khác để không viết trùng
+function siblingNote(S, cell) {
+  const sib = S.cells.filter(c => c.id !== cell.id && c.weekId === cell.weekId && c.topicId === cell.topicId && c.columnId === cell.columnId)
+    .map(c => cellView(S, c).text).filter(Boolean);
+  return sib.length ? `# Bài khác của cùng Topic, cùng loại Cột (đã viết)\nMatrix có nhiều vị trí cùng loại Cột này. Hãy chọn ý chính, ví dụ và cách mở bài khác hẳn các bài dưới đây, không lặp lại.\n\n${sib.map((t, i) => `## Bài ${i + 1}\n${t.slice(0, 1200)}`).join('\n\n')}` : '';
+}
 function cellJob(S, cell, iv, col, context, mock, n) {
   const sk = skillBlock(col, `Chỉ dẫn viết cho Cột "${col.name}"`);
   const user = [`# Việc: viết bài cho Cột "${col.name}"`, sk || col.guideMd || '', col.structure && col.structure.length ? `Bố cục: ${col.structure.join(' → ')}. Mỗi phần mở bằng đề mục "## Tên phần".` : '', rulesLine(col.hardRules || {}),
     `# Khung trình bày\n${columnLayoutGuide(col)}`,
     `# Topic: ${iv.title}\n${topicDirection(iv) ? topicDirection(iv) + '\n\n' : ''}${iv.text}`, context ? `# Bối cảnh tuần\n${context}` : '',
+    siblingNote(S, cell),
     sk ? '' : `# Bản nháp máy (chỉ để theo bố cục và độ dài; hãy viết lại hay hơn, không chép)\n${mock}`,
     n > 1 ? `Đây là lượt viết thứ ${n}: chọn góc mở bài khác các lượt trước.` : '',
     `# Tiêu chí chấm (1–5)\n${criteriaText(col.criteria)}`].filter(Boolean).join('\n\n');

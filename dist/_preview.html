@@ -2229,7 +2229,7 @@ function ensureWeek(S, startDate) {
   if (weekdayOf(startDate) !== 1) return { ok: false, error: `${dmyFull(startDate)} không phải thứ Hai. Chọn thứ Hai ${dmyFull(mondayOf(startDate))}.` };
   const have = weekOf(S, weekIdOf(startDate));
   if (have) return { ok: true, week: have, created: false };
-  const w = { id: weekIdOf(startDate), startDate, status: 'DRAFT', columnIds: S.columns.filter(c => c.active).map(c => c.id), confirmedAt: null, revision: 0, templateId: null, dealtAt: null };
+  const w = { id: weekIdOf(startDate), startDate, status: 'DRAFT', columnIds: matrixLayout(S), confirmedAt: null, revision: 0, templateId: null, dealtAt: null };
   S.weeks.push(w);
   log(S, 'create', 'week', w.id);
   return { ok: true, week: w, created: true };
@@ -2342,7 +2342,29 @@ function reopenWeek(S, weekId) {
 function topicsOf(S, weekId) { return S.topics.filter(i => i.weekId === weekId).sort((a, b) => a.order - b.order); }
 function topicCurrent(row) { return row.currentVersion == null ? null : row.versions.find(v => v.n === row.currentVersion) || null; }
 function cellsOf(S, weekId) { return S.cells.filter(c => c.weekId === weekId); }
-function cellAt(S, weekId, topicId, columnId) { return S.cells.find(c => c.weekId === weekId && c.topicId === topicId && c.columnId === columnId); }
+function cellAt(S, weekId, topicId, columnId, k) { k = k || 0; return S.cells.find(c => c.weekId === weekId && c.topicId === topicId && c.columnId === columnId && (c.k || 0) === k); }
+// Vị trí Cột của tuần (10.53): một loại Cột có thể đứng ở nhiều vị trí; k là lần xuất hiện thứ mấy của loại đó (0, 1, …)
+function weekLanes(S, w) {
+  const seen = {};
+  return (w ? w.columnIds : []).map((colId, pos) => { const k = seen[colId] || 0; seen[colId] = k + 1; return { pos, colId, k }; })
+    .map(l => Object.assign(l, { label: laneLabel(S, w, l.colId, l.k) }));
+}
+function laneLabel(S, w, colId, k) {
+  const col = byId(S.columns, colId); const name = col ? col.name : '?';
+  return w && w.columnIds.filter(x => x === colId).length > 1 ? `${name} ${(k || 0) + 1}` : name;
+}
+function cellLabel(S, cell) { return laneLabel(S, weekOf(S, cell.weekId), cell.columnId, cell.k || 0); }
+// Cấu hình Matrix (10.53): danh sách loại Cột theo vị trí cho tuần mới; chưa cấu hình thì lấy các Cột đang bật
+function matrixLayout(S) {
+  const ids = (S.settings.matrixColumns || []).filter(id => byId(S.columns, id));
+  return ids.length ? ids : S.columns.filter(c => c.active).map(c => c.id);
+}
+function setMatrixLayout(S, ids) {
+  const clean = (ids || []).filter(id => byId(S.columns, id));
+  if (!clean.length) return { ok: false, error: 'Matrix cần ít nhất 1 Cột.' };
+  S.settings.matrixColumns = clean; log(S, 'matrix-layout', 'settings', '', clean.join(','));
+  return { ok: true };
+}
 function cellView(S, cell) {
   const row = byId(S.topics, cell.topicId);
   const v = row ? row.currentVersion : null;
@@ -2360,30 +2382,33 @@ function sameStamp(a, b) { return !!a && !!b && a.cellId === b.cellId && a.topic
 function slotsUsingCell(S, cellId) { return S.slots.filter(s => s.sourceCellId === cellId); }
 function addWeekColumn(S, weekId, columnId) {
   const w = weekOf(S, weekId);
-  if (!w || w.columnIds.includes(columnId) || !byId(S.columns, columnId)) return { ok: false };
+  if (!w || !byId(S.columns, columnId)) return { ok: false };
   if (isLocked(S, weekId)) return { ok: false, error: 'Tuần đã chốt.' };
+  const k = w.columnIds.filter(x => x === columnId).length;
   w.columnIds.push(columnId);
   let added = 0;
-  topicsOf(S, weekId).forEach(i => { S.cells.push({ id: nextId(S, 'cell'), weekId, topicId: i.id, columnId, gens: [], byVersion: {} }); added++; });
+  topicsOf(S, weekId).forEach(i => { S.cells.push(Object.assign({ id: nextId(S, 'cell'), weekId, topicId: i.id, columnId, gens: [], byVersion: {} }, k ? { k } : {})); added++; });
   log(S, 'add-column', 'week', weekId, columnId);
   return { ok: true, cellsAdded: added };
 }
-function removeColumnImpact(S, weekId, columnId) {
-  const cells = cellsOf(S, weekId).filter(c => c.columnId === columnId);
+function removeColumnImpact(S, weekId, columnId, k) {
+  const cells = cellsOf(S, weekId).filter(c => c.columnId === columnId && (c.k || 0) === (k || 0));
   const ids = new Set(cells.map(c => c.id));
   const slots = weekSlots(S, weekId).filter(s => s.sourceCellId && ids.has(s.sourceCellId));
   return { cells: cells.length, cellsWithContent: cells.filter(c => c.gens.length).length, slots: slots.length };
 }
-function removeWeekColumn(S, weekId, columnId) {
-  const w = weekOf(S, weekId);
-  if (!w || !w.columnIds.includes(columnId)) return { ok: false };
+function removeWeekColumn(S, weekId, columnId, k) {
+  const w = weekOf(S, weekId); k = k || 0;
+  if (!w || w.columnIds.filter(x => x === columnId).length <= k) return { ok: false };
   if (isLocked(S, weekId)) return { ok: false, error: 'Tuần đã chốt.' };
   if (w.columnIds.length <= 1) return { ok: false, error: 'Tuần cần ít nhất 1 Cột.' };
-  const impact = removeColumnImpact(S, weekId, columnId);
-  const ids = new Set(cellsOf(S, weekId).filter(c => c.columnId === columnId).map(c => c.id));
+  const impact = removeColumnImpact(S, weekId, columnId, k);
+  const ids = new Set(cellsOf(S, weekId).filter(c => c.columnId === columnId && (c.k || 0) === k).map(c => c.id));
   weekSlots(S, weekId).forEach(s => { if (s.sourceCellId && ids.has(s.sourceCellId)) clearSlotContent(s); });
   S.cells = S.cells.filter(c => !ids.has(c.id));
-  w.columnIds = w.columnIds.filter(id => id !== columnId);
+  cellsOf(S, weekId).forEach(c => { if (c.columnId === columnId && (c.k || 0) > k) { c.k -= 1; if (!c.k) delete c.k; } }); // các vị trí cùng loại phía sau lùi lên
+  let seen = -1; const at = w.columnIds.findIndex(id => id === columnId && ++seen === k);
+  w.columnIds.splice(at, 1);
   log(S, 'remove-column', 'week', weekId, columnId);
   return { ok: true, impact };
 }
@@ -2413,7 +2438,7 @@ function topicNumbersOf(S, cell) {
 }
 function cellWarnings(S, cell, text) {
   const col = byId(S.columns, cell.columnId); if (!col) return [];
-  const others = cellsOf(S, cell.weekId).filter(c => c.topicId !== cell.topicId).map(c => cellView(S, c).text).filter(Boolean);
+  const others = cellsOf(S, cell.weekId).filter(c => c.id !== cell.id && (c.topicId !== cell.topicId || c.columnId === cell.columnId)).map(c => cellView(S, c).text).filter(Boolean);
   return checkRules(text, Object.assign(ruleCtxBase(S), { kind: 'cell', rules: col.hardRules, structure: col.structure, layout: 'labeled',
     topicNumbers: topicNumbersOf(S, cell), otherCellTexts: others })).concat(layoutIssues(text));
 }
@@ -2426,8 +2451,8 @@ function topicWarnings(S, row, v) {
 }
 function ensureCells(S, weekId) {
   const w = weekOf(S, weekId);
-  topicsOf(S, weekId).forEach(i => w.columnIds.forEach(colId => {
-    if (!cellAt(S, weekId, i.id, colId)) S.cells.push({ id: nextId(S, 'cell'), weekId, topicId: i.id, columnId: colId, gens: [], byVersion: {} });
+  topicsOf(S, weekId).forEach(i => weekLanes(S, w).forEach(({ colId, k }) => {
+    if (!cellAt(S, weekId, i.id, colId, k)) S.cells.push(Object.assign({ id: nextId(S, 'cell'), weekId, topicId: i.id, columnId: colId, gens: [], byVersion: {} }, k ? { k } : {}));
   }));
 }
 // ---- Nạp tệp Topic (TPC-01..04) ----
@@ -2593,15 +2618,16 @@ function dealSlots(S, weekId, at) {
   const N = rows.length; const written = [];
   const usage = new Map();
   S.slots.filter(s => s.weekId === weekId && s.sourceCellId).forEach(s => usage.set(s.sourceCellId, (usage.get(s.sourceCellId) || 0) + 1));
-  w.columnIds.forEach((colId, c) => {
+  [...new Set(w.columnIds)].forEach((colId, c) => {
     weekSlots(S, weekId).filter(s => { const f = byId(S.formats, s.formatId); return f && !s.free && slotColumnId(S, s) === colId; }).forEach((s, k) => {
       if (s.state !== 'EMPTY' || s.sourceCellId || s.free) return;
       let best = null;
       for (let t = 0; t < N; t++) {
-        const cell = cellAt(S, weekId, rows[(c + k + t) % N].id, colId);
-        if (!cell || cellView(S, cell).state !== 'APPROVED') continue;
-        const u = usage.get(cell.id) || 0;
-        if (!best || u < best.u) best = { cell, u };
+        const tid = rows[(c + k + t) % N].id;
+        cellsOf(S, weekId).filter(x => x.topicId === tid && x.columnId === colId && cellView(S, x).state === 'APPROVED').forEach(cell => { // mọi vị trí cùng loại Cột
+          const u = usage.get(cell.id) || 0;
+          if (!best || u < best.u) best = { cell, u };
+        });
       }
       if (!best) return;
       writeSlotFromCell(S, s, best.cell, at);
@@ -2979,8 +3005,8 @@ function lastEditRev(gen) { return gen && gen.edits.length ? gen.edits[gen.edits
 function writeQueue(S, weekId) {
   const w = weekOf(S, weekId); if (!w) return [];
   const out = [];
-  topicsOf(S, weekId).filter(r => topicCurrent(r)).forEach(r => w.columnIds.forEach(colId => {
-    const c = cellAt(S, weekId, r.id, colId);
+  topicsOf(S, weekId).filter(r => topicCurrent(r)).forEach(r => weekLanes(S, w).forEach(({ colId, k }) => {
+    const c = cellAt(S, weekId, r.id, colId, k);
     if (c && cellView(S, c).state === 'EMPTY' && !cellNoCase(S, c)) out.push(c.id);
   }));
   return out;
@@ -3876,10 +3902,10 @@ function buildExportFiles(S, weekId) {
   topicsOf(S, weekId).forEach(row => {
     const tv = topicCurrent(row); if (!tv) return;
     mx.push(`## Topic ${row.order} · ${tv.title} (v${tv.n})`, '');
-    w.columnIds.forEach(colId => {
-      const c = cellAt(S, weekId, row.id, colId); if (!c) return;
+    weekLanes(S, w).forEach(({ colId, k, label }) => {
+      const c = cellAt(S, weekId, row.id, colId, k); if (!c) return;
       const cv = cellView(S, c);
-      mx.push(`### ${colName(colId)} · ${cv.state}`, '', cv.text ? mdBody(cv.text, 4) : '(trống)', '');
+      mx.push(`### ${label} · ${cv.state}`, '', cv.text ? mdBody(cv.text, 4) : '(trống)', '');
       if (cv.imagePrompt) mx.push(`Gợi ý ảnh: ${cv.imagePrompt}`, '');
     });
   });
@@ -4931,11 +4957,18 @@ function aiSystem(S) {
 }
 const withSkill = (S, ctx, sys) => { const o = skillOwnerOf(S, ctx); const b = o ? skillBlock(o, `Chỉ dẫn của ${o.layout ? 'Format' : 'Cột'} "${o.name}"`) : ''; return b ? `${sys}\n\n${b}` : sys; };
 const criteriaText = cr => (cr || []).map(c => `- ${c.id}: ${c.name} (trọng số ${c.weight})`).join('\n');
+// Các vị trí khác cùng loại Cột, cùng Topic đã có bài (10.53): nhắc AI chọn góc khác để không viết trùng
+function siblingNote(S, cell) {
+  const sib = S.cells.filter(c => c.id !== cell.id && c.weekId === cell.weekId && c.topicId === cell.topicId && c.columnId === cell.columnId)
+    .map(c => cellView(S, c).text).filter(Boolean);
+  return sib.length ? `# Bài khác của cùng Topic, cùng loại Cột (đã viết)\nMatrix có nhiều vị trí cùng loại Cột này. Hãy chọn ý chính, ví dụ và cách mở bài khác hẳn các bài dưới đây, không lặp lại.\n\n${sib.map((t, i) => `## Bài ${i + 1}\n${t.slice(0, 1200)}`).join('\n\n')}` : '';
+}
 function cellJob(S, cell, iv, col, context, mock, n) {
   const sk = skillBlock(col, `Chỉ dẫn viết cho Cột "${col.name}"`);
   const user = [`# Việc: viết bài cho Cột "${col.name}"`, sk || col.guideMd || '', col.structure && col.structure.length ? `Bố cục: ${col.structure.join(' → ')}. Mỗi phần mở bằng đề mục "## Tên phần".` : '', rulesLine(col.hardRules || {}),
     `# Khung trình bày\n${columnLayoutGuide(col)}`,
     `# Topic: ${iv.title}\n${topicDirection(iv) ? topicDirection(iv) + '\n\n' : ''}${iv.text}`, context ? `# Bối cảnh tuần\n${context}` : '',
+    siblingNote(S, cell),
     sk ? '' : `# Bản nháp máy (chỉ để theo bố cục và độ dài; hãy viết lại hay hơn, không chép)\n${mock}`,
     n > 1 ? `Đây là lượt viết thứ ${n}: chọn góc mở bài khác các lượt trước.` : '',
     `# Tiêu chí chấm (1–5)\n${criteriaText(col.criteria)}`].filter(Boolean).join('\n\n');
@@ -6740,7 +6773,7 @@ const AC = {
   templatesSorted, templateOf, templateWarnings, templateEmptyDays, templateColumnCounts, addWeekTemplate, deleteWeekTemplate, moveWeekTemplate, suggestTemplateId, previewTemplateWeek, canApplyTemplate, applyTemplateWeek,
   weekIdOf, weekOf, isLocked, weekLabel, weekLabelOf, weekSlots, ensureWeek, addSlot, addSlotToStart, updateSlot, deleteSlot, slotLockMsg, moveSlotCheck, moveSlot, undoMoveSlot, reopenWeek, validateSlotInput, clearSlotContent,
   topicsOf, topicCurrent, topicFileOf, previewTopics, importTopics, previewAddTopics, addTopics, topicWarnings, topicImpact, removeTopic, ensureCells,
-  cellsOf, cellAt, cellView, slotsUsingCell, addWeekColumn, removeWeekColumn, removeColumnImpact, refreshSlotFlags,
+  cellsOf, cellAt, cellView, weekLanes, laneLabel, cellLabel, matrixLayout, setMatrixLayout, slotsUsingCell, addWeekColumn, removeWeekColumn, removeColumnImpact, refreshSlotFlags,
   dealGate, dealSlots, writeSlotFromCell, slotCellChoices, assignCell, slotWriteGate, writeSlotNow, composeAssetPrompt, genSlotImage, uploadSlotImage, addSlotAsset, slotColumnId, editSlotImage, removeSlotAsset, setSlotImagePrompt, chooseSlotImage, assetRef,
   cellWarnings, slotWarnings, matrixCounts, slotCounts, imageCounts, weekProgress, nextAction, weekKpi, weekForDate,
   exportBackup, importBackup, validateState, loadStateFromRaw,
@@ -7595,37 +7628,37 @@ ACTIONS['month-step'] = el => {
 
 function weekColumnsHtml(w) {
   const locked = w.status === 'CONFIRMED';
-  const inWeek = w.columnIds.map(id => AC.byId(S.columns, id)).filter(Boolean);
-  const avail = S.columns.filter(c => !w.columnIds.includes(c.id));
+  const inWeek = AC.weekLanes(S, w).filter(l => AC.byId(S.columns, l.colId));
+  const avail = S.columns;
   return `<section class="panel quiet" aria-label="Cột của tuần">
     <header><div><span class="eyebrow">Cột của tuần</span><h2>${inWeek.length} Cột${AC.topicsOf(S, w.id).length ? ` · ma trận ${AC.topicsOf(S, w.id).length * inWeek.length} ô` : ' · ma trận có sau khi nạp Topic'}</h2></div><span class="small faint">Cột là chức năng nội dung; mặc định 5, thêm hoặc bớt được</span></header>
     <div class="colchips">
-      ${inWeek.map(c => `<span class="colchip">${esc(c.name)}${locked ? '' : `<button data-act="remove-col" data-col="${esc(c.id)}" aria-label="Bớt Cột ${esc(c.name)}" title="Bớt Cột">×</button>`}</span>`).join('')}
+      ${inWeek.map(l => `<span class="colchip">${esc(l.label)}${locked ? '' : `<button data-act="remove-col" data-col="${esc(l.colId)}" data-k="${l.k}" aria-label="Bớt Cột ${esc(l.label)}" title="Bớt Cột">×</button>`}</span>`).join('')}
       ${!locked && avail.length ? `<button class="colchip add" data-act="add-col">${icon('plus')} Thêm Cột</button>` : ''}
     </div>
   </section>`;
 }
 ACTIONS['remove-col'] = async el => {
-  const w = curWeek(); const colId = el.dataset.col;
+  const w = curWeek(); const colId = el.dataset.col; const k = +(el.dataset.k || 0);
   if (w.columnIds.length <= 1) return toast('Tuần cần ít nhất 1 Cột.', 'bad');
-  const imp = AC.removeColumnImpact(S, w.id, colId);
-  const fmtSlots = AC.weekSlots(S, w.id).filter(s => { const f = AC.byId(S.formats, s.formatId); return !s.free && f && AC.slotColumnId(S, s) === colId; }).length;
-  const ok = await confirmBox({ title: `Bớt Cột "${colName(colId)}"?`, danger: true, ok: 'Bớt Cột',
+  const imp = AC.removeColumnImpact(S, w.id, colId, k); const lbl = AC.laneLabel(S, w, colId, k); const dup = w.columnIds.filter(x => x === colId).length > 1;
+  const fmtSlots = dup ? 0 : AC.weekSlots(S, w.id).filter(s => { const f = AC.byId(S.formats, s.formatId); return !s.free && f && AC.slotColumnId(S, s) === colId; }).length;
+  const ok = await confirmBox({ title: `Bớt Cột "${lbl}"?`, danger: true, ok: 'Bớt Cột',
     body: `<p>Ma trận còn ${AC.topicsOf(S, w.id).length * (w.columnIds.length - 1)} ô.</p><ul>
       <li>${imp.cells} ô của Cột này bị loại khỏi tuần${imp.cellsWithContent ? ` (${imp.cellsWithContent} ô đã có bài, mất cả lịch sử)` : ''}.</li>
       <li>${imp.slots} slot đang lấy bài từ Cột này chuyển "Chưa có bài".</li>
       ${fmtSlots ? `<li>${fmtSlots} slot dùng Format của Cột này sẽ không có ô nguồn cho tới khi bạn bật lại Cột hoặc đổi Format.</li>` : ''}</ul>` });
   if (!ok) return;
-  const r = AC.removeWeekColumn(S, w.id, colId);
+  const r = AC.removeWeekColumn(S, w.id, colId, k);
   if (!r.ok) return toast(r.error || 'Không bớt được Cột.', 'bad');
-  commit(`Đã bớt Cột "${colName(colId)}".`);
+  commit(`Đã bớt Cột "${lbl}".`);
 };
 ACTIONS['add-col'] = async () => {
   const w = curWeek();
-  const avail = S.columns.filter(c => !w.columnIds.includes(c.id));
+  const avail = S.columns;
   const res = await confirmBox({ title: 'Thêm Cột cho tuần', ok: 'Thêm Cột',
     body: `<p>Thêm Cột tạo thêm ${Math.max(1, AC.topicsOf(S, w.id).length)} ô trống trong ma trận (mỗi Topic một ô).</p>`,
-    extra: `<div class="field"><label for="add-col-sel">Cột</label><select id="add-col-sel" data-collect="col">${avail.map(c => `<option value="${esc(c.id)}">${esc(c.name)}${c.active ? '' : ' (đang ẩn ở Thiết lập)'}</option>`).join('')}</select></div>` });
+    extra: `<div class="field"><label for="add-col-sel">Cột</label><select id="add-col-sel" data-collect="col">${avail.map(c => `<option value="${esc(c.id)}">${esc(c.name)}${w.columnIds.includes(c.id) ? ' (thêm một vị trí nữa)' : ''}${c.active ? '' : ' (đang ẩn ở Thiết lập)'}</option>`).join('')}</select></div>` });
   if (!res) return;
   const r = AC.addWeekColumn(S, w.id, res.col);
   if (!r.ok) return toast(r.error || 'Không thêm được Cột.', 'bad');
@@ -10292,7 +10325,7 @@ function mxCountsHtml(w) {
   return `<span>${mc.total} ô:</span><span class="st st-ok">${mc.APPROVED} đã duyệt</span><span class="st st-need">${mc.DRAFT} chưa duyệt</span><span class="st st-need">${mc.EMPTY} trống</span><span class="st st-off">${mc.CANCELLED} đã hủy</span>`;
 }
 function cellBtnHtml(w, row, col) {
-  const c = AC.cellAt(S, w.id, row.id, col.id);
+  const c = AC.cellAt(S, w.id, row.id, col.id, col.k);
   if (!c) return '<span class="faint small">—</span>';
   const v = AC.cellView(S, c);
   const [label, cls] = CELL_STATE[v.state];
@@ -10301,7 +10334,7 @@ function cellBtnHtml(w, row, col) {
   const need = v.state === 'DRAFT' || v.state === 'EMPTY';
   const noCase = col.kind === 'cauchuyen' && !(AC.topicCurrent(row) || {}).hasCase;
   const used = AC.slotsUsingCell(S, c.id).length;
-  return `<button class="cellbtn ${need ? 'need' : ''}" data-act="open-cell" data-id="${esc(c.id)}" aria-label="Topic ${row.order}, Cột ${esc(col.name)}: ${label}">
+  return `<button class="cellbtn ${need ? 'need' : ''}" data-act="open-cell" data-id="${esc(c.id)}" aria-label="Topic ${row.order}, Cột ${esc(col.label || col.name)}: ${label}">
       <span class="row" style="justify-content:space-between;gap:4px"><span class="st ${cls}">${label}</span>${v.gen ? `<span class="mono small">${v.gen.total}</span>` : ''}</span>
       ${ws.length ? `<span class="small" style="color:${sum.errors ? 'var(--bad)' : 'var(--warn)'}">${sum.label}</span>` : ''}
       ${noCase ? `<span class="small muted">Topic không có trường hợp${v.state === 'EMPTY' ? ' · nên Hủy' : ''}</span>` : ''}
@@ -10310,7 +10343,7 @@ function cellBtnHtml(w, row, col) {
     </button>`;
 }
 function mxTableHtml(w) {
-  const cols = w.columnIds.map(id => AC.byId(S.columns, id)).filter(Boolean);
+  const cols = AC.weekLanes(S, w).map(l => { const c = AC.byId(S.columns, l.colId); return c ? Object.assign({}, c, { k: l.k, label: l.label }) : null; }).filter(Boolean); // mỗi vị trí Cột một cột hiển thị (10.53)
   const ms = topicMatches(w); const q = (view.tpcSearch || '').trim();
   const locked = w.status === 'CONFIRMED';
   if (!ms.length) return `<p class="muted small" style="padding:8px 2px">Không có Topic nào chứa "${esc(q)}".</p>`;
@@ -10321,9 +10354,9 @@ function mxTableHtml(w) {
       <span class="small muted">${v.words.toLocaleString('vi-VN')} chữ</span>${tw.length ? ` <span class="small" style="color:var(--warn)">· ${tw.length} lưu ý</span>` : ''}<br>
       ${locked ? '' : `<button class="linkbtn small" data-act="topic-edit" data-id="${esc(r.id)}">Sửa</button> · <button class="linkbtn small danger" data-act="topic-remove" data-id="${esc(r.id)}">Xóa</button>`}`;
   };
-  const head = `<div class="mc mhd">Topic \\ Cột</div>${cols.map(c => `<div class="mc mhd">${esc(c.name)}</div>`).join('')}`;
+  const head = `<div class="mc mhd">Topic \\ Cột</div>${cols.map(c => `<div class="mc mhd">${esc(c.label)}</div>`).join('')}`;
   const rowsHtml = ms.map(m => `<div class="mc mrow">${rowHead(m)}</div>${cols.map(col => `<div class="mc">${cellBtnHtml(w, m.r, col)}</div>`).join('')}`).join('');
-  const cards = ms.map(m => `<section class="panel mcard"><div>${rowHead(m)}</div><div class="cells">${cols.map(col => `<div class="stack" style="gap:4px"><span class="small muted">${esc(col.name)}</span>${cellBtnHtml(w, m.r, col)}</div>`).join('')}</div></section>`).join('');
+  const cards = ms.map(m => `<section class="panel mcard"><div>${rowHead(m)}</div><div class="cells">${cols.map(col => `<div class="stack" style="gap:4px"><span class="small muted">${esc(col.label)}</span>${cellBtnHtml(w, m.r, col)}</div>`).join('')}</div></section>`).join('');
   return `<div class="matrix-wrap"><div class="matrix" style="grid-template-columns: 190px repeat(${cols.length}, minmax(130px, 1fr))">${head}${rowsHtml}</div></div><div class="mcards">${cards}</div>`;
 }
 
@@ -10629,7 +10662,7 @@ function showCell(cellId, browseN) {
   closeAllLayers();
   // Chi tiết Cell giữa màn hình (mục 10.15), phân cấp như Topic (mục 10.27): định hướng Cột → bài của ô → cảnh báo, điểm → ảnh → slot → lịch sử (thu gọn)
   const cellBox = openLayer(`
-    <header><div class="dv-head"><span class="eyebrow">Topic ${row.order}${iv ? ` v${iv.n}` : ''} × Cột ${esc(col.name)}</span><h2>${esc(iv ? iv.title : '')}</h2>
+    <header><div class="dv-head"><span class="eyebrow">Topic ${row.order}${iv ? ` v${iv.n}` : ''} × Cột ${esc(AC.cellLabel(S, c))}</span><h2>${esc(iv ? iv.title : '')}</h2>
       <div class="row dv-meta"><span class="st ${cls}">${label}</span>${g ? `<span class="small muted">${isCur ? '' : '<b>Đang xem bản cũ</b> · '}bản ${g.n}/${c.gens.length}${rev ? ` · sửa tay lần ${rev}` : ''} · viết từ Topic v${g.topicVersion} · <span class="mono">${esc(g.createdAt.replace('T', ' '))}</span></span>` : ''}</div>
       <div class="row dv-acts" id="cell-actions">
         ${c.gens.length > 1 ? `<button class="btn icon" data-act="open-cell" data-id="${esc(c.id)}" data-gen="${prev ? prev.n : ''}" ${prev ? '' : 'disabled'} aria-label="Bản trước">${icon('left')}</button><button class="btn icon" data-act="open-cell" data-id="${esc(c.id)}" data-gen="${next ? next.n : ''}" ${next ? '' : 'disabled'} aria-label="Bản sau">${icon('right')}</button>` : ''}
@@ -10768,7 +10801,7 @@ ACTIONS['export-zip'] = () => {
 
 // ---------- UI · Thiết lập (SCR-12..19) ----------
 const SETUP_TABS = [
-  ['brand', 'Thương hiệu'], ['voice', 'Giọng văn'], ['channels', 'Kênh'], ['columns', 'Cột'], ['topicframe', 'Khung Topic'],
+  ['brand', 'Thương hiệu'], ['voice', 'Giọng văn'], ['channels', 'Kênh'], ['matrix', 'Cấu hình Matrix'], ['columns', 'Cột'], ['topicframe', 'Khung Topic'],
   ['formats', 'Format'], ['imgstd', 'Chuẩn ảnh'], ['frames', 'Frame ảnh'], ['snippets', 'Hashtag & CTA'], ['library', 'Kho tài sản'], ['blog', 'Chuẩn Blog'], ['imageapi', 'Kết nối AI'], ['templates', 'Tuần mẫu'], ['rules', 'Quy tắc & tiêu chí'], ['backup', 'Sao lưu & demo'],
 ];
 function setupTabOk(id) {
@@ -10779,7 +10812,7 @@ function setupTabOk(id) {
 RENDERERS.setup = () => {
   const st = AC.setupStatus(S);
   const tab = view.setupTab;
-  const body = { brand: () => mdTab('brand'), voice: () => mdTab('voice') + writingRulesSection(), channels: channelsTab, columns: columnsTab, topicframe: topicFrameTab, formats: formatsTab, imgstd: imgStdTab, frames: framesTab, snippets: snippetsTab, library: libraryTab, blog: blogSetupTab, imageapi: aiConnectTab, templates: templatesTab, rules: rulesTab, backup: backupTab }[tab]();
+  const body = { brand: () => mdTab('brand'), voice: () => mdTab('voice') + writingRulesSection(), channels: channelsTab, matrix: matrixTab, columns: columnsTab, topicframe: topicFrameTab, formats: formatsTab, imgstd: imgStdTab, frames: framesTab, snippets: snippetsTab, library: libraryTab, blog: blogSetupTab, imageapi: aiConnectTab, templates: templatesTab, rules: rulesTab, backup: backupTab }[tab]();
   return `<div class="page-head"><div><span class="eyebrow">Thiết lập</span><h1>${esc(SETUP_TABS.find(t => t[0] === tab)[1])}</h1></div>
       <span class="st ${st.ok ? 'st-done' : 'st-need'}">${st.ok ? 'Thiết lập đủ' : `Chưa đủ: ${st.missing.length} mục`}</span></div>
     ${st.ok ? '' : `<div class="note warn"><b>Chưa lập được tuần.</b> ${st.missing.map(m => esc(m.text)).join(' · ')}. Nút "Nạp dữ liệu demo" luôn dùng được.</div>`}
@@ -10967,9 +11000,27 @@ function rulesSummary(r, layout) {
   parts.push(r.requireCta ? (r.ctaType === 'question' ? 'kết bằng câu hỏi' : 'có CTA') : 'không bắt buộc CTA');
   return parts.join(' · ');
 }
+// ---- Cấu hình Matrix (mục 10.53): mỗi vị trí chọn một loại Cột, được trùng; áp cho tuần mới ----
+function matrixTab() {
+  const ids = AC.matrixLayout(S); const custom = (S.settings.matrixColumns || []).length > 0;
+  const opts = sel => S.columns.map(c => `<option value="${esc(c.id)}" ${c.id === sel ? 'selected' : ''}>${esc(c.name)}${c.active ? '' : ' (đang ẩn)'}</option>`).join('');
+  const lab = (id, i) => { const n = ids.filter(x => x === id).length; return n > 1 ? ` · hiện là "${esc(AC.byId(S.columns, id).name)} ${ids.slice(0, i + 1).filter(x => x === id).length}"` : ''; };
+  return `<p class="muted">Matrix của mỗi tuần có các vị trí Cột theo thứ tự dưới đây (mặc định 5). Mỗi vị trí chọn một loại nội dung trong mục <button class="linkbtn" data-act="setup-tab" data-tab="columns">Cột</button>; được chọn trùng, ví dụ cả 5 vị trí đều là Giải thích. Các vị trí cùng loại dùng chung Skill, hướng dẫn và Format của loại đó.</p>
+    <p class="small muted">Áp cho tuần tạo mới. Tuần đã tạo giữ nguyên; muốn đổi thì thêm, bớt Cột ở màn hình Tuần.</p>
+    <div class="cardlist" id="mx-layout">${ids.map((id, i) => `<div class="citem"><div class="row" style="gap:8px;align-items:center;flex-wrap:wrap"><b>Cột ${i + 1}</b>
+      <select data-change="mx-pos" data-i="${i}" aria-label="Nội dung Cột ${i + 1}">${opts(id)}</select><span class="small muted">${lab(id, i)}</span></div>
+      <div class="row"><button class="btn sm ghost" data-act="mx-move" data-i="${i}" data-d="-1" ${i ? '' : 'disabled'} aria-label="Lên">↑</button><button class="btn sm ghost" data-act="mx-move" data-i="${i}" data-d="1" ${i < ids.length - 1 ? '' : 'disabled'} aria-label="Xuống">↓</button><button class="btn sm ghost danger" data-act="mx-del" data-i="${i}" ${ids.length > 1 ? '' : 'disabled'}>Xóa</button></div></div>`).join('')}</div>
+    <div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn" data-act="mx-add">${icon('plus')} Thêm vị trí Cột</button>${custom ? '<button class="btn ghost" data-act="mx-reset">Về mặc định (các Cột đang bật)</button>' : ''}<span class="small faint">${ids.length} Cột</span></div>`;
+}
+const mxSet = (ids, msg) => { const r = AC.setMatrixLayout(S, ids); if (!r.ok) return toast(r.error, 'bad'); commit(msg); };
+CHANGES['mx-pos'] = el => { const ids = AC.matrixLayout(S).slice(); ids[+el.dataset.i] = el.value; mxSet(ids, `Đã đổi Cột ${+el.dataset.i + 1}. Tuần mới dùng cấu hình này.`); };
+ACTIONS['mx-add'] = () => { const ids = AC.matrixLayout(S).slice(); ids.push(ids[ids.length - 1] || S.columns[0].id); mxSet(ids, `Đã thêm Cột ${ids.length}. Chọn nội dung cho Cột này.`); };
+ACTIONS['mx-del'] = el => { const ids = AC.matrixLayout(S).slice(); ids.splice(+el.dataset.i, 1); mxSet(ids, `Đã xóa Cột ${+el.dataset.i + 1}. Matrix tuần mới còn ${ids.length} Cột.`); };
+ACTIONS['mx-move'] = el => { const ids = AC.matrixLayout(S).slice(); const i = +el.dataset.i, j = i + +el.dataset.d; [ids[i], ids[j]] = [ids[j], ids[i]]; mxSet(ids, 'Đã đổi thứ tự Cột.'); };
+ACTIONS['mx-reset'] = () => { S.settings.matrixColumns = []; commit('Đã về mặc định: tuần mới lấy các Cột đang bật.'); };
 function columnsTab() {
   const active = S.columns.filter(c => c.active).length;
-  return `<p class="muted">Cột là chức năng nội dung (giải thích, hướng dẫn…), không phải định dạng; định dạng thuộc về Format. Đang bật ${active} Cột; tuần mới lấy các Cột đang bật (mặc định 5). Mỗi Cột cần ít nhất 1 Format.</p>
+  return `<p class="muted">Cột là chức năng nội dung (giải thích, hướng dẫn…), không phải định dạng; định dạng thuộc về Format. Đây là danh sách loại Cột để chọn; số Cột và thứ tự Cột của tuần mới đặt ở mục <button class="linkbtn" data-act="setup-tab" data-tab="matrix">Cấu hình Matrix</button>. Mỗi Cột cần ít nhất 1 Format.</p>
     <div class="cardlist">${S.columns.map(c => { const nf = S.formats.filter(f => f.columnId === c.id).length; return `<div class="citem ${c.active ? '' : 'off'}">
       <div class="stack" style="gap:4px"><b>${esc(c.name)}</b>${c.active ? '' : ' <span class="st st-off">Đang ẩn</span>'}
         <span class="small muted">${esc(c.structure.join(' → '))}</span>

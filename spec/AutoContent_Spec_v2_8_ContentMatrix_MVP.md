@@ -1202,3 +1202,6 @@ Ngộ nhận: … Thực tế: …
 
 ## 10.52. Nạp Skill từ tệp (14/10/2026, bản 77)
 Trình sửa Skill có nút "Chọn tệp Skill (.md)". Tệp .md/.markdown/.txt tối đa 2 MB được đọc tại trình duyệt; phần đầu dạng `---…---` bị bỏ; nội dung thay ô Nội dung; tên Skill lấy từ tên tệp nếu ô tên trống. Không lưu tự động: người dùng bấm Lưu (Skill mới) hoặc Lưu (Skill đang sửa, tăng phiên bản, giữ bản cũ). Cảnh báo độ dài và số ví dụ chạy lại sau khi nạp.
+
+## 10.53. Cấu hình Matrix (14/10/2026, bản 78)
+Setup → Cấu hình Matrix: danh sách vị trí Cột (mặc định 5 = các Cột đang bật). Mỗi vị trí chọn một loại nội dung từ mục Cột; được chọn trùng. Có Thêm vị trí, Xóa, đổi thứ tự, Về mặc định. Áp cho tuần tạo mới; tuần đã tạo giữ nguyên và vẫn thêm/bớt Cột ở màn hình Tuần (được thêm loại đã có). Khi một loại xuất hiện nhiều lần, tiêu đề ghi số thứ tự ("Giải thích 1", "Giải thích 2"). Các vị trí cùng loại dùng chung Skill, hướng dẫn, Format; khi AI viết một ô, các bài đã có ở vị trí cùng loại của cùng Topic được gửi kèm để AI chọn góc khác; cảnh báo trùng nội dung cũng so với các ô đó. Chia bài lấy ô Đã duyệt từ mọi vị trí cùng loại.

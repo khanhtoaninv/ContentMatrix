@@ -29,8 +29,8 @@ function lastEditRev(gen) { return gen && gen.edits.length ? gen.edits[gen.edits
 function writeQueue(S, weekId) {
   const w = weekOf(S, weekId); if (!w) return [];
   const out = [];
-  topicsOf(S, weekId).filter(r => topicCurrent(r)).forEach(r => w.columnIds.forEach(colId => {
-    const c = cellAt(S, weekId, r.id, colId);
+  topicsOf(S, weekId).filter(r => topicCurrent(r)).forEach(r => weekLanes(S, w).forEach(({ colId, k }) => {
+    const c = cellAt(S, weekId, r.id, colId, k);
     if (c && cellView(S, c).state === 'EMPTY' && !cellNoCase(S, c)) out.push(c.id);
   }));
   return out;

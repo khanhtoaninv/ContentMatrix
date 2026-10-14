@@ -1793,3 +1793,35 @@ test('10.51 · Nạp thêm Topic: xếp xuống cuối, giữ Topic cũ, bỏ qu
   const c2 = S2.cells.find(c => c.weekId === wk && AC.byId(S2.columns, c.columnId).kind === 'giaithich');
   assert.doesNotMatch(AC.aiPlan(S2, C => AC.regenCell(C, c2.id))[0].user, /Định hướng của người biên tập/);
 });
+
+test('10.53 · Cấu hình Matrix: số vị trí Cột tùy chọn, được trùng loại; tuần mới theo cấu hình', () => {
+  const S = seed();
+  const gt = S.columns.find(c => c.kind === 'giaithich');
+  // mặc định: các Cột đang bật (5)
+  assert.equal(AC.matrixLayout(S).length, S.columns.filter(c => c.active).length);
+  assert.equal(AC.setMatrixLayout(S, []).ok, false);
+  assert.equal(AC.setMatrixLayout(S, [gt.id, gt.id, gt.id, gt.id, gt.id]).ok, true);
+  const wk = 'w-2026-10-26'; AC.ensureWeek(S, '2026-10-26');
+  const w = AC.weekOf(S, wk); assert.deepEqual(w.columnIds, [gt.id, gt.id, gt.id, gt.id, gt.id]);
+  AC.importTopics(S, wk, ['Một', 'Hai'].map(t => `## ${t}\n\n### Vì sao\n` + `Câu giải thích đủ dài cho Topic ${t}. `.repeat(30)).join('\n\n'));
+  const cells = AC.cellsOf(S, wk); assert.equal(cells.length, 10);
+  assert.deepEqual(AC.weekLanes(S, w).map(l => l.label), [1, 2, 3, 4, 5].map(n => `${gt.name} ${n}`));
+  const row = AC.topicsOf(S, wk)[0];
+  const c0 = AC.cellAt(S, wk, row.id, gt.id, 0), c1 = AC.cellAt(S, wk, row.id, gt.id, 1), c4 = AC.cellAt(S, wk, row.id, gt.id, 4);
+  assert.ok(c0 && c1 && c4 && c0.id !== c1.id); assert.equal(AC.cellLabel(S, c4), `${gt.name} 5`);
+  assert.equal(AC.writeQueue(S, wk).length, 10);
+  // AI viết ô thứ hai được nhắc tránh trùng bài đã có ở ô cùng loại, cùng Topic
+  AC.regenCell(S, c0.id);
+  const job = AC.aiPlan(S, C => AC.regenCell(C, c1.id))[0];
+  assert.match(job.user, /Bài khác của cùng Topic, cùng loại Cột/);
+  // bớt vị trí 2: các vị trí sau lùi lên, ô của vị trí 2 bị bỏ
+  assert.equal(AC.removeWeekColumn(S, wk, gt.id, 1).ok, true);
+  assert.equal(w.columnIds.length, 4); assert.equal(AC.cellsOf(S, wk).length, 8);
+  assert.equal(S.cells.find(c => c.id === c1.id), undefined);
+  assert.equal(AC.cellAt(S, wk, row.id, gt.id, 3).id, c4.id);
+  // thêm một vị trí cùng loại nữa
+  assert.equal(AC.addWeekColumn(S, wk, gt.id).ok, true);
+  assert.equal(AC.cellsOf(S, wk).length, 10); assert.ok(AC.cellAt(S, wk, row.id, gt.id, 4));
+  // về mặc định
+  S.settings.matrixColumns = []; assert.equal(AC.matrixLayout(S).length, S.columns.filter(c => c.active).length);
+});
