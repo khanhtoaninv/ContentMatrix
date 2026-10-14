@@ -23,13 +23,15 @@ function cellBtnHtml(w, row, col) {
   const need = v.state === 'DRAFT' || v.state === 'EMPTY';
   const noCase = col.kind === 'cauchuyen' && !(AC.topicCurrent(row) || {}).hasCase;
   const used = AC.slotsUsingCell(S, c.id).length;
-  return `<button class="cellbtn ${need ? 'need' : ''}" data-act="open-cell" data-id="${esc(c.id)}" aria-label="Topic ${row.order}, Cột ${esc(col.label || col.name)}: ${label}">
+  const quick = v.state === 'DRAFT' && w.status !== 'CONFIRMED' && AC.topicCurrent(row)
+    ? `<button class="btn sm cell-ok ${ws.length ? '' : 'primary'}" data-act="cell-approve-quick" data-id="${esc(c.id)}" aria-label="Duyệt ô Topic ${row.order}, Cột ${esc(col.label || col.name)}${ws.length ? ` (có ${ws.length} cảnh báo)` : ''}">${icon('check')} Duyệt</button>` : '';
+  return `<div class="cellwrap"><button class="cellbtn ${need ? 'need' : ''}" data-act="open-cell" data-id="${esc(c.id)}" aria-label="Topic ${row.order}, Cột ${esc(col.label || col.name)}: ${label}">
       <span class="row" style="justify-content:space-between;gap:4px"><span class="st ${cls}">${label}</span>${v.gen ? `<span class="mono small">${v.gen.total}</span>` : ''}</span>
       ${ws.length ? `<span class="small" style="color:${sum.errors ? 'var(--bad)' : 'var(--warn)'}">${sum.label}</span>` : ''}
       ${noCase ? `<span class="small muted">Topic không có trường hợp${v.state === 'EMPTY' ? ' · nên Hủy' : ''}</span>` : ''}
       ${v.text ? `<span class="ex">${esc(v.text.replace(/\[[^\]]+\]\s*/g, '').slice(0, 120))}</span>` : ''}
       ${used ? `<span class="small faint">nuôi ${used} slot</span>` : ''}
-    </button>`;
+    </button>${quick}</div>`;
 }
 function mxTableHtml(w) {
   const cols = AC.weekLanes(S, w).map(l => { const c = AC.byId(S.columns, l.colId); return c ? Object.assign({}, c, { k: l.k, label: l.label }) : null; }).filter(Boolean); // mỗi vị trí Cột một cột hiển thị (10.53)
@@ -81,14 +83,14 @@ RENDERERS.matrix = () => {
 };
 function mxToolsHtml(w, gate) {
   const wg = AC.writeGate(S, w.id);
-  const bulk = AC.bulkApprovable(S, w.id).length;
+  const bulk = AC.bulkApprovable(S, w.id, true).length;
   const run = view.mxRun;
   const writeBtn = run
     ? `<button class="btn danger" data-act="mx-stop">Dừng</button><span class="small" id="mx-run" aria-live="polite">Đang viết ${run.done}/${run.total} ô…</span>`
     : `<button class="btn ${wg.ok ? 'primary' : ''}" data-act="mx-write" ${wg.ok ? '' : 'disabled'} title="${esc(wg.ok ? `Viết ${wg.count} ô Trống` : wg.reasons.join('; '))}">Viết ma trận${wg.ok ? ` (${wg.count} ô)` : ''}</button>`;
   return `<div class="row" id="mx-tools">
       ${writeBtn}
-      ${bulk && !run ? `<button class="btn" data-act="mx-bulk">Duyệt hàng loạt (${bulk} ô không cảnh báo)</button>` : ''}
+      ${bulk && !run ? `<button class="btn" data-act="mx-bulk">${icon('check')} Duyệt hàng loạt (${bulk} ô)</button>` : ''}
       <button class="btn ${gate.ok && !run ? 'primary' : ''}" data-act="mx-deal" data-testid="deal" ${gate.ok && !run ? '' : 'disabled'} title="${esc(gate.ok ? `Viết ${gate.willFill} slot còn trống từ ô Đã duyệt` : 'Chưa bật: ' + gate.reasons.join('; '))}">Chia bài${gate.ok ? ` (${gate.willFill} slot)` : ''}</button>
     </div>
     <p class="small faint" id="deal-why">${!wg.ok && !run ? `Viết ma trận: ${esc(wg.reasons.join('; '))}. ` : ''}${gate.ok ? `Chia bài sẽ điền ${gate.willFill} slot còn trống; slot đã có bài giữ nguyên.` : `Chia bài chưa bật: ${esc(gate.reasons.join('; '))}.`}</p>`;
@@ -133,11 +135,16 @@ const MX_DELAY = 160;   // mô phỏng thời gian AI viết một ô
 ACTIONS['mx-stop'] = () => { if (view.mxRun) view.mxRun.stop = true; };
 ACTIONS['mx-bulk'] = async () => {
   const w = curWeek(); if (!w) return;
-  const list = AC.bulkApprovable(S, w.id);
-  const draft = AC.matrixCounts(S, w.id).DRAFT;
-  const ok = await confirmBox({ title: `Duyệt ${list.length} ô?`, body: `<p>Duyệt một lần ${list.length} ô Chưa duyệt không có cảnh báo quy tắc.${draft > list.length ? ` ${draft - list.length} ô có cảnh báo vẫn Chưa duyệt để bạn xem từng ô.` : ''}</p>`, ok: `Duyệt ${list.length} ô` });
-  if (!ok) return;
-  const r = AC.approveCellsBulk(S, w.id);
+  const clean = AC.bulkApprovable(S, w.id); const warned = AC.bulkWarned(S, w.id);
+  const name = c => { const r = AC.byId(S.topics, c.topicId); return `Topic ${r ? r.order : '?'} × ${AC.cellLabel(S, c)}`; };
+  const extra = warned.length ? `<label class="check"><input type="checkbox" data-collect="all" ${clean.length ? '' : 'checked'}> Duyệt cả ${warned.length} ô có cảnh báo</label>
+    <ul class="small" style="max-height:180px;overflow:auto;margin:6px 0 0">${warned.map(x => `<li>${esc(name(x.cell))}: ${esc(AC.summarizeWarnings(x.warnings).label)}</li>`).join('')}</ul>` : '';
+  const res = await confirmBox({ title: 'Duyệt hàng loạt', ok: 'Duyệt', extra,
+    body: `<p>${clean.length} ô Chưa duyệt không có cảnh báo sẽ được duyệt.${warned.length ? ` ${warned.length} ô có cảnh báo (chỉ để tham khảo): đánh dấu ô bên dưới nếu muốn duyệt luôn, hoặc để lại xem từng ô.` : ''}</p>` });
+  if (!res) return;
+  const all = res === true ? false : !!res.all;
+  if (!all && !clean.length) return toast('Chưa duyệt ô nào: đánh dấu "Duyệt cả ô có cảnh báo" hoặc duyệt từng ô.', 'bad');
+  const r = AC.approveCellsBulk(S, w.id, null, all);
   commit(`Đã duyệt ${r.approved} ô.${r.left ? ` Còn ${r.left} ô chưa duyệt.` : ''}`);
 };
 function searchCountText(w) { const q = (view.tpcSearch || '').trim(); return q ? `${topicMatches(w).length} Topic khớp "${q}"` : ''; }
@@ -383,6 +390,15 @@ ACTIONS['cell-approve'] = async el => {
     if (!ok) return;
   }
   cellDone(c, 'Đã duyệt ô.', AC.approveCell(S, c.id));
+};
+// Duyệt ngay trên ô trong Matrix (mục 10.55): ô có cảnh báo vẫn hỏi xác nhận; không mở hộp chi tiết
+ACTIONS['cell-approve-quick'] = async el => {
+  const c = AC.byId(S.cells, el.dataset.id); if (!c) return;
+  const v = AC.cellView(S, c); const n = AC.cellWarnings(S, c, v.text).length;
+  if (n && !(await confirmBox({ title: 'Duyệt ô có cảnh báo?', body: `<p>${esc(AC.cellLabel(S, c))} có ${n} cảnh báo. Cảnh báo chỉ để tham khảo; bạn vẫn duyệt được.</p>`, ok: 'Vẫn duyệt' }))) return;
+  const r = AC.approveCell(S, c.id);
+  if (r && r.ok === false) return toast(r.error || 'Không duyệt được ô.', 'bad');
+  commit(`Đã duyệt ô ${AC.cellLabel(S, c)}.`);
 };
 ACTIONS['cell-regen'] = async el => {
   const c = AC.byId(S.cells, el.dataset.id); if (!c) return;

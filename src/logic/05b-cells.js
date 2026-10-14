@@ -138,17 +138,21 @@ function useCellGen(S, cellId, genN) {
   return { ok: true };
 }
 // Duyệt hàng loạt (MTX-08): chỉ các ô Chưa duyệt không có cảnh báo
-function bulkApprovable(S, weekId) {
+// Ô Chưa duyệt của Topic còn hiệu lực; withWarned = true thì gồm cả ô có cảnh báo (mục 10.55)
+function bulkApprovable(S, weekId, withWarned) {
   if (isLocked(S, weekId)) return [];
   const live = new Set(topicsOf(S, weekId).filter(r => topicCurrent(r)).map(r => r.id));
   return cellsOf(S, weekId).filter(c => {
     if (!live.has(c.topicId)) return false;
     const v = cellView(S, c);
-    return v.state === 'DRAFT' && !cellWarnings(S, c, v.text).length;
+    return v.state === 'DRAFT' && (withWarned || !cellWarnings(S, c, v.text).length);
   });
 }
-function approveCellsBulk(S, weekId, at) {
-  const list = bulkApprovable(S, weekId);
+function bulkWarned(S, weekId) {
+  return bulkApprovable(S, weekId, true).map(c => ({ cell: c, warnings: cellWarnings(S, c, cellView(S, c).text) })).filter(x => x.warnings.length);
+}
+function approveCellsBulk(S, weekId, at, withWarned) {
+  const list = bulkApprovable(S, weekId, withWarned);
   list.forEach(c => approveCell(S, c.id, at));
   const left = matrixCounts(S, weekId).DRAFT;
   if (list.length) log(S, 'approve-bulk', 'week', weekId, `${list.length} ô`);

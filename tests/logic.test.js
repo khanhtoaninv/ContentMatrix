@@ -1825,3 +1825,14 @@ test('10.53 · Cấu hình Matrix: số vị trí Cột tùy chọn, được tr
   // về mặc định
   S.settings.matrixColumns = []; assert.equal(AC.matrixLayout(S).length, S.columns.filter(c => c.active).length);
 });
+
+test('10.55 · Duyệt hàng loạt gồm cả ô có cảnh báo khi chọn', () => {
+  const S = seed();
+  const w = S.weeks.find(x => x.status !== 'CONFIRMED' && AC.bulkWarned(S, x.id).length);
+  assert.ok(w, 'cần tuần có ô Chưa duyệt bị cảnh báo');
+  const warned = AC.bulkWarned(S, w.id).length, clean = AC.bulkApprovable(S, w.id).length;
+  assert.equal(AC.bulkApprovable(S, w.id, true).length, warned + clean);
+  const S2 = AC.clone(S);
+  assert.equal(AC.approveCellsBulk(S2, w.id).approved, clean); assert.equal(AC.bulkWarned(S2, w.id).length, warned);
+  const r = AC.approveCellsBulk(S, w.id, null, true); assert.equal(r.approved, warned + clean); assert.equal(AC.bulkApprovable(S, w.id, true).length, 0);
+});

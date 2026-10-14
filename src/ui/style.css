@@ -987,3 +987,8 @@ body.drag-slot .cal .day { transition: background .12s, box-shadow .12s; }
 .mxacts .btn.danger { color: var(--bad); }
 .mxacts .btn:disabled { opacity: .35; cursor: default; }
 @media (max-width: 640px) { .mxrow { grid-template-columns: 28px minmax(0, 1fr); } .mxnum { width: 28px; height: 28px; } .mxacts { grid-column: 2; } .mxmain select.inp { max-width: none; } }
+
+/* Duyệt ngay trên ô (10.55) */
+.cellwrap { display: grid; gap: 4px; }
+.cellwrap .cell-ok { justify-self: start; min-height: 28px; padding: 2px 10px; }
+.cellwrap .cell-ok svg { width: 15px; height: 15px; }

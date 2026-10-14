@@ -22,7 +22,7 @@ const AC = {
   exportBackup, importBackup, validateState, loadStateFromRaw,
   buildSeed, addCellGen, cancelCell, log,
   cellNoCase, genText, genImagePrompt, writeQueue, writeGate, writeCellNow, writeMatrix, approveCell, regenCell, editCell, cancelCellNow, useCellGen,
-  bulkApprovable, approveCellsBulk, topicVersionImpact, editTopic, useTopicVersion, noCaseEmptyCount,
+  bulkApprovable, bulkWarned, approveCellsBulk, topicVersionImpact, editTopic, useTopicVersion, noCaseEmptyCount,
   dealWeek, approveSlot, regenSlot, useSlotVersion, editSlot, updateSlotFromCell, keepSlotVersion, changeSlotCell, stepSlotImage,
   tsToMs, msToTs, tsAddMin, isValidTs, slotTs, PLATFORMS, PUBLISH_VIA, METRICS_VIA, MILESTONES, defaultPublish, channelPlatform, channelPublish, setChannelPublish,
   metricDefs, metricTotals, slotMetricsNow, slotHeadline, liveFrac, clockNowMs, clockTick, setClockRunning, clockOf, syncMetrics, syncSlotMetrics, mockPostUrl, confirmGate, confirmSummary, confirmWeek, runScheduler,
