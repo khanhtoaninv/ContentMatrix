@@ -45,20 +45,24 @@ export function buildTextRequest(cfg, key, req) {
   const p = TEXT_PROVIDERS[cfg.provider];
   if (!p || cfg.provider === 'off') return { ok: false, error: 'Chưa bật AI viết bài (Setup → Kết nối AI).' };
   if (p.key && !String(key || '').trim()) return { ok: false, error: 'Chưa nhập khoá API cho AI viết bài (Setup → Kết nối AI).' };
-  const k = String(key || '').trim(); const max = req.maxTokens || 4000;
+  const k = String(key || '').trim(); const max = req.maxTokens || 8000;
   if (cfg.provider === 'anthropic') return { ok: true, url: `${cfg.endpoint}/messages`, headers: { 'Content-Type': 'application/json', 'x-api-key': k, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' }, json: { model: cfg.model, max_tokens: max, system: req.system, messages: [{ role: 'user', content: req.user }] } };
   if (cfg.provider === 'openai') return { ok: true, url: `${cfg.endpoint}/chat/completions`, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${k}` }, json: { model: cfg.model, messages: [{ role: 'system', content: req.system }, { role: 'user', content: req.user }] } };
   return { ok: true, url: cfg.endpoint, headers: Object.assign({ 'Content-Type': 'application/json' }, k ? { Authorization: `Bearer ${k}` } : {}), json: { system: req.system, user: req.user, model: cfg.model || undefined, max_tokens: max } };
 }
 export function parseTextResponse(provider, status, body) {
-  if (status >= 400 || !body) return parseImageResponse(provider, status || 500, body || {});
+  if (status >= 400 || !body) return Object.assign({}, parseImageResponse(provider, status || 500, body || {}), { transient: !status || status === 429 || status >= 500 });
   let t = '';
   if (provider === 'anthropic') t = (body.content || []).filter(x => x.type === 'text').map(x => x.text).join('');
   else if (provider === 'openai') t = ((body.choices || [])[0] || {}).message ? body.choices[0].message.content : '';
   else t = body.text || body.output || '';
   t = String(t || '').trim();
   if (provider === 'anthropic' && body.stop_reason === 'refusal') return { ok: false, error: 'AI từ chối viết nội dung này.' };
-  return t ? { ok: true, text: t, cut: body.stop_reason === 'max_tokens' || ((body.choices || [])[0] || {}).finish_reason === 'length' } : { ok: false, error: 'AI không trả về chữ.' };
+  const stop = provider === 'anthropic' ? body.stop_reason : provider === 'openai' ? ((body.choices || [])[0] || {}).finish_reason : '';
+  if (t) return { ok: true, text: t, cut: stop === 'max_tokens' || stop === 'length' };
+  const toks = provider === 'anthropic' ? (body.usage || {}).output_tokens : provider === 'openai' ? (body.usage || {}).completion_tokens : null;
+  const why = [stop ? `lý do dừng: ${stop}` : '', toks != null ? `${toks} token` : ''].filter(Boolean).join(', ');
+  return { ok: false, empty: true, error: `AI không trả về chữ${why ? ` (${why})` : ''}.` };
 }
 // Lấy khối JSON trong câu trả lời (AI đôi khi bọc trong ```json)
 export function extractJson(raw) {
@@ -127,6 +131,7 @@ export function parseAiPost(raw, criteria) {
   const t = text.replace(/\r/g, '').replace(/\n{3,}/g, '\n\n').trim();
   if (!t) return { ok: false, error: 'AI không trả về bài viết.' };
   if (!cut && endsOnHeading(t)) cut = true;
+  if (!cut && (t.match(/^##\s/gm) || []).length >= 2 && /[\p{L}\p{N},;:]$/u.test(t)) cut = true;
   const seo = j && j.seo && typeof j.seo === 'object' ? ['seoTitle', 'metaDescription', 'excerpt', 'coverAlt'].reduce((o, k) => { if (typeof j.seo[k] === 'string' && j.seo[k].trim()) o[k] = j.seo[k].replace(/\s+/g, ' ').trim().slice(0, 400); return o; }, {}) : null;
   return { ok: true, text: t, cut, imagePrompt: j && typeof j.imagePrompt === 'string' ? j.imagePrompt.trim().slice(0, 600) : '', score: j ? aiScore(criteria, j.scores, j.tip) : null, seo: seo && Object.keys(seo).length ? seo : null };
 }

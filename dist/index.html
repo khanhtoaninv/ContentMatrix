@@ -7229,7 +7229,7 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 			error: "Chưa nhập khoá API cho AI viết bài (Setup → Kết nối AI)."
 		};
 		const k = String(key || "").trim();
-		const max = req.maxTokens || 4e3;
+		const max = req.maxTokens || 8e3;
 		if (cfg.provider === "anthropic") return {
 			ok: true,
 			url: `${cfg.endpoint}/messages`,
@@ -7280,7 +7280,7 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		};
 	}
 	function parseTextResponse(provider, status, body) {
-		if (status >= 400 || !body) return parseImageResponse(provider, status || 500, body || {});
+		if (status >= 400 || !body) return Object.assign({}, parseImageResponse(provider, status || 500, body || {}), { transient: !status || status === 429 || status >= 500 });
 		let t = "";
 		if (provider === "anthropic") t = (body.content || []).filter((x) => x.type === "text").map((x) => x.text).join("");
 		else if (provider === "openai") t = ((body.choices || [])[0] || {}).message ? body.choices[0].message.content : "";
@@ -7290,13 +7290,18 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 			ok: false,
 			error: "AI từ chối viết nội dung này."
 		};
-		return t ? {
+		const stop = provider === "anthropic" ? body.stop_reason : provider === "openai" ? ((body.choices || [])[0] || {}).finish_reason : "";
+		if (t) return {
 			ok: true,
 			text: t,
-			cut: body.stop_reason === "max_tokens" || ((body.choices || [])[0] || {}).finish_reason === "length"
-		} : {
+			cut: stop === "max_tokens" || stop === "length"
+		};
+		const toks = provider === "anthropic" ? (body.usage || {}).output_tokens : provider === "openai" ? (body.usage || {}).completion_tokens : null;
+		const why = [stop ? `lý do dừng: ${stop}` : "", toks != null ? `${toks} token` : ""].filter(Boolean).join(", ");
+		return {
 			ok: false,
-			error: "AI không trả về chữ."
+			empty: true,
+			error: `AI không trả về chữ${why ? ` (${why})` : ""}.`
 		};
 	}
 	function extractJson(raw) {
@@ -7418,6 +7423,7 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 			error: "AI không trả về bài viết."
 		};
 		if (!cut && endsOnHeading(t)) cut = true;
+		if (!cut && (t.match(/^##\s/gm) || []).length >= 2 && /[\p{L}\p{N},;:]$/u.test(t)) cut = true;
 		const seo = j && j.seo && typeof j.seo === "object" ? [
 			"seoTitle",
 			"metaDescription",
@@ -14468,20 +14474,30 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 	//#endregion
 	//#region src/ui/04k-aitext.js
 	var textProviderLabel = () => (AC.TEXT_PROVIDERS[AC.textApiOf(S).provider] || {}).label || "";
-	async function textCall(job, maxTokens, light) {
+	async function textCallFull(job, maxTokens, light) {
 		const cfg = AC.textCfgFor(S, light);
-		if (cfg.provider === "claudeai") return sampleText(job, light);
+		if (cfg.provider === "claudeai") return {
+			text: await sampleText(job, light),
+			cut: false
+		};
 		const req = AC.buildTextRequest(cfg, keyFor(cfg.provider), {
 			system: job.system,
 			user: job.user,
 			maxTokens
 		});
 		if (!req.ok) throw new Error(req.error);
-		const r = await apiFetch(req, 18e4);
+		const r = await apiFetch(req, 3e5);
 		const p = AC.parseTextResponse(cfg.provider, r.status, r.body);
-		if (!p.ok) throw new Error(p.error);
-		return p.text;
+		if (!p.ok) throw Object.assign(new Error(p.error), {
+			empty: !!p.empty,
+			transient: !!p.transient
+		});
+		return {
+			text: p.text,
+			cut: !!p.cut
+		};
 	}
+	var textCall = async (job, maxTokens, light) => (await textCallFull(job, maxTokens, light)).text;
 	async function sampleText(job, light) {
 		let sample = null;
 		try {
@@ -14494,7 +14510,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				cache: false
 			});
 			const t = String(r && r.text || "").trim();
-			if (!t) throw new Error("AI không trả về chữ.");
+			if (!t) throw Object.assign(/* @__PURE__ */ new Error("AI không trả về chữ."), { empty: true });
 			return t;
 		} catch (e) {
 			if (e && e.code === "not_granted") throw new Error("Bạn chưa cho phép artifact nhờ Claude. Bấm lại và chọn Cho phép.");
@@ -14502,20 +14518,35 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			throw new Error(e && e.message || "Không gọi được Claude của claude.ai.");
 		}
 	}
-	var callRetry = async (job, maxTokens, light) => {
-		try {
-			return await textCall(job, maxTokens, light);
+	var RETRY_MS = typeof navigator !== "undefined" && navigator.webdriver ? [0, 0] : [2e3, 5e3];
+	var JSON_HINT = "\n\n(Lưu ý: trả lời bằng đúng một khối JSON {\"text\", \"imagePrompt\", \"scores\", \"tip\"} với bài viết đầy đủ trong \"text\". Không để trống.)";
+	async function callRetry(job, maxTokens, light) {
+		let j = job, last;
+		for (let k = 0; k <= RETRY_MS.length; k++) try {
+			return await textCallFull(j, maxTokens, light);
 		} catch (e) {
-			if (!/không trả về chữ/.test(e.message)) throw e;
-			return textCall(job, maxTokens, light);
+			last = e;
+			last.tries = k + 1;
+			if (!(e.empty || e.transient || /không phản hồi kịp/.test(e.message)) || k === RETRY_MS.length) break;
+			if (e.empty) j = Object.assign({}, job, { user: job.user + JSON_HINT });
+			await new Promise((r) => setTimeout(r, RETRY_MS[k]));
 		}
-	};
+		if (last.tries > 1) last.message = last.message.replace(/\.?$/, ` (đã thử ${last.tries} lần).`);
+		throw last;
+	}
 	async function finishPost(j, p) {
 		for (let k = 0; k < 2 && p.cut; k++) {
-			const more = AC.parseAiPost(await callRetry({
-				system: j.system,
-				user: `${j.user}\n\n# Bài đang viết dở (bị dừng giữa chừng)\n${p.text}\n\nViết tiếp NGAY từ chỗ đang dừng cho đến hết bài, đủ các phần còn thiếu theo chỉ dẫn. Chỉ trả phần viết tiếp bằng chữ thường, không JSON, không lặp lại phần đã có.`
-			}));
+			let mr;
+			try {
+				mr = await callRetry({
+					system: j.system,
+					user: `${j.user}\n\n# Bài đang viết dở (bị dừng giữa chừng)\n${p.text}\n\nViết tiếp NGAY từ chỗ đang dừng cho đến hết bài, đủ các phần còn thiếu theo chỉ dẫn. Chỉ trả phần viết tiếp bằng chữ thường, không JSON, không lặp lại phần đã có.`
+				});
+			} catch (e) {
+				break;
+			}
+			const more = AC.parseAiPost(mr.text);
+			if (mr.cut) more.cut = true;
 			if (!more.ok) break;
 			p = Object.assign({}, p, {
 				text: AC.joinContinuation(p.text, more.text),
@@ -14566,8 +14597,10 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			while (next < jobs.length && !bar.stopped) {
 				const j = jobs[next++];
 				try {
-					let p = AC.parseAiPost(await callRetry(j), j.criteria);
+					const res = await callRetry(j);
+					let p = AC.parseAiPost(res.text, j.criteria);
 					if (!p.ok) throw new Error(p.error);
+					if (res.cut) p.cut = true;
 					if (p.cut) {
 						p = await finishPost(j, p);
 						if (p.cut) unfinished++;
@@ -14584,7 +14617,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			}
 		};
 		try {
-			await Promise.all(Array.from({ length: Math.min(3, jobs.length) }, worker));
+			await Promise.all(Array.from({ length: Math.min(cfg.provider === "claudeai" ? 3 : 2, jobs.length) }, worker));
 		} finally {
 			bar.close();
 			aiRunning = false;

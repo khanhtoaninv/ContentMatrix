@@ -6,34 +6,52 @@ import { go, render } from './02-shell.js';
 import { apiFetch, imageApiTab, keyFor, keyRememberedFor, maskKey, setKeyFor } from './04j-media.js';
 export const textProviderLabel = () => (AC.TEXT_PROVIDERS[AC.textApiOf(S).provider] || {}).label || '';
 // light = việc nhẹ (Sửa đoạn, Hook, CTA): dùng model nhẹ nếu đã khai báo
-export async function textCall(job, maxTokens, light) {
+export async function textCallFull(job, maxTokens, light) {
   const cfg = AC.textCfgFor(S, light);
-  if (cfg.provider === 'claudeai') return sampleText(job, light);
+  if (cfg.provider === 'claudeai') return { text: await sampleText(job, light), cut: false };
   const req = AC.buildTextRequest(cfg, keyFor(cfg.provider), { system: job.system, user: job.user, maxTokens });
   if (!req.ok) throw new Error(req.error);
-  const r = await apiFetch(req, 180000); const p = AC.parseTextResponse(cfg.provider, r.status, r.body);
-  if (!p.ok) throw new Error(p.error);
-  return p.text;
+  const r = await apiFetch(req, 300000); const p = AC.parseTextResponse(cfg.provider, r.status, r.body);
+  if (!p.ok) throw Object.assign(new Error(p.error), { empty: !!p.empty, transient: !!p.transient });
+  return { text: p.text, cut: !!p.cut };
 }
+export const textCall = async (job, maxTokens, light) => (await textCallFull(job, maxTokens, light)).text;
 // Nhà cung cấp 'claudeai': nhờ Claude của claude.ai qua quyền sample của artifact (không cần khoá, không bị chặn mạng)
 async function sampleText(job, light) {
   let sample = null; try { sample = await window.claude.use('sample'); } catch (e) { /* không có */ }
   if (!sample) throw new Error('Cần mở app trong trình xem artifact của claude.ai (bản mở ở máy không có mục này). Hoặc chọn Anthropic Claude và nhập khoá.');
   try {
     const r = await sample(`${job.system}\n\n${job.user}`, { modelTier: light ? 'quick' : 'default', cache: false });
-    const t = String((r && r.text) || '').trim(); if (!t) throw new Error('AI không trả về chữ.'); return t;
+    const t = String((r && r.text) || '').trim(); if (!t) throw Object.assign(new Error('AI không trả về chữ.'), { empty: true }); return t;
   } catch (e) {
     if (e && e.code === 'not_granted') throw new Error('Bạn chưa cho phép artifact nhờ Claude. Bấm lại và chọn Cho phép.');
     if (e && e.code === 'rate_limited') throw new Error('Đang bị giới hạn tốc độ, đợi một lúc rồi thử lại.');
     throw new Error((e && e.message) || 'Không gọi được Claude của claude.ai.');
   }
 }
-// Gọi AI; phản hồi rỗng thì thử lại một lần trước khi báo lỗi
-const callRetry = async (job, maxTokens, light) => { try { return await textCall(job, maxTokens, light); } catch (e) { if (!/không trả về chữ/.test(e.message)) throw e; return textCall(job, maxTokens, light); } };
+// Gọi AI, tối đa 3 lần: phản hồi rỗng thì nhắc lại đúng dạng JSON; lỗi tạm thời (hết hạn mức, quá tải, hết giờ) thì chờ rồi thử lại
+const RETRY_MS = typeof navigator !== 'undefined' && navigator.webdriver ? [0, 0] : [2000, 5000];
+const JSON_HINT = '\n\n(Lưu ý: trả lời bằng đúng một khối JSON {"text", "imagePrompt", "scores", "tip"} với bài viết đầy đủ trong "text". Không để trống.)';
+async function callRetry(job, maxTokens, light) {
+  let j = job, last;
+  for (let k = 0; k <= RETRY_MS.length; k++) {
+    try { return await textCallFull(j, maxTokens, light); } catch (e) {
+      last = e; last.tries = k + 1; const retry = e.empty || e.transient || /không phản hồi kịp/.test(e.message);
+      if (!retry || k === RETRY_MS.length) break;
+      if (e.empty) j = Object.assign({}, job, { user: job.user + JSON_HINT });
+      await new Promise(r => setTimeout(r, RETRY_MS[k]));
+    }
+  }
+  if (last.tries > 1) last.message = last.message.replace(/\.?$/, ` (đã thử ${last.tries} lần).`);
+  throw last;
+}
 // Bài dừng giữa chừng: xin AI viết tiếp từ chỗ dừng, tối đa 2 lượt
 async function finishPost(j, p) {
   for (let k = 0; k < 2 && p.cut; k++) {
-    const more = AC.parseAiPost(await callRetry({ system: j.system, user: `${j.user}\n\n# Bài đang viết dở (bị dừng giữa chừng)\n${p.text}\n\nViết tiếp NGAY từ chỗ đang dừng cho đến hết bài, đủ các phần còn thiếu theo chỉ dẫn. Chỉ trả phần viết tiếp bằng chữ thường, không JSON, không lặp lại phần đã có.` }));
+    let mr; try {
+      mr = await callRetry({ system: j.system, user: `${j.user}\n\n# Bài đang viết dở (bị dừng giữa chừng)\n${p.text}\n\nViết tiếp NGAY từ chỗ đang dừng cho đến hết bài, đủ các phần còn thiếu theo chỉ dẫn. Chỉ trả phần viết tiếp bằng chữ thường, không JSON, không lặp lại phần đã có.` });
+    } catch (e) { break; }
+    const more = AC.parseAiPost(mr.text); if (mr.cut) more.cut = true;
     if (!more.ok) break;
     p = Object.assign({}, p, { text: AC.joinContinuation(p.text, more.text), cut: more.cut });
   }
@@ -59,14 +77,15 @@ export async function withAiText(run) {
     while (next < jobs.length && !bar.stopped) {
       const j = jobs[next++];
       try {
-        let p = AC.parseAiPost(await callRetry(j), j.criteria); if (!p.ok) throw new Error(p.error);
+        const res = await callRetry(j); let p = AC.parseAiPost(res.text, j.criteria); if (!p.ok) throw new Error(p.error);
+        if (res.cut) p.cut = true;
         if (p.cut) { p = await finishPost(j, p); if (p.cut) unfinished++; }
         AC.setAiText(j.key, Object.assign(p, { provider: cfg.provider, model: cfg.model }));
       } catch (e) { fail++; firstErr = firstErr || e.message; }
       bar.step();
     }
   };
-  try { await Promise.all(Array.from({ length: Math.min(3, jobs.length) }, worker)); }
+  try { await Promise.all(Array.from({ length: Math.min(cfg.provider === 'claudeai' ? 3 : 2, jobs.length) }, worker)); }
   finally { bar.close(); aiRunning = false; }
   if (bar.stopped) { AC.clearAiText(); return { ok: false, error: 'Đã dừng viết bằng AI; chưa đổi gì.', stopped: true }; }
   if (fail === jobs.length) {

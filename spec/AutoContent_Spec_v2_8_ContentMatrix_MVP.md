@@ -1232,3 +1232,6 @@ Khi bài AI dừng giữa chừng và lượt viết tiếp mở bằng đúng �
 
 ## 10.61. Nhãn bài mô phỏng và tên model (15/10/2026, bản 88)
 Khung Điểm AI của ô và slot: bài do AI viết ghi "Bài do AI viết · [model] · Skill [tên] v[số]"; bài không do AI viết ghi "Bài mô phỏng (không phải AI)", để người dùng không nhầm bài ghép mẫu (không áp dụng Skill) với bài AI, kể cả khi AI lỗi và app tự dùng mô phỏng.
+
+## 10.62. AI viết bài: thử lại, chẩn đoán và nhận bài cụt (15/10/2026, bản 89)
+Mỗi lần gọi AI viết bài thử tối đa 3 lần: phản hồi rỗng được nhắc lại đúng dạng JSON, lỗi tạm thời (hết hạn mức, quá tải, hết giờ chờ) chờ 2 rồi 5 giây. Khi vẫn thất bại, thông báo ghi lý do dừng, số token và số lần đã thử. Bài bị cắt (API báo hết giới hạn, hoặc bài có đề mục kết thúc giữa câu) được xin viết tiếp; nếu lượt viết tiếp lỗi thì giữ phần đã có và báo bài chưa xong. Giới hạn đầu ra mặc định 8000 token, thời gian chờ 5 phút, tối đa 2 bài gọi song song với API khoá (3 với claude.ai).

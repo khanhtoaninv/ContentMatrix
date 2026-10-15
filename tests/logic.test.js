@@ -1502,6 +1502,15 @@ test('10.39 AI viết bài: cài đặt, yêu cầu theo nhà cung cấp, đọc
   assert.equal(AC.parseAiPost('## Hook\nA.\n\n## Ý nghĩa', cr).cut, true);
   assert.equal(AC.parseAiPost('{"text":"## Hook\\nA.\\n\\n## Ý nghĩa\\nB."}', cr).cut, false);
   assert.equal(AC.salvageJsonText('{"x":1}'), null);
+  // Chẩn đoán phản hồi rỗng, lỗi tạm thời, bài kết thúc giữa câu
+  const em = AC.parseTextResponse('anthropic', 200, { content: [], stop_reason: 'end_turn', usage: { output_tokens: 0 } });
+  assert.equal(em.ok, false); assert.equal(em.empty, true); assert.match(em.error, /không trả về chữ \(lý do dừng: end_turn, 0 token\)/);
+  assert.equal(AC.parseTextResponse('anthropic', 529, { error: { message: 'Overloaded' } }).transient, true);
+  assert.equal(AC.parseTextResponse('anthropic', 401, {}).transient, false);
+  assert.equal(AC.parseTextResponse('anthropic', 200, { content: [{ type: 'text', text: 'x' }], stop_reason: 'max_tokens' }).cut, true);
+  assert.equal(AC.parseAiPost('## Hook\nA.\n\n## Vì sao\nChị Mai nói "She don\'t', cr).cut, true);
+  assert.equal(AC.parseAiPost('Bài ngắn không đề mục và kết thúc dở', cr).cut, false);
+  assert.equal(AC.buildTextRequest({ provider: 'anthropic', model: 'm', endpoint: 'https://x' }, 'k', { system: 's', user: 'u' }).json.max_tokens, 8000);
   // Ghép phần viết tiếp: nối thường, hoặc bỏ bài dở khi AI viết lại từ đầu
   assert.equal(AC.joinContinuation('## Hook\nA.\n\n## Ý nghĩa\nDở', 'dang tiếp.\n\n## CTA\nX.'), '## Hook\nA.\n\n## Ý nghĩa\nDở dang tiếp.\n\n## CTA\nX.');
   assert.equal(AC.joinContinuation('## Hook\nA.\n\n## Ý nghĩa\nDở', '## CTA\nX.'), '## Hook\nA.\n\n## Ý nghĩa\nDở\n\n## CTA\nX.');
