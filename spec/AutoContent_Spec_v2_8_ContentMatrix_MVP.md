@@ -1226,3 +1226,6 @@ Không đổi tính năng, giao diện hay dữ liệu. Mã nguồn chuyển san
 
 ## 10.59. AI viết bài: cứu JSON cụt, thử lại, viết tiếp (15/10/2026, bản 86)
 Khi AI trả JSON hỏng hoặc bài dừng giữa chừng, app lấy phần chữ trong khoá "text" thay vì dán JSON thô vào ô. Phản hồi rỗng được thử lại 1 lần. Bài bị cắt (JSON chưa đóng, hoặc dừng ngay ở một đề mục) được xin viết tiếp tối đa 2 lượt rồi ghép lại; nếu vẫn thiếu, hiện thông báo để người dùng viết lại bài đó. Không đổi dữ liệu lưu.
+
+## 10.60. Viết tiếp bài: bỏ bản dở khi AI viết lại từ đầu (15/10/2026, bản 87)
+Khi bài AI dừng giữa chừng và lượt viết tiếp mở bằng đúng đề mục đầu của bài dở, app dùng bản viết lại làm bài và bỏ phần dở, để ô không chứa hai bản liền nhau. Trường hợp thường vẫn nối phần viết tiếp vào cuối bài dở.

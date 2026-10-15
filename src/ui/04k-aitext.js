@@ -35,8 +35,7 @@ async function finishPost(j, p) {
   for (let k = 0; k < 2 && p.cut; k++) {
     const more = AC.parseAiPost(await callRetry({ system: j.system, user: `${j.user}\n\n# Bài đang viết dở (bị dừng giữa chừng)\n${p.text}\n\nViết tiếp NGAY từ chỗ đang dừng cho đến hết bài, đủ các phần còn thiếu theo chỉ dẫn. Chỉ trả phần viết tiếp bằng chữ thường, không JSON, không lặp lại phần đã có.` }));
     if (!more.ok) break;
-    const sep = /^\s*#/.test(more.text) || /[.!?…:]\s*$/.test(p.text) ? '\n\n' : ' ';
-    p = Object.assign({}, p, { text: `${p.text}${sep}${more.text}`.trim(), cut: more.cut });
+    p = Object.assign({}, p, { text: AC.joinContinuation(p.text, more.text), cut: more.cut });
   }
   return p;
 }

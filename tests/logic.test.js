@@ -1502,6 +1502,10 @@ test('10.39 AI viết bài: cài đặt, yêu cầu theo nhà cung cấp, đọc
   assert.equal(AC.parseAiPost('## Hook\nA.\n\n## Ý nghĩa', cr).cut, true);
   assert.equal(AC.parseAiPost('{"text":"## Hook\\nA.\\n\\n## Ý nghĩa\\nB."}', cr).cut, false);
   assert.equal(AC.salvageJsonText('{"x":1}'), null);
+  // Ghép phần viết tiếp: nối thường, hoặc bỏ bài dở khi AI viết lại từ đầu
+  assert.equal(AC.joinContinuation('## Hook\nA.\n\n## Ý nghĩa\nDở', 'dang tiếp.\n\n## CTA\nX.'), '## Hook\nA.\n\n## Ý nghĩa\nDở dang tiếp.\n\n## CTA\nX.');
+  assert.equal(AC.joinContinuation('## Hook\nA.\n\n## Ý nghĩa\nDở', '## CTA\nX.'), '## Hook\nA.\n\n## Ý nghĩa\nDở\n\n## CTA\nX.');
+  assert.equal(AC.joinContinuation('## Hook\nA.\n\n## Ý nghĩa\nDở', '## Hook\nA mới.\n\n## CTA\nX.'), '## Hook\nA mới.\n\n## CTA\nX.');
   assert.equal(AC.parseHooks('{"hooks":[{"kind":"question","text":"Q?"},{"kind":"x","text":"bỏ"}]}').hooks.length, 1);
   assert.equal(AC.parseCaptions('{"captions":[{"kind":"short","text":"S"},{"kind":"long","text":"L"}]}').captions.map(c => c.label).join(','), 'Ngắn,Đầy đủ');
 });

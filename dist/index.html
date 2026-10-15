@@ -7391,6 +7391,12 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 			closed
 		};
 	}
+	function joinContinuation(prev, more) {
+		const p = String(prev || "").trim(), m = String(more || "").trim();
+		const first = p.split("\n").find((l) => l.trim()) || "";
+		if (/^\s*#{1,6}\s/.test(first) && m.startsWith(first.trim())) return m;
+		return `${p}${/^\s*#/.test(m) || /[.!?…:]\s*$/.test(p) ? "\n\n" : " "}${m}`.trim();
+	}
 	var endsOnHeading = (t) => /^\s*#{1,6}\s/.test(String(t || "").trim().split("\n").pop());
 	function parseAiPost(raw, criteria) {
 		const j = extractJson(raw);
@@ -13106,6 +13112,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		aiScore,
 		parseAiPost,
 		salvageJsonText,
+		joinContinuation,
 		aiSystem,
 		rewriteJob,
 		hooksJob,
@@ -14510,9 +14517,8 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				user: `${j.user}\n\n# Bài đang viết dở (bị dừng giữa chừng)\n${p.text}\n\nViết tiếp NGAY từ chỗ đang dừng cho đến hết bài, đủ các phần còn thiếu theo chỉ dẫn. Chỉ trả phần viết tiếp bằng chữ thường, không JSON, không lặp lại phần đã có.`
 			}));
 			if (!more.ok) break;
-			const sep = /^\s*#/.test(more.text) || /[.!?…:]\s*$/.test(p.text) ? "\n\n" : " ";
 			p = Object.assign({}, p, {
-				text: `${p.text}${sep}${more.text}`.trim(),
+				text: AC.joinContinuation(p.text, more.text),
 				cut: more.cut
 			});
 		}

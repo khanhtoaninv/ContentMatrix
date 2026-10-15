@@ -104,6 +104,14 @@ export function salvageJsonText(raw) {
   }
   return { text: out, closed };
 }
+// Ghép phần viết tiếp vào bài dở. Nếu AI viết lại từ đầu (mở bằng đúng đề mục đầu của bài dở) thì bỏ bài dở, dùng bản viết lại
+export function joinContinuation(prev, more) {
+  const p = String(prev || '').trim(), m = String(more || '').trim();
+  const first = p.split('\n').find(l => l.trim()) || '';
+  if (/^\s*#{1,6}\s/.test(first) && m.startsWith(first.trim())) return m;
+  const sep = /^\s*#/.test(m) || /[.!?…:]\s*$/.test(p) ? '\n\n' : ' ';
+  return `${p}${sep}${m}`.trim();
+}
 // Bài không phải JSON mà dừng ngay ở một đề mục thì coi là bị cắt
 const endsOnHeading = t => /^\s*#{1,6}\s/.test(String(t || '').trim().split('\n').pop());
 // Đọc bài AI viết: JSON {text, imagePrompt, scores, tip}; JSON hỏng thì cứu phần chữ; không phải JSON thì coi cả câu trả lời là bài.
