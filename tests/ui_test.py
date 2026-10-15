@@ -238,6 +238,7 @@ with sync_playwright() as pw:
     page.locator('.matrix .cellbtn:has-text("Đã duyệt")').first.click()
     d = page.locator('.drawer').inner_text().replace('\n', ' ')
     check('Ô đã duyệt: có bài, Gợi ý ảnh, cảnh báo, điểm AI, nút Tạo lại · Sửa · Hủy ô (không còn khóa R2′)', 'Gợi ý ảnh' in d and 'Điểm AI' in d and 'R2′' not in d and page.locator('#cell-actions button:has-text("Tạo lại")').count() == 1 and page.locator('#cell-actions button:has-text("Sửa")').count() == 1 and page.locator('#cell-actions button:has-text("Hủy ô")').count() == 1)
+    check('10.61 Bài mô phỏng có nhãn "Bài mô phỏng (không phải AI)"', 'Bài mô phỏng (không phải AI)' in d)
     # R2′ · Tạo lại → bản 2; back → Dùng bản này → bản 1; Sửa → sửa tay lần 1
     page.locator('#cell-actions button:has-text("Tạo lại")').click()
     d = page.locator('.drawer').inner_text().replace('\n', ' ')

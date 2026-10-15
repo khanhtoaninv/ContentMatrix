@@ -1229,3 +1229,6 @@ Khi AI trả JSON hỏng hoặc bài dừng giữa chừng, app lấy phần ch�
 
 ## 10.60. Viết tiếp bài: bỏ bản dở khi AI viết lại từ đầu (15/10/2026, bản 87)
 Khi bài AI dừng giữa chừng và lượt viết tiếp mở bằng đúng đề mục đầu của bài dở, app dùng bản viết lại làm bài và bỏ phần dở, để ô không chứa hai bản liền nhau. Trường hợp thường vẫn nối phần viết tiếp vào cuối bài dở.
+
+## 10.61. Nhãn bài mô phỏng và tên model (15/10/2026, bản 88)
+Khung Điểm AI của ô và slot: bài do AI viết ghi "Bài do AI viết · [model] · Skill [tên] v[số]"; bài không do AI viết ghi "Bài mô phỏng (không phải AI)", để người dùng không nhầm bài ghép mẫu (không áp dụng Skill) với bài AI, kể cả khi AI lỗi và app tự dùng mô phỏng.

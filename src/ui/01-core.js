@@ -292,7 +292,7 @@ export function scoreHtml(scores, total, tip, criteria, ai) {
   if (total == null) return '';
   const thr = S.settings.reviewThreshold;
   return `<div class="score">
-    <div class="tot"><b>${total}</b><span class="muted">/100</span><span class="mock">${ai && ai.scored ? `AI chấm · ${esc((AC.TEXT_PROVIDERS[ai.provider] || {}).label || ai.provider)}` : 'AI chấm · Mô phỏng'}</span>${ai ? `<span class="sim-tag real">Bài do AI viết${ai.skill ? ` · Skill ${esc(ai.skill.name)} v${ai.skill.version}` : ''}</span>` : ''}${total < thr ? '<span class="st st-need">Nên xem lại</span>' : ''}</div>
+    <div class="tot"><b>${total}</b><span class="muted">/100</span><span class="mock">${ai && ai.scored ? `AI chấm · ${esc((AC.TEXT_PROVIDERS[ai.provider] || {}).label || ai.provider)}` : 'AI chấm · Mô phỏng'}</span>${ai ? `<span class="sim-tag real">Bài do AI viết${ai.model ? ` · ${esc(ai.model)}` : ''}${ai.skill ? ` · Skill ${esc(ai.skill.name)} v${ai.skill.version}` : ''}</span>` : '<span class="sim-tag" title="Bài ghép sẵn từ Topic, không gọi AI và không áp dụng Skill">Bài mô phỏng (không phải AI)</span>'}${total < thr ? '<span class="st st-need">Nên xem lại</span>' : ''}</div>
     ${(criteria || []).map(c => { const s = (scores.find(x => x.criterionId === c.id) || {}).score || 0; return `<div class="bar"><span>${esc(c.name)}</span><i><span style="width:${s * 20}%"></span></i><span class="mono">${s}/5</span></div>`; }).join('')}
     ${tip ? `<p class="small"><b>Gợi ý:</b> ${esc(tip)}</p>` : ''}
   </div>`;
