@@ -7,6 +7,9 @@ import AC from '../src/logic/99-export.js';
 
 const T1 = 'w-2026-10-05', T2 = 'w-2026-10-12', T3 = 'w-2026-10-19';
 const seed = () => AC.buildSeed();
+// Từ 10.66: Chia bài thành Hoàn thành Matrix + Viết tất cả slot; dealFull làm cả hai (nếu Matrix chưa Hoàn thành)
+const dealFullWeek = (S, w, at) => { if (!AC.matrixDone(S, w)) AC.completeMatrix(S, w, at); return AC.dealWeek(S, w, at); };
+const dealFull = (S, w, at) => { if (!AC.matrixDone(S, w)) AC.completeMatrix(S, w, at); return AC.dealSlots(S, w, at); };
 const fileOf = (S, w) => AC.topicFileOf(S, w).md;
 const approveAll = (S, w) => AC.cellsOf(S, w).forEach(c => { const row = AC.byId(S.topics, c.topicId); const bv = c.byVersion[row.currentVersion]; if (bv && bv.state === 'DRAFT') bv.state = 'APPROVED'; });
 
@@ -16,8 +19,8 @@ test('7.3 · seed khớp số kiểm thử cố định', () => {
   assert.equal(S.channels.length, 6); assert.equal(S.columns.length, 5); assert.equal(S.formats.length, 23);
   assert.equal(S.brand.parsed.bannedPhrases.length, 4);
   assert.deepEqual(S.columns.map(c => c.name), ['Giải thích', 'Hướng dẫn', 'Bất ngờ và ngộ nhận', 'Câu chuyện', 'Luyện tập']);
-  assert.deepEqual(S.weekTemplates.map(t => [t.name, t.slots.length]), [['Tuần chuẩn', 17], ['Tuần nhẹ', 9], ['Fanpage Facebook', 8]]);
-  S.weekTemplates.filter(t => t.id !== 'wt-3').forEach(t => assert.equal(new Set(t.slots.map(x => x.weekday)).size, 7)); // Tuần chuẩn, Tuần nhẹ đủ 7 ngày (Fanpage Facebook chỉ T2–T6)
+  assert.deepEqual(S.weekTemplates.map(t => [t.name, t.slots.length]), [['Tuần chuẩn', 17], ['Tuần nhẹ', 9], ['Fanpage Facebook', 10]]);
+  S.weekTemplates.forEach(t => assert.equal(new Set(t.slots.map(x => x.weekday)).size, 7));
   assert.deepEqual([T1, T2, T3].map(w => AC.weekSlots(S, w).length), [17, 9, 17]);
   assert.deepEqual([T1, T2, T3].map(w => AC.weekOf(S, w).templateId), ['wt-1', 'wt-2', 'wt-1']);
   [T1, T2, T3].forEach(w => { assert.equal(AC.topicsOf(S, w).length, 3); assert.equal(AC.cellsOf(S, w).length, 15); });
@@ -77,7 +80,7 @@ test('Z3 · đổi demoNow làm slot T2 trễ', () => {
 test('Tiến độ 7 bước và việc tiếp theo', () => {
   const S = seed();
   assert.equal(AC.STEP_COUNT, 7);
-  assert.deepEqual(AC.STEP_NAMES, ['Lập tuần', 'Nạp Topic', 'Viết ma trận', 'Duyệt ô', 'Chia bài', 'Duyệt slot và ảnh', 'Xác nhận và xuất']);
+  assert.deepEqual(AC.STEP_NAMES, ['Lập tuần', 'Nạp Topic', 'Viết ma trận', 'Duyệt ô', 'Viết slot', 'Duyệt slot và ảnh', 'Xác nhận và xuất']);
   assert.equal(AC.weekProgress(S, T1).allDone, true);
   assert.equal(AC.weekProgress(S, T2).current, 6);
   assert.equal(AC.nextAction(S, T2).label, 'Duyệt 9 slot');
@@ -138,7 +141,7 @@ test('U5 · xóa Format đang có slot ở tuần nháp phải chọn Format tha
   assert.equal(AC.deleteFormat(S, 'f-th-fact', 'f-th-quiz').ok, true);
   assert.equal(S.slots.filter(s => s.formatId === 'f-th-fact').length, 0);
   assert.ok(S.weekTemplates.every(t => t.slots.every(x => x.formatId !== 'f-th-fact')));
-  assert.ok(S.weekTemplates.reduce((n, t) => n + t.slots.length, 0) < 34);
+  assert.ok(S.weekTemplates.reduce((n, t) => n + t.slots.length, 0) < 36);
 });
 
 test('U6 · tổng trọng số khác 100 báo lỗi', () => {
@@ -219,7 +222,7 @@ test('V4 · bớt rồi thêm Cột: số ô = số Topic × số Cột', () => 
 });
 
 test('Bớt Cột ở tuần đã phân bổ: slot liên quan về chưa có bài', () => {
-  const S = seed(); AC.reopenWeek(S, T1);
+  const S = seed(); AC.reopenWeek(S, T1); AC.reopenMatrix(S, T1);
   const r = AC.removeWeekColumn(S, T1, 'col-giaithich');
   assert.equal(r.impact.slots, 3);
   assert.ok(AC.weekSlots(S, T1).filter(s => ['f-blog-explain', 'f-yt-explain', 'f-fb-infographic'].includes(s.formatId)).every(s => !s.sourceCellId && !s.text));
@@ -249,11 +252,15 @@ test('Đổi Format sang Cột khác làm slot mất ô nguồn', () => {
 test('Chia bài (DST) · cổng điều kiện, T3 sau khi duyệt đủ: 17/17, đúng Cột, xen kẽ, bỏ qua ô hủy', () => {
   const S = seed();
   const g0 = AC.dealGate(S, T3);
-  assert.equal(g0.ok, false); assert.deepEqual(g0.reasons, ['3 ô chưa duyệt']); assert.equal(g0.willFill, 17);
-  assert.equal(AC.dealSlots(S, T3).ok, false);
+  assert.equal(g0.ok, false); assert.deepEqual(g0.reasons, ['Matrix chưa Hoàn thành']); assert.equal(g0.willFill, 0);
+  assert.deepEqual(AC.completeGate(S, T3).reasons, ['3 ô chưa duyệt']);
+  assert.equal(AC.completeMatrix(S, T3).ok, false);
+  assert.equal(dealFull(S, T3).ok, false);
   approveAll(S, T3);
-  assert.equal(AC.dealGate(S, T3).ok, true);
-  const r = AC.dealSlots(S, T3);
+  assert.equal(AC.dealGate(S, T3).ok, false); // duyệt đủ nhưng chưa bấm Hoàn thành
+  assert.equal(AC.completeMatrix(S, T3).ok, true);
+  const g1 = AC.dealGate(S, T3); assert.equal(g1.ok, true); assert.equal(g1.willFill, 17);
+  const r = dealFull(S, T3);
   assert.equal(r.ok, true); assert.equal(r.written.length, 17); assert.equal(r.empty.length, 0);
   const cols = {};
   AC.weekSlots(S, T3).forEach(s => { const c = AC.byId(S.cells, s.sourceCellId); const f = AC.byId(S.formats, s.formatId); assert.equal(c.columnId, f.columnId); assert.equal(s.state, 'DRAFT'); (cols[c.columnId] = cols[c.columnId] || []).push(c.topicId); });
@@ -266,23 +273,23 @@ test('Chia bài (DST) · cổng điều kiện, T3 sau khi duyệt đủ: 17/17,
   // chia lại: không còn slot trống nên bị chặn, nội dung giữ nguyên
   const before = AC.weekSlots(S, T3).map(s => s.text).join('|');
   assert.equal(AC.dealGate(S, T3).ok, false);
-  assert.equal(AC.dealSlots(S, T3).ok, false);
+  assert.equal(dealFull(S, T3).ok, false);
   assert.equal(AC.weekSlots(S, T3).map(s => s.text).join('|'), before);
 });
 
 test('Chia bài chỉ điền slot còn trống; xóa nội dung một slot rồi chia lại chỉ điền slot đó', () => {
-  const S = seed(); approveAll(S, T3); AC.dealSlots(S, T3);
+  const S = seed(); approveAll(S, T3); dealFull(S, T3);
   const s = AC.weekSlots(S, T3)[0]; const keep = AC.weekSlots(S, T3)[1].text;
   AC.clearSlotContent(s);
   const g = AC.dealGate(S, T3); assert.equal(g.ok, true); assert.equal(g.willFill, 1);
-  const r = AC.dealSlots(S, T3); assert.equal(r.written.length, 1);
+  const r = dealFull(S, T3); assert.equal(r.written.length, 1);
   assert.equal(AC.weekSlots(S, T3)[1].text, keep);
 });
 
 test('Chia bài: Cột không có ô Đã duyệt thì slot để trống', () => {
   const S = seed(); approveAll(S, T3);
   AC.cellsOf(S, T3).filter(c => c.columnId === 'col-luyentap').forEach(c => { const row = AC.byId(S.topics, c.topicId); c.byVersion[row.currentVersion].state = 'CANCELLED'; });
-  const r = AC.dealSlots(S, T3);
+  const r = dealFull(S, T3);
   const lt = AC.weekSlots(S, T3).filter(x => AC.byId(S.formats, x.formatId).columnId === 'col-luyentap');
   assert.ok(lt.length > 0); assert.equal(r.empty.length, lt.length);
   assert.ok(lt.every(x => x.state === 'EMPTY'));
@@ -292,14 +299,14 @@ test('Chia bài: cổng chặn khi chưa lập tuần, chưa có Topic, tuần �
   const S = seed();
   assert.match(AC.dealGate(S, 'w-2026-10-26').reasons[0], /Chưa lập tuần/);
   const w = AC.applyTemplateWeek(S, '2026-10-26', 'wt-2').week;
-  assert.ok(AC.dealGate(S, w.id).reasons.includes('Chưa có Topic'));
+  assert.ok(AC.completeGate(S, w.id).reasons.includes('Chưa có Topic')); assert.ok(AC.dealGate(S, w.id).reasons.includes('Matrix chưa Hoàn thành'));
   assert.ok(AC.dealGate(S, T1).reasons.includes('Tuần đã chốt'));
   AC.importTopics(S, w.id, fileOf(S, T2));
-  assert.equal(AC.dealGate(S, w.id).reasons[0], '15 ô chưa viết');
+  assert.equal(AC.completeGate(S, w.id).reasons[0], '15 ô chưa viết');
 });
 
 test('Đổi ô nguồn của slot: chỉ chọn ô Đã duyệt cùng Cột; slot viết lại theo Format', () => {
-  const S = seed(); approveAll(S, T3); AC.dealSlots(S, T3);
+  const S = seed(); approveAll(S, T3); dealFull(S, T3);
   const s = AC.weekSlots(S, T3).find(x => x.formatId === 'f-fb-howto');
   const choices = AC.slotCellChoices(S, s.id);
   assert.equal(choices.length, 3); assert.equal(choices.filter(c => c.current).length, 1);
@@ -327,7 +334,7 @@ test('Ảnh của slot (mô phỏng): cần prompt; Gen thêm phiên bản; < > 
 });
 
 test('Hủy Topic: bỏ hàng và ô, slot dùng ô về chưa có bài; tuần chốt bị chặn', () => {
-  const S = seed();
+  const S = seed(); AC.reopenMatrix(S, T2);
   const row = AC.topicsOf(S, T2)[2];
   const imp = AC.topicImpact(S, T2, row.id);
   assert.equal(imp.cells, 5); assert.ok(imp.slots > 0);
@@ -392,7 +399,7 @@ test('Chia bài tạo luôn ảnh: mỗi ô ảnh có ảnh, prompt có chữ tr
   const S = seed();
   AC.weekSlots(S, T3).forEach(s => s.assets.forEach(a => assert.equal(a.versions.length, 0))); // chưa Chia bài
   AC.cellsOf(S, T3).forEach(c => { if (AC.cellView(S, c).state === 'DRAFT') AC.approveCell(S, c.id); });
-  assert.ok(AC.dealWeek(S, T3).ok);
+  assert.ok(dealFullWeek(S, T3).ok);
   const slots = AC.weekSlots(S, T3).filter(s => s.text);
   const ic = AC.imageCounts(S, T3); assert.ok(ic.boxes > 0); assert.equal(ic.done, ic.boxes);
   slots.forEach(s => {
@@ -455,7 +462,7 @@ test('10.12 Tạo bài ngay trong slot: thêm slot sau Chia bài, viết từ ô
   assert.equal(use(w.cellId), minUse);
   // tuần chưa có ô Đã duyệt: không tạo được, có lý do
   const e = AC.addSlotToStart(S, '2026-10-26', { date: '2026-10-27', time: '09:00', channelId: 'ch-fb', formatId: 'f-fb-quote' });
-  const g = AC.slotWriteGate(S, e.slot.id); assert.equal(g.ok, false); assert.match(g.reason, /chưa có ô Đã duyệt/);
+  const g = AC.slotWriteGate(S, e.slot.id); assert.equal(g.ok, false); assert.match(g.reason, /Matrix chưa Hoàn thành/);
   assert.equal(AC.writeSlotNow(S, e.slot.id).ok, false);
   // tuần đã chốt
   assert.equal(AC.slotWriteGate(S, AC.weekSlots(S, T1)[0].id).ok, false);
@@ -468,7 +475,7 @@ test('10.18 Slot tự do: không lấy nguồn từ Matrix, tự viết bài, t�
   const s = r.slot;
   assert.equal(AC.slotWriteGate(S, s.id).ok, false); assert.equal(AC.writeSlotNow(S, s.id).ok, false);
   assert.equal(AC.regenSlot(S, s.id).ok, false);
-  AC.dealWeek(S, T2); assert.equal(s.state, 'EMPTY'); assert.equal(s.sourceCellId, null); // Chia bài bỏ qua slot tự do
+  dealFullWeek(S, T2); assert.equal(s.state, 'EMPTY'); assert.equal(s.sourceCellId, null); // Chia bài bỏ qua slot tự do
   assert.equal(AC.editSlot(S, s.id, '   ').ok, false);
   const e = AC.editSlot(S, s.id, '“Nói trước, hoàn hảo sau.”\n\nMột câu tự viết, không lấy từ Matrix.');
   assert.ok(e.ok && s.state === 'DRAFT' && s.history.length === 1 && s.sourceCellId === null && s.total != null);
@@ -533,7 +540,7 @@ test('INP-03 · lỗi và cảnh báo khi nạp', () => {
 test('INP-04 · nạp lại: Topic đổi thành phiên bản mới, slot dùng ô cũ cần cập nhật, ma trận về Đang mở', () => {
   const S = seed();
   assert.equal(AC.importTopics(S, T1, fileOf(S, T1)).ok, false); // tuần đã chốt
-  AC.reopenWeek(S, T1);
+  AC.reopenWeek(S, T1); AC.reopenMatrix(S, T1);
   const md = fileOf(S, T1).replace('### Vì sao\nNhững người có một bạn đồng hành', '### Vì sao\nNhiều người học kể rằng những người có một bạn đồng hành');
   const p = AC.previewTopics(S, T1, md);
   assert.deepEqual(p.changes.changed, [3]); assert.deepEqual(p.changes.same, [1, 2]);
@@ -550,7 +557,7 @@ test('INP-04 · nạp lại: Topic đổi thành phiên bản mới, slot dùng 
 });
 
 test('INP-04 · bớt Topic khi nạp lại: ô bị loại, slot về chưa có bài', () => {
-  const S = seed(); AC.reopenWeek(S, T1);
+  const S = seed(); AC.reopenWeek(S, T1); AC.reopenMatrix(S, T1);
   const md = fileOf(S, T1); const cut = md.indexOf('## Có bạn học thì dễ giữ nhịp');
   const p = AC.previewTopics(S, T1, md.slice(0, cut));
   assert.deepEqual(p.changes.removed, [3]);
@@ -713,8 +720,11 @@ test('MTX-03/04 · Duyệt ô (kể cả có cảnh báo), duyệt xong T3 thì 
   assert.ok(r.ok); assert.ok(r.warnings > 0);
   assert.equal(AC.approveCell(S, withErr.id).ok, false); // đã duyệt
   drafts.forEach(c => AC.approveCell(S, c.id));
+  assert.equal(AC.nextAction(S, T3).label, 'Hoàn thành Matrix');
+  assert.equal(AC.dealGate(S, T3).ok, false);
+  assert.equal(AC.completeMatrix(S, T3).ok, true);
   assert.ok(AC.dealGate(S, T3).ok);
-  assert.equal(AC.nextAction(S, T3).label, 'Chia bài (17 slot)');
+  assert.equal(AC.nextAction(S, T3).label, 'Viết tất cả slot (17 slot)');
 });
 
 test('MTX-08 · Duyệt hàng loạt chỉ duyệt ô không cảnh báo', () => {
@@ -726,7 +736,7 @@ test('MTX-08 · Duyệt hàng loạt chỉ duyệt ô không cảnh báo', () =>
 });
 
 test('MTX-03/05 · Tạo lại, Sửa, Hủy, back/next và Dùng bản này; slot dùng ô thì cần cập nhật', () => {
-  const S = seed();
+  const S = seed(); AC.reopenMatrix(S, T2);
   const slot = AC.weekSlots(S, T2).find(s => s.sourceCellId);
   const cellId = slot.sourceCellId; const cell = AC.byId(S.cells, cellId);
   const before = AC.cellView(S, cell).text;
@@ -764,7 +774,7 @@ test('R2′ · tuần đã chốt khóa mọi thao tác ô và Topic', () => {
 });
 
 test('TPC-08 · Sửa Topic tạo phiên bản mới (ô Trống, slot cần cập nhật); Dùng phiên bản cũ khôi phục ô', () => {
-  const S = seed();
+  const S = seed(); AC.reopenMatrix(S, T2);
   const row = AC.topicsOf(S, T2)[0]; const v1 = AC.topicCurrent(row);
   assert.equal(AC.editTopic(S, row.id, { title: v1.title, text: v1.text, fields: v1.fields }).ok, false); // chưa đổi
   assert.equal(AC.editTopic(S, row.id, { title: '', text: v1.text }).ok, false);
@@ -784,7 +794,7 @@ test('TPC-08 · Sửa Topic tạo phiên bản mới (ô Trống, slot cần c�
 });
 
 test('TPC-08 · sửa Topic bỏ phần Trường hợp thì hasCase = false', () => {
-  const S = seed();
+  const S = seed(); AC.reopenMatrix(S, T2);
   const row = AC.topicsOf(S, T2)[0]; const v = AC.topicCurrent(row);
   assert.equal(v.hasCase, true);
   const text = v.text.split(/\n(?=###\s)/).filter(b => !/^###\s*Trường hợp/i.test(b)).join('\n');
@@ -795,11 +805,11 @@ test('TPC-08 · sửa Topic bỏ phần Trường hợp thì hasCase = false', (
 });
 
 // ---------- R3′ · Chia bài, thao tác slot, ô ảnh ----------
-const dealT3 = S => { AC.cellsOf(S, T3).forEach(c => { if (AC.cellView(S, c).state === 'DRAFT') AC.approveCell(S, c.id); }); return AC.dealWeek(S, T3, '2026-10-12T09:30'); };
+const dealT3 = S => { AC.cellsOf(S, T3).forEach(c => { if (AC.cellView(S, c).state === 'DRAFT') AC.approveCell(S, c.id); }); return dealFullWeek(S, T3, '2026-10-12T09:30'); };
 
 test('C1/V8-13 · Chia bài T3: 17/17 slot có bài, đúng Cột, ô hủy không dùng, chia lại không viết đè', () => {
   const S = seed();
-  assert.equal(AC.dealWeek(S, T3).ok, false);
+  assert.equal(dealFullWeek(S, T3).ok, false);
   const r = dealT3(S);
   assert.ok(r.ok); assert.equal(r.written.length, 17); assert.equal(r.empty.length, 0);
   const slots = AC.weekSlots(S, T3);
@@ -850,7 +860,7 @@ test('CAL-13 · Duyệt, Tạo lại, Hoàn tác (dùng bản trước), Sửa, 
 });
 
 test('Cần cập nhật: ô đổi → slot cần cập nhật, không duyệt được; Cập nhật từ ô / Giữ bản (có lý do)', () => {
-  const S = seed();
+  const S = seed(); AC.reopenMatrix(S, T2);
   const s = AC.weekSlots(S, T2)[0]; const cellId = s.sourceCellId;
   AC.regenCell(S, cellId);
   assert.equal(s.needsUpdate, true);
@@ -983,7 +993,7 @@ test('10.20 Slot lấy từ Matrix chọn được Cột khác Cột đề xuấ
   assert.equal(AC.slotColumnId(S, b), other.id);
   const g = AC.slotWriteGate(S, b.id);
   if (g.ok) assert.ok(g.cells.every(c => c.columnId === other.id)); // chỉ lấy ô của Cột đã chọn
-  AC.dealWeek(S, T2);
+  dealFullWeek(S, T2);
   if (b.sourceCellId) assert.equal(AC.byId(S.cells, b.sourceCellId).columnId, other.id); // Chia bài theo Cột của slot
   const w = AC.writeSlotNow(S, a.id); // slot a theo Cột đề xuất
   if (w.ok) { assert.ok(AC.updateSlot(S, a.id, { columnId: other.id }).ok); assert.equal(a.sourceCellId, null); assert.equal(a.text, ''); } // đổi Cột thì mất ô nguồn
@@ -1491,7 +1501,7 @@ test('10.38 Phụ đề: tạo từ bài (mô phỏng), SRT/VTT, đọc tệp, k
 });
 
 test('10.39 AI viết bài: cài đặt, yêu cầu theo nhà cung cấp, đọc kết quả', () => {
-  const S = seed();
+  const S = seed(); AC.reopenMatrix(S, T2);
   assert.equal(AC.textApiOn(S), false);
   const r = AC.setTextApi(S, { provider: 'anthropic' }); assert.ok(r.ok); assert.equal(r.api.lightModel, 'claude-haiku-5-5'); assert.equal(AC.textCfgFor(S, true).model, 'claude-haiku-5-5'); assert.equal(AC.textCfgFor(S, false).model, r.api.model); assert.equal(AC.setTextApi(S, { lightModel: '' }).api.lightModel, ''); assert.equal(AC.textCfgFor(S, true).model, r.api.model); AC.setTextApi(S, { lightModel: 'claude-haiku-5-5' }); assert.equal(r.api.endpoint, 'https://api.anthropic.com/v1'); assert.ok(r.api.model);
   assert.equal(AC.setTextApi(S, { provider: 'custom', endpoint: 'ftp://x' }).ok, false);
@@ -1551,7 +1561,7 @@ test('10.39 AI viết bài: cài đặt, yêu cầu theo nhà cung cấp, đọc
 });
 
 test('10.39 AI viết bài: chạy thử để lấy việc, dùng kết quả AI, việc lỗi dùng mô phỏng', () => {
-  const S = seed();
+  const S = seed(); AC.reopenMatrix(S, T2);
   const c = S.cells.find(x => x.weekId === T2 && AC.cellView(S, x).state !== 'EMPTY');
   const before = JSON.stringify(S);
   const jobs = AC.aiPlan(S, C => AC.regenCell(C, c.id));
@@ -1764,7 +1774,7 @@ test('10.47 · AI chữ qua claude.ai (sample): không cần khoá, không đị
 });
 
 test('10.49 · Skill gắn theo Cột/Format: chỉ dùng 1 Skill, thay guideMd và bản nháp máy, ghi skillRef, giữ 5 bản cũ', () => {
-  const S = seed();
+  const S = seed(); AC.reopenMatrix(S, T2);
   const c = S.cells.find(x => x.weekId === T2 && AC.cellView(S, x).state !== 'EMPTY');
   const col = AC.byId(S.columns, c.columnId);
   const plain = AC.aiPlan(S, C => AC.regenCell(C, c.id))[0];
@@ -1804,7 +1814,7 @@ test('10.49 · Skill gắn theo Cột/Format: chỉ dùng 1 Skill, thay guideMd 
 });
 
 test('10.50 · Khung trình bày đi kèm lệnh AI thật; lệnh sao chép cho agent dùng Skill thay Hướng dẫn viết', () => {
-  const S = seed();
+  const S = seed(); AC.reopenMatrix(S, T2);
   const c = S.cells.find(x => x.weekId === T2 && AC.cellView(S, x).state !== 'EMPTY');
   const col = AC.byId(S.columns, c.columnId);
   let job = AC.aiPlan(S, C => AC.regenCell(C, c.id))[0];
@@ -1905,16 +1915,16 @@ test('10.56 · Duyệt tất cả slot: mặc định chỉ slot không cảnh b
   assert.equal(AC.slotsApprovable(S, w.id, true).length, 0);
 });
 
-test('10.65 · Tuần mẫu Fanpage Facebook: 8 slot Facebook T2–T6, đủ 5 Cột, xoay vòng sau Tuần nhẹ', () => {
+test('10.65 · Tuần mẫu Fanpage Facebook: 10 slot Facebook T2–CN, đủ 5 Cột, xoay vòng sau Tuần nhẹ', () => {
   const S = seed();
   const t = AC.templateOf(S, 'wt-3');
-  assert.equal(t.name, 'Fanpage Facebook'); assert.equal(t.slots.length, 8);
+  assert.equal(t.name, 'Fanpage Facebook'); assert.equal(t.slots.length, 10);
   assert.ok(t.slots.every(x => x.channelId === 'ch-fb'));
-  assert.deepEqual([...new Set(t.slots.map(x => x.weekday))].sort(), [1, 2, 3, 4, 5]);
-  assert.deepEqual(AC.templateColumnCounts(S, t), { 'col-huongdan': 3, 'col-giaithich': 1, 'col-batngo': 2, 'col-cauchuyen': 1, 'col-luyentap': 1 });
-  assert.deepEqual(AC.templateEmptyDays(t), [6, 7]);
+  assert.deepEqual([...new Set(t.slots.map(x => x.weekday))].sort(), [1, 2, 3, 4, 5, 6, 7]);
+  assert.deepEqual(AC.templateColumnCounts(S, t), { 'col-huongdan': 3, 'col-giaithich': 1, 'col-batngo': 2, 'col-cauchuyen': 2, 'col-luyentap': 2 });
+  assert.deepEqual(AC.templateEmptyDays(t), []);
   AC.applyTemplateWeek(S, '2026-11-02', 'wt-2');
   assert.equal(AC.suggestTemplateId(S, '2026-11-09'), 'wt-3');
-  assert.equal(AC.applyTemplateWeek(S, '2026-11-09', 'wt-3').slots, 8);
+  assert.equal(AC.applyTemplateWeek(S, '2026-11-09', 'wt-3').slots, 10);
   assert.equal(AC.suggestTemplateId(S, '2026-11-16'), 'wt-1');
 });

@@ -4140,6 +4140,22 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 	function dealWeek(S, weekId, at) {
 		const r = dealSlots(S, weekId, at);
 		if (!r.ok) return r;
+		markEmptyReasons(S, weekId);
+		return r;
+	}
+	function dealFinish(S, weekId, at) {
+		const w = weekOf(S, weekId);
+		if (!w) return { ok: false };
+		markEmptyReasons(S, weekId);
+		w.dealtAt = at || S.settings.demoNow;
+		const empty = weekSlots(S, weekId).filter((s) => s.state === "EMPTY").length;
+		log(S, "deal", "week", weekId, `${empty} trống`);
+		return {
+			ok: true,
+			empty
+		};
+	}
+	function markEmptyReasons(S, weekId) {
 		const w = weekOf(S, weekId);
 		weekSlots(S, weekId).forEach((s) => {
 			if (s.state !== "EMPTY" || s.free) {
@@ -4150,7 +4166,6 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 			const cid = slotColumnId(S, s), col = f ? byId(S.columns, cid) : null;
 			s.emptyReason = !f ? "Format đã xóa" : !w.columnIds.includes(cid) ? `Cột "${col ? col.name : "?"}" không có trong tuần` : `Cột "${col ? col.name : "?"}" không có ô Đã duyệt`;
 		});
-		return r;
 	}
 	function slotSourceCell(S, s) {
 		return s && s.sourceCellId ? byId(S.cells, s.sourceCellId) : null;
@@ -4217,7 +4232,7 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		const cell = slotSourceCell(S, s);
 		if (!cell) return {
 			ok: false,
-			error: "Slot chưa có ô nguồn. Bấm Chia bài ở Matrix hoặc chọn ô."
+			error: "Slot chưa có ô nguồn. Bấm Viết tất cả slot ở Dashboard hoặc chọn ô."
 		};
 		if (cellView(S, cell).state !== "APPROVED") return {
 			ok: false,
@@ -6979,6 +6994,9 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 			if (!ch.platform) ch.platform = PLATFORM_OF_ID[ch.id] || "other";
 			if (!ch.publish) ch.publish = defaultPublish(ch.platform);
 		});
+		(S.weeks || []).forEach((w) => {
+			if (w.matrixDoneAt === void 0) w.matrixDoneAt = w.dealtAt || ((S.slots || []).some((s) => s.weekId === w.id && s.sourceCellId) ? S.settings && S.settings.demoNow || w.startDate : null);
+		});
 		const confirmed = new Set((S.weeks || []).filter((w) => w.revision >= 1).map((w) => w.id));
 		(S.slots || []).forEach((s) => {
 			if (s.pub === void 0) s.pub = s.state === "PUBLISHED" ? {
@@ -8448,6 +8466,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		importTopics(S, t1.id, SEED_TOPIC_FILES["2026-10-05"].v2, at("2026-10-01", "15:30"));
 		writeCells(t1, null, "APPROVED", at("2026-10-01", "16:05"));
 		applyTemplateWeek(S, "2026-10-05", "wt-1");
+		completeMatrix(S, t1.id, at("2026-10-02", "08:55"));
 		dealSlots(S, t1.id, at("2026-10-02", "09:00"));
 		weekSlots(S, t1.id).forEach((s, i) => {
 			s.confirmedText = s.text;
@@ -8468,6 +8487,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		applyTemplateWeek(S, "2026-10-12", "wt-2");
 		importTopics(S, t2.id, SEED_TOPIC_FILES["2026-10-12"].v1, at("2026-10-11", "20:10"));
 		writeCells(t2, null, "APPROVED", at("2026-10-11", "21:00"));
+		completeMatrix(S, t2.id, at("2026-10-12", "08:25"));
 		dealSlots(S, t2.id, at("2026-10-12", "08:30"));
 		const t3 = ensureWeek(S, "2026-10-19").week;
 		applyTemplateWeek(S, "2026-10-19", "wt-1");
@@ -8512,6 +8532,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 	function cellGuard(S, cell) {
 		if (!cell) return "Không tìm thấy ô.";
 		if (isLocked(S, cell.weekId)) return "Tuần đã chốt. Bấm \"Mở lại để sửa\" trước.";
+		if (matrixDone(S, cell.weekId)) return MATRIX_LOCK_MSG;
 		const row = byId(S.topics, cell.topicId);
 		if (!row || !topicCurrent(row)) return "Không tìm thấy Topic của ô.";
 		return "";
@@ -8548,6 +8569,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		const rows = w ? topicsOf(S, weekId).filter((r) => topicCurrent(r)) : [];
 		const reasons = [];
 		if (w && w.status === "CONFIRMED") reasons.push("Tuần đã chốt");
+		if (w && w.matrixDoneAt) reasons.push("Matrix đã Hoàn thành (bấm Sửa để mở khóa)");
 		let queue = writeQueue(S, weekId), mode = "empty";
 		if (rows.length && !queue.length) {
 			const redo = writeQueue(S, weekId, "redo");
@@ -8753,7 +8775,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		return { ok: true };
 	}
 	function bulkApprovable(S, weekId, withWarned) {
-		if (isLocked(S, weekId)) return [];
+		if (isLocked(S, weekId) || matrixDone(S, weekId)) return [];
 		const live = new Set(topicsOf(S, weekId).filter((r) => topicCurrent(r)).map((r) => r.id));
 		return cellsOf(S, weekId).filter((c) => {
 			if (!live.has(c.topicId)) return false;
@@ -8800,6 +8822,10 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		if (isLocked(S, row.weekId)) return {
 			ok: false,
 			error: "Tuần đã chốt. Bấm \"Mở lại để sửa\" trước."
+		};
+		if (matrixDone(S, row.weekId)) return {
+			ok: false,
+			error: MATRIX_LOCK_MSG
 		};
 		const title = String(input.title || "").trim();
 		const text = String(input.text || "").replace(/\r\n?/g, "\n").trim();
@@ -8856,6 +8882,10 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		if (isLocked(S, row.weekId)) return {
 			ok: false,
 			error: "Tuần đã chốt. Bấm \"Mở lại để sửa\" trước."
+		};
+		if (matrixDone(S, row.weekId)) return {
+			ok: false,
+			error: MATRIX_LOCK_MSG
 		};
 		if (!row.versions.some((v) => v.n === n)) return {
 			ok: false,
@@ -9737,6 +9767,16 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				5,
 				"10:00",
 				"f-fb-quote"
+			],
+			[
+				6,
+				"19:30",
+				"f-fb-story"
+			],
+			[
+				7,
+				"10:00",
+				"f-fb-fill"
 			]
 		]);
 		return {
@@ -10081,6 +10121,14 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		const w = weekOf(S, weekId);
 		return !!w && w.status === "CONFIRMED";
 	}
+	var MATRIX_LOCK_MSG = "Matrix đã Hoàn thành. Bấm \"Sửa\" ở Matrix để mở khóa.";
+	function matrixDone(S, weekId) {
+		const w = weekOf(S, weekId);
+		return !!(w && w.matrixDoneAt);
+	}
+	function matrixLockMsg(S, weekId) {
+		return matrixDone(S, weekId) ? MATRIX_LOCK_MSG : "";
+	}
 	var PUBLISHED_LOCK = "Bài đã đăng chỉ xem, không sửa được. Đăng tay thì \"Bỏ đánh dấu\" trước nếu lỡ đánh dấu nhầm.";
 	function slotLockMsg(S, s) {
 		if (s && s.state === "PUBLISHED") return PUBLISHED_LOCK;
@@ -10169,7 +10217,8 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			confirmedAt: null,
 			revision: 0,
 			templateId: null,
-			dealtAt: null
+			dealtAt: null,
+			matrixDoneAt: null
 		};
 		S.weeks.push(w);
 		log(S, "create", "week", w.id);
@@ -10468,6 +10517,10 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			ok: false,
 			error: "Tuần đã chốt."
 		};
+		if (matrixDone(S, weekId)) return {
+			ok: false,
+			error: MATRIX_LOCK_MSG
+		};
 		const k = w.columnIds.filter((x) => x === columnId).length;
 		w.columnIds.push(columnId);
 		let added = 0;
@@ -10505,6 +10558,10 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		if (isLocked(S, weekId)) return {
 			ok: false,
 			error: "Tuần đã chốt."
+		};
+		if (matrixDone(S, weekId)) return {
+			ok: false,
+			error: MATRIX_LOCK_MSG
 		};
 		if (w.columnIds.length <= 1) return {
 			ok: false,
@@ -10650,6 +10707,10 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			ok: false,
 			errors: [{ text: "Tuần đã chốt. Bấm \"Mở lại để sửa\" trước." }]
 		};
+		if (matrixDone(S, weekId)) return {
+			ok: false,
+			errors: [{ text: MATRIX_LOCK_MSG }]
+		};
 		const r = previewTopics(S, weekId, md);
 		if (!r.ok) return r;
 		const now = at || S.settings.demoNow;
@@ -10733,6 +10794,10 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			ok: false,
 			errors: [{ text: "Tuần đã chốt. Bấm \"Mở lại để sửa\" trước." }]
 		};
+		if (matrixDone(S, weekId)) return {
+			ok: false,
+			errors: [{ text: MATRIX_LOCK_MSG }]
+		};
 		const r = previewAddTopics(S, weekId, md);
 		if (!r.ok) return r;
 		const now = at || S.settings.demoNow;
@@ -10810,6 +10875,10 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			ok: false,
 			error: "Tuần đã chốt. Bấm \"Mở lại để sửa\" trước."
 		};
+		if (matrixDone(S, weekId)) return {
+			ok: false,
+			error: MATRIX_LOCK_MSG
+		};
 		const impact = topicImpact(S, weekId, topicId);
 		dropTopicRow(S, weekId, row);
 		topicsOf(S, weekId).forEach((r, i) => {
@@ -10841,6 +10910,55 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			text: x.text
 		})));
 	}
+	function completeGate(S, weekId) {
+		const reasons = [];
+		const w = weekOf(S, weekId);
+		if (w && w.status === "CONFIRMED") reasons.push("Tuần đã chốt");
+		if (w && w.matrixDoneAt) reasons.push("Matrix đã Hoàn thành");
+		if (!(w ? topicsOf(S, weekId).filter((r) => topicCurrent(r)) : []).length) reasons.push("Chưa có Topic");
+		else {
+			const mc = matrixCounts(S, weekId);
+			if (mc.EMPTY) reasons.push(`${mc.EMPTY} ô chưa viết`);
+			if (mc.DRAFT) reasons.push(`${mc.DRAFT} ô chưa duyệt`);
+			if (!mc.EMPTY && !mc.DRAFT && !mc.APPROVED) reasons.push("Chưa có ô nào được duyệt");
+		}
+		return {
+			ok: !reasons.length,
+			reasons
+		};
+	}
+	function completeMatrix(S, weekId, at) {
+		const g = completeGate(S, weekId);
+		if (!g.ok) return {
+			ok: false,
+			error: g.reasons.join("; "),
+			reasons: g.reasons
+		};
+		weekOf(S, weekId).matrixDoneAt = at || S.settings.demoNow;
+		log(S, "complete", "matrix", weekId);
+		return { ok: true };
+	}
+	function reopenMatrix(S, weekId) {
+		const w = weekOf(S, weekId);
+		if (!w) return {
+			ok: false,
+			error: "Chưa có tuần."
+		};
+		if (w.status === "CONFIRMED") return {
+			ok: false,
+			error: "Tuần đã chốt. Bấm \"Mở lại để sửa\" trước."
+		};
+		if (!w.matrixDoneAt) return {
+			ok: false,
+			error: "Matrix chưa Hoàn thành."
+		};
+		w.matrixDoneAt = null;
+		log(S, "reopen", "matrix", weekId);
+		return {
+			ok: true,
+			slots: weekSlots(S, weekId).filter((s) => s.sourceCellId).length
+		};
+	}
 	function dealGate(S, weekId) {
 		const reasons = [];
 		const w = weekOf(S, weekId);
@@ -10850,32 +10968,25 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			willFill: 0
 		};
 		if (w.status === "CONFIRMED") reasons.push("Tuần đã chốt");
+		if (!w.matrixDoneAt) reasons.push("Matrix chưa Hoàn thành");
 		const sc = slotCounts(S, weekId);
 		if (!sc.total) reasons.push("Chưa có slot (Lập tuần trước)");
-		if (!topicsOf(S, weekId).filter((r) => topicCurrent(r)).length) reasons.push("Chưa có Topic");
-		else {
-			const mc = matrixCounts(S, weekId);
-			if (mc.EMPTY) reasons.push(`${mc.EMPTY} ô chưa viết`);
-			if (mc.DRAFT) reasons.push(`${mc.DRAFT} ô chưa duyệt`);
-			if (!mc.EMPTY && !mc.DRAFT && !mc.APPROVED) reasons.push("Chưa có ô nào được duyệt");
-		}
-		if (sc.total && !sc.EMPTY) reasons.push("Mọi slot đã có bài");
+		else if (!sc.EMPTY) reasons.push("Mọi slot đã có bài");
+		const plan = w.matrixDoneAt && w.status !== "CONFIRMED" && sc.EMPTY ? dealPlan(S, weekId) : [];
+		if (w.matrixDoneAt && sc.EMPTY && !plan.length) reasons.push("Không còn slot nào viết được từ ô Đã duyệt");
 		return {
 			ok: !reasons.length,
 			reasons,
-			willFill: sc.EMPTY
+			willFill: plan.length
 		};
 	}
-	function dealSlots(S, weekId, at) {
-		const gate = dealGate(S, weekId);
-		if (!gate.ok) return {
-			ok: false,
-			reasons: gate.reasons
-		};
+	function dealPlan(S, weekId) {
 		const w = weekOf(S, weekId);
+		if (!w) return [];
 		const rows = topicsOf(S, weekId).filter((r) => topicCurrent(r));
 		const N = rows.length;
-		const written = [];
+		const plan = [];
+		if (!N) return plan;
 		const usage = /* @__PURE__ */ new Map();
 		S.slots.filter((s) => s.weekId === weekId && s.sourceCellId).forEach((s) => usage.set(s.sourceCellId, (usage.get(s.sourceCellId) || 0) + 1));
 		[...new Set(w.columnIds)].forEach((colId, c) => {
@@ -10895,10 +11006,29 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 					});
 				}
 				if (!best) return;
-				writeSlotFromCell(S, s, best.cell, at);
 				usage.set(best.cell.id, best.u + 1);
-				written.push(s.id);
+				plan.push({
+					slot: s,
+					cell: best.cell
+				});
 			});
+		});
+		return plan;
+	}
+	function dealQueue(S, weekId) {
+		return dealGate(S, weekId).ok ? dealPlan(S, weekId).map((p) => p.slot.id) : [];
+	}
+	function dealSlots(S, weekId, at) {
+		const gate = dealGate(S, weekId);
+		if (!gate.ok) return {
+			ok: false,
+			reasons: gate.reasons
+		};
+		const w = weekOf(S, weekId);
+		const written = [];
+		dealPlan(S, weekId).forEach((p) => {
+			writeSlotFromCell(S, p.slot, p.cell, at);
+			written.push(p.slot.id);
 		});
 		w.dealtAt = at || S.settings.demoNow;
 		const empty = weekSlots(S, weekId).filter((s) => s.state === "EMPTY").map((s) => s.id);
@@ -10907,6 +11037,24 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			ok: true,
 			written,
 			empty
+		};
+	}
+	function dealNext(S, weekId, at) {
+		const gate = dealGate(S, weekId);
+		if (!gate.ok) return {
+			ok: false,
+			error: gate.reasons.join("; ")
+		};
+		const plan = dealPlan(S, weekId);
+		if (!plan.length) return {
+			ok: false,
+			error: "Không còn slot nào viết được."
+		};
+		writeSlotFromCell(S, plan[0].slot, plan[0].cell, at);
+		return {
+			ok: true,
+			slotId: plan[0].slot.id,
+			left: plan.length - 1
 		};
 	}
 	function slotWriteGate(S, slotId) {
@@ -10926,6 +11074,10 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		if (isLocked(S, s.weekId)) return {
 			ok: false,
 			reason: "Tuần đã chốt"
+		};
+		if (!matrixDone(S, s.weekId)) return {
+			ok: false,
+			reason: "Matrix chưa Hoàn thành (bấm Hoàn thành ở Matrix trước)"
 		};
 		if (!byId(S.formats, s.formatId)) return {
 			ok: false,
@@ -11365,7 +11517,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		"Nạp Topic",
 		"Viết ma trận",
 		"Duyệt ô",
-		"Chia bài",
+		"Viết slot",
 		"Duyệt slot và ảnh",
 		"Xác nhận và xuất"
 	];
@@ -11447,6 +11599,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		const ic = imageCounts(S, weekId);
 		const written = rows.length > 0 && mc.total > 0 && mc.EMPTY === 0;
 		const approved = written && mc.DRAFT === 0 && mc.APPROVED > 0;
+		const completed = approved && !!w.matrixDoneAt;
 		const dealt = sc.total > 0 && sc.EMPTY === 0;
 		const st = [];
 		st.push({
@@ -11463,8 +11616,8 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			reason: rows.length && mc.EMPTY ? mc.EMPTY > nc ? `${mc.EMPTY - nc}/${mc.total} ô chưa viết` : `${nc} ô Câu chuyện nên Hủy` : ""
 		});
 		st.push({
-			done: approved,
-			reason: written && mc.DRAFT ? `${mc.DRAFT} ô chưa duyệt` : ""
+			done: completed,
+			reason: written && mc.DRAFT ? `${mc.DRAFT} ô chưa duyệt` : approved && !completed ? "Chờ bấm Hoàn thành" : ""
 		});
 		st.push({
 			done: dealt,
@@ -11541,13 +11694,22 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 					target: { screen: "matrix" }
 				};
 			})(),
-			4: {
+			4: p.mc.DRAFT ? {
 				label: `Duyệt ${p.mc.DRAFT} ô`,
 				target: { screen: "matrix" }
+			} : {
+				label: "Hoàn thành Matrix",
+				target: {
+					screen: "matrix",
+					action: "mx-complete"
+				}
 			},
 			5: {
-				label: `Chia bài (${p.sc.EMPTY} slot)`,
-				target: { screen: "matrix" }
+				label: `Viết tất cả slot (${p.sc.EMPTY} slot)`,
+				target: {
+					screen: "week",
+					action: "deal-all"
+				}
 			},
 			6: {
 				label: p.sc.needsUpdate ? `Cập nhật ${p.sc.needsUpdate} slot` : `Duyệt ${p.sc.DRAFT} slot`,
@@ -12529,11 +12691,20 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			reason: ""
 		} : no(w && matrixCounts(S, wid).EMPTY ? "Viết ma trận trước" : "Không có ô nào chờ duyệt");
 		if (step === "deal") {
-			const g = dealGate(S, wid);
-			return g.ok ? {
+			if (w && w.matrixDoneAt) {
+				const g = dealGate(S, wid);
+				return g.ok ? {
+					ok: true,
+					reason: ""
+				} : no(g.reasons.join("; "));
+			}
+			const c = completeGate(S, wid);
+			if (!c.ok) return no(c.reasons.join("; "));
+			const sc = w ? slotCounts(S, wid) : { total: 0 };
+			return !sc.total ? no("Chưa có slot (Lập tuần trước)") : !sc.EMPTY ? no("Mọi slot đã có bài") : {
 				ok: true,
 				reason: ""
-			} : no(g.reasons.join("; "));
+			};
 		}
 		if (step === "review") {
 			if (!w) return no("Chưa lập tuần");
@@ -12542,12 +12713,12 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			return sc.DRAFT && !sc.needsUpdate || needImg ? {
 				ok: true,
 				reason: ""
-			} : no(sc.EMPTY ? "Chia bài trước" : sc.needsUpdate ? "Có slot cần cập nhật: xử lý trước" : "Mọi slot đã duyệt và có ảnh");
+			} : no(sc.EMPTY ? "Viết tất cả slot trước" : sc.needsUpdate ? "Có slot cần cập nhật: xử lý trước" : "Mọi slot đã duyệt và có ảnh");
 		}
 		if (step === "confirm") {
 			if (!w) return no("Chưa lập tuần");
 			const sc = slotCounts(S, wid);
-			return !sc.total ? no("Tuần chưa có slot") : sc.EMPTY ? no("Còn slot chưa có bài: Chia bài trước") : sc.needsUpdate ? no("Có slot cần cập nhật: xử lý trước") : {
+			return !sc.total ? no("Tuần chưa có slot") : sc.EMPTY ? no("Còn slot chưa có bài: Viết tất cả slot trước") : sc.needsUpdate ? no("Có slot cần cập nhật: xử lý trước") : {
 				ok: true,
 				reason: ""
 			};
@@ -12607,6 +12778,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			};
 		}
 		if (step === "deal") {
+			if (!weekOf(S, wid).matrixDoneAt) completeMatrix(S, wid, now);
 			const r = dealWeek(S, wid, now);
 			return r.ok ? {
 				ok: true,
@@ -13075,6 +13247,15 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		refreshSlotFlags,
 		dealGate,
 		dealSlots,
+		dealPlan,
+		dealQueue,
+		dealNext,
+		completeGate,
+		completeMatrix,
+		reopenMatrix,
+		matrixDone,
+		matrixLockMsg,
+		MATRIX_LOCK_MSG,
 		writeSlotFromCell,
 		slotCellChoices,
 		assignCell,
@@ -13127,6 +13308,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		useTopicVersion,
 		noCaseEmptyCount,
 		dealWeek,
+		dealFinish,
 		approveSlot,
 		slotsApprovable,
 		slotsWarned,
@@ -15854,8 +16036,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		const wid = AC.weekIdOf(start);
 		const importBtn = locked ? "" : rows.length ? `<button class="btn primary" data-act="topic-import" data-mode="add">${icon("plus")} Nạp thêm Topic</button><button class="btn ghost" data-act="topic-import" data-mode="replace">Nạp lại tất cả</button>` : `<button class="btn primary" data-act="topic-import" data-mode="replace">${icon("plus")} Nạp Topic</button>`;
 		const helpBtns = `<button class="btn ghost" data-act="show-template" data-t="topic">Xem tệp mẫu</button><button class="btn ghost" data-act="show-template" data-t="agentPrompt">Lệnh cho agent bên ngoài</button>`;
-		const gate = AC.dealGate(S, wid);
-		const head = `<div class="page-head"><div><span class="eyebrow">Matrix · ${esc(l.range)}</span><h1>${file && file.theme ? esc(file.theme) : "Ma trận Topic × Cột"}</h1><p class="sub">Matrix đi theo tuần đang chọn ở Dashboard. Hàng là Topic, cột là Cột nội dung; mỗi ô viết một lần rồi Chia bài cho slot.</p></div></div>`;
+		const head = `<div class="page-head"><div><span class="eyebrow">Matrix · ${esc(l.range)}</span><h1>${file && file.theme ? esc(file.theme) : "Ma trận Topic × Cột"}</h1><p class="sub">Matrix đi theo tuần đang chọn ở Dashboard. Hàng là Topic, cột là Cột nội dung; mỗi ô viết một lần, duyệt xong bấm Hoàn thành để khóa rồi viết slot ở Dashboard.</p></div></div>`;
 		const demo = demoBarHtml([
 			"topics",
 			"write",
@@ -15869,7 +16050,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		return `${head}${lockBannerHtml(w)}${demo}<section class="focus">${nextBandHtml(wid, true)}${progressHtml(wid)}</section>
     <section class="work stack" aria-label="Ma trận">
       <div class="work-bar"><div class="row small muted" id="mx-counts">${mxCountsHtml(w)}</div></div>
-      ${mxToolsHtml(w, gate)}
+      ${mxToolsHtml(w)}
       <div id="mx-table">${mxTableHtml(w)}</div>
     </section>
     <section class="panel quiet stack secondary">
@@ -15880,25 +16061,41 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
       <div id="tpc-count" class="small muted" aria-live="polite">${searchCountText(w)}</div>
     </section>`;
 	};
-	function mxToolsHtml(w, gate) {
+	function mxToolsHtml(w) {
 		const wg = AC.writeGate(S, w.id);
 		const bulk = AC.bulkApprovable(S, w.id, true).length;
 		const run = view.mxRun;
+		const done = AC.matrixDone(S, w.id);
+		const cg = AC.completeGate(S, w.id);
+		const locked = w.status === "CONFIRMED";
+		const writeBtn = run ? `<button class="btn danger" data-act="mx-stop">Dừng</button><span class="small" id="mx-run" aria-live="polite">Đang viết ${run.done}/${run.total} ô…</span>` : `<button class="btn ${wg.ok && !done ? "primary" : ""}" data-act="mx-write" ${wg.ok && !done ? "" : "disabled"} title="${esc(done ? AC.MATRIX_LOCK_MSG : wg.ok ? wg.redo ? `Viết lại ${wg.count} ô Đã hủy` : `Viết ${wg.count} ô Trống` : wg.reasons.join("; "))}">${wg.redo ? "Viết lại ma trận" : "Viết ma trận"}${wg.ok && !done ? ` (${wg.count} ô)` : ""}</button>`;
+		const doneBtn = done ? `<button class="btn" data-act="mx-reopen" data-testid="mx-reopen" ${locked || run ? "disabled" : ""} title="${esc(locked ? "Tuần đã chốt. Mở lại tuần trước." : "Mở khóa Matrix để sửa ô hoặc Topic")}">Sửa</button>` : `<button class="btn ${cg.ok && !run ? "primary" : ""}" data-act="mx-complete" data-testid="mx-complete" ${cg.ok && !run ? "" : "disabled"} title="${esc(cg.ok ? "Khóa Matrix, sau đó mới Viết tất cả slot" : "Chưa bật: " + cg.reasons.join("; "))}">Hoàn thành</button>`;
 		return `<div class="row" id="mx-tools">
-      ${run ? `<button class="btn danger" data-act="mx-stop">Dừng</button><span class="small" id="mx-run" aria-live="polite">Đang viết ${run.done}/${run.total} ô…</span>` : `<button class="btn ${wg.ok ? "primary" : ""}" data-act="mx-write" ${wg.ok ? "" : "disabled"} title="${esc(wg.ok ? wg.redo ? `Viết lại ${wg.count} ô Đã hủy` : `Viết ${wg.count} ô Trống` : wg.reasons.join("; "))}">${wg.redo ? "Viết lại ma trận" : "Viết ma trận"}${wg.ok ? ` (${wg.count} ô)` : ""}</button>`}
-      ${bulk && !run ? `<button class="btn" data-act="mx-bulk">Duyệt tất cả (${bulk} ô)</button>` : ""}
-      <button class="btn ${gate.ok && !run ? "primary" : ""}" data-act="mx-deal" data-testid="deal" ${gate.ok && !run ? "" : "disabled"} title="${esc(gate.ok ? `Viết ${gate.willFill} slot còn trống từ ô Đã duyệt` : "Chưa bật: " + gate.reasons.join("; "))}">Chia bài${gate.ok ? ` (${gate.willFill} slot)` : ""}</button>
+      ${writeBtn}
+      ${bulk && !run && !done ? `<button class="btn" data-act="mx-bulk">Duyệt tất cả (${bulk} ô)</button>` : ""}
+      ${doneBtn}
     </div>
-    <p class="small faint" id="deal-why">${!wg.ok && !run ? `Viết ma trận: ${esc(wg.reasons.join("; "))}. ` : ""}${gate.ok ? `Chia bài sẽ điền ${gate.willFill} slot còn trống; slot đã có bài giữ nguyên.` : `Chia bài chưa bật: ${esc(gate.reasons.join("; "))}.`}</p>`;
+    <p class="small faint" id="deal-why">${done ? `${AC.MATRIX_LOCK_MSG} Viết slot ở Dashboard bằng nút "Viết tất cả slot".` : !wg.ok && !run && !cg.ok ? `Viết ma trận: ${esc(wg.reasons.join("; "))}. ` : ""}${done ? "" : cg.ok ? "Mọi ô đã xử lý: bấm Hoàn thành để khóa Matrix, rồi Viết tất cả slot ở Dashboard." : `Hoàn thành chưa bật: ${esc(cg.reasons.join("; "))}.`}</p>`;
 	}
-	ACTIONS["mx-deal"] = async () => {
+	ACTIONS["mx-complete"] = () => {
 		const w = curWeek();
 		if (!w) return;
-		const r = await withAiText((C) => AC.dealWeek(C, w.id));
-		if (!r.ok) return toast(r.error || r.reasons.join("; "), "bad");
-		save();
-		go({ screen: "week" });
-		toast(`Đã viết ${r.written.length} slot · ${r.empty.length} slot chưa có bài.`);
+		const r = AC.completeMatrix(S, w.id);
+		if (!r.ok) return toast(r.error, "bad");
+		commit("Matrix đã Hoàn thành. Qua Dashboard bấm \"Viết tất cả slot\".");
+	};
+	ACTIONS["mx-reopen"] = async () => {
+		const w = curWeek();
+		if (!w) return;
+		const n = AC.weekSlots(S, w.id).filter((x) => x.sourceCellId).length;
+		if (!await confirmBox({
+			title: "Sửa Matrix?",
+			body: `<p>Mở khóa để sửa ô và Topic.${n ? ` ${n} slot đã viết giữ nguyên; slot dùng ô bạn sửa sẽ báo "cần cập nhật".` : ""} Sửa xong bấm Hoàn thành lại.</p>`,
+			ok: "Mở khóa"
+		})) return;
+		const r = AC.reopenMatrix(S, w.id);
+		if (!r.ok) return toast(r.error, "bad");
+		commit("Đã mở khóa Matrix.");
 	};
 	ACTIONS["mx-write"] = () => {
 		const w = curWeek();
@@ -16312,7 +16509,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
       ${g && (isCur ? v.state !== "CANCELLED" : true) ? `<section class="dv-sec main"><div class="dv-h"><h3>Bài của ô</h3><span class="meta small faint">${AC.lengthOf(text, unit)} ${unit === "words" ? "chữ" : "ký tự"} <span class="mock">Mô phỏng</span></span></div><div class="content-text rich">${richText(text, warnMarks(ws))}</div></section>
         <div class="dv-grid">${isCur ? `<section class="dv-sec"><div class="dv-h"><h3>Cảnh báo</h3></div>${warningsHtml(ws)}</section>` : ""}
           <section class="dv-sec"><div class="dv-h"><h3>Điểm AI</h3></div>${scoreHtml(g.scores, g.total, g.tip, col.criteria, g.ai)}</section></div>
-        <section class="dv-sec"><div class="dv-h"><h3>Gợi ý ảnh</h3></div><p class="small">${esc(imgP || "(chưa có)")}</p><p class="small faint">Prompt này đi theo ô: khi Chia bài, ô ảnh của slot nhận prompt này.</p></section>` : `<section class="dv-sec main"><div class="empty"><p>${noCase ? "Topic không có trường hợp cụ thể nên ô Câu chuyện không được viết (không bịa trường hợp). Nên Hủy ô; ô hủy được tính là đã xử lý khi Chia bài." : v.state === "CANCELLED" ? "Ô đã hủy. Bấm Tạo lại để viết bài mới, hoặc xem bản cũ bằng mũi tên rồi \"Dùng bản này\"." : "Ô chưa có bài cho phiên bản Topic hiện hành. Bấm \"Viết ô này\" hoặc \"Viết ma trận\" để viết mọi ô Trống."}</p></div></section>`}
+        <section class="dv-sec"><div class="dv-h"><h3>Gợi ý ảnh</h3></div><p class="small">${esc(imgP || "(chưa có)")}</p><p class="small faint">Prompt này đi theo ô: khi Viết slot, ô ảnh của slot nhận prompt này.</p></section>` : `<section class="dv-sec main"><div class="empty"><p>${noCase ? "Topic không có trường hợp cụ thể nên ô Câu chuyện không được viết (không bịa trường hợp). Nên Hủy ô; ô hủy được tính là đã xử lý khi Hoàn thành." : v.state === "CANCELLED" ? "Ô đã hủy. Bấm Tạo lại để viết bài mới, hoặc xem bản cũ bằng mũi tên rồi \"Dùng bản này\"." : "Ô chưa có bài cho phiên bản Topic hiện hành. Bấm \"Viết ô này\" hoặc \"Viết ma trận\" để viết mọi ô Trống."}</p></div></section>`}
       ${used.length ? `<section class="dv-sec"><div class="dv-h"><h3>Đang nuôi ${used.length} slot</h3></div><p class="small faint">Tạo lại, Sửa, Hủy hoặc Dùng bản khác sẽ làm các slot này "cần cập nhật".</p><div class="list">${used.map((s) => slotRowHtml(s, true)).join("")}</div></section>` : ""}
       ${isCur || !g ? `<details class="dv-more" id="cell-prompt"><summary>Lệnh cho AI <span class="faint">(khung trình bày của Cột)</span></summary><div class="row" style="justify-content:flex-end;margin:6px 0"><button class="btn sm" data-act="cell-prompt-copy" data-id="${esc(c.id)}">Chép lệnh</button></div><pre class="prompt-pre">${esc(AC.cellPrompt(S, c.id))}</pre></details>` : ""}
       ${c.gens.length ? `<details class="dv-more"${c.gens.length > 1 ? " open" : ""}><summary>Lịch sử ô <span class="faint">(${c.gens.length} bản)</span></summary><div class="list">${c.gens.map((x) => `<button class="li" data-act="open-cell" data-id="${esc(c.id)}" data-gen="${x.n}" style="grid-template-columns:auto minmax(0,1fr) auto"><span class="mono">bản ${x.n}</span><span class="small">viết từ Topic v${x.topicVersion}${x.edits.length ? ` · ${x.edits.length} lần sửa` : ""} · <span class="mono">${esc(x.createdAt.replace("T", " "))}</span></span>${v.gen && v.gen.n === x.n ? "<span class=\"st st-ok\">Hiện hành</span>" : g && g.n === x.n ? "<span class=\"small muted\">đang xem</span>" : ""}</button>`).join("")}</div></details>` : ""}
@@ -16366,7 +16563,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		const used = AC.slotsUsingCell(S, c.id).length;
 		if (!await confirmBox({
 			title: "Hủy ô này?",
-			body: `<p>Ô chuyển sang "Đã hủy" và được tính là đã xử lý khi Chia bài. Bài cũ vẫn giữ trong lịch sử; Tạo lại để viết lại.</p>${used ? `<p>${used} slot đang dùng ô này sẽ cần cập nhật.</p>` : ""}`,
+			body: `<p>Ô chuyển sang "Đã hủy" và được tính là đã xử lý khi Hoàn thành. Bài cũ vẫn giữ trong lịch sử; Tạo lại để viết lại.</p>${used ? `<p>${used} slot đang dùng ô này sẽ cần cập nhật.</p>` : ""}`,
 			ok: "Hủy ô",
 			danger: true
 		})) return;
@@ -19295,7 +19492,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		topics: "Nạp Topic",
 		write: "Viết ma trận",
 		approve: "Duyệt ô",
-		deal: "Chia bài",
+		deal: "Hoàn thành + Viết slot",
 		review: "Duyệt slot + ảnh",
 		confirm: "Chốt lịch",
 		clear: "Làm trống tuần"
@@ -19687,6 +19884,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
     <div class="week-tools">
       <div class="seg" role="group" aria-label="Chế độ xem"><button aria-pressed="${view.weekMode === "week"}" data-act="week-mode" data-m="week">Tuần</button><button aria-pressed="${view.weekMode === "month"}" data-act="week-mode" data-m="month">Tháng</button></div>
       ${confirmBtnHtml(w)}
+      ${dealBtnHtml(w)}
       <button class="btn ${slots.length ? "" : "primary"}" data-act="plan-week" ${gate.ok ? "" : "disabled"} title="${esc(gate.ok ? "Chọn Tuần mẫu rồi tạo slot cho tuần này" : gate.reason)}">${icon("week")} Lập tuần · Tuần mẫu</button>
       <div class="filters" role="group" aria-label="Lọc theo kênh">
         ${usedCh.length ? "<span class=\"small muted\">Kênh:</span>" : ""}
@@ -19726,7 +19924,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		const sug = AC.suggestTemplateId(S, start);
 		const box = openLayer(`
     <h2>Lập tuần · ${esc(AC.weekLabelOf(start).range)}</h2>
-    <p class="small muted">Chọn một Tuần mẫu. App gợi ý mẫu kế tiếp sau mẫu của tuần trước. Slot tạo ra chỉ có ngày, giờ, kênh, Format; nội dung và ảnh để trống cho tới khi Chia bài.</p>
+    <p class="small muted">Chọn một Tuần mẫu. App gợi ý mẫu kế tiếp sau mẫu của tuần trước. Slot tạo ra chỉ có ngày, giờ, kênh, Format; nội dung và ảnh để trống cho tới khi Viết slot.</p>
     <fieldset class="stack" style="border:0;padding:0;margin:0"><legend class="sr">Tuần mẫu</legend>
       ${list.map((t) => `<label class="radio-row"><input type="radio" name="tpl" value="${esc(t.id)}" ${t.id === sug ? "checked" : ""}> <span><b>${esc(t.name)}</b> · ${t.slots.length} slot ${t.id === sug ? "<span class=\"st st-ok\">Gợi ý</span>" : ""}</span></label>`).join("")}
     </fieldset>
@@ -20133,10 +20331,10 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		const vid = (a) => a.kind === "video";
 		const acc = (a) => s.free || vid(a) ? "image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm,video/quicktime" : "image/png,image/jpeg,image/webp,image/gif";
 		const addBar = s.free && !locked ? `<div class="row" style="gap:6px"><button class="btn sm" data-x="asset-add-image">+ Thêm ảnh</button><button class="btn sm" data-x="asset-add-video">+ Thêm video</button></div>` : "";
-		return s.assets.length || s.free ? `<section class="stack"><h3>${s.free ? "Ảnh và video của slot" : "Ảnh của slot"}</h3><p class="small faint">${s.free ? `Slot tự do: tải ảnh hoặc video của bạn lên (video tối đa ${vidMax() / 1048576} MB), hoặc viết prompt rồi Gen ảnh mô phỏng. Thêm ô nếu bài cần nhiều ảnh/video.` : "Chia bài đã tạo sẵn ảnh khớp bài (mô phỏng) và xếp vào vị trí trong bài. Chưa ưng thì Gen thêm phiên bản hoặc Tải lên ảnh của bạn; mũi tên đổi phiên bản. Ảnh chỉ nhắc, không chặn Xác nhận."}</p>${s.assets.length ? "" : "<p class=\"small muted\">Chưa có ô ảnh/video. Bấm Thêm bên dưới.</p>"}${s.assets.map((a, i) => {
+		return s.assets.length || s.free ? `<section class="stack"><h3>${s.free ? "Ảnh và video của slot" : "Ảnh của slot"}</h3><p class="small faint">${s.free ? `Slot tự do: tải ảnh hoặc video của bạn lên (video tối đa ${vidMax() / 1048576} MB), hoặc viết prompt rồi Gen ảnh mô phỏng. Thêm ô nếu bài cần nhiều ảnh/video.` : "Viết slot đã tạo sẵn ảnh khớp bài (mô phỏng) và xếp vào vị trí trong bài. Chưa ưng thì Gen thêm phiên bản hoặc Tải lên ảnh của bạn; mũi tên đổi phiên bản. Ảnh chỉ nhắc, không chặn Xác nhận."}</p>${s.assets.length ? "" : "<p class=\"small muted\">Chưa có ô ảnh/video. Bấm Thêm bên dưới.</p>"}${s.assets.map((a, i) => {
 			a.versions.findIndex((v) => v.n === a.current);
 			return `<div class="imgrow" data-img="${i}"><div>${imgThumb(a)}</div>
-        <div class="stack" style="gap:2px;min-width:0"><b>${esc(a.name)}</b>${a.place ? `<span class="small">Vị trí: ${esc(a.place)}</span>` : ""}${a.caption ? `<span class="small">Chữ trên ảnh: “${esc(a.caption.replace(/^["“]+|["”]+$/g, ""))}”</span>` : ""}${a.hint ? `<span class="small faint">${esc(a.hint)}</span>` : ""}${vid(a) ? "" : `<span class="small muted">${a.prompt ? `Prompt: ${esc(a.prompt)}` : s.free ? "Prompt: (trống)" : "Prompt: (trống, nhận từ ô khi Chia bài)"}</span>`}${a.ref ? `<span class="small mono faint">${esc(a.ref)}</span>` : ""}</div><div class="imgrow-tools">${imgToolbar({
+        <div class="stack" style="gap:2px;min-width:0"><b>${esc(a.name)}</b>${a.place ? `<span class="small">Vị trí: ${esc(a.place)}</span>` : ""}${a.caption ? `<span class="small">Chữ trên ảnh: “${esc(a.caption.replace(/^["“]+|["”]+$/g, ""))}”</span>` : ""}${a.hint ? `<span class="small faint">${esc(a.hint)}</span>` : ""}${vid(a) ? "" : `<span class="small muted">${a.prompt ? `Prompt: ${esc(a.prompt)}` : s.free ? "Prompt: (trống)" : "Prompt: (trống, nhận từ ô khi Viết slot)"}</span>`}${a.ref ? `<span class="small mono faint">${esc(a.ref)}</span>` : ""}</div><div class="imgrow-tools">${imgToolbar({
 				s,
 				a,
 				i,
@@ -20176,6 +20374,67 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		openSlot(s.id);
 		toast("Slot đã viết lại từ ô mới.");
 	};
+	function dealBtnHtml(w) {
+		if (!w) return "";
+		const run = view.dealRun;
+		if (run) return `<button class="btn danger" data-act="deal-stop">Dừng</button><span class="small" id="deal-run" aria-live="polite">Đang viết ${run.done}/${run.total} slot…</span>`;
+		const g = AC.dealGate(S, w.id);
+		return `<button class="btn ${g.ok ? "primary" : ""}" data-act="deal-all" data-testid="deal" ${g.ok ? "" : "disabled"} title="${esc(g.ok ? `Viết ${g.willFill} slot còn trống từ ô Đã duyệt` : "Chưa bật: " + g.reasons.join("; "))}">Viết tất cả slot${g.ok ? ` (${g.willFill} slot)` : ""}</button>`;
+	}
+	var DEAL_BUSY_WAIT = 1500;
+	var DEAL_DELAY = 160;
+	ACTIONS["deal-all"] = () => {
+		const w = curWeek();
+		if (!w || view.dealRun) return;
+		const g = AC.dealGate(S, w.id);
+		if (!g.ok) return toast(g.reasons.join("; "), "bad");
+		view.dealRun = {
+			weekId: w.id,
+			total: g.willFill,
+			done: 0,
+			stop: false
+		};
+		render();
+		dealStep();
+	};
+	ACTIONS["deal-stop"] = () => {
+		if (view.dealRun) view.dealRun.stop = true;
+	};
+	async function dealStep() {
+		const run = view.dealRun;
+		if (!run) return;
+		const left = () => AC.dealQueue(S, run.weekId).length;
+		if (run.stop || !left() || AC.weekIdOf(curStart()) !== run.weekId) {
+			const rest = left();
+			if (!rest) AC.dealFinish(S, run.weekId);
+			view.dealRun = null;
+			save();
+			render();
+			toast(run.stop && rest ? `Đã viết ${run.done} slot · còn ${rest} slot.` : `Đã viết ${run.done} slot.`);
+			return;
+		}
+		const r = await withAiText((C) => AC.dealNext(C, run.weekId), {
+			noAi: run.mock,
+			fallbackAll: true,
+			progress: run
+		});
+		if (r.busy && !run.stop) {
+			setTimeout(dealStep, DEAL_BUSY_WAIT);
+			return;
+		}
+		if (r.fellBack) run.mock = true;
+		if (!r.ok) {
+			view.dealRun = null;
+			save();
+			render();
+			toast(r.error, "bad");
+			return;
+		}
+		run.done++;
+		save();
+		if (view.screen === "week") render();
+		setTimeout(dealStep, DEAL_DELAY);
+	}
 	//#endregion
 	//#region src/ui/04e-frame.js
 	var FRAME_FONT = "\"Be Vietnam Pro\", system-ui, sans-serif";

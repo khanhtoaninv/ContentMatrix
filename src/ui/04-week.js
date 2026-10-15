@@ -214,6 +214,7 @@ RENDERERS.week = () => {
     <div class="week-tools">
       <div class="seg" role="group" aria-label="Chế độ xem"><button aria-pressed="${view.weekMode === 'week'}" data-act="week-mode" data-m="week">Tuần</button><button aria-pressed="${view.weekMode === 'month'}" data-act="week-mode" data-m="month">Tháng</button></div>
       ${confirmBtnHtml(w)}
+      ${dealBtnHtml(w)}
       <button class="btn ${slots.length ? '' : 'primary'}" data-act="plan-week" ${gate.ok ? '' : 'disabled'} title="${esc(gate.ok ? 'Chọn Tuần mẫu rồi tạo slot cho tuần này' : gate.reason)}">${icon('week')} Lập tuần · Tuần mẫu</button>
       <div class="filters" role="group" aria-label="Lọc theo kênh">
         ${usedCh.length ? '<span class="small muted">Kênh:</span>' : ''}
@@ -246,7 +247,7 @@ ACTIONS['plan-week'] = () => {
   const l = AC.weekLabelOf(start);
   const box = openLayer(`
     <h2>Lập tuần · ${esc(l.range)}</h2>
-    <p class="small muted">Chọn một Tuần mẫu. App gợi ý mẫu kế tiếp sau mẫu của tuần trước. Slot tạo ra chỉ có ngày, giờ, kênh, Format; nội dung và ảnh để trống cho tới khi Chia bài.</p>
+    <p class="small muted">Chọn một Tuần mẫu. App gợi ý mẫu kế tiếp sau mẫu của tuần trước. Slot tạo ra chỉ có ngày, giờ, kênh, Format; nội dung và ảnh để trống cho tới khi Viết slot.</p>
     <fieldset class="stack" style="border:0;padding:0;margin:0"><legend class="sr">Tuần mẫu</legend>
       ${list.map(t => `<label class="radio-row"><input type="radio" name="tpl" value="${esc(t.id)}" ${t.id === sug ? 'checked' : ''}> <span><b>${esc(t.name)}</b> · ${t.slots.length} slot ${t.id === sug ? '<span class="st st-ok">Gợi ý</span>' : ''}</span></label>`).join('')}
     </fieldset>
@@ -391,7 +392,7 @@ export function openSlot(id, browseN, center) {
       ${!cfg && s.needsUpdate && !viewing ? `<p class="note warn">Ô nguồn đã đổi sau khi slot được viết. "Cập nhật từ ô" viết lại slot theo bản mới của ô (ô phải Đã duyệt); "Giữ bản slot" cần ghi lý do.</p>` : ''}
       ${!cfg && s.keepReason && !s.needsUpdate ? `<p class="small muted">Đang giữ bản slot: ${esc(s.keepReason)}</p>` : ''}
       ${cfg ? '' : shownText ? `<section class="stack"><div class="row" style="justify-content:space-between"><h3>Nội dung bài${viewing ? ' (bản cũ)' : ''}</h3><span class="row" style="gap:8px"><span class="small faint">${esc(len)} <span class="mock">Mô phỏng</span></span><button class="btn sm" data-act="slot-preview" data-id="${esc(s.id)}" ${viewing ? `data-n="${viewing.n}"` : ''}>${icon('eye')} Xem như khi đăng</button></span></div>
-        <div class="content-text rich">${richText(shownText, viewing ? [] : warnMarks(ws))}</div></section>` : `<div class="empty"><p><b>Chưa có bài.</b> ${s.emptyReason ? esc(s.emptyReason) + '. ' : ''}Bấm <b>Tạo bài</b> ở trên (cần Cột có ô Đã duyệt), hoặc <b>Chia bài</b> ở Matrix cho cả tuần, hoặc chọn ô bên dưới. Cột của slot này: <b>${esc(colName(AC.slotColumnId(S, s)))}</b>.</p></div>`}
+        <div class="content-text rich">${richText(shownText, viewing ? [] : warnMarks(ws))}</div></section>` : `<div class="empty"><p><b>Chưa có bài.</b> ${s.emptyReason ? esc(s.emptyReason) + '. ' : ''}Bấm <b>Tạo bài</b> ở trên (cần Matrix đã Hoàn thành), hoặc <b>Viết tất cả slot</b> ở Dashboard cho cả tuần, hoặc chọn ô bên dưới. Cột của slot này: <b>${esc(colName(AC.slotColumnId(S, s)))}</b>.</p></div>`}
       <section class="cfg-sec cfg-src"><div class="cfg-h"><span class="cfg-n">1</span><h3>Ô nguồn</h3></div>
         ${s.free ? `<div class="srccard"><div class="srctop"><span class="chip-col">Slot tự do</span></div><h4 class="srctitle">Không lấy nguồn từ Matrix</h4><p class="small muted">Bạn tự viết bài và tải ảnh, video của riêng bạn. ${s.columnId ? `Cột ${esc(colName(s.columnId))}` : 'Không gắn Cột'} chỉ dùng để phân loại; đổi ở Vị trí đăng bên dưới.</p></div>` : cell && row ? `<div class="srccard"><div class="srctop"><span class="chip-col">Cột ${esc(colName(cell.columnId))}</span><span class="srcstate">${AC.cellView(S, cell).state === 'APPROVED' ? 'Ô Đã duyệt' : 'Ô chưa duyệt'}</span></div>
           <h4 class="srctitle">Topic ${row.order} · ${esc(AC.topicCurrent(row).title)}</h4>
@@ -510,8 +511,8 @@ export function slotImageRowsHtml(s, locked) {
   const vid = a => a.kind === 'video';
   const acc = a => (s.free || vid(a)) ? 'image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm,video/quicktime' : 'image/png,image/jpeg,image/webp,image/gif';
   const addBar = s.free && !locked ? `<div class="row" style="gap:6px"><button class="btn sm" data-x="asset-add-image">+ Thêm ảnh</button><button class="btn sm" data-x="asset-add-video">+ Thêm video</button></div>` : '';
-  return s.assets.length || s.free ? `<section class="stack"><h3>${s.free ? 'Ảnh và video của slot' : 'Ảnh của slot'}</h3><p class="small faint">${s.free ? `Slot tự do: tải ảnh hoặc video của bạn lên (video tối đa ${vidMax() / 1048576} MB), hoặc viết prompt rồi Gen ảnh mô phỏng. Thêm ô nếu bài cần nhiều ảnh/video.` : 'Chia bài đã tạo sẵn ảnh khớp bài (mô phỏng) và xếp vào vị trí trong bài. Chưa ưng thì Gen thêm phiên bản hoặc Tải lên ảnh của bạn; mũi tên đổi phiên bản. Ảnh chỉ nhắc, không chặn Xác nhận.'}</p>${s.assets.length ? '' : '<p class="small muted">Chưa có ô ảnh/video. Bấm Thêm bên dưới.</p>'}${s.assets.map((a, i) => { const ci = a.versions.findIndex(v => v.n === a.current); return `<div class="imgrow" data-img="${i}"><div>${imgThumb(a)}</div>
-        <div class="stack" style="gap:2px;min-width:0"><b>${esc(a.name)}</b>${a.place ? `<span class="small">Vị trí: ${esc(a.place)}</span>` : ''}${a.caption ? `<span class="small">Chữ trên ảnh: “${esc(a.caption.replace(/^["“]+|["”]+$/g, ''))}”</span>` : ''}${a.hint ? `<span class="small faint">${esc(a.hint)}</span>` : ''}${vid(a) ? '' : `<span class="small muted">${a.prompt ? `Prompt: ${esc(a.prompt)}` : s.free ? 'Prompt: (trống)' : 'Prompt: (trống, nhận từ ô khi Chia bài)'}</span>`}${a.ref ? `<span class="small mono faint">${esc(a.ref)}</span>` : ''}</div><div class="imgrow-tools">${imgToolbar({ s, a, i, lk: locked, via: 'dlg', idp: 'cfg-', accept: acc(a), meta: false, extra: a.extra && !locked ? `<button class="btn sm ghost danger" data-x="asset-del" data-i="${i}" aria-label="Bỏ ô này">Bỏ</button>` : '' })}</div></div>`; }).join('')}${addBar}</section>` : '';
+  return s.assets.length || s.free ? `<section class="stack"><h3>${s.free ? 'Ảnh và video của slot' : 'Ảnh của slot'}</h3><p class="small faint">${s.free ? `Slot tự do: tải ảnh hoặc video của bạn lên (video tối đa ${vidMax() / 1048576} MB), hoặc viết prompt rồi Gen ảnh mô phỏng. Thêm ô nếu bài cần nhiều ảnh/video.` : 'Viết slot đã tạo sẵn ảnh khớp bài (mô phỏng) và xếp vào vị trí trong bài. Chưa ưng thì Gen thêm phiên bản hoặc Tải lên ảnh của bạn; mũi tên đổi phiên bản. Ảnh chỉ nhắc, không chặn Xác nhận.'}</p>${s.assets.length ? '' : '<p class="small muted">Chưa có ô ảnh/video. Bấm Thêm bên dưới.</p>'}${s.assets.map((a, i) => { const ci = a.versions.findIndex(v => v.n === a.current); return `<div class="imgrow" data-img="${i}"><div>${imgThumb(a)}</div>
+        <div class="stack" style="gap:2px;min-width:0"><b>${esc(a.name)}</b>${a.place ? `<span class="small">Vị trí: ${esc(a.place)}</span>` : ''}${a.caption ? `<span class="small">Chữ trên ảnh: “${esc(a.caption.replace(/^["“]+|["”]+$/g, ''))}”</span>` : ''}${a.hint ? `<span class="small faint">${esc(a.hint)}</span>` : ''}${vid(a) ? '' : `<span class="small muted">${a.prompt ? `Prompt: ${esc(a.prompt)}` : s.free ? 'Prompt: (trống)' : 'Prompt: (trống, nhận từ ô khi Viết slot)'}</span>`}${a.ref ? `<span class="small mono faint">${esc(a.ref)}</span>` : ''}</div><div class="imgrow-tools">${imgToolbar({ s, a, i, lk: locked, via: 'dlg', idp: 'cfg-', accept: acc(a), meta: false, extra: a.extra && !locked ? `<button class="btn sm ghost danger" data-x="asset-del" data-i="${i}" aria-label="Bỏ ô này">Bỏ</button>` : '' })}</div></div>`; }).join('')}${addBar}</section>` : '';
 }
 // Thao tác ảnh (data-x img-gen/img-prev/img-next); null nếu không phải thao tác ảnh
 export function slotImageAction(s, x, i) {
@@ -530,3 +531,38 @@ CHANGES['slot-cell'] = async el => {
   if (!r.ok) return toast(r.error, 'bad');
   save(); render(); openSlot(s.id); toast('Slot đã viết lại từ ô mới.');
 };
+
+// ---- Viết tất cả slot (10.66): viết lần lượt từng slot, có nút Dừng ----
+function dealBtnHtml(w) {
+  if (!w) return '';
+  const run = view.dealRun;
+  if (run) return `<button class="btn danger" data-act="deal-stop">Dừng</button><span class="small" id="deal-run" aria-live="polite">Đang viết ${run.done}/${run.total} slot…</span>`;
+  const g = AC.dealGate(S, w.id);
+  return `<button class="btn ${g.ok ? 'primary' : ''}" data-act="deal-all" data-testid="deal" ${g.ok ? '' : 'disabled'} title="${esc(g.ok ? `Viết ${g.willFill} slot còn trống từ ô Đã duyệt` : 'Chưa bật: ' + g.reasons.join('; '))}">Viết tất cả slot${g.ok ? ` (${g.willFill} slot)` : ''}</button>`;
+}
+const DEAL_BUSY_WAIT = 1500, DEAL_DELAY = 160;
+ACTIONS['deal-all'] = () => {
+  const w = curWeek(); if (!w || view.dealRun) return;
+  const g = AC.dealGate(S, w.id); if (!g.ok) return toast(g.reasons.join('; '), 'bad');
+  view.dealRun = { weekId: w.id, total: g.willFill, done: 0, stop: false };
+  render(); dealStep();
+};
+ACTIONS['deal-stop'] = () => { if (view.dealRun) view.dealRun.stop = true; };
+async function dealStep() {
+  const run = view.dealRun; if (!run) return;
+  const left = () => AC.dealQueue(S, run.weekId).length;
+  if (run.stop || !left() || AC.weekIdOf(curStart()) !== run.weekId) {
+    const rest = left();
+    if (!rest) AC.dealFinish(S, run.weekId);
+    view.dealRun = null; save(); render();
+    toast(run.stop && rest ? `Đã viết ${run.done} slot · còn ${rest} slot.` : `Đã viết ${run.done} slot.`);
+    return;
+  }
+  const r = await withAiText(C => AC.dealNext(C, run.weekId), { noAi: run.mock, fallbackAll: true, progress: run });
+  if (r.busy && !run.stop) { setTimeout(dealStep, DEAL_BUSY_WAIT); return; }
+  if (r.fellBack) run.mock = true;
+  if (!r.ok) { view.dealRun = null; save(); render(); toast(r.error, 'bad'); return; }
+  run.done++; save();
+  if (view.screen === 'week') { render(); }
+  setTimeout(dealStep, DEAL_DELAY);
+}

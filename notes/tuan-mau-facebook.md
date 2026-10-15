@@ -6,8 +6,8 @@ Tuần mẫu chỉ dùng **Format Facebook đang có trong app**, để dùng đ
 
 | Quyết định | Căn cứ | Nguồn |
 |---|---|---|
-| **8 bài mỗi tuần** | Trang ngành Giáo dục đăng trung bình 8,0 bài Facebook mỗi tuần (quý 1/2025). Khuyến nghị chung là 1–2 bài mỗi ngày | Hootsuite, How often to post |
-| **Chỉ đăng thứ 2 đến thứ 6** | Với ngành giáo dục, ngày tốt nhất là các ngày trong tuần, tệ nhất là cuối tuần | Sprout Social, gần 2 tỷ lượt tương tác, 307 nghìn tài khoản, 11/2025–2/2026 |
+| **8 bài T2–T6 (thêm 2 bài cuối tuần = 10)** | Trang ngành Giáo dục đăng trung bình 8,0 bài Facebook mỗi tuần (quý 1/2025). Khuyến nghị chung là 1–2 bài mỗi ngày | Hootsuite, How often to post |
+| **Thứ 2 đến thứ 6 là trụ cột; T7, CN thêm theo nhu cầu** | Với ngành giáo dục, ngày tốt nhất là các ngày trong tuần, tệ nhất là cuối tuần. Bản đầu chỉ T2–T6; người dùng yêu cầu thêm T7, CN vì cần nội dung hai ngày này | Sprout Social, gần 2 tỷ lượt tương tác, 307 nghìn tài khoản, 11/2025–2/2026 |
 | **Giờ đăng** | Khung tốt của ngành giáo dục (giờ địa phương): T2 10–12h; T3 10–12h và 14h; T4 10–16h và 18h; T5 10–13h và 15–16h; T6 10–12h. Mọi giờ trong Tuần mẫu nằm trong các khung này | Sprout Social |
 | **Tỷ lệ dạng bài** | Mỗi tháng, các trang thương hiệu đăng trung bình 10 bài ảnh, 7 Reels, 6 album, 6 bài chữ, 10 bài link. Bỏ link (tương tác thấp nhất, 0,05%), tỷ lệ còn lại quy về 8 bài là khoảng 3 ảnh, 2 Reels, 1–2 album, 1–2 bài chữ | Socialinsider, Facebook benchmarks |
 | **Album, bài chữ, Reels đều cần có** | Album dẫn đầu lượt xem và chia sẻ; bài chữ nhiều bình luận nhất ở trang trên 10 nghìn người theo dõi; Reels có tỷ lệ tương tác 0,18%, ngang album | Socialinsider |
@@ -21,7 +21,7 @@ Tuần mẫu chỉ dùng **Format Facebook đang có trong app**, để dùng đ
 
 Sau 4 tuần đăng thật, nên chỉnh giờ theo Page Insights của chính fanpage.
 
-## 2. Tuần mẫu "Fanpage Facebook" (8 slot)
+## 2. Tuần mẫu "Fanpage Facebook" (10 slot, đã thêm T7 và CN ngày 15/10/2026)
 
 | Thứ | Giờ | Format | Cột | Dạng | Vì sao chọn |
 |---|---|---|---|---|---|
@@ -33,10 +33,12 @@ Sau 4 tuần đăng thật, nên chỉnh giờ theo Page Insights của chính f
 | T5 | 11:00 | Bình chọn | Luyện tập | Ảnh + câu hỏi | Quiz và bình chọn là dạng tương tác hay dùng (SocialBee) |
 | T5 | 15:00 | Reels mẹo ngắn | Hướng dẫn | Reels | Reels 2 trên 2 |
 | T6 | 10:00 | Ảnh trích dẫn | Bất ngờ và ngộ nhận | Ảnh | Ảnh 3 trên 3 |
+| T7 | 19:30 | Bài kể chuyện | Câu chuyện | Bài chữ dài | Người dùng yêu cầu có nội dung cuối tuần; bài chữ có nhiều bình luận. Giờ 19:30 là lựa chọn của người dùng/suy luận, ngoài khung tốt của Sprout Social |
+| CN | 10:00 | Điền vào chỗ trống | Luyện tập | Ảnh + câu hỏi | Dạng tương tác nhẹ cho ngày nghỉ (SocialBee). Giờ là suy luận, cần chỉnh theo Page Insights |
 
-**Tổng:** 3 bài ảnh, 2 Reels, 1 album, 1 bài chữ dài, 1 bài Đúng hay Sai.
+**Tổng:** 3 bài ảnh, 2 Reels, 1 album, 2 bài chữ dài, 1 bài Đúng hay Sai, 1 bài Điền vào chỗ trống.
 
-**Theo Cột:** Hướng dẫn 3, Bất ngờ và ngộ nhận 2, Giải thích 1, Câu chuyện 1, Luyện tập 1. Mỗi Cột có ít nhất 1 slot.
+**Theo Cột:** Hướng dẫn 3, Bất ngờ và ngộ nhận 2, Câu chuyện 2, Luyện tập 2, Giải thích 1. Mỗi Cột có ít nhất 1 slot.
 
 **Ghi chú khi dùng:**
 - Câu chuyện chỉ có 1 slot vì Topic không có trường hợp thì ô Câu chuyện không được viết (D100). Tuần đó slot Câu chuyện sẽ trống.

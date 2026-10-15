@@ -1252,3 +1252,16 @@ Mỗi lần gọi AI viết bài thử tối đa 3 lần: phản hồi rỗng đ
 - Căn cứ: 8 bài/tuần theo mức trung bình ngành Giáo dục (Hootsuite, quý 1/2025); ngày và giờ trong khung tốt của ngành giáo dục, cuối tuần kém nhất (Sprout Social); tỷ lệ ảnh/Reels/album/bài chữ theo Socialinsider (bỏ bài link). Chi tiết và giới hạn ở `notes/tuan-mau-facebook.md`; danh sách Format đề xuất ở `notes/de-xuat-format-facebook.md`.
 - Xoay vòng gợi ý (D104) nay là Tuần chuẩn → Tuần nhẹ → Fanpage Facebook. Người dùng đang có dữ liệu cũ nhận mẫu mới qua Setup → Tuần mẫu → nút "Demo: nạp Tuần mẫu mẫu" (ghi đè Tuần chuẩn, Tuần nhẹ nếu đã sửa, có hộp xác nhận; thông báo đếm số mẫu theo dữ liệu mặc định).
 - Test 115 logic (thêm "10.65 · Tuần mẫu Fanpage Facebook") và 382 giao diện đạt.
+
+## 10.66. Hoàn thành Matrix và Viết tất cả slot (15/10/2026, bản 93)
+
+Thay nút "Chia bài" của Matrix. Quy trình mới: duyệt hết ô, bấm Hoàn thành ở Matrix để khóa, rồi bấm Viết tất cả slot ở Dashboard.
+- **Hoàn thành** (`completeMatrix`, `completeGate`; `week.matrixDoneAt`): bật khi tuần chưa chốt, có Topic, không còn ô Trống hoặc Chưa duyệt (ô Đã hủy tính là đã xử lý) và có ít nhất một ô Đã duyệt. Khi Hoàn thành, mọi thao tác ghi lên ô và Topic (viết, tạo lại, sửa, duyệt, hủy, dùng bản cũ, nạp, thêm, bớt Topic, thêm/bớt Cột của tuần) bị logic từ chối với thông báo `MATRIX_LOCK_MSG`; nút trên giao diện chỉ tắt theo.
+- **Sửa** (`reopenMatrix`): nút cạnh Hoàn thành, có hộp xác nhận, mở khóa Matrix. Slot đã viết giữ nguyên; slot dùng ô bị sửa tự báo "cần cập nhật". Tuần đã chốt phải Mở lại tuần trước.
+- **Viết tất cả slot** (nút `data-testid="deal"` ở thanh công cụ Dashboard; `dealGate`): chỉ bật khi Matrix đã Hoàn thành, tuần có slot và còn slot trống viết được. Viết lần lượt từng slot (`dealQueue`, `dealNext`, `dealFinish`), có nút Dừng và tiến độ "n/tổng"; không bao giờ ghi đè slot đã có bài. Thuật toán phân bổ giữ nguyên (xoay vòng Cột, ô Đã duyệt ít slot dùng nhất, D100) nhưng tách thành `dealPlan` thuần nên viết từng slot hay cả tuần cho cùng kết quả (`dealSlots`, `dealWeek` dùng cho test, Demo và AI plan).
+- **Tạo bài** ở từng slot giữ nguyên, nhưng chỉ bật khi Matrix đã Hoàn thành ("Matrix chưa Hoàn thành (bấm Hoàn thành ở Matrix trước)").
+- Bước 5 của thanh tiến độ đổi tên "Viết slot"; việc tiếp theo là "Hoàn thành Matrix" rồi "Viết tất cả slot (n slot)".
+- Tuần đã Chia bài ở bản cũ được coi là đã Hoàn thành khi mở dữ liệu cũ (`migrateState`).
+- Tuần mẫu "Fanpage Facebook" thêm T7 19:30 Bài kể chuyện và CN 10:00 Điền vào chỗ trống (10 slot, đủ 7 ngày). Theo Cột: Hướng dẫn 3, Bất ngờ và ngộ nhận 2, Câu chuyện 2, Luyện tập 2, Giải thích 1. Căn cứ cuối tuần: nhu cầu của người dùng (mục tiêu thêm nội dung cuối tuần); giờ T7, CN nằm ngoài khung "tốt nhất" của Sprout Social cho ngành giáo dục, là lựa chọn của người dùng, nên chỉnh theo Page Insights sau 4 tuần.
+- Mục 10.65 bên trên: phần "Chỉ T2–T6, cuối tuần để trống" nay không còn đúng. Mọi chỗ ghi "Chia bài" ở các mục cũ nghĩa là Viết tất cả slot sau khi Hoàn thành.
+- Test 115 logic và 387 giao diện đạt.

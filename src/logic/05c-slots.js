@@ -12,6 +12,19 @@ function markChanged(s, before) { if (s.state === 'PUBLISHED' && s.text !== befo
 export function dealWeek(S, weekId, at) {
   const r = dealSlots(S, weekId, at);
   if (!r.ok) return r;
+  markEmptyReasons(S, weekId);
+  return r;
+}
+// Kết thúc lượt viết từng slot (giao diện): ghi lý do cho slot còn trống, dấu thời gian và nhật ký
+export function dealFinish(S, weekId, at) {
+  const w = weekOf(S, weekId); if (!w) return { ok: false };
+  markEmptyReasons(S, weekId);
+  w.dealtAt = at || S.settings.demoNow;
+  const empty = weekSlots(S, weekId).filter(s => s.state === 'EMPTY').length;
+  log(S, 'deal', 'week', weekId, `${empty} trống`);
+  return { ok: true, empty };
+}
+function markEmptyReasons(S, weekId) {
   const w = weekOf(S, weekId);
   weekSlots(S, weekId).forEach(s => {
     if (s.state !== 'EMPTY' || s.free) { s.emptyReason = s.free && s.state === 'EMPTY' ? 'Slot tự do: bạn tự viết bài' : ''; return; }
@@ -19,7 +32,6 @@ export function dealWeek(S, weekId, at) {
     const cid = slotColumnId(S, s), col = f ? byId(S.columns, cid) : null;
     s.emptyReason = !f ? 'Format đã xóa' : !w.columnIds.includes(cid) ? `Cột "${col ? col.name : '?'}" không có trong tuần` : `Cột "${col ? col.name : '?'}" không có ô Đã duyệt`;
   });
-  return r;
 }
 function slotSourceCell(S, s) { return s && s.sourceCellId ? byId(S.cells, s.sourceCellId) : null; }
 // Duyệt tất cả slot (10.56): slot Chưa duyệt có bài, không cần cập nhật; withWarned = true thì gồm cả slot có cảnh báo
@@ -54,7 +66,7 @@ export function regenSlot(S, slotId, at) {
   const err = slotGuard(S, s); if (err) return { ok: false, error: err };
   if (s.free) return { ok: false, error: 'Slot tự do không có ô nguồn để tạo lại. Hãy sửa bài trực tiếp.' };
   const cell = slotSourceCell(S, s);
-  if (!cell) return { ok: false, error: 'Slot chưa có ô nguồn. Bấm Chia bài ở Matrix hoặc chọn ô.' };
+  if (!cell) return { ok: false, error: 'Slot chưa có ô nguồn. Bấm Viết tất cả slot ở Dashboard hoặc chọn ô.' };
   if (cellView(S, cell).state !== 'APPROVED') return { ok: false, error: 'Ô nguồn chưa ở trạng thái Đã duyệt. Duyệt lại ô hoặc chọn ô khác.' };
   const before = s.text; const prevN = s.genN;
   writeSlotFromCell(S, s, cell, at);

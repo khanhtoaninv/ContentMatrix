@@ -2,7 +2,7 @@
 import { hash32, splitSentences } from './01-util.js';
 import { TEMPLATES } from './02-parse.js';
 import { scoreText, writeCell, writeImagePrompt } from './04-mock.js';
-import { applyTemplateWeek, byId, cellAt, cellsOf, dealSlots, defaultSetup, emptyState, ensureWeek, genSlotImage, importTopics, log, setBrandMd, setVoiceMd, topicCurrent, topicFileOf, topicsOf, weekSlots } from './05-model.js';
+import { applyTemplateWeek, byId, cellAt, cellsOf, completeMatrix, dealSlots, defaultSetup, emptyState, ensureWeek, genSlotImage, importTopics, log, setBrandMd, setVoiceMd, topicCurrent, topicFileOf, topicsOf, weekSlots } from './05-model.js';
 import { channelPublish, mockPostUrl, publishNow, slotTs, syncMetrics, tsAddMin } from './05e-publish.js';
 import { aiCellText } from './05o-aitext.js';
 import { skillTag } from './05r-skill.js';
@@ -53,6 +53,7 @@ export function buildSeed() {
   importTopics(S, t1.id, SEED_TOPIC_FILES['2026-10-05'].v2, at('2026-10-01', '15:30'));
   writeCells(t1, null, 'APPROVED', at('2026-10-01', '16:05'));
   applyTemplateWeek(S, '2026-10-05', 'wt-1');
+  completeMatrix(S, t1.id, at('2026-10-02', '08:55'));
   dealSlots(S, t1.id, at('2026-10-02', '09:00'));
   // Đã đăng đủ: kênh Tự động có link giả, kênh Thủ công đã dán link (mục 10.22); số liệu thêm ở cuối theo giờ demo
   weekSlots(S, t1.id).forEach((s, i) => {
@@ -68,6 +69,7 @@ export function buildSeed() {
   applyTemplateWeek(S, '2026-10-12', 'wt-2');
   importTopics(S, t2.id, SEED_TOPIC_FILES['2026-10-12'].v1, at('2026-10-11', '20:10'));
   writeCells(t2, null, 'APPROVED', at('2026-10-11', '21:00'));
+  completeMatrix(S, t2.id, at('2026-10-12', '08:25'));
   dealSlots(S, t2.id, at('2026-10-12', '08:30'));
   // Chia bài đã tạo luôn ảnh cho mọi ô ảnh (mục 10.8)
 

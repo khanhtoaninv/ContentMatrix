@@ -1,7 +1,7 @@
 // ---------- 05b · R2′: Viết ma trận, thao tác ô, sửa Topic (MTX-01..08, TPC-08) ----------
 import { countWords } from './01-util.js';
 import { topicHasCase } from './02-parse.js';
-import { byId, cellAt, cellView, cellWarnings, cellsOf, isLocked, log, matrixCounts, refreshSlotFlags, sameTopicContent, slotsUsingCell, topicCurrent, topicsOf, weekLanes, weekOf, weekSlots } from './05-model.js';
+import { MATRIX_LOCK_MSG, byId, cellAt, cellView, cellWarnings, cellsOf, isLocked, log, matrixDone, matrixCounts, refreshSlotFlags, sameTopicContent, slotsUsingCell, topicCurrent, topicsOf, weekLanes, weekOf, weekSlots } from './05-model.js';
 import { addCellGen, cancelCell } from './06-seed.js';
 // Ô Câu chuyện của Topic không có trường hợp cụ thể thì không viết (D100, MTX-07)
 export function cellNoCase(S, cell) {
@@ -12,6 +12,7 @@ export function cellNoCase(S, cell) {
 function cellGuard(S, cell) {
   if (!cell) return 'Không tìm thấy ô.';
   if (isLocked(S, cell.weekId)) return 'Tuần đã chốt. Bấm "Mở lại để sửa" trước.';
+  if (matrixDone(S, cell.weekId)) return MATRIX_LOCK_MSG;
   const row = byId(S.topics, cell.topicId);
   if (!row || !topicCurrent(row)) return 'Không tìm thấy Topic của ô.';
   return '';
@@ -49,6 +50,7 @@ export function writeGate(S, weekId) {
   const rows = w ? topicsOf(S, weekId).filter(r => topicCurrent(r)) : [];
   const reasons = [];
   if (w && w.status === 'CONFIRMED') reasons.push('Tuần đã chốt');
+  if (w && w.matrixDoneAt) reasons.push('Matrix đã Hoàn thành (bấm Sửa để mở khóa)');
   let queue = writeQueue(S, weekId), mode = 'empty';
   if (rows.length && !queue.length) { const redo = writeQueue(S, weekId, 'redo'); if (redo.length) { queue = redo; mode = 'redo'; } }
   if (!rows.length) reasons.push('Chưa có Topic');
@@ -148,7 +150,7 @@ export function useCellGen(S, cellId, genN) {
 // Duyệt hàng loạt (MTX-08): chỉ các ô Chưa duyệt không có cảnh báo
 // Ô Chưa duyệt của Topic còn hiệu lực; withWarned = true thì gồm cả ô có cảnh báo (mục 10.55)
 export function bulkApprovable(S, weekId, withWarned) {
-  if (isLocked(S, weekId)) return [];
+  if (isLocked(S, weekId) || matrixDone(S, weekId)) return [];
   const live = new Set(topicsOf(S, weekId).filter(r => topicCurrent(r)).map(r => r.id));
   return cellsOf(S, weekId).filter(c => {
     if (!live.has(c.topicId)) return false;
@@ -178,6 +180,7 @@ export function editTopic(S, topicId, input, at) {
   const row = byId(S.topics, topicId);
   if (!row) return { ok: false, error: 'Không tìm thấy Topic.' };
   if (isLocked(S, row.weekId)) return { ok: false, error: 'Tuần đã chốt. Bấm "Mở lại để sửa" trước.' };
+  if (matrixDone(S, row.weekId)) return { ok: false, error: MATRIX_LOCK_MSG };
   const title = String(input.title || '').trim();
   const text = String(input.text || '').replace(/\r\n?/g, '\n').trim();
   const fields = { message: String((input.fields || {}).message || '').trim(), audience: String((input.fields || {}).audience || '').trim(), angle: String((input.fields || {}).angle || '').trim() };
@@ -198,6 +201,7 @@ export function useTopicVersion(S, topicId, n) {
   const row = byId(S.topics, topicId);
   if (!row) return { ok: false, error: 'Không tìm thấy Topic.' };
   if (isLocked(S, row.weekId)) return { ok: false, error: 'Tuần đã chốt. Bấm "Mở lại để sửa" trước.' };
+  if (matrixDone(S, row.weekId)) return { ok: false, error: MATRIX_LOCK_MSG };
   if (!row.versions.some(v => v.n === n)) return { ok: false, error: 'Không có phiên bản này.' };
   if (row.currentVersion === n) return { ok: false, error: 'Đây đã là phiên bản hiện hành.' };
   const impact = topicVersionImpact(S, topicId);

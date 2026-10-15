@@ -68,8 +68,7 @@ RENDERERS.matrix = () => {
     ? `<button class="btn primary" data-act="topic-import" data-mode="add">${icon('plus')} Nạp thêm Topic</button><button class="btn ghost" data-act="topic-import" data-mode="replace">Nạp lại tất cả</button>`
     : `<button class="btn primary" data-act="topic-import" data-mode="replace">${icon('plus')} Nạp Topic</button>`;
   const helpBtns = `<button class="btn ghost" data-act="show-template" data-t="topic">Xem tệp mẫu</button><button class="btn ghost" data-act="show-template" data-t="agentPrompt">Lệnh cho agent bên ngoài</button>`;
-  const gate = AC.dealGate(S, wid);
-  const head = `<div class="page-head"><div><span class="eyebrow">Matrix · ${esc(l.range)}</span><h1>${file && file.theme ? esc(file.theme) : 'Ma trận Topic × Cột'}</h1><p class="sub">Matrix đi theo tuần đang chọn ở Dashboard. Hàng là Topic, cột là Cột nội dung; mỗi ô viết một lần rồi Chia bài cho slot.</p></div></div>`;
+  const head = `<div class="page-head"><div><span class="eyebrow">Matrix · ${esc(l.range)}</span><h1>${file && file.theme ? esc(file.theme) : 'Ma trận Topic × Cột'}</h1><p class="sub">Matrix đi theo tuần đang chọn ở Dashboard. Hàng là Topic, cột là Cột nội dung; mỗi ô viết một lần, duyệt xong bấm Hoàn thành để khóa rồi viết slot ở Dashboard.</p></div></div>`;
   const demo = demoBarHtml(['topics', 'write', 'approve', 'deal', 'clear']);
   if (!rows.length) return `${head}${lockBannerHtml(w)}${demo}<section class="focus">${progressHtml(wid)}</section>
     <div class="empty"><p>Tuần này chưa có Topic. Nạp một tệp .md gồm Bối cảnh chung và các Topic (mỗi Topic một đề mục ##, khoảng 2.000 chữ), do bạn hoặc agent bên ngoài chuẩn bị. Số Topic tùy bạn.${w ? '' : ' Tuần chưa có slot nhưng bạn vẫn nạp Topic trước được; Lập tuần ở Dashboard.'}</p><div class="row">${importBtn}${helpBtns}</div></div>`;
@@ -77,7 +76,7 @@ RENDERERS.matrix = () => {
   return `${head}${lockBannerHtml(w)}${demo}<section class="focus">${nextBandHtml(wid, true)}${progressHtml(wid)}</section>
     <section class="work stack" aria-label="Ma trận">
       <div class="work-bar"><div class="row small muted" id="mx-counts">${mxCountsHtml(w)}</div></div>
-      ${mxToolsHtml(w, gate)}
+      ${mxToolsHtml(w)}
       <div id="mx-table">${mxTableHtml(w)}</div>
     </section>
     <section class="panel quiet stack secondary">
@@ -88,28 +87,39 @@ RENDERERS.matrix = () => {
       <div id="tpc-count" class="small muted" aria-live="polite">${searchCountText(w)}</div>
     </section>`;
 };
-function mxToolsHtml(w, gate) {
+function mxToolsHtml(w) {
   const wg = AC.writeGate(S, w.id);
   const bulk = AC.bulkApprovable(S, w.id, true).length;
   const run = view.mxRun;
+  const done = AC.matrixDone(S, w.id);
+  const cg = AC.completeGate(S, w.id);
+  const locked = w.status === 'CONFIRMED';
   const writeBtn = run
     ? `<button class="btn danger" data-act="mx-stop">Dừng</button><span class="small" id="mx-run" aria-live="polite">Đang viết ${run.done}/${run.total} ô…</span>`
-    : `<button class="btn ${wg.ok ? 'primary' : ''}" data-act="mx-write" ${wg.ok ? '' : 'disabled'} title="${esc(wg.ok ? (wg.redo ? `Viết lại ${wg.count} ô Đã hủy` : `Viết ${wg.count} ô Trống`) : wg.reasons.join('; '))}">${wg.redo ? 'Viết lại ma trận' : 'Viết ma trận'}${wg.ok ? ` (${wg.count} ô)` : ''}</button>`;
+    : `<button class="btn ${wg.ok && !done ? 'primary' : ''}" data-act="mx-write" ${wg.ok && !done ? '' : 'disabled'} title="${esc(done ? AC.MATRIX_LOCK_MSG : wg.ok ? (wg.redo ? `Viết lại ${wg.count} ô Đã hủy` : `Viết ${wg.count} ô Trống`) : wg.reasons.join('; '))}">${wg.redo ? 'Viết lại ma trận' : 'Viết ma trận'}${wg.ok && !done ? ` (${wg.count} ô)` : ''}</button>`;
+  const doneBtn = done
+    ? `<button class="btn" data-act="mx-reopen" data-testid="mx-reopen" ${locked || run ? 'disabled' : ''} title="${esc(locked ? 'Tuần đã chốt. Mở lại tuần trước.' : 'Mở khóa Matrix để sửa ô hoặc Topic')}">Sửa</button>`
+    : `<button class="btn ${cg.ok && !run ? 'primary' : ''}" data-act="mx-complete" data-testid="mx-complete" ${cg.ok && !run ? '' : 'disabled'} title="${esc(cg.ok ? 'Khóa Matrix, sau đó mới Viết tất cả slot' : 'Chưa bật: ' + cg.reasons.join('; '))}">Hoàn thành</button>`;
   return `<div class="row" id="mx-tools">
       ${writeBtn}
-      ${bulk && !run ? `<button class="btn" data-act="mx-bulk">Duyệt tất cả (${bulk} ô)</button>` : ''}
-      <button class="btn ${gate.ok && !run ? 'primary' : ''}" data-act="mx-deal" data-testid="deal" ${gate.ok && !run ? '' : 'disabled'} title="${esc(gate.ok ? `Viết ${gate.willFill} slot còn trống từ ô Đã duyệt` : 'Chưa bật: ' + gate.reasons.join('; '))}">Chia bài${gate.ok ? ` (${gate.willFill} slot)` : ''}</button>
+      ${bulk && !run && !done ? `<button class="btn" data-act="mx-bulk">Duyệt tất cả (${bulk} ô)</button>` : ''}
+      ${doneBtn}
     </div>
-    <p class="small faint" id="deal-why">${!wg.ok && !run ? `Viết ma trận: ${esc(wg.reasons.join('; '))}. ` : ''}${gate.ok ? `Chia bài sẽ điền ${gate.willFill} slot còn trống; slot đã có bài giữ nguyên.` : `Chia bài chưa bật: ${esc(gate.reasons.join('; '))}.`}</p>`;
+    <p class="small faint" id="deal-why">${done ? `${AC.MATRIX_LOCK_MSG} Viết slot ở Dashboard bằng nút "Viết tất cả slot".` : !wg.ok && !run && !cg.ok ? `Viết ma trận: ${esc(wg.reasons.join('; '))}. ` : ''}${done ? '' : cg.ok ? 'Mọi ô đã xử lý: bấm Hoàn thành để khóa Matrix, rồi Viết tất cả slot ở Dashboard.' : `Hoàn thành chưa bật: ${esc(cg.reasons.join('; '))}.`}</p>`;
 }
-// ---- Chia bài (DST-01..05): điền slot trống rồi về Dashboard ----
-ACTIONS['mx-deal'] = async () => {
+ACTIONS['mx-complete'] = () => {
   const w = curWeek(); if (!w) return;
-  const r = await withAiText(C => AC.dealWeek(C, w.id));
-  if (!r.ok) return toast(r.error || r.reasons.join('; '), 'bad');
-  save(); go({ screen: 'week' });
-  toast(`Đã viết ${r.written.length} slot · ${r.empty.length} slot chưa có bài.`);
-}
+  const r = AC.completeMatrix(S, w.id); if (!r.ok) return toast(r.error, 'bad');
+  commit('Matrix đã Hoàn thành. Qua Dashboard bấm "Viết tất cả slot".');
+};
+ACTIONS['mx-reopen'] = async () => {
+  const w = curWeek(); if (!w) return;
+  const n = AC.weekSlots(S, w.id).filter(x => x.sourceCellId).length;
+  const ok = await confirmBox({ title: 'Sửa Matrix?', body: `<p>Mở khóa để sửa ô và Topic.${n ? ` ${n} slot đã viết giữ nguyên; slot dùng ô bạn sửa sẽ báo "cần cập nhật".` : ''} Sửa xong bấm Hoàn thành lại.</p>`, ok: 'Mở khóa' });
+  if (!ok) return;
+  const r = AC.reopenMatrix(S, w.id); if (!r.ok) return toast(r.error, 'bad');
+  commit('Đã mở khóa Matrix.');
+};
 // ---- Viết ma trận (MTX-01): viết lần lượt từng ô, có nút Dừng ----
 ACTIONS['mx-write'] = () => {
   const w = curWeek(); if (!w || view.mxRun) return;
@@ -391,8 +401,8 @@ function showCell(cellId, browseN) {
       ${g && (isCur ? v.state !== 'CANCELLED' : true) ? `<section class="dv-sec main"><div class="dv-h"><h3>Bài của ô</h3><span class="meta small faint">${AC.lengthOf(text, unit)} ${unit === 'words' ? 'chữ' : 'ký tự'} <span class="mock">Mô phỏng</span></span></div><div class="content-text rich">${richText(text, warnMarks(ws))}</div></section>
         <div class="dv-grid">${isCur ? `<section class="dv-sec"><div class="dv-h"><h3>Cảnh báo</h3></div>${warningsHtml(ws)}</section>` : ''}
           <section class="dv-sec"><div class="dv-h"><h3>Điểm AI</h3></div>${scoreHtml(g.scores, g.total, g.tip, col.criteria, g.ai)}</section></div>
-        <section class="dv-sec"><div class="dv-h"><h3>Gợi ý ảnh</h3></div><p class="small">${esc(imgP || '(chưa có)')}</p><p class="small faint">Prompt này đi theo ô: khi Chia bài, ô ảnh của slot nhận prompt này.</p></section>`
-      : `<section class="dv-sec main"><div class="empty"><p>${noCase ? 'Topic không có trường hợp cụ thể nên ô Câu chuyện không được viết (không bịa trường hợp). Nên Hủy ô; ô hủy được tính là đã xử lý khi Chia bài.' : v.state === 'CANCELLED' ? 'Ô đã hủy. Bấm Tạo lại để viết bài mới, hoặc xem bản cũ bằng mũi tên rồi "Dùng bản này".' : 'Ô chưa có bài cho phiên bản Topic hiện hành. Bấm "Viết ô này" hoặc "Viết ma trận" để viết mọi ô Trống.'}</p></div></section>`}
+        <section class="dv-sec"><div class="dv-h"><h3>Gợi ý ảnh</h3></div><p class="small">${esc(imgP || '(chưa có)')}</p><p class="small faint">Prompt này đi theo ô: khi Viết slot, ô ảnh của slot nhận prompt này.</p></section>`
+      : `<section class="dv-sec main"><div class="empty"><p>${noCase ? 'Topic không có trường hợp cụ thể nên ô Câu chuyện không được viết (không bịa trường hợp). Nên Hủy ô; ô hủy được tính là đã xử lý khi Hoàn thành.' : v.state === 'CANCELLED' ? 'Ô đã hủy. Bấm Tạo lại để viết bài mới, hoặc xem bản cũ bằng mũi tên rồi "Dùng bản này".' : 'Ô chưa có bài cho phiên bản Topic hiện hành. Bấm "Viết ô này" hoặc "Viết ma trận" để viết mọi ô Trống.'}</p></div></section>`}
       ${used.length ? `<section class="dv-sec"><div class="dv-h"><h3>Đang nuôi ${used.length} slot</h3></div><p class="small faint">Tạo lại, Sửa, Hủy hoặc Dùng bản khác sẽ làm các slot này "cần cập nhật".</p><div class="list">${used.map(s => slotRowHtml(s, true)).join('')}</div></section>` : ''}
       ${isCur || !g ? `<details class="dv-more" id="cell-prompt"><summary>Lệnh cho AI <span class="faint">(khung trình bày của Cột)</span></summary><div class="row" style="justify-content:flex-end;margin:6px 0"><button class="btn sm" data-act="cell-prompt-copy" data-id="${esc(c.id)}">Chép lệnh</button></div><pre class="prompt-pre">${esc(AC.cellPrompt(S, c.id))}</pre></details>` : ''}
       ${c.gens.length ? `<details class="dv-more"${c.gens.length > 1 ? ' open' : ''}><summary>Lịch sử ô <span class="faint">(${c.gens.length} bản)</span></summary><div class="list">${c.gens.map(x => `<button class="li" data-act="open-cell" data-id="${esc(c.id)}" data-gen="${x.n}" style="grid-template-columns:auto minmax(0,1fr) auto"><span class="mono">bản ${x.n}</span><span class="small">viết từ Topic v${x.topicVersion}${x.edits.length ? ` · ${x.edits.length} lần sửa` : ''} · <span class="mono">${esc(x.createdAt.replace('T', ' '))}</span></span>${v.gen && v.gen.n === x.n ? '<span class="st st-ok">Hiện hành</span>' : g && g.n === x.n ? '<span class="small muted">đang xem</span>' : ''}</button>`).join('')}</div></details>` : ''}
@@ -430,7 +440,7 @@ ACTIONS['cell-regen'] = async el => {
 ACTIONS['cell-cancel'] = async el => {
   const c = AC.byId(S.cells, el.dataset.id); if (!c) return;
   const used = AC.slotsUsingCell(S, c.id).length;
-  const ok = await confirmBox({ title: 'Hủy ô này?', body: `<p>Ô chuyển sang "Đã hủy" và được tính là đã xử lý khi Chia bài. Bài cũ vẫn giữ trong lịch sử; Tạo lại để viết lại.</p>${used ? `<p>${used} slot đang dùng ô này sẽ cần cập nhật.</p>` : ''}`, ok: 'Hủy ô', danger: true });
+  const ok = await confirmBox({ title: 'Hủy ô này?', body: `<p>Ô chuyển sang "Đã hủy" và được tính là đã xử lý khi Hoàn thành. Bài cũ vẫn giữ trong lịch sử; Tạo lại để viết lại.</p>${used ? `<p>${used} slot đang dùng ô này sẽ cần cập nhật.</p>` : ''}`, ok: 'Hủy ô', danger: true });
   if (!ok) return;
   cellDone(c, 'Đã hủy ô.', AC.cancelCellNow(S, c.id));
 };

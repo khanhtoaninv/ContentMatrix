@@ -331,6 +331,10 @@ export function migrateState(S) {
     if (!ch.platform) ch.platform = PLATFORM_OF_ID[ch.id] || 'other';
     if (!ch.publish) ch.publish = defaultPublish(ch.platform);
   });
+  // Hoàn thành Matrix (10.66): tuần đã Chia bài trước đó coi như đã Hoàn thành
+  (S.weeks || []).forEach(w => {
+    if (w.matrixDoneAt === undefined) w.matrixDoneAt = w.dealtAt || ((S.slots || []).some(s => s.weekId === w.id && s.sourceCellId) ? (S.settings && S.settings.demoNow) || w.startDate : null);
+  });
   const confirmed = new Set((S.weeks || []).filter(w => w.revision >= 1).map(w => w.id));
   (S.slots || []).forEach(s => {
     if (s.pub === undefined) {

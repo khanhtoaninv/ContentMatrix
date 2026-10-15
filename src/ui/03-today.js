@@ -34,7 +34,7 @@ export function dashHeaderHtml(start, w, file) {
 }
 
 // ---- Nút demo từng bước (chỉ để trải nghiệm; dữ liệu mô phỏng, áp cho tuần đang chọn) ----
-const DEMO_LABELS = { setup: 'Nạp Thiết lập', plan: 'Lập tuần', topics: 'Nạp Topic', write: 'Viết ma trận', approve: 'Duyệt ô', deal: 'Chia bài', review: 'Duyệt slot + ảnh', confirm: 'Chốt lịch', clear: 'Làm trống tuần' };
+const DEMO_LABELS = { setup: 'Nạp Thiết lập', plan: 'Lập tuần', topics: 'Nạp Topic', write: 'Viết ma trận', approve: 'Duyệt ô', deal: 'Hoàn thành + Viết slot', review: 'Duyệt slot + ảnh', confirm: 'Chốt lịch', clear: 'Làm trống tuần' };
 export function demoBarHtml(steps) {
   const start = curStart();
   return `<section class="demobar" aria-label="Demo từng bước"><span class="demo-tag" title="Công cụ trải nghiệm, áp cho tuần ${esc(AC.weekLabelOf(start).range)}">Demo</span><div class="row">${steps.map(k => {

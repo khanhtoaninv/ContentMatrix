@@ -2,7 +2,7 @@
 import { clone, parseYMD } from './01-util.js';
 import { TEMPLATES } from './02-parse.js';
 import { DEFAULT_HYPE } from './03-rules.js';
-import { applyTemplateWeek, canApplyTemplate, cellView, cellsOf, dealGate, defaultSetup, ensureWeek, genSlotImage, importTopics, log, matrixCounts, setBrandMd, setVoiceMd, setupStatus, slotCounts, suggestTemplateId, templateOf, topicsOf, weekIdOf, weekOf, weekSlots } from './05-model.js';
+import { applyTemplateWeek, canApplyTemplate, cellView, cellsOf, completeGate, completeMatrix, dealGate, defaultSetup, ensureWeek, genSlotImage, importTopics, log, matrixCounts, setBrandMd, setVoiceMd, setupStatus, slotCounts, suggestTemplateId, templateOf, topicsOf, weekIdOf, weekOf, weekSlots } from './05-model.js';
 import { approveCell, writeGate, writeMatrix } from './05b-cells.js';
 import { approveSlot, dealWeek } from './05c-slots.js';
 import { confirmWeek } from './05e-publish.js';
@@ -21,17 +21,22 @@ export function demoGate(S, startDate, step) {
   if (step === 'topics') { const st = setupStatus(S); return st.ok ? { ok: true, reason: '' } : no('Thiết lập chưa đủ: dùng "Demo: Nạp Thiết lập" ở Dashboard hoặc Setup'); }
   if (step === 'write') { const g = w ? writeGate(S, wid) : { ok: false, reasons: ['Chưa có Topic'] }; return g.ok ? { ok: true, reason: '' } : no(g.reasons.join('; ')); }
   if (step === 'approve') { const n = w ? matrixCounts(S, wid).DRAFT : 0; return n ? { ok: true, reason: '' } : no(w && matrixCounts(S, wid).EMPTY ? 'Viết ma trận trước' : 'Không có ô nào chờ duyệt'); }
-  if (step === 'deal') { const g = dealGate(S, wid); return g.ok ? { ok: true, reason: '' } : no(g.reasons.join('; ')); }
+  if (step === 'deal') {   // Hoàn thành Matrix (nếu chưa) rồi Viết tất cả slot
+    if (w && w.matrixDoneAt) { const g = dealGate(S, wid); return g.ok ? { ok: true, reason: '' } : no(g.reasons.join('; ')); }
+    const c = completeGate(S, wid); if (!c.ok) return no(c.reasons.join('; '));
+    const sc = w ? slotCounts(S, wid) : { total: 0 };
+    return !sc.total ? no('Chưa có slot (Lập tuần trước)') : !sc.EMPTY ? no('Mọi slot đã có bài') : { ok: true, reason: '' };
+  }
   if (step === 'review') {
     if (!w) return no('Chưa lập tuần');
     const sc = slotCounts(S, wid);
     const needImg = weekSlots(S, wid).some(s => s.assets.some(a => a.prompt && !a.versions.length));
-    return (sc.DRAFT && !sc.needsUpdate) || needImg ? { ok: true, reason: '' } : no(sc.EMPTY ? 'Chia bài trước' : sc.needsUpdate ? 'Có slot cần cập nhật: xử lý trước' : 'Mọi slot đã duyệt và có ảnh');
+    return (sc.DRAFT && !sc.needsUpdate) || needImg ? { ok: true, reason: '' } : no(sc.EMPTY ? 'Viết tất cả slot trước' : sc.needsUpdate ? 'Có slot cần cập nhật: xử lý trước' : 'Mọi slot đã duyệt và có ảnh');
   }
   if (step === 'confirm') {
     if (!w) return no('Chưa lập tuần');
     const sc = slotCounts(S, wid);
-    return !sc.total ? no('Tuần chưa có slot') : sc.EMPTY ? no('Còn slot chưa có bài: Chia bài trước') : sc.needsUpdate ? no('Có slot cần cập nhật: xử lý trước') : { ok: true, reason: '' };
+    return !sc.total ? no('Tuần chưa có slot') : sc.EMPTY ? no('Còn slot chưa có bài: Viết tất cả slot trước') : sc.needsUpdate ? no('Có slot cần cập nhật: xử lý trước') : { ok: true, reason: '' };
   }
   if (step === 'clear') return w ? { ok: true, reason: '' } : no('Tuần chưa có dữ liệu');
   return no('Bước không hợp lệ');
@@ -54,7 +59,7 @@ export function demoRun(S, startDate, step, at) {
     rows.forEach(c => { if (approveCell(S, c.id, now).ok) n++; });
     return { ok: true, msg: `Đã duyệt ${n} ô (kể cả ô có cảnh báo).` };
   }
-  if (step === 'deal') { const r = dealWeek(S, wid, now); return r.ok ? { ok: true, msg: `Đã viết ${r.written.length} slot · ${r.empty.length} slot chưa có bài.` } : { ok: false, error: r.reasons.join('; ') }; }
+  if (step === 'deal') { if (!weekOf(S, wid).matrixDoneAt) completeMatrix(S, wid, now); const r = dealWeek(S, wid, now); return r.ok ? { ok: true, msg: `Đã viết ${r.written.length} slot · ${r.empty.length} slot chưa có bài.` } : { ok: false, error: r.reasons.join('; ') }; }
   if (step === 'review') {
     let a = 0, im = 0;
     weekSlots(S, wid).forEach(s => {
