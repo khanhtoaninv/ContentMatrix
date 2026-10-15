@@ -127,7 +127,9 @@ async function mxStep() {
     toast(run.stop || left ? `Đã viết ${run.done} ô · còn ${left} ô Trống.` : `Đã viết ${run.done} ô. Mời bạn duyệt từng ô.`);
     return;
   }
-  const r = await withAiText(C => AC.writeCellNow(C, q[0]));
+  const r = await withAiText(C => AC.writeCellNow(C, q[0]), { noAi: run.mock, fallbackAll: true });
+  if (r.busy && !run.stop) { setTimeout(mxStep, MX_BUSY_WAIT); return; }   // AI đang bận việc khác: chờ rồi thử lại, không bỏ hàng chờ
+  if (r.fellBack) run.mock = true;
   if (!r.ok) { view.mxRun = null; save(); render(); toast(r.error, 'bad'); return; }
   run.done++; save();
   if (view.screen === 'matrix') {
@@ -138,6 +140,7 @@ async function mxStep() {
   }
   setTimeout(mxStep, MX_DELAY);
 }
+const MX_BUSY_WAIT = 1500;
 const MX_DELAY = 160;   // mô phỏng thời gian AI viết một ô
 ACTIONS['mx-stop'] = () => { if (view.mxRun) view.mxRun.stop = true; };
 // Duyệt tất cả (10.56): dùng chung cho ô (Matrix, Dashboard bước 4) và slot (Dashboard bước 6)
@@ -265,7 +268,7 @@ ACTIONS['topic-import'] = el => {
     <p class="small muted">${add
       ? `Tuần đang có ${nHave} Topic. Các Topic trong tệp mới được xếp xuống cuối ma trận; Topic cũ và bài đã viết giữ nguyên. Tối đa ${AC.TOPIC_MAX} Topic mỗi tuần. Topic trùng hẳn (cùng tên và nội dung) với Topic đã có sẽ được bỏ qua.`
       : `Một tệp .md: tiêu đề # (tùy chọn), Bối cảnh chung (tùy chọn), mỗi Topic một đề mục ##. Không có ## thì cả tệp là 1 Topic. Số Topic tùy bạn (kỹ thuật tối đa ${AC.TOPIC_MAX}).${had ? ' Nạp lại thay toàn bộ Topic của tuần: Topic có nội dung đổi sẽ thành phiên bản mới, Topic không còn trong tệp bị loại. Muốn giữ Topic cũ thì dùng "Nạp thêm Topic".' : ''}`}</p>
-    <div class="row"><label class="btn sm" for="inp-file">Chọn tệp .md</label><input id="inp-file" type="file" accept=".md,.markdown,.txt,text/markdown,text/plain" class="sr" data-change="topic-file"></div>
+    <div class="row"><label class="btn sm" for="inp-file">Chọn tệp .md (được chọn nhiều tệp)</label><input id="inp-file" type="file" multiple accept=".md,.markdown,.txt,text/markdown,text/plain" class="sr" data-change="topic-file"></div>
     <div class="field"><label for="inp-text">Hoặc dán nội dung tệp</label><textarea id="inp-text" spellcheck="false" style="min-height:220px;font-family:var(--f-mono);font-size:var(--fs-2)" data-input="topic-text"></textarea></div>
     <div id="inp-preview" class="small muted" aria-live="polite">Chưa có nội dung.</div>
     <div id="inp-norm"></div>
@@ -301,13 +304,18 @@ function topicNormHtml(r) {
   return `<div class="stack" style="gap:8px">${ch}${miss}${pv}</div>`;
 }
 INPUTS['topic-text'] = () => inputPreview();
-CHANGES['topic-file'] = el => {
-  const file = el.files && el.files[0]; if (!file) return;
-  if (file.size > 2 * 1024 * 1024) { toast('Tệp quá lớn (tối đa 2 MB).', 'bad'); return; }
-  const reader = new FileReader();
-  reader.onload = () => { const ta = document.getElementById('inp-text'); if (ta) { ta.value = String(reader.result); inputPreview(); } };
-  reader.onerror = () => toast('Không đọc được tệp.', 'bad');
-  reader.readAsText(file);
+CHANGES['topic-file'] = async el => {
+  const files = Array.from(el.files || []); if (!files.length) return;
+  if (files.some(f => f.size > 2 * 1024 * 1024)) { toast('Có tệp quá lớn (tối đa 2 MB mỗi tệp).', 'bad'); return; }
+  let read;
+  try { read = await Promise.all(files.map(f => new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok({ name: f.name, text: String(r.result) }); r.onerror = no; r.readAsText(f); }))); }
+  catch (e) { toast('Không đọc được tệp.', 'bad'); return; }
+  const ta = document.getElementById('inp-text'); if (!ta) return;
+  if (read.length === 1) { ta.value = read[0].text; inputPreview(); return; }
+  const m = AC.mergeTopicFiles(read);
+  ta.value = m.text; inputPreview();
+  const pv = document.getElementById('inp-preview');
+  if (pv) pv.insertAdjacentHTML('beforeend', `<br><b>Thứ tự ${m.order.length} tệp:</b> ${m.order.map((o, i) => `${i + 1}. ${esc(o.name)} → ${esc(o.title)}`).join(' · ')}`);
 };
 ACTIONS['topic-go'] = async () => {
   const ta = document.getElementById('inp-text'); if (!ta) return;

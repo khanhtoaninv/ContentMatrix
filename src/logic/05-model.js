@@ -1044,3 +1044,31 @@ export function loadStateFromRaw(raw) {
     return { status: 'ok', state: S };
   } catch (e) { return { status: 'corrupt', error: 'JSON hỏng' }; }
 }
+
+// Nạp nhiều tệp Topic một lúc (10.63): sắp theo tên (số theo giá trị: topic-2 trước topic-10), ghép thành một văn bản.
+// Tệp không có đề mục ## được gói thành 1 Topic, lấy tên từ dòng # hoặc từ tên tệp, để không dính vào Topic trước.
+export function mergeTopicFiles(files) {
+  const list = (files || []).filter(f => f && typeof f.text === 'string' && f.text.trim());
+  const coll = new Intl.Collator('vi', { numeric: true, sensitivity: 'base' });
+  list.sort((a, b) => coll.compare(a.name, b.name));
+  const order = []; const parts = [];
+  list.forEach((f, i) => {
+    let t = f.text.replace(/^﻿/, '').replace(/\r\n?/g, '\n').trim();
+    const lines = t.split('\n');
+    const hasH2 = lines.some(l => /^##\s/.test(l));
+    const h1 = lines.findIndex(l => /^#\s+\S/.test(l));
+    const base = String(f.name || '').replace(/^.*[\\/]/, '').replace(/\.(md|markdown|txt)$/i, '').replace(/[-_]+/g, ' ').trim() || 'Topic ' + (i + 1);
+    if (!hasH2) {
+      const title = h1 >= 0 ? lines[h1].replace(/^#\s+/, '').trim() : base;
+      if (h1 >= 0) lines.splice(h1, 1);
+      t = `## ${title}\n\n${lines.join('\n').trim()}`;
+      order.push({ name: f.name, title });
+    } else {
+      if (i > 0 && h1 >= 0) lines.splice(h1, 1);   // chỉ tệp đầu giữ tiêu đề # và Bối cảnh chung
+      t = lines.join('\n').trim();
+      order.push({ name: f.name, title: (lines.find(l => /^##\s/.test(l)) || '').replace(/^##\s+/, '').trim() });
+    }
+    parts.push(t);
+  });
+  return { text: parts.join('\n\n'), order };
+}

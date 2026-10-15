@@ -67,10 +67,11 @@ function aiBusy(total) {
 }
 // Chạy một thao tác viết ô/slot: AI thật thì chuẩn bị bài trước, rồi chạy thao tác trên S
 let aiRunning = false;
-export async function withAiText(run) {
-  if (!AC.textApiOn(S)) return run(S);
+// opts.noAi: bỏ qua AI, viết bản mô phỏng; opts.fallbackAll: câu hỏi khi AI lỗi nói rõ "cho các ô còn lại" (Viết ma trận)
+export async function withAiText(run, opts = {}) {
+  if (!AC.textApiOn(S) || opts.noAi) return run(S);
   const jobs = AC.aiPlan(S, run); if (!jobs.length) return run(S);
-  if (aiRunning) return { ok: false, error: 'AI đang viết bài khác, đợi xong đã.' };
+  if (aiRunning) return { ok: false, busy: true, error: 'AI đang viết bài khác, đợi xong đã.' };
   aiRunning = true;
   const cfg = AC.textApiOf(S); const bar = aiBusy(jobs.length); let fail = 0, firstErr = '', next = 0, unfinished = 0;
   const worker = async () => {
@@ -90,8 +91,9 @@ export async function withAiText(run) {
   if (bar.stopped) { AC.clearAiText(); return { ok: false, error: 'Đã dừng viết bằng AI; chưa đổi gì.', stopped: true }; }
   if (fail === jobs.length) {
     AC.clearAiText();
-    const go = await confirmBox({ title: 'AI không viết được', body: `<p>${esc(firstErr)}</p><p>Dùng bản mô phỏng cho ${jobs.length > 1 ? `${jobs.length} bài này` : 'bài này'}?</p>`, ok: 'Dùng mô phỏng' });
-    return go ? run(S) : { ok: false, error: 'Chưa viết bài nào.', stopped: true };
+    const go = await confirmBox({ title: 'AI không viết được', body: `<p>${esc(firstErr)}</p><p>${opts.fallbackAll ? 'Dùng bản mô phỏng cho ô này và các ô còn lại? Chọn Hủy để dừng.' : `Dùng bản mô phỏng cho ${jobs.length > 1 ? `${jobs.length} bài này` : 'bài này'}?`}</p>`, ok: opts.fallbackAll ? 'Dùng mô phỏng cho các ô còn lại' : 'Dùng mô phỏng' });
+    if (!go) return { ok: false, error: 'Chưa viết bài nào.', stopped: true };
+    const rr = run(S); if (rr && typeof rr === 'object') rr.fellBack = true; return rr;
   }
   const r = run(S); AC.clearAiText();
   if (unfinished) setTimeout(() => toast(`${unfinished} bài AI vẫn chưa viết xong (thiếu phần cuối); nên bấm viết lại bài đó.`, 'bad'), 80);

@@ -1235,3 +1235,8 @@ Khung Điểm AI của ô và slot: bài do AI viết ghi "Bài do AI viết · 
 
 ## 10.62. AI viết bài: thử lại, chẩn đoán và nhận bài cụt (15/10/2026, bản 89)
 Mỗi lần gọi AI viết bài thử tối đa 3 lần: phản hồi rỗng được nhắc lại đúng dạng JSON, lỗi tạm thời (hết hạn mức, quá tải, hết giờ chờ) chờ 2 rồi 5 giây. Khi vẫn thất bại, thông báo ghi lý do dừng, số token và số lần đã thử. Bài bị cắt (API báo hết giới hạn, hoặc bài có đề mục kết thúc giữa câu) được xin viết tiếp; nếu lượt viết tiếp lỗi thì giữ phần đã có và báo bài chưa xong. Giới hạn đầu ra mặc định 8000 token, thời gian chờ 5 phút, tối đa 2 bài gọi song song với API khoá (3 với claude.ai).
+
+## 10.63. Nạp nhiều tệp Topic và hàng chờ Viết ma trận (15/10/2026, bản 90)
+
+- Hộp Nạp Topic cho chọn nhiều tệp. Các tệp được sắp theo tên tự nhiên, ghép thành một văn bản; tệp không có đề mục `##` thành 1 Topic (tên từ `#` hoặc tên tệp). Xem trước hiện thứ tự tệp. Mỗi tệp tối đa 2 MB. Dùng được cho cả "Nạp" và "Nạp thêm".
+- Viết ma trận chạy tuần tự từng ô. AI đang bận việc khác thì chờ và thử lại. AI lỗi: hỏi một lần; chọn mô phỏng thì mọi ô còn lại viết mô phỏng (có nhãn "Bài mô phỏng"), Hủy thì dừng.

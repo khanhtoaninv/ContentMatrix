@@ -1512,6 +1512,18 @@ test('10.39 AI viết bài: cài đặt, yêu cầu theo nhà cung cấp, đọc
   assert.equal(AC.parseAiPost('Bài ngắn không đề mục và kết thúc dở', cr).cut, false);
   assert.equal(AC.buildTextRequest({ provider: 'anthropic', model: 'm', endpoint: 'https://x' }, 'k', { system: 's', user: 'u' }).json.max_tokens, 8000);
   // Ghép phần viết tiếp: nối thường, hoặc bỏ bài dở khi AI viết lại từ đầu
+  { // nạp nhiều tệp Topic (10.63)
+    const m = AC.mergeTopicFiles([
+      { name: 'topic-10.md', text: '## Mười\nnội dung mười' },
+      { name: 'topic-2.md', text: '# Hai\nnội dung hai' },
+      { name: 'topic-1.md', text: '# Tuần\n\nBối cảnh chung\nBC\n\n## Một\nnội dung một' },
+      { name: 'trống.md', text: '   ' },
+    ]);
+    assert.deepEqual(m.order.map(o => o.name), ['topic-1.md', 'topic-2.md', 'topic-10.md']);
+    assert.deepEqual(m.order.map(o => o.title), ['Một', 'Hai', 'Mười']);
+    const t = AC.parseTopics(m.text.replace(/nội dung (\S+)/g, 'nội dung $1 '.padEnd(120, 'x'))); assert.equal(t.topics.length, 3);
+    assert.equal(AC.mergeTopicFiles([{ name: 'ghi-chu_a.md', text: 'chỉ có thân' }]).order[0].title, 'ghi chu a');
+  }
   assert.equal(AC.joinContinuation('## Hook\nA.\n\n## Ý nghĩa\nDở', 'dang tiếp.\n\n## CTA\nX.'), '## Hook\nA.\n\n## Ý nghĩa\nDở dang tiếp.\n\n## CTA\nX.');
   assert.equal(AC.joinContinuation('## Hook\nA.\n\n## Ý nghĩa\nDở', '## CTA\nX.'), '## Hook\nA.\n\n## Ý nghĩa\nDở\n\n## CTA\nX.');
   assert.equal(AC.joinContinuation('## Hook\nA.\n\n## Ý nghĩa\nDở', '## Hook\nA mới.\n\n## CTA\nX.'), '## Hook\nA mới.\n\n## CTA\nX.');

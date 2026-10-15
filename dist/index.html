@@ -11638,6 +11638,44 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			};
 		}
 	}
+	function mergeTopicFiles(files) {
+		const list = (files || []).filter((f) => f && typeof f.text === "string" && f.text.trim());
+		const coll = new Intl.Collator("vi", {
+			numeric: true,
+			sensitivity: "base"
+		});
+		list.sort((a, b) => coll.compare(a.name, b.name));
+		const order = [];
+		const parts = [];
+		list.forEach((f, i) => {
+			let t = f.text.replace(/^﻿/, "").replace(/\r\n?/g, "\n").trim();
+			const lines = t.split("\n");
+			const hasH2 = lines.some((l) => /^##\s/.test(l));
+			const h1 = lines.findIndex((l) => /^#\s+\S/.test(l));
+			const base = String(f.name || "").replace(/^.*[\\/]/, "").replace(/\.(md|markdown|txt)$/i, "").replace(/[-_]+/g, " ").trim() || "Topic " + (i + 1);
+			if (!hasH2) {
+				const title = h1 >= 0 ? lines[h1].replace(/^#\s+/, "").trim() : base;
+				if (h1 >= 0) lines.splice(h1, 1);
+				t = `## ${title}\n\n${lines.join("\n").trim()}`;
+				order.push({
+					name: f.name,
+					title
+				});
+			} else {
+				if (i > 0 && h1 >= 0) lines.splice(h1, 1);
+				t = lines.join("\n").trim();
+				order.push({
+					name: f.name,
+					title: (lines.find((l) => /^##\s/.test(l)) || "").replace(/^##\s+/, "").trim()
+				});
+			}
+			parts.push(t);
+		});
+		return {
+			text: parts.join("\n\n"),
+			order
+		};
+	}
 	//#endregion
 	//#region src/logic/05g-format.js
 	function defaultLayoutGuide(col) {
@@ -12951,6 +12989,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		topicsOf,
 		topicCurrent,
 		topicFileOf,
+		mergeTopicFiles,
 		previewTopics,
 		importTopics,
 		previewAddTopics,
@@ -14581,12 +14620,13 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		});
 	}
 	var aiRunning = false;
-	async function withAiText(run) {
-		if (!AC.textApiOn(S)) return run(S);
+	async function withAiText(run, opts = {}) {
+		if (!AC.textApiOn(S) || opts.noAi) return run(S);
 		const jobs = AC.aiPlan(S, run);
 		if (!jobs.length) return run(S);
 		if (aiRunning) return {
 			ok: false,
+			busy: true,
 			error: "AI đang viết bài khác, đợi xong đã."
 		};
 		aiRunning = true;
@@ -14632,15 +14672,18 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		}
 		if (fail === jobs.length) {
 			AC.clearAiText();
-			return await confirmBox({
+			if (!await confirmBox({
 				title: "AI không viết được",
-				body: `<p>${esc(firstErr)}</p><p>Dùng bản mô phỏng cho ${jobs.length > 1 ? `${jobs.length} bài này` : "bài này"}?</p>`,
-				ok: "Dùng mô phỏng"
-			}) ? run(S) : {
+				body: `<p>${esc(firstErr)}</p><p>${opts.fallbackAll ? "Dùng bản mô phỏng cho ô này và các ô còn lại? Chọn Hủy để dừng." : `Dùng bản mô phỏng cho ${jobs.length > 1 ? `${jobs.length} bài này` : "bài này"}?`}</p>`,
+				ok: opts.fallbackAll ? "Dùng mô phỏng cho các ô còn lại" : "Dùng mô phỏng"
+			})) return {
 				ok: false,
 				error: "Chưa viết bài nào.",
 				stopped: true
 			};
+			const rr = run(S);
+			if (rr && typeof rr === "object") rr.fellBack = true;
+			return rr;
 		}
 		const r = run(S);
 		AC.clearAiText();
@@ -15811,7 +15854,15 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			toast(run.stop || left ? `Đã viết ${run.done} ô · còn ${left} ô Trống.` : `Đã viết ${run.done} ô. Mời bạn duyệt từng ô.`);
 			return;
 		}
-		const r = await withAiText((C) => AC.writeCellNow(C, q[0]));
+		const r = await withAiText((C) => AC.writeCellNow(C, q[0]), {
+			noAi: run.mock,
+			fallbackAll: true
+		});
+		if (r.busy && !run.stop) {
+			setTimeout(mxStep, MX_BUSY_WAIT);
+			return;
+		}
+		if (r.fellBack) run.mock = true;
 		if (!r.ok) {
 			view.mxRun = null;
 			save();
@@ -15829,6 +15880,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		}
 		setTimeout(mxStep, MX_DELAY);
 	}
+	var MX_BUSY_WAIT = 1500;
 	var MX_DELAY = 160;
 	ACTIONS["mx-stop"] = () => {
 		if (view.mxRun) view.mxRun.stop = true;
@@ -16014,7 +16066,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		const nHave = had ? AC.topicsOf(S, w.id).length : 0;
 		openLayer(`<h2>${add ? "Nạp thêm Topic" : had ? "Nạp lại tất cả Topic" : "Nạp Topic"}</h2>
     <p class="small muted">${add ? `Tuần đang có ${nHave} Topic. Các Topic trong tệp mới được xếp xuống cuối ma trận; Topic cũ và bài đã viết giữ nguyên. Tối đa ${AC.TOPIC_MAX} Topic mỗi tuần. Topic trùng hẳn (cùng tên và nội dung) với Topic đã có sẽ được bỏ qua.` : `Một tệp .md: tiêu đề # (tùy chọn), Bối cảnh chung (tùy chọn), mỗi Topic một đề mục ##. Không có ## thì cả tệp là 1 Topic. Số Topic tùy bạn (kỹ thuật tối đa ${AC.TOPIC_MAX}).${had ? " Nạp lại thay toàn bộ Topic của tuần: Topic có nội dung đổi sẽ thành phiên bản mới, Topic không còn trong tệp bị loại. Muốn giữ Topic cũ thì dùng \"Nạp thêm Topic\"." : ""}`}</p>
-    <div class="row"><label class="btn sm" for="inp-file">Chọn tệp .md</label><input id="inp-file" type="file" accept=".md,.markdown,.txt,text/markdown,text/plain" class="sr" data-change="topic-file"></div>
+    <div class="row"><label class="btn sm" for="inp-file">Chọn tệp .md (được chọn nhiều tệp)</label><input id="inp-file" type="file" multiple accept=".md,.markdown,.txt,text/markdown,text/plain" class="sr" data-change="topic-file"></div>
     <div class="field"><label for="inp-text">Hoặc dán nội dung tệp</label><textarea id="inp-text" spellcheck="false" style="min-height:220px;font-family:var(--f-mono);font-size:var(--fs-2)" data-input="topic-text"></textarea></div>
     <div id="inp-preview" class="small muted" aria-live="polite">Chưa có nội dung.</div>
     <div id="inp-norm"></div>
@@ -16058,23 +16110,40 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		return `<div class="stack" style="gap:8px">${n.changes.length ? `<div class="tf-changes"><b>Đã chuẩn hoá theo Khung Topic</b> <span class="faint">(tệp gốc vẫn được giữ)</span><ul>${n.changes.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>` : "<p class=\"small faint\">Tệp đã đúng Khung Topic, không cần chuẩn hoá.</p>"}${n.missing.length ? `<div class="note warn small">${n.missing.map((m) => `Topic ${m.order}${m.title ? ` "${esc(m.title)}"` : ""} thiếu mục: ${m.names.map(esc).join(", ")}.`).join("<br>")}</div>` : ""}${r.ok && r.topics.length ? `<details class="tf-prev" open><summary>Xem trước ${r.topics.length} Topic sau chuẩn hoá</summary>${r.topics.map((i) => `<div class="tf-prev-t"><span class="eyebrow">Topic ${i.order}</span><h3>${esc(i.title)}</h3><div class="content-text rich topic-rich">${topicRich(i.text)}</div></div>`).join("")}</details>` : ""}</div>`;
 	}
 	INPUTS["topic-text"] = () => inputPreview();
-	CHANGES["topic-file"] = (el) => {
-		const file = el.files && el.files[0];
-		if (!file) return;
-		if (file.size > 2097152) {
-			toast("Tệp quá lớn (tối đa 2 MB).", "bad");
+	CHANGES["topic-file"] = async (el) => {
+		const files = Array.from(el.files || []);
+		if (!files.length) return;
+		if (files.some((f) => f.size > 2097152)) {
+			toast("Có tệp quá lớn (tối đa 2 MB mỗi tệp).", "bad");
 			return;
 		}
-		const reader = new FileReader();
-		reader.onload = () => {
-			const ta = document.getElementById("inp-text");
-			if (ta) {
-				ta.value = String(reader.result);
-				inputPreview();
-			}
-		};
-		reader.onerror = () => toast("Không đọc được tệp.", "bad");
-		reader.readAsText(file);
+		let read;
+		try {
+			read = await Promise.all(files.map((f) => new Promise((ok, no) => {
+				const r = new FileReader();
+				r.onload = () => ok({
+					name: f.name,
+					text: String(r.result)
+				});
+				r.onerror = no;
+				r.readAsText(f);
+			})));
+		} catch (e) {
+			toast("Không đọc được tệp.", "bad");
+			return;
+		}
+		const ta = document.getElementById("inp-text");
+		if (!ta) return;
+		if (read.length === 1) {
+			ta.value = read[0].text;
+			inputPreview();
+			return;
+		}
+		const m = AC.mergeTopicFiles(read);
+		ta.value = m.text;
+		inputPreview();
+		const pv = document.getElementById("inp-preview");
+		if (pv) pv.insertAdjacentHTML("beforeend", `<br><b>Thứ tự ${m.order.length} tệp:</b> ${m.order.map((o, i) => `${i + 1}. ${esc(o.name)} → ${esc(o.title)}`).join(" · ")}`);
 	};
 	ACTIONS["topic-go"] = async () => {
 		const ta = document.getElementById("inp-text");
