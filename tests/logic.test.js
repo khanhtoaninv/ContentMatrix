@@ -1492,6 +1492,16 @@ test('10.39 AI viết bài: cài đặt, yêu cầu theo nhà cung cấp, đọc
   assert.equal(AC.parseAiPost('{"text":"x","scores":{"a":9}}', cr).score, null);
   assert.equal(AC.parseAiPost('Chỉ là chữ thường', cr).text, 'Chỉ là chữ thường');
   assert.equal(AC.parseAiPost('{"text":""}', cr).ok, false);
+  // JSON cụt giữa bài: cứu phần chữ, đánh dấu cut, không dán JSON thô
+  const cutJ = AC.parseAiPost('```json\n{"text": "## Hook\\nMở bài.\\n\\n## Vấn đề\\nĐoạn dở', cr);
+  assert.equal(cutJ.ok, true); assert.equal(cutJ.cut, true); assert.equal(cutJ.text, '## Hook\nMở bài.\n\n## Vấn đề\nĐoạn dở'); assert.ok(!/[{}"]/.test(cutJ.text));
+  // JSON đủ chữ nhưng đuôi hỏng: không coi là cắt
+  const tail = AC.parseAiPost('{"text": "Bài đủ.\\n\\nKết.", "imagePrompt": "ima', cr);
+  assert.equal(tail.cut, false); assert.equal(tail.text, 'Bài đủ.\n\nKết.');
+  // Bài thường dừng ngay ở đề mục: cut; bài đủ: không cut
+  assert.equal(AC.parseAiPost('## Hook\nA.\n\n## Ý nghĩa', cr).cut, true);
+  assert.equal(AC.parseAiPost('{"text":"## Hook\\nA.\\n\\n## Ý nghĩa\\nB."}', cr).cut, false);
+  assert.equal(AC.salvageJsonText('{"x":1}'), null);
   assert.equal(AC.parseHooks('{"hooks":[{"kind":"question","text":"Q?"},{"kind":"x","text":"bỏ"}]}').hooks.length, 1);
   assert.equal(AC.parseCaptions('{"captions":[{"kind":"short","text":"S"},{"kind":"long","text":"L"}]}').captions.map(c => c.label).join(','), 'Ngắn,Đầy đủ');
 });

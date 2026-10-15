@@ -1223,3 +1223,6 @@ Setup → Format: một khung chia đôi. Nửa trái liệt kê các kênh, m�
 
 ## 10.58. Chuẩn hóa mã nguồn cho lập trình viên (14/10/2026, bản 85)
 Không đổi tính năng, giao diện hay dữ liệu. Mã nguồn chuyển sang ES module (mỗi tệp khai báo `import`/`export`), đóng gói bằng Vite (`npm run build`) thành một tệp `dist/index.html` tự chứa như trước; người dùng vẫn `git pull` rồi mở tệp này, không cần cài Node. Dữ liệu giữ khóa `autocontent.state` và cấu trúc cũ. Lập trình viên đọc `DEVELOPERS.md` (lệnh, cách ghép mã, quy ước, sơ đồ module).
+
+## 10.59. AI viết bài: cứu JSON cụt, thử lại, viết tiếp (15/10/2026, bản 86)
+Khi AI trả JSON hỏng hoặc bài dừng giữa chừng, app lấy phần chữ trong khoá "text" thay vì dán JSON thô vào ô. Phản hồi rỗng được thử lại 1 lần. Bài bị cắt (JSON chưa đóng, hoặc dừng ngay ở một đề mục) được xin viết tiếp tối đa 2 lượt rồi ghép lại; nếu vẫn thiếu, hiện thông báo để người dùng viết lại bài đó. Không đổi dữ liệu lưu.

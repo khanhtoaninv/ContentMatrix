@@ -28,6 +28,18 @@ async function sampleText(job, light) {
     throw new Error((e && e.message) || 'Không gọi được Claude của claude.ai.');
   }
 }
+// Gọi AI; phản hồi rỗng thì thử lại một lần trước khi báo lỗi
+const callRetry = async (job, maxTokens, light) => { try { return await textCall(job, maxTokens, light); } catch (e) { if (!/không trả về chữ/.test(e.message)) throw e; return textCall(job, maxTokens, light); } };
+// Bài dừng giữa chừng: xin AI viết tiếp từ chỗ dừng, tối đa 2 lượt
+async function finishPost(j, p) {
+  for (let k = 0; k < 2 && p.cut; k++) {
+    const more = AC.parseAiPost(await callRetry({ system: j.system, user: `${j.user}\n\n# Bài đang viết dở (bị dừng giữa chừng)\n${p.text}\n\nViết tiếp NGAY từ chỗ đang dừng cho đến hết bài, đủ các phần còn thiếu theo chỉ dẫn. Chỉ trả phần viết tiếp bằng chữ thường, không JSON, không lặp lại phần đã có.` }));
+    if (!more.ok) break;
+    const sep = /^\s*#/.test(more.text) || /[.!?…:]\s*$/.test(p.text) ? '\n\n' : ' ';
+    p = Object.assign({}, p, { text: `${p.text}${sep}${more.text}`.trim(), cut: more.cut });
+  }
+  return p;
+}
 // Thanh tiến độ góc dưới (không chặn màn hình); có nút Dừng
 function aiBusy(total) {
   const el = document.createElement('div'); el.className = 'ai-busy'; el.setAttribute('role', 'status');
@@ -43,12 +55,13 @@ export async function withAiText(run) {
   const jobs = AC.aiPlan(S, run); if (!jobs.length) return run(S);
   if (aiRunning) return { ok: false, error: 'AI đang viết bài khác, đợi xong đã.' };
   aiRunning = true;
-  const cfg = AC.textApiOf(S); const bar = aiBusy(jobs.length); let fail = 0, firstErr = '', next = 0;
+  const cfg = AC.textApiOf(S); const bar = aiBusy(jobs.length); let fail = 0, firstErr = '', next = 0, unfinished = 0;
   const worker = async () => {
     while (next < jobs.length && !bar.stopped) {
       const j = jobs[next++];
       try {
-        const raw = await textCall(j); const p = AC.parseAiPost(raw, j.criteria); if (!p.ok) throw new Error(p.error);
+        let p = AC.parseAiPost(await callRetry(j), j.criteria); if (!p.ok) throw new Error(p.error);
+        if (p.cut) { p = await finishPost(j, p); if (p.cut) unfinished++; }
         AC.setAiText(j.key, Object.assign(p, { provider: cfg.provider, model: cfg.model }));
       } catch (e) { fail++; firstErr = firstErr || e.message; }
       bar.step();
@@ -63,6 +76,7 @@ export async function withAiText(run) {
     return go ? run(S) : { ok: false, error: 'Chưa viết bài nào.', stopped: true };
   }
   const r = run(S); AC.clearAiText();
+  if (unfinished) setTimeout(() => toast(`${unfinished} bài AI vẫn chưa viết xong (thiếu phần cuối); nên bấm viết lại bài đó.`, 'bad'), 80);
   if (fail) setTimeout(() => toast(`${fail}/${jobs.length} bài AI không viết được (${firstErr}); các bài đó dùng bản mô phỏng.`, 'bad'), 50);
   return r;
 }

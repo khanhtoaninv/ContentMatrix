@@ -87,14 +87,40 @@ export function aiScore(criteria, sc, tip) {
   const total = Math.round(criteria.reduce((s, c, i) => s + c.weight * scores[i].score / 5, 0));
   return { scores, total, tip: String(tip || '').trim().slice(0, 200) || 'Giữ nguyên; bài đã cân đối.' };
 }
-// Đọc bài AI viết: JSON {text, imagePrompt, scores, tip}; không phải JSON thì coi cả câu trả lời là bài
+// Gỡ rào ```json và lấy chữ trong khoá "text" của JSON hỏng/cụt; closed=false nghĩa là chuỗi chưa đóng (bài bị cắt)
+export function salvageJsonText(raw) {
+  const s = String(raw || ''); const m = /"text"\s*:\s*"/.exec(s); if (!m) return null;
+  const esc = { n: '\n', t: '\t', r: '', '"': '"', '\\': '\\', '/': '/' };
+  let i = m.index + m[0].length, out = '', closed = false;
+  while (i < s.length) {
+    const c = s[i];
+    if (c === '\\') {
+      const n = s[i + 1]; if (n === undefined) break;
+      if (n === 'u') { const h = s.slice(i + 2, i + 6); if (/^[0-9a-fA-F]{4}$/.test(h)) { out += String.fromCharCode(parseInt(h, 16)); i += 6; continue; } break; }
+      out += n in esc ? esc[n] : n; i += 2; continue;
+    }
+    if (c === '"') { closed = true; break; }
+    out += c; i++;
+  }
+  return { text: out, closed };
+}
+// Bài không phải JSON mà dừng ngay ở một đề mục thì coi là bị cắt
+const endsOnHeading = t => /^\s*#{1,6}\s/.test(String(t || '').trim().split('\n').pop());
+// Đọc bài AI viết: JSON {text, imagePrompt, scores, tip}; JSON hỏng thì cứu phần chữ; không phải JSON thì coi cả câu trả lời là bài.
+// cut=true khi bài có vẻ chưa viết xong (giao diện sẽ xin viết tiếp)
 export function parseAiPost(raw, criteria) {
-  const j = extractJson(raw);
-  const text = j && typeof j.text === 'string' ? j.text : (j ? '' : String(raw || ''));
+  const j = extractJson(raw); let text, cut = false;
+  if (j) text = typeof j.text === 'string' ? j.text : '';
+  else {
+    const sv = /^\s*(```|\{)/.test(String(raw || '')) || /"text"\s*:\s*"/.test(String(raw || '')) ? salvageJsonText(raw) : null;
+    if (sv) { text = sv.text; cut = !sv.closed; }
+    else { text = String(raw || '').replace(/^\s*```[a-z]*\s*/i, '').replace(/\s*```\s*$/, ''); cut = endsOnHeading(text); }
+  }
   const t = text.replace(/\r/g, '').replace(/\n{3,}/g, '\n\n').trim();
   if (!t) return { ok: false, error: 'AI không trả về bài viết.' };
+  if (!cut && endsOnHeading(t)) cut = true;
   const seo = j && j.seo && typeof j.seo === 'object' ? ['seoTitle', 'metaDescription', 'excerpt', 'coverAlt'].reduce((o, k) => { if (typeof j.seo[k] === 'string' && j.seo[k].trim()) o[k] = j.seo[k].replace(/\s+/g, ' ').trim().slice(0, 400); return o; }, {}) : null;
-  return { ok: true, text: t, imagePrompt: j && typeof j.imagePrompt === 'string' ? j.imagePrompt.trim().slice(0, 600) : '', score: j ? aiScore(criteria, j.scores, j.tip) : null, seo: seo && Object.keys(seo).length ? seo : null };
+  return { ok: true, text: t, cut, imagePrompt: j && typeof j.imagePrompt === 'string' ? j.imagePrompt.trim().slice(0, 600) : '', score: j ? aiScore(criteria, j.scores, j.tip) : null, seo: seo && Object.keys(seo).length ? seo : null };
 }
 
 // ---- Dựng lời nhắn cho AI ----
