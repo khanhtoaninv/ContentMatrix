@@ -16,8 +16,8 @@ test('7.3 · seed khớp số kiểm thử cố định', () => {
   assert.equal(S.channels.length, 6); assert.equal(S.columns.length, 5); assert.equal(S.formats.length, 23);
   assert.equal(S.brand.parsed.bannedPhrases.length, 4);
   assert.deepEqual(S.columns.map(c => c.name), ['Giải thích', 'Hướng dẫn', 'Bất ngờ và ngộ nhận', 'Câu chuyện', 'Luyện tập']);
-  assert.deepEqual(S.weekTemplates.map(t => [t.name, t.slots.length]), [['Tuần chuẩn', 17], ['Tuần nhẹ', 9]]);
-  S.weekTemplates.forEach(t => assert.equal(new Set(t.slots.map(x => x.weekday)).size, 7)); // mỗi Tuần mẫu đủ 7 ngày
+  assert.deepEqual(S.weekTemplates.map(t => [t.name, t.slots.length]), [['Tuần chuẩn', 17], ['Tuần nhẹ', 9], ['Fanpage Facebook', 8]]);
+  S.weekTemplates.filter(t => t.id !== 'wt-3').forEach(t => assert.equal(new Set(t.slots.map(x => x.weekday)).size, 7)); // Tuần chuẩn, Tuần nhẹ đủ 7 ngày (Fanpage Facebook chỉ T2–T6)
   assert.deepEqual([T1, T2, T3].map(w => AC.weekSlots(S, w).length), [17, 9, 17]);
   assert.deepEqual([T1, T2, T3].map(w => AC.weekOf(S, w).templateId), ['wt-1', 'wt-2', 'wt-1']);
   [T1, T2, T3].forEach(w => { assert.equal(AC.topicsOf(S, w).length, 3); assert.equal(AC.cellsOf(S, w).length, 15); });
@@ -138,7 +138,7 @@ test('U5 · xóa Format đang có slot ở tuần nháp phải chọn Format tha
   assert.equal(AC.deleteFormat(S, 'f-th-fact', 'f-th-quiz').ok, true);
   assert.equal(S.slots.filter(s => s.formatId === 'f-th-fact').length, 0);
   assert.ok(S.weekTemplates.every(t => t.slots.every(x => x.formatId !== 'f-th-fact')));
-  assert.ok(S.weekTemplates.reduce((n, t) => n + t.slots.length, 0) < 26);
+  assert.ok(S.weekTemplates.reduce((n, t) => n + t.slots.length, 0) < 34);
 });
 
 test('U6 · tổng trọng số khác 100 báo lỗi', () => {
@@ -185,12 +185,13 @@ test('WK · Tuần mẫu: nút bị khóa khi tuần có slot hoặc đã chốt
 test('WK-02 · quản lý Tuần mẫu: thêm, nhân bản, đổi thứ tự, xóa; cảnh báo ngày trống', () => {
   const S = seed();
   const t = AC.addWeekTemplate(S, 'Tuần thử', 'wt-2');
-  assert.equal(t.slots.length, 9); assert.equal(t.order, 3);
+  assert.equal(t.slots.length, 9); assert.equal(t.order, 4);
   assert.equal(AC.moveWeekTemplate(S, t.id, -1).ok, true);
-  assert.deepEqual(AC.templatesSorted(S).map(x => x.id), ['wt-1', t.id, 'wt-2']);
+  assert.equal(AC.moveWeekTemplate(S, t.id, -1).ok, true);
+  assert.deepEqual(AC.templatesSorted(S).map(x => x.id), ['wt-1', t.id, 'wt-2', 'wt-3']);
   assert.equal(AC.suggestTemplateId(S, '2026-10-26'), t.id); // sau wt-1 là mẫu kế tiếp theo thứ tự
   assert.equal(AC.deleteWeekTemplate(S, t.id).ok, true);
-  assert.deepEqual(AC.templatesSorted(S).map(x => x.order), [1, 2]);
+  assert.deepEqual(AC.templatesSorted(S).map(x => x.order), [1, 2, 3]);
   const e = AC.addWeekTemplate(S, '', null);
   assert.equal(e.name, 'Tuần mẫu mới'); assert.equal(e.slots.length, 0);
   assert.equal(AC.suggestTemplateId(S, '2026-10-26'), 'wt-2'); // mẫu rỗng không được gợi ý
@@ -938,7 +939,7 @@ test('Demo Setup: từ trạng thái trống nạp từng mục rồi cả bộ;
   ['brand', 'voice'].forEach(p => assert.ok(AC.demoSetup(S, p).ok));
   assert.match(S.brand.md, /Nói Được English/); assert.equal(S.brand.parsed.bannedPhrases.length, 4);
   assert.ok(AC.demoSetup(S, 'templates').ok); // kéo theo kênh, Cột, Format còn thiếu
-  assert.deepEqual([S.channels.length, S.columns.length, S.formats.length, S.weekTemplates.length], [6, 5, 23, 2]);
+  assert.deepEqual([S.channels.length, S.columns.length, S.formats.length, S.weekTemplates.length], [6, 5, 23, 3]);
   assert.equal(AC.setupStatus(S).ok, true);
   assert.equal(AC.demoGate(S, '2026-10-26', 'setup').ok, false);
   S.channels.push({ id: 'ch-x', name: 'Zalo', short: 'Zalo', maxChars: 500, maxHashtags: 0, notes: '' });
@@ -1902,4 +1903,18 @@ test('10.56 · Duyệt tất cả slot: mặc định chỉ slot không cảnh b
   assert.equal(AC.approveSlotsBulk(S2, w.id).approved, clean);
   assert.equal(AC.approveSlotsBulk(S, w.id, null, true).approved, all);
   assert.equal(AC.slotsApprovable(S, w.id, true).length, 0);
+});
+
+test('10.65 · Tuần mẫu Fanpage Facebook: 8 slot Facebook T2–T6, đủ 5 Cột, xoay vòng sau Tuần nhẹ', () => {
+  const S = seed();
+  const t = AC.templateOf(S, 'wt-3');
+  assert.equal(t.name, 'Fanpage Facebook'); assert.equal(t.slots.length, 8);
+  assert.ok(t.slots.every(x => x.channelId === 'ch-fb'));
+  assert.deepEqual([...new Set(t.slots.map(x => x.weekday))].sort(), [1, 2, 3, 4, 5]);
+  assert.deepEqual(AC.templateColumnCounts(S, t), { 'col-huongdan': 3, 'col-giaithich': 1, 'col-batngo': 2, 'col-cauchuyen': 1, 'col-luyentap': 1 });
+  assert.deepEqual(AC.templateEmptyDays(t), [6, 7]);
+  AC.applyTemplateWeek(S, '2026-11-02', 'wt-2');
+  assert.equal(AC.suggestTemplateId(S, '2026-11-09'), 'wt-3');
+  assert.equal(AC.applyTemplateWeek(S, '2026-11-09', 'wt-3').slots, 8);
+  assert.equal(AC.suggestTemplateId(S, '2026-11-16'), 'wt-1');
 });

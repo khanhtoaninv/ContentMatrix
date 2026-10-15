@@ -189,7 +189,7 @@ with sync_playwright() as pw:
     # Lập tuần
     page.locator('.week-tools [data-act="plan-week"]').click()
     dlg = page.locator('.dialog')
-    check('Hộp Lập tuần: có 2 Tuần mẫu, gợi ý "Tuần chuẩn" (tuần trước chưa lập → mẫu đầu), xem trước 17 slot', dlg.locator('input[name=tpl]').count() == 2 and dlg.locator('input[name=tpl]:checked').get_attribute('value') == 'wt-1' and dlg.locator('tbody tr').count() == 17, dlg.inner_text()[:200])
+    check('Hộp Lập tuần: có 3 Tuần mẫu, gợi ý "Tuần chuẩn" (tuần trước chưa lập → mẫu đầu), xem trước 17 slot', dlg.locator('input[name=tpl]').count() == 3 and dlg.locator('input[name=tpl]:checked').get_attribute('value') == 'wt-1' and dlg.locator('tbody tr').count() == 17, dlg.inner_text()[:200])
     dlg.locator('input[value="wt-2"]').check()
     check('Đổi sang Tuần nhẹ: xem trước 9 slot', dlg.locator('tbody tr').count() == 9)
     page.screenshot(path=str(SHOTS / 'd-plan-week.png'))
@@ -366,7 +366,7 @@ with sync_playwright() as pw:
     click_nav(page, 'Dashboard')
     check('Dashboard tuần đó: việc tiếp theo vẫn là Lập tuần', 'Lập tuần: chọn Tuần mẫu' in txt(page, '.nextband'))
     page.locator('.nextband button.primary').click()
-    check('Nút việc tiếp theo mở hộp Lập tuần', page.locator('.dialog input[name=tpl]').count() == 2)
+    check('Nút việc tiếp theo mở hộp Lập tuần', page.locator('.dialog input[name=tpl]').count() == 3)
     page.keyboard.press('Escape')
 
     # ---------- Export ----------
@@ -379,7 +379,7 @@ with sync_playwright() as pw:
     click_nav(page, 'Setup')
     page.locator('.subnav button:has-text("Tuần mẫu")').click()
     t = txt(page)
-    check('Setup · Tuần mẫu: 2 mẫu có tên, thứ tự, số slot', 'Tuần chuẩn' in t and 'Tuần nhẹ' in t and page.locator('[data-act="tpl-select"]').count() == 2)
+    check('Setup · Tuần mẫu: 3 mẫu có tên, thứ tự, số slot', 'Tuần chuẩn' in t and 'Tuần nhẹ' in t and 'Fanpage Facebook' in t and page.locator('[data-act="tpl-select"]').count() == 3)
     check('Tuần mẫu 1: lịch 7 ngày với 17 slot, đếm theo Cột', page.locator('.tplcal .cal .day').count() == 7 and page.locator('.tplcal .cal .slot').count() == 17 and 'Giải thích' in t)
     page.locator('[data-act="tpl-select"]:has-text("Tuần nhẹ")').click()
     check('Chọn Tuần nhẹ: 9 slot', page.locator('.tplcal .cal .slot').count() == 9)
@@ -388,9 +388,9 @@ with sync_playwright() as pw:
     page.locator('[data-act="tpl-move"][data-d="-1"]').click()
     check('Đưa Tuần mẫu lên trước', page.locator('[data-act="tpl-select"]').first.inner_text().startswith('1. Tuần nhẹ mới'))
     page.locator('[data-act="tpl-dup"]').click()
-    check('Nhân bản: 3 Tuần mẫu', page.locator('[data-act="tpl-select"]').count() == 3)
+    check('Nhân bản: 4 Tuần mẫu', page.locator('[data-act="tpl-select"]').count() == 4)
     page.locator('[data-act="tpl-del"]').click(); page.locator('.dialog button:has-text("Xóa Tuần mẫu")').click()
-    check('Xóa Tuần mẫu: còn 2', page.locator('[data-act="tpl-select"]').count() == 2)
+    check('Xóa Tuần mẫu: còn 3', page.locator('[data-act="tpl-select"]').count() == 3)
     page.locator('.tplcal ~ div [data-act="tpl-add"]').click()
     check('Thêm slot mẫu: 10 slot', page.locator('.tplcal .cal .slot').count() == 10)
     page.locator('.tplcal .cal [data-act="tpl-add"][data-day="3"]').click()

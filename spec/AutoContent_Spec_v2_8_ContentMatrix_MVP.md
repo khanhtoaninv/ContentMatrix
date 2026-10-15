@@ -90,7 +90,7 @@
 |---|---|
 | Số Topic mỗi tuần | Theo tệp nạp (tối đa kỹ thuật 8) |
 | Số Cột | 5 (thêm/bớt được, tối thiểu 1) |
-| Tuần mẫu | 2: "Tuần chuẩn" 17 slot, "Tuần nhẹ" 9 slot; đều đủ 7 ngày |
+| Tuần mẫu | 3: "Tuần chuẩn" 17 slot, "Tuần nhẹ" 9 slot (đều đủ 7 ngày); "Fanpage Facebook" 8 slot, chỉ Facebook, T2–T6 (10.65) |
 | Số phương án mỗi lượt sinh | 1 |
 | Ngưỡng "nên xem lại" của điểm AI | tổng < 70/100 (chỉ là nhãn) |
 | Múi giờ | UTC+7; đồng hồ demo `demoNow` mặc định 12/10/2026 09:00 |
@@ -1246,3 +1246,9 @@ Mỗi lần gọi AI viết bài thử tối đa 3 lần: phản hồi rỗng đ
 - Thanh tiến độ góc dưới (`aiBusy`, 04k-aitext.js) ghi "Claude - Đang viết <Cột · Topic> (ô n/tổng)…" (Viết ma trận truyền `progress`); việc nhiều bài ghi "(n/tổng bài)"; tên nhà cung cấp có "Claude" rút thành "Claude". Nhãn lấy từ `label` của việc AI (`cellJob`/`slotJob`), cập nhật khi mỗi việc bắt đầu.
 - Test 114 logic (thêm "Viết lại ma trận") và 382 giao diện đạt. Ghi chú môi trường: thư mục dự án (ổ gắn) không cho tạo symlink nên `npm install` phải chạy ở bản sao (`cp` sang /home/claude/ac), rồi chép `dist/` về.
 
+## 10.65. Tuần mẫu "Fanpage Facebook" (15/10/2026, bản 92)
+
+- Thêm Tuần mẫu mặc định thứ ba `wt-3` "Fanpage Facebook" (`05-model.js`, slot `tpl-c-*`), chỉ dùng Format Facebook đang có: T2 10:00 Album từng bước; T3 10:00 Ảnh số liệu, 14:00 Reels mẹo ngắn; T4 11:00 Đúng hay Sai, 18:00 Bài kể chuyện; T5 11:00 Bình chọn, 15:00 Reels mẹo ngắn; T6 10:00 Ảnh trích dẫn. Theo Cột: Hướng dẫn 3, Bất ngờ và ngộ nhận 2, Giải thích 1, Câu chuyện 1, Luyện tập 1. Cuối tuần để trống nên Setup báo "ngày không có slot" (cố ý).
+- Căn cứ: 8 bài/tuần theo mức trung bình ngành Giáo dục (Hootsuite, quý 1/2025); ngày và giờ trong khung tốt của ngành giáo dục, cuối tuần kém nhất (Sprout Social); tỷ lệ ảnh/Reels/album/bài chữ theo Socialinsider (bỏ bài link). Chi tiết và giới hạn ở `notes/tuan-mau-facebook.md`; danh sách Format đề xuất ở `notes/de-xuat-format-facebook.md`.
+- Xoay vòng gợi ý (D104) nay là Tuần chuẩn → Tuần nhẹ → Fanpage Facebook. Người dùng đang có dữ liệu cũ nhận mẫu mới qua Setup → Tuần mẫu → nút "Demo: nạp Tuần mẫu mẫu" (ghi đè Tuần chuẩn, Tuần nhẹ nếu đã sửa, có hộp xác nhận; thông báo đếm số mẫu theo dữ liệu mặc định).
+- Test 115 logic (thêm "10.65 · Tuần mẫu Fanpage Facebook") và 382 giao diện đạt.

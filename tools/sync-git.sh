@@ -16,6 +16,6 @@ cd "$DST"; git add -A
 if git diff --cached --quiet; then echo "Không có thay đổi để đẩy."; exit 0; fi
 git commit -qm "$MSG
 
-Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
-Claude-Session: https://claude.ai/code/session_01AgyiivxTuiLCafBrmF9iTZ"
+Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Nj1k2ReX4peWVeYiKaaNHp"
 git push -u origin main && git log --oneline | head -1

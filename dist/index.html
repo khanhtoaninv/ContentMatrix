@@ -9697,21 +9697,72 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				"f-ig-quiz"
 			]
 		]);
+		const fanpage = mk("tpl-c", [
+			[
+				1,
+				"10:00",
+				"f-fb-album"
+			],
+			[
+				2,
+				"10:00",
+				"f-fb-infographic"
+			],
+			[
+				2,
+				"14:00",
+				"f-fb-reel"
+			],
+			[
+				3,
+				"11:00",
+				"f-fb-truefalse"
+			],
+			[
+				3,
+				"18:00",
+				"f-fb-story"
+			],
+			[
+				4,
+				"11:00",
+				"f-fb-poll"
+			],
+			[
+				4,
+				"15:00",
+				"f-fb-reel"
+			],
+			[
+				5,
+				"10:00",
+				"f-fb-quote"
+			]
+		]);
 		return {
 			channels,
 			columns,
 			formats,
-			weekTemplates: [{
-				id: "wt-1",
-				name: "Tuần chuẩn",
-				order: 1,
-				slots: standard
-			}, {
-				id: "wt-2",
-				name: "Tuần nhẹ",
-				order: 2,
-				slots: light
-			}]
+			weekTemplates: [
+				{
+					id: "wt-1",
+					name: "Tuần chuẩn",
+					order: 1,
+					slots: standard
+				},
+				{
+					id: "wt-2",
+					name: "Tuần nhẹ",
+					order: 2,
+					slots: light
+				},
+				{
+					id: "wt-3",
+					name: "Fanpage Facebook",
+					order: 3,
+					slots: fanpage
+				}
+			]
 		};
 	}
 	function emptyState() {
@@ -12701,7 +12752,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				upsertById(S.columns, d.columns, true);
 				upsertById(S.formats, d.formats, true);
 				upsertById(S.weekTemplates, d.weekTemplates);
-				msg.push("2 Tuần mẫu");
+				msg.push(`${d.weekTemplates.length} Tuần mẫu`);
 			} else if (p === "rules") {
 				S.settings.reviewThreshold = 70;
 				S.settings.hypeWords = [...DEFAULT_HYPE];

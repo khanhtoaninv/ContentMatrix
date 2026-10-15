@@ -126,7 +126,7 @@ export function demoSetup(S, part) {
       upsertById(S.formats, d.formats); msg.push(`${d.formats.length} Format`);
     } else if (p === 'templates') {
       upsertById(S.channels, d.channels, true); upsertById(S.columns, d.columns, true); upsertById(S.formats, d.formats, true);
-      upsertById(S.weekTemplates, d.weekTemplates); msg.push('2 Tuần mẫu');
+      upsertById(S.weekTemplates, d.weekTemplates); msg.push(`${d.weekTemplates.length} Tuần mẫu`);
     } else if (p === 'rules') { S.settings.reviewThreshold = 70; S.settings.hypeWords = [...DEFAULT_HYPE]; msg.push('Quy tắc'); }
   };
   if (part === 'all') SETUP_PARTS.forEach(run); else if (SETUP_PARTS.includes(part)) run(part); else return { ok: false, error: 'Mục không hợp lệ.' };

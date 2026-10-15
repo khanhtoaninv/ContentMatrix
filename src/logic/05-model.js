@@ -93,9 +93,17 @@ export function defaultSetup() {
     [1, '12:00', 'f-th-fact'], [2, '11:30', 'f-fb-howto'], [3, '07:30', 'f-blog-explain'], [3, '20:00', 'f-fb-poll'],
     [4, '11:30', 'f-fb-story'], [5, '12:00', 'f-fb-album'], [6, '09:00', 'f-yt-explain'], [6, '19:30', 'f-fb-quote'], [7, '10:00', 'f-ig-quiz'],
   ]);
+  // Fanpage Facebook (10.65): 8 bài T2–T6, giờ trong khung tốt của ngành giáo dục (Sprout Social), số bài theo Hootsuite (Giáo dục 8,0 bài/tuần),
+  // tỷ lệ ảnh/Reels/album/bài chữ theo Socialinsider; căn cứ đầy đủ ở notes/tuan-mau-facebook.md
+  const fanpage = mk('tpl-c', [
+    [1, '10:00', 'f-fb-album'], [2, '10:00', 'f-fb-infographic'], [2, '14:00', 'f-fb-reel'],
+    [3, '11:00', 'f-fb-truefalse'], [3, '18:00', 'f-fb-story'], [4, '11:00', 'f-fb-poll'], [4, '15:00', 'f-fb-reel'],
+    [5, '10:00', 'f-fb-quote'],
+  ]);
   const weekTemplates = [
     { id: 'wt-1', name: 'Tuần chuẩn', order: 1, slots: standard },
     { id: 'wt-2', name: 'Tuần nhẹ', order: 2, slots: light },
+    { id: 'wt-3', name: 'Fanpage Facebook', order: 3, slots: fanpage },
   ];
   return { channels, columns, formats, weekTemplates };
 }
