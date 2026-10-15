@@ -1,5 +1,5 @@
 // ---------- Chuẩn ảnh theo nền tảng (mục 10.42) ----------
-import { byId, log, slotLockMsg } from './05-model.js';
+import { byId, log, slotLockMsg, unshareImage } from './05-model.js';
 import { channelPlatform } from './05e-publish.js';
 import { b64ToBytes } from './05f-export.js';
 import { FRAME_RATIOS } from './05i-frames.js';
@@ -49,6 +49,7 @@ export function setAssetRatio(S, slotId, idx, ratio) {
   if (!a) return { ok: false, error: 'Không tìm thấy ô ảnh.' };
   { const e = slotLockMsg(S, s); if (e) return { ok: false, error: e }; }
   if (!RATIO_NUM[ratio]) return { ok: false, error: 'Tỉ lệ không hợp lệ.' };
+  if (a.ratio !== ratio && a.shareId) unshareImage(S, slotId, idx); // đổi tỉ lệ thì tách khỏi nhóm dùng chung
   if (a.ratio !== ratio) { a.ratio = ratio; log(S, 'ratio-asset', 'slot', slotId, `${a.name} ${ratio}`); }
   return { ok: true };
 }

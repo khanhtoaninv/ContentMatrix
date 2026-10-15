@@ -1955,3 +1955,55 @@ test('10.68 · Gen AI: Mô tả ảnh, prompt từ mô tả, tạo ảnh có/kh�
   const c = AC.weekSlots(S, T1).find(x => x.assets.length);
   assert.equal(AC.genAiSlotImage(S, c.id, 0, { desc: 'x' }).ok, false);
 });
+
+test('10.70 · Chia sẻ ảnh giữa slot: dùng chung một mảng phiên bản, đồng bộ, tách, sao chép, khác tỉ lệ', () => {
+  const S = seed();
+  const A = S.slots.find(x => x.id === 'slot-34'), B = S.slots.find(x => x.id === 'slot-36'), C = S.slots.find(x => x.id === 'slot-41'), W = S.slots.find(x => x.id === 'slot-39');
+  const a = A.assets[0], b = B.assets[0];
+  // danh sách đích: cùng tuần, nêu tỉ lệ khớp hay không
+  const tg = AC.shareTargets(S, A.id, 0);
+  assert.ok(tg.every(t => t.slot.weekId === A.weekId && t.slotId !== A.id));
+  assert.equal(tg.find(t => t.slotId === B.id).ratioMatch, true); assert.equal(tg.find(t => t.slotId === W.id).ratioMatch, false);
+  // dùng chung: không cùng tỉ lệ thì bị từ chối
+  const bad = AC.shareImage(S, A.id, 0, [{ slotId: W.id, idx: 0 }], 'link'); assert.equal(bad.ok, false); assert.match(bad.error, /Khác tỉ lệ/);
+  B.state = 'APPROVED';
+  const r = AC.shareImage(S, A.id, 0, [{ slotId: B.id, idx: 0 }], 'link');
+  assert.ok(r.ok); assert.ok(a.shareId); assert.equal(b.shareId, a.shareId); assert.strictEqual(a.versions, b.versions);
+  assert.equal(AC.shareCount(S, a), 2); assert.equal(b.current, a.current);
+  assert.equal(B.state, 'DRAFT'); // slot nhận đã duyệt thì về Chưa duyệt
+  // thao tác ở A lan sang B: Gen thêm phiên bản, < > chọn phiên bản
+  const n0 = a.versions.length;
+  assert.ok(AC.genSlotImage(S, A.id, 0).ok); assert.equal(b.versions.length, n0 + 1); assert.equal(b.current, a.current); assert.equal(a.current, n0 + 1);
+  assert.ok(AC.stepSlotImage(S, B.id, 0, -1).ok); assert.equal(a.current, n0); assert.equal(b.current, n0); // chọn ở B cũng đổi A
+  // lưu rồi nạp lại: vẫn dùng chung một mảng
+  const S2 = AC.migrateState(JSON.parse(JSON.stringify(S)));
+  const a2 = S2.slots.find(x => x.id === A.id).assets[0], b2 = S2.slots.find(x => x.id === B.id).assets[0];
+  assert.strictEqual(a2.versions, b2.versions); assert.equal(a2.shareId, a.shareId);
+  // khi B bị khóa (đã đăng) thì sửa ở A tách B ra, B giữ ảnh cũ
+  B.state = 'PUBLISHED'; const keepN = b.versions.length, keepCur = b.current;
+  assert.ok(AC.genSlotImage(S, A.id, 0).ok);
+  assert.equal(b.shareId, undefined); assert.equal(a.shareId, undefined); assert.equal(b.versions.length, keepN); assert.equal(b.current, keepCur);
+  assert.equal(AC.shareCount(S, a), 1);
+  B.state = 'DRAFT';
+  // Sao chép: bản độc lập, ảnh mô phỏng giữ cùng hình
+  const r2 = AC.shareImage(S, A.id, 0, [{ slotId: B.id, idx: 0 }], 'copy');
+  assert.ok(r2.ok); assert.notStrictEqual(a.versions, b.versions); assert.equal(a.shareId, undefined);
+  const nb = b.versions.length, na = a.versions.length; assert.equal(b.versions.at(-1).seed, a.versions.find(v => v.n === a.current).seed); assert.deepEqual(b.versions.at(-1).copiedFrom, { slotId: A.id, n: a.current });
+  assert.ok(AC.genSlotImage(S, A.id, 0).ok); assert.equal(b.versions.length, nb); assert.equal(a.versions.length, na + 1);
+  // khác tỉ lệ: Sao chép được, báo cần cắt khi ảnh thật
+  assert.ok(AC.shareImage(S, A.id, 0, [{ slotId: W.id, idx: 0 }], 'copy').ok);
+  // tách ảnh
+  assert.ok(AC.shareImage(S, A.id, 0, [{ slotId: B.id, idx: 0 }], 'link').ok); assert.ok(a.shareId);
+  assert.ok(AC.unshareImage(S, B.id, 0).ok); assert.equal(b.shareId, undefined); assert.equal(a.shareId, undefined); assert.notStrictEqual(a.versions, b.versions);
+  assert.equal(AC.unshareImage(S, B.id, 0).ok, false);
+  // tuần đã chốt: không nhận
+  const c1 = S.slots.find(x => x.weekId === T1 && x.assets.length && x.assets[0].versions.length);
+  assert.equal(AC.shareImage(S, A.id, 0, [{ slotId: c1.id, idx: 0 }], 'copy').ok, false);
+  // ảnh người dùng tải lên ở ô nhận được giữ lại khi chia sẻ
+  const up = AC.uploadSlotImage(S, B.id, 0, { src: 'data:image/png;base64,iVBORw0KGgo=', name: 'a.png' }); assert.ok(up.ok);
+  assert.ok(AC.shareImage(S, A.id, 0, [{ slotId: B.id, idx: 0 }], 'link').ok);
+  assert.ok(a.versions.some(v => v.merged && v.src), 'ảnh tải lên của slot nhận được giữ lại');
+  // đổi tỉ lệ ô thì tách
+  assert.ok(AC.setAssetRatio(S, B.id, 0, '4:5').ok); assert.equal(b.shareId, undefined); assert.equal(a.shareId, undefined);
+  void C;
+});

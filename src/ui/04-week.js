@@ -62,7 +62,7 @@ function slotImgsHtml(s) {
   if (!s.assets.length) return '<span class="imgs noimg small faint">Không cần ảnh</span>';
   const done = s.assets.filter(a => a.done).length; const n = s.assets.length;
   const shown = s.assets.slice(0, 3);
-  return `<span class="imgs" title="${esc(s.assets.map(a => a.name).join(' · '))}"><span class="imgstack">${shown.map((a, i) => `<span class="stk" style="z-index:${shown.length - i}">${imgMini(a)}</span>`).join('')}</span><b class="imgn ${done < n ? 'need' : ''}" aria-label="${done} trên ${n} ảnh">${done < n ? `${done}/${n}` : n}</b></span>`;
+  return `<span class="imgs" title="${esc(s.assets.map(a => a.name).join(' · '))}"><span class="imgstack">${shown.map((a, i) => `<span class="stk" style="z-index:${shown.length - i}">${imgMini(a)}</span>`).join('')}</span><b class="imgn ${done < n ? 'need' : ''}" aria-label="${done} trên ${n} ảnh">${done < n ? `${done}/${n}` : n}</b>${s.assets.some(a => AC.shareCount(S, a) > 1) ? `<span class="shared" title="Ảnh dùng chung với slot khác" role="img" aria-label="Ảnh dùng chung với slot khác">${icon('link')}</span>` : ''}</span>`;
 }
 function imgMini(a) {
   const v = a.versions.find(x => x.n === a.current);

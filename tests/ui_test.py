@@ -1403,6 +1403,37 @@ with sync_playwright() as pw:
     check('10.57 không lỗi trang', not errs, '; '.join(errs))
     ctx.close()
 
+    # ---------- Chia sẻ ảnh giữa slot (mục 10.70) ----------
+    ctx, page, errs = fresh(p)
+    page.locator('.cal [data-act="open-slot"][data-id="slot-34"]').first.click(); page.wait_for_timeout(300)
+    page.locator('.pv-dialog [data-pv="edit"]').click(); page.wait_for_timeout(200)
+    labels = [x.strip() for x in page.locator('.pv-dialog .pv-card .imgbar').first.locator('button:visible, label:visible').all_inner_texts() if x.strip()]
+    check('10.70 thanh ảnh có nút Chia sẻ', 'Chia sẻ' in labels, str(labels))
+    page.locator('.pv-dialog .pv-card [data-x="img-share"]').first.click(); page.wait_for_timeout(250)
+    check('10.70 hộp thoại Chia sẻ: có 2 cách (Chia sẻ mặc định, Sao chép), danh sách slot cùng tuần, ô Lưu vào Store', page.locator('input[name="sh-mode"]').count() == 2 and page.locator('input[name="sh-mode"][value="link"]').is_checked() and page.locator('#sh-list [data-sh]').count() >= 5 and page.locator('#sh-store').count() == 1 and page.locator('#sh-go').is_disabled())
+    wide = page.locator('#sh-list label:has-text("16:9")').first
+    check('10.70 slot khác tỉ lệ: bị tắt khi Chia sẻ, kèm lý do', wide.locator('input').is_disabled() and 'Khác tỉ lệ' in wide.inner_text(), wide.inner_text())
+    page.locator('input[name="sh-mode"][value="copy"]').check(); page.wait_for_timeout(100)
+    check('10.70 chọn Sao chép: slot khác tỉ lệ được bật', not page.locator('#sh-list label:has-text("16:9")').first.locator('input').is_disabled())
+    page.locator('input[name="sh-mode"][value="link"]').check(); page.wait_for_timeout(100)
+    tgt = page.locator('#sh-list label:has-text("Bình chọn")').first
+    tgt.locator('input').check(); page.wait_for_timeout(100)
+    check('10.70 chọn slot nhận: nút bấm ghi số slot', 'sang 1 slot' in page.locator('#sh-go').inner_text())
+    page.screenshot(path=str(SHOTS / 'd-share.png'))
+    page.locator('#sh-go').click(); page.wait_for_timeout(500)
+    sh = page.evaluate("() => { const S = window.__AC_S(); const a = S.slots.find(s => s.id === 'slot-34').assets[0], b = S.slots.find(s => s.id === 'slot-36').assets[0]; return { same: a.shareId && a.shareId === b.shareId, n: a.versions.length === b.versions.length, cur: a.current === b.current }; }")
+    check('10.70 Chia sẻ xong: hai ô cùng nhóm, cùng phiên bản; thẻ lịch có dấu liên kết', sh['same'] and sh['n'] and sh['cur'] and page.locator('.cal .imgs .shared').count() >= 2)
+    page.locator('.pv-dialog .pv-card [data-x="img-share"]').first.click(); page.wait_for_timeout(250)
+    check('10.70 mở lại: nêu đang dùng chung với slot nào, có nút Tách ảnh', '#sh-group' and page.locator('#sh-group').count() == 1 and page.locator('#sh-unlink').count() == 1)
+    page.locator('#sh-sname').fill('Ảnh đẹp thử'); page.locator('#sh-stags').fill('thử, lớp học'); page.locator('#sh-store').click(); page.wait_for_timeout(600)
+    lib = page.evaluate("() => window.__AC_S().library.filter(x => x.name === 'Ảnh đẹp thử').map(x => [x.src.slice(0, 11), x.tags])")
+    check('10.70 Lưu vào Store: có ảnh trong kho kèm nhãn', len(lib) == 1 and lib[0][0] == 'data:image/' and lib[0][1] == ['thử', 'lớp học'], str(lib))
+    page.locator('#sh-unlink').click(); page.wait_for_timeout(400)
+    un = page.evaluate("() => { const S = window.__AC_S(); const a = S.slots.find(s => s.id === 'slot-34').assets[0], b = S.slots.find(s => s.id === 'slot-36').assets[0]; return !a.shareId && !b.shareId && a.versions !== b.versions; }")
+    check('10.70 Tách ảnh: hai ô độc lập, hết dấu liên kết', un and page.locator('.cal .imgs .shared').count() == 0)
+    check('10.70 không lỗi trang', not errs, '; '.join(errs))
+    ctx.close()
+
     # ---------- localStorage bị chặn ----------
     ctx = p.new_context(viewport={'width': 1200, 'height': 800})
     page = ctx.new_page(); errs = []

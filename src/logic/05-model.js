@@ -9,7 +9,7 @@ import { cellPrompt, layoutIssues } from './05g-format.js';
 import { normalizeTopicMd } from './05h-topicframe.js';
 import { aiSlotText } from './05o-aitext.js';
 import { blogMediaAssets, blogPlain, blogRefreshAuto, isBlogSlot, keepBlogMedia, seoWeave, slotSeoOf, suggestKeyword } from './05p-blogseo.js';
-import { imageIssues, stampRatios } from './05q-imgspec.js';
+import { assetRatioOf, imageIssues, stampRatios } from './05q-imgspec.js';
 import { skillTag } from './05r-skill.js';
 export const DEFAULT_CELL_CRITERIA = [
   { id: 'c1', name: 'Bám Topic', weight: 25 }, { id: 'c2', name: 'Đúng giọng thương hiệu', weight: 20 },
@@ -865,7 +865,7 @@ function layoutSlotImages(S, slot, cellPrompt, at) {
     a.name = p.name; a.hint = p.hint; a.caption = p.caption; a.place = p.place; a.cellPrompt = cellPrompt || '';
     const prompt = `${cellPrompt || ''} ${p.name}${p.hint ? `: ${p.hint}` : ''}.${p.caption ? ` Chữ trên ảnh: "${p.caption.replace(/\n/g, ' / ').replace(/^["“]+|["”]+$/g, '')}".` : ''}`.replace(/\s+/g, ' ').replace(/\.\./g, '.').trim();
     const mine = (a.versions.find(v => v.n === a.current) || {}).src; // ảnh người dùng tải lên thì giữ, không gen đè
-    if (!mine && (!a.promptEdited && a.prompt !== prompt || !a.versions.length)) changed.push(i);
+    if (!mine && !a.shareId && (!a.promptEdited && a.prompt !== prompt || !a.versions.length)) changed.push(i);
     if (!a.promptEdited) a.prompt = prompt;
     return a;
   }).concat(blogMedia);
@@ -898,7 +898,120 @@ export function chooseSlotImage(S, slotId, idx, n) {
   const s = byId(S.slots, slotId); const a = s && s.assets[idx];
   if (!a || !a.versions.some(v => v.n === n)) return { ok: false, error: 'Không có phiên bản ảnh này.' };
   { const e = slotLockMsg(S, s); if (e) return { ok: false, error: e }; }
+  imgGuard(S, s, a);
   a.current = n; a.done = true; a.ref = assetRef(s, a, n);
+  propagateShare(S, s, a);
+  return { ok: true };
+}
+// ---- Ảnh dùng chung giữa các slot (10.70) ----
+// Các ô ảnh cùng a.shareId dùng chung MỘT mảng a.versions (cùng tham chiếu trong bộ nhớ nên mọi thao tác thêm phiên bản tự lan sang)
+// và đồng bộ current/done/ref qua chooseSlotImage. Lưu ra tệp thì mỗi ô ghi một bản; nạp lại thì relinkShares nối lại cùng một mảng.
+export function shareGroup(S, shareId) {
+  const out = [];
+  if (!shareId) return out;
+  (S.slots || []).forEach(s => (s.assets || []).forEach((a, idx) => { if (a.shareId === shareId) out.push({ s, a, idx }); }));
+  return out;
+}
+export function shareCount(S, a) { return a && a.shareId ? shareGroup(S, a.shareId).length : 1; }
+function tidyShare(S, shareId) { const g = shareGroup(S, shareId); if (g.length < 2) g.forEach(x => { delete x.a.shareId; }); }
+function detachAsset(S, a) { const id = a.shareId; a.versions = clone(a.versions); delete a.shareId; tidyShare(S, id); }
+export function relinkShares(S) {
+  const seen = {};
+  (S.slots || []).forEach(s => (s.assets || []).forEach(a => {
+    if (!a.shareId) return;
+    if (!seen[a.shareId]) seen[a.shareId] = a.versions; else a.versions = seen[a.shareId];
+  }));
+  Object.keys(seen).forEach(id => tidyShare(S, id));
+}
+// Trước khi sửa ảnh của một ô: ô cùng nhóm đang bị khóa (đã đăng, tuần đã chốt), khác tỉ lệ hoặc đổi loại thì tách thành bản riêng, giữ nguyên ảnh cũ
+export function imgGuard(S, s, a) {
+  if (!a || !a.shareId) return;
+  shareGroup(S, a.shareId).forEach(m => {
+    if (m.a === a) return;
+    if (slotLockMsg(S, m.s) || assetRatioOf(m.a) !== assetRatioOf(a)) detachAsset(S, m.a);
+  });
+  tidyShare(S, a.shareId);
+}
+function propagateShare(S, s, a) {
+  if (!a.shareId) return;
+  shareGroup(S, a.shareId).forEach(m => {
+    if (m.a === a) return;
+    if (m.a.current === a.current) return;
+    m.a.current = a.current; m.a.done = a.done; m.a.ref = assetRef(m.s, m.a, a.current);
+    if (m.s.state === 'APPROVED') { m.s.state = 'DRAFT'; log(S, 'share-draft', 'slot', m.s.id, `ảnh đổi từ ${s.id}`); }
+  });
+}
+// Danh sách slot cùng tuần có thể nhận ảnh, kèm lý do không nhận được
+export function shareTargets(S, slotId, idx) {
+  const s = byId(S.slots, slotId); const a = s && s.assets[idx]; if (!a) return [];
+  const out = [];
+  weekSlots(S, s.weekId).forEach(t => {
+    if (t.id === slotId) return;
+    (t.assets || []).forEach((b, j) => {
+      if (b.blog) return;
+      const cur = b.versions.find(v => v.n === b.current);
+      const video = (cur && cur.kind === 'video') || b.kind === 'video';
+      const lock = slotLockMsg(S, t);
+      const same = !!a.shareId && a.shareId === b.shareId;
+      const rs = assetRatioOf(a), rt = assetRatioOf(b);
+      out.push({ slotId: t.id, idx: j, slot: t, asset: b, name: b.name, ratio: rt, ratioMatch: rs === rt, linked: same, hasImage: !!cur, locked: lock, video, ok: !lock && !video && !same });
+    });
+  });
+  return out;
+}
+// mode 'link' (dùng chung) hoặc 'copy' (bản sao độc lập). targets: [{ slotId, idx }]
+export function shareImage(S, slotId, idx, targets, mode, at) {
+  const s = byId(S.slots, slotId); const a = s && s.assets[idx];
+  if (!a) return { ok: false, error: 'Không tìm thấy ô ảnh.' };
+  const cur = a.versions.find(v => v.n === a.current);
+  if (!cur) return { ok: false, error: 'Ô ảnh chưa có ảnh để chia sẻ.' };
+  if (cur.kind === 'video') return { ok: false, error: 'Chỉ chia sẻ ảnh, không chia sẻ video.' };
+  if (!targets || !targets.length) return { ok: false, error: 'Chọn ít nhất một slot nhận ảnh.' };
+  const link = mode !== 'copy';
+  if (link) { const e = slotLockMsg(S, s); if (e) return { ok: false, error: 'Slot nguồn đang khóa nên chỉ Sao chép được. ' + e }; }
+  const done = [], skipped = [], needFit = [];
+  targets.forEach(tg => {
+    const t = byId(S.slots, tg.slotId); const b = t && t.assets[tg.idx];
+    const why = r => skipped.push({ slotId: tg.slotId, idx: tg.idx, reason: r });
+    if (!b) return why('Không tìm thấy ô ảnh.');
+    if (t.weekId !== s.weekId) return why('Khác tuần.');
+    if (b === a) return why('Cùng một ô ảnh.');
+    const lk = slotLockMsg(S, t); if (lk) return why(lk);
+    const bc = b.versions.find(v => v.n === b.current);
+    if ((bc && bc.kind === 'video') || b.kind === 'video') return why('Ô nhận đang là video.');
+    if (link) {
+      if (a.shareId && a.shareId === b.shareId) return why('Đã dùng chung.');
+      if (assetRatioOf(a) !== assetRatioOf(b)) return why(`Khác tỉ lệ (${assetRatioOf(a)} và ${assetRatioOf(b)}): chỉ Sao chép được.`);
+      if (!a.shareId) a.shareId = nextId(S, 'shr');
+      if (b.shareId) detachAsset(S, b);
+      // ảnh bạn tải lên hoặc AI đã tạo ở ô nhận được giữ lại thành phiên bản của nhóm; ảnh mô phỏng thì bỏ
+      const keep = b.versions.filter(v => v.src && v.kind !== 'video').map(v => clone(v));
+      b.versions = a.versions; b.shareId = a.shareId;
+      keep.forEach(v => { v.n = a.versions.length + 1; v.merged = true; a.versions.push(v); });
+      b.current = null; // ép propagate
+      propagateShare(S, s, a);
+      log(S, 'share-image', 'slot', slotId, `dùng chung với ${tg.slotId}`);
+      done.push({ slotId: tg.slotId, idx: tg.idx });
+    } else {
+      imgGuard(S, t, b);
+      const v = clone(cur); v.n = b.versions.length + 1; v.createdAt = at || S.settings.demoNow; v.copiedFrom = { slotId, n: cur.n };
+      b.versions.push(v);
+      b.current = v.n; b.done = true; b.ref = assetRef(t, b, v.n); propagateShare(S, t, b);
+      if (t.state === 'APPROVED') { t.state = 'DRAFT'; log(S, 'share-draft', 'slot', t.id, `ảnh đổi từ ${slotId}`); }
+      log(S, 'copy-image', 'slot', slotId, `sao chép sang ${tg.slotId}`);
+      done.push({ slotId: tg.slotId, idx: tg.idx });
+      if (cur.src && assetRatioOf(a) !== assetRatioOf(b)) needFit.push({ slotId: tg.slotId, idx: tg.idx });
+    }
+  });
+  if (!done.length) return { ok: false, error: skipped.map(x => x.reason)[0] || 'Không chia sẻ được.', skipped };
+  return { ok: true, done, skipped, needFit };
+}
+// Tách ô ảnh khỏi nhóm dùng chung: thành bản sao riêng, ảnh hiện tại giữ nguyên
+export function unshareImage(S, slotId, idx) {
+  const s = byId(S.slots, slotId); const a = s && s.assets[idx];
+  if (!a) return { ok: false, error: 'Không tìm thấy ô ảnh.' };
+  if (!a.shareId) return { ok: false, error: 'Ô ảnh này không dùng chung với slot nào.' };
+  detachAsset(S, a); log(S, 'unshare-image', 'slot', slotId, a.name);
   return { ok: true };
 }
 // Sửa prompt của một ô ảnh (mục 10.11); prompt đã sửa tay được giữ khi slot viết lại
@@ -918,6 +1031,7 @@ export function genSlotImage(S, slotId, idx, at, prompt, genai) {
   const use = String(prompt || a.prompt || '').trim();
   if (!use) return { ok: false, error: 'Ô ảnh chưa có mô tả ảnh. Mô tả đến từ ô khi Viết slot, hoặc bạn tự nhập trong Gen AI.' };
   { const e = slotLockMsg(S, s); if (e) return { ok: false, error: e }; }
+  imgGuard(S, s, a);
   const n = a.versions.length + 1;
   a.versions.push(Object.assign({ n, seed: hash32(`${slotId}|${idx}|${n}|${use}`), createdAt: at || S.settings.demoNow }, genai ? { genai } : {}));
   chooseSlotImage(S, slotId, idx, n);
@@ -933,6 +1047,7 @@ export function editSlotImage(S, slotId, idx, instruction, at) {
   const cur = a.versions.find(v => v.n === a.current);
   if (!cur) return { ok: false, error: 'Ô chưa có ảnh để sửa.' };
   if (cur.src || cur.kind === 'video') return { ok: false, error: 'Chỉ sửa được ảnh do hệ thống tạo. Ảnh, video bạn tải lên thì tải bản mới thay thế.' };
+  imgGuard(S, s, a);
   const ins = String(instruction || '').trim();
   if (!ins) return { ok: false, error: 'Nhập yêu cầu chỉnh ảnh.' };
   const n = a.versions.length + 1;
@@ -971,6 +1086,8 @@ export function uploadSlotImage(S, slotId, idx, file, at) {
   const isVideo = /^data:video\//.test((file && file.src) || '');
   if (!file || !(isVideo || /^data:image\//.test(file.src || ''))) return { ok: false, error: 'Tệp không phải ảnh hoặc video.' };
   if (isVideo && !(s.free || a.kind === 'video' || a.blog)) return { ok: false, error: 'Video chỉ tải lên được ở slot tự do, ô video hoặc ảnh/video chèn trong bài Blog.' };
+  if (isVideo && a.shareId) detachAsset(S, a); // video không dùng chung
+  imgGuard(S, s, a);
   const n = a.versions.length + 1;
   a.versions.push({ n, seed: hash32(`${slotId}|${idx}|${n}|upload`), createdAt: at || S.settings.demoNow, src: file.src, kind: isVideo ? 'video' : 'image', ext: isVideo ? ((/^data:video\/(\w+)/.exec(file.src) || [])[1] || 'mp4').replace('quicktime', 'mov') : 'jpg', fileName: String(file.name || (isVideo ? 'video' : 'anh')).slice(0, 120), w: file.w || 0, h: file.h || 0 });
   if (s.free || a.blog) a.kind = isVideo ? 'video' : 'image';

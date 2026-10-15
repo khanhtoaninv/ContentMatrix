@@ -1032,6 +1032,9 @@ body.drag-slot .cal .day { transition: background .12s, box-shadow .12s; }
 .ga-ref { display: inline-flex; align-items: center; gap: 2px; }
 .ga-ref img { height: 44px; width: 44px; object-fit: cover; border-radius: 6px; }
 
+.imgs .shared { display: inline-flex; width: 13px; height: 13px; margin-left: 3px; color: var(--accent); vertical-align: middle; }
+.imgs .shared svg { width: 100%; height: 100%; }
+
 </style>
 <div class="app" id="app">
   <aside class="rail" aria-label="Điều hướng chính">
@@ -2427,6 +2430,7 @@ Câu hỏi: … Đáp án: …
 			ok: false,
 			error: "Ảnh dựng ra không hợp lệ."
 		};
+		imgGuard(S, s, a);
 		const n = a.versions.length + 1;
 		const v = {
 			n,
@@ -2536,6 +2540,7 @@ Câu hỏi: … Đáp án: …
 			ok: false,
 			error: "Image to Image chỉ dùng cho ảnh."
 		};
+		imgGuard(S, s, a);
 		const prompt = String(req && req.prompt || "").replace(/\s+/g, " ").trim();
 		if (!prompt) return {
 			ok: false,
@@ -6068,6 +6073,7 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 			ok: false,
 			error: "Tỉ lệ không hợp lệ."
 		};
+		if (a.ratio !== ratio && a.shareId) unshareImage(S, slotId, idx);
 		if (a.ratio !== ratio) {
 			a.ratio = ratio;
 			log(S, "ratio-asset", "slot", slotId, `${a.name} ${ratio}`);
@@ -7053,6 +7059,7 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 	function migrateState(S) {
 		if (!Array.isArray(S.blogPosts)) S.blogPosts = [];
 		(S.slots || []).forEach((s) => stampRatios(S, s));
+		relinkShares(S);
 		(S.channels || []).forEach((ch) => {
 			if (!ch.platform) ch.platform = PLATFORM_OF_ID[ch.id] || "other";
 			if (!ch.publish) ch.publish = defaultPublish(ch.platform);
@@ -11308,7 +11315,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			a.place = p.place;
 			a.cellPrompt = cellPrompt || "";
 			const prompt = `${cellPrompt || ""} ${p.name}${p.hint ? `: ${p.hint}` : ""}.${p.caption ? ` Chữ trên ảnh: "${p.caption.replace(/\n/g, " / ").replace(/^["“]+|["”]+$/g, "")}".` : ""}`.replace(/\s+/g, " ").replace(/\.\./g, ".").trim();
-			if (!(a.versions.find((v) => v.n === a.current) || {}).src && (!a.promptEdited && a.prompt !== prompt || !a.versions.length)) changed.push(i);
+			if (!(a.versions.find((v) => v.n === a.current) || {}).src && !a.shareId && (!a.promptEdited && a.prompt !== prompt || !a.versions.length)) changed.push(i);
 			if (!a.promptEdited) a.prompt = prompt;
 			return a;
 		}).concat(blogMedia);
@@ -11374,9 +11381,221 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				error: e
 			};
 		}
+		imgGuard(S, s, a);
 		a.current = n;
 		a.done = true;
 		a.ref = assetRef(s, a, n);
+		propagateShare(S, s, a);
+		return { ok: true };
+	}
+	function shareGroup(S, shareId) {
+		const out = [];
+		if (!shareId) return out;
+		(S.slots || []).forEach((s) => (s.assets || []).forEach((a, idx) => {
+			if (a.shareId === shareId) out.push({
+				s,
+				a,
+				idx
+			});
+		}));
+		return out;
+	}
+	function shareCount(S, a) {
+		return a && a.shareId ? shareGroup(S, a.shareId).length : 1;
+	}
+	function tidyShare(S, shareId) {
+		const g = shareGroup(S, shareId);
+		if (g.length < 2) g.forEach((x) => {
+			delete x.a.shareId;
+		});
+	}
+	function detachAsset(S, a) {
+		const id = a.shareId;
+		a.versions = clone(a.versions);
+		delete a.shareId;
+		tidyShare(S, id);
+	}
+	function relinkShares(S) {
+		const seen = {};
+		(S.slots || []).forEach((s) => (s.assets || []).forEach((a) => {
+			if (!a.shareId) return;
+			if (!seen[a.shareId]) seen[a.shareId] = a.versions;
+			else a.versions = seen[a.shareId];
+		}));
+		Object.keys(seen).forEach((id) => tidyShare(S, id));
+	}
+	function imgGuard(S, s, a) {
+		if (!a || !a.shareId) return;
+		shareGroup(S, a.shareId).forEach((m) => {
+			if (m.a === a) return;
+			if (slotLockMsg(S, m.s) || assetRatioOf(m.a) !== assetRatioOf(a)) detachAsset(S, m.a);
+		});
+		tidyShare(S, a.shareId);
+	}
+	function propagateShare(S, s, a) {
+		if (!a.shareId) return;
+		shareGroup(S, a.shareId).forEach((m) => {
+			if (m.a === a) return;
+			if (m.a.current === a.current) return;
+			m.a.current = a.current;
+			m.a.done = a.done;
+			m.a.ref = assetRef(m.s, m.a, a.current);
+			if (m.s.state === "APPROVED") {
+				m.s.state = "DRAFT";
+				log(S, "share-draft", "slot", m.s.id, `ảnh đổi từ ${s.id}`);
+			}
+		});
+	}
+	function shareTargets(S, slotId, idx) {
+		const s = byId(S.slots, slotId);
+		const a = s && s.assets[idx];
+		if (!a) return [];
+		const out = [];
+		weekSlots(S, s.weekId).forEach((t) => {
+			if (t.id === slotId) return;
+			(t.assets || []).forEach((b, j) => {
+				if (b.blog) return;
+				const cur = b.versions.find((v) => v.n === b.current);
+				const video = cur && cur.kind === "video" || b.kind === "video";
+				const lock = slotLockMsg(S, t);
+				const same = !!a.shareId && a.shareId === b.shareId;
+				const rs = assetRatioOf(a), rt = assetRatioOf(b);
+				out.push({
+					slotId: t.id,
+					idx: j,
+					slot: t,
+					asset: b,
+					name: b.name,
+					ratio: rt,
+					ratioMatch: rs === rt,
+					linked: same,
+					hasImage: !!cur,
+					locked: lock,
+					video,
+					ok: !lock && !video && !same
+				});
+			});
+		});
+		return out;
+	}
+	function shareImage(S, slotId, idx, targets, mode, at) {
+		const s = byId(S.slots, slotId);
+		const a = s && s.assets[idx];
+		if (!a) return {
+			ok: false,
+			error: "Không tìm thấy ô ảnh."
+		};
+		const cur = a.versions.find((v) => v.n === a.current);
+		if (!cur) return {
+			ok: false,
+			error: "Ô ảnh chưa có ảnh để chia sẻ."
+		};
+		if (cur.kind === "video") return {
+			ok: false,
+			error: "Chỉ chia sẻ ảnh, không chia sẻ video."
+		};
+		if (!targets || !targets.length) return {
+			ok: false,
+			error: "Chọn ít nhất một slot nhận ảnh."
+		};
+		const link = mode !== "copy";
+		if (link) {
+			const e = slotLockMsg(S, s);
+			if (e) return {
+				ok: false,
+				error: "Slot nguồn đang khóa nên chỉ Sao chép được. " + e
+			};
+		}
+		const done = [], skipped = [], needFit = [];
+		targets.forEach((tg) => {
+			const t = byId(S.slots, tg.slotId);
+			const b = t && t.assets[tg.idx];
+			const why = (r) => skipped.push({
+				slotId: tg.slotId,
+				idx: tg.idx,
+				reason: r
+			});
+			if (!b) return why("Không tìm thấy ô ảnh.");
+			if (t.weekId !== s.weekId) return why("Khác tuần.");
+			if (b === a) return why("Cùng một ô ảnh.");
+			const lk = slotLockMsg(S, t);
+			if (lk) return why(lk);
+			const bc = b.versions.find((v) => v.n === b.current);
+			if (bc && bc.kind === "video" || b.kind === "video") return why("Ô nhận đang là video.");
+			if (link) {
+				if (a.shareId && a.shareId === b.shareId) return why("Đã dùng chung.");
+				if (assetRatioOf(a) !== assetRatioOf(b)) return why(`Khác tỉ lệ (${assetRatioOf(a)} và ${assetRatioOf(b)}): chỉ Sao chép được.`);
+				if (!a.shareId) a.shareId = nextId(S, "shr");
+				if (b.shareId) detachAsset(S, b);
+				const keep = b.versions.filter((v) => v.src && v.kind !== "video").map((v) => clone(v));
+				b.versions = a.versions;
+				b.shareId = a.shareId;
+				keep.forEach((v) => {
+					v.n = a.versions.length + 1;
+					v.merged = true;
+					a.versions.push(v);
+				});
+				b.current = null;
+				propagateShare(S, s, a);
+				log(S, "share-image", "slot", slotId, `dùng chung với ${tg.slotId}`);
+				done.push({
+					slotId: tg.slotId,
+					idx: tg.idx
+				});
+			} else {
+				imgGuard(S, t, b);
+				const v = clone(cur);
+				v.n = b.versions.length + 1;
+				v.createdAt = at || S.settings.demoNow;
+				v.copiedFrom = {
+					slotId,
+					n: cur.n
+				};
+				b.versions.push(v);
+				b.current = v.n;
+				b.done = true;
+				b.ref = assetRef(t, b, v.n);
+				propagateShare(S, t, b);
+				if (t.state === "APPROVED") {
+					t.state = "DRAFT";
+					log(S, "share-draft", "slot", t.id, `ảnh đổi từ ${slotId}`);
+				}
+				log(S, "copy-image", "slot", slotId, `sao chép sang ${tg.slotId}`);
+				done.push({
+					slotId: tg.slotId,
+					idx: tg.idx
+				});
+				if (cur.src && assetRatioOf(a) !== assetRatioOf(b)) needFit.push({
+					slotId: tg.slotId,
+					idx: tg.idx
+				});
+			}
+		});
+		if (!done.length) return {
+			ok: false,
+			error: skipped.map((x) => x.reason)[0] || "Không chia sẻ được.",
+			skipped
+		};
+		return {
+			ok: true,
+			done,
+			skipped,
+			needFit
+		};
+	}
+	function unshareImage(S, slotId, idx) {
+		const s = byId(S.slots, slotId);
+		const a = s && s.assets[idx];
+		if (!a) return {
+			ok: false,
+			error: "Không tìm thấy ô ảnh."
+		};
+		if (!a.shareId) return {
+			ok: false,
+			error: "Ô ảnh này không dùng chung với slot nào."
+		};
+		detachAsset(S, a);
+		log(S, "unshare-image", "slot", slotId, a.name);
 		return { ok: true };
 	}
 	function setSlotImagePrompt(S, slotId, idx, prompt) {
@@ -11424,6 +11643,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				error: e
 			};
 		}
+		imgGuard(S, s, a);
 		const n = a.versions.length + 1;
 		a.versions.push(Object.assign({
 			n,
@@ -11460,6 +11680,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			ok: false,
 			error: "Chỉ sửa được ảnh do hệ thống tạo. Ảnh, video bạn tải lên thì tải bản mới thay thế."
 		};
+		imgGuard(S, s, a);
 		const ins = String(instruction || "").trim();
 		if (!ins) return {
 			ok: false,
@@ -11557,6 +11778,8 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			ok: false,
 			error: "Video chỉ tải lên được ở slot tự do, ô video hoặc ảnh/video chèn trong bài Blog."
 		};
+		if (isVideo && a.shareId) detachAsset(S, a);
+		imgGuard(S, s, a);
 		const n = a.versions.length + 1;
 		a.versions.push({
 			n,
@@ -13110,7 +13333,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		DATA_VERSION,
 		STORAGE_KEY,
 		RELEASE: "R4",
-		BUILD: 98,
+		BUILD: 99,
 		TEMPLATES,
 		STEP_NAMES,
 		STEP_COUNT,
@@ -13321,6 +13544,12 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		completeGate,
 		completeMatrix,
 		reopenMatrix,
+		shareGroup,
+		shareCount,
+		relinkShares,
+		shareTargets,
+		shareImage,
+		unshareImage,
 		matrixDone,
 		matrixLockMsg,
 		MATRIX_LOCK_MSG,
@@ -15817,6 +16046,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
     <label class="btn sm ${lk ? "disabled" : ""}" for="pvup-${o.idp || ""}${i}" title="Tải ${acc.includes("video") ? "ảnh hoặc video" : "ảnh"} của bạn lên làm phiên bản mới">${icon("upload")} Up</label><input id="pvup-${o.idp || ""}${i}" type="file" accept="${acc}" class="sr" data-change="img-upload" data-id="${esc(s.id)}" data-i="${i}" ${lk ? "disabled" : ""}>
     <button class="btn sm" data-x="img-lib" data-i="${i}" ${lk ? "disabled" : ""} title="Store: chọn ảnh từ kho ảnh chung">${icon("gallery")} Store</button>
     <button class="btn sm" data-x="img-edit" data-i="${i}" ${!lk && cur ? "" : "disabled"} title="${cur ? vid ? "Sửa video: Bìa, Phụ đề" : "Sửa ảnh: Frame, Chữ, Img2Img, Cắt, Mẫu" : "Ô chưa có ảnh"}">${icon("edit")} Edit</button>
+    ${!vid ? `<button class="btn sm" data-x="img-share" data-i="${i}" ${cur ? "" : "disabled"} title="${cur ? "Chia sẻ ảnh này sang slot khác trong tuần (dùng chung hoặc sao chép), hoặc lưu vào Store" : "Ô chưa có ảnh"}">${icon("link")} Chia sẻ${a.shareId && AC.shareCount(S, a) > 1 ? ` · ${AC.shareCount(S, a)}` : ""}</button>` : ""}
     ${bad ? `<button class="btn sm warn-b" data-x="img-fit" data-i="${i}" title="Ảnh ${sz.w}×${sz.h} không đúng tỉ lệ ô ${esc(cellR)}: cắt giữa về ${esc(cellR)} (thành phiên bản mới, bản gốc giữ nguyên)">Cắt về ${esc(cellR)}</button>` : ""}
     ${o.extra || ""}
     ${o.meta === false ? "" : `<span class="small pv-imgmeta">${esc(a.name)} · ${cur ? `v${a.current}/${a.versions.length} · ${versionLabel(cur)}` : "chưa có ảnh"}</span>`}
@@ -15956,13 +16186,16 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			afterImageDialog(s, `Đã dùng ảnh từ kho, thành phiên bản ${r.version}.`);
 		});
 	}
-	async function fitImageToRatio(s, i) {
+	async function fitImageQuiet(s, i) {
 		const a = s.assets[i], v = curVersion(a), r = AC.assetRatioOf(a);
 		let img;
 		try {
 			img = await loadImg(versionImgSrc(v, r));
 		} catch (e) {
-			return toast("Không đọc được ảnh.", "bad");
+			return {
+				ok: false,
+				error: "Không đọc được ảnh."
+			};
 		}
 		const out = cropToDataUrl(orientImage(img, 0, false), r, 1, .5, .5);
 		const res = AC.addSlotImageVersion(S, s.id, i, {
@@ -15976,8 +16209,17 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				zoom: 1
 			}
 		});
+		return res.ok ? Object.assign(res, {
+			r,
+			W: out.W,
+			H: out.H,
+			from: v.n
+		}) : res;
+	}
+	async function fitImageToRatio(s, i) {
+		const res = await fitImageQuiet(s, i);
 		if (!res.ok) return toast(res.error, "bad");
-		afterImageDialog(s, `Đã cắt giữa về ${r} (${out.W}×${out.H}), thành phiên bản ${res.version}. Bản gốc v${v.n} vẫn giữ.`);
+		afterImageDialog(s, `Đã cắt giữa về ${res.r} (${res.W}×${res.H}), thành phiên bản ${res.version}. Bản gốc v${res.from} vẫn giữ.`);
 	}
 	function imgStdTab() {
 		return `<p class="muted">Mỗi ô ảnh có một tỉ lệ lấy từ chuẩn của nền tảng. Xem bài, danh sách ảnh, Gen, Frame, Cắt và xuất tệp đều theo tỉ lệ đó, ảnh hiện trọn, không cắt ngầm. Ảnh sai tỉ lệ hoặc nhỏ hơn chuẩn được cảnh báo ở slot (không chặn Duyệt) kèm nút Cắt về đúng tỉ lệ.</p>
@@ -19639,7 +19881,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		const done = s.assets.filter((a) => a.done).length;
 		const n = s.assets.length;
 		const shown = s.assets.slice(0, 3);
-		return `<span class="imgs" title="${esc(s.assets.map((a) => a.name).join(" · "))}"><span class="imgstack">${shown.map((a, i) => `<span class="stk" style="z-index:${shown.length - i}">${imgMini(a)}</span>`).join("")}</span><b class="imgn ${done < n ? "need" : ""}" aria-label="${done} trên ${n} ảnh">${done < n ? `${done}/${n}` : n}</b></span>`;
+		return `<span class="imgs" title="${esc(s.assets.map((a) => a.name).join(" · "))}"><span class="imgstack">${shown.map((a, i) => `<span class="stk" style="z-index:${shown.length - i}">${imgMini(a)}</span>`).join("")}</span><b class="imgn ${done < n ? "need" : ""}" aria-label="${done} trên ${n} ảnh">${done < n ? `${done}/${n}` : n}</b>${s.assets.some((a) => AC.shareCount(S, a) > 1) ? `<span class="shared" title="Ảnh dùng chung với slot khác" role="img" aria-label="Ảnh dùng chung với slot khác">${icon("link")}</span>` : ""}</span>`;
 	}
 	function imgMini(a) {
 		const v = a.versions.find((x) => x.n === a.current);
@@ -20611,6 +20853,10 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		toast(msg + (u.pct >= 80 ? ` Bộ nhớ trình duyệt đã dùng ${u.pct}%: nên Sao lưu và xoá bớt ảnh cũ.` : ""), u.pct >= 80 ? "bad" : void 0);
 	}
 	function slotImageDialog(s, x, i) {
+		if (x === "img-share") {
+			openShareDialog(s, i);
+			return true;
+		}
 		if (x === "img-genai") {
 			const lk = AC.slotLockMsg(S, s);
 			if (lk) toast(lk, "bad");
@@ -20944,6 +21190,117 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		obs.observe(document.body, {
 			childList: true,
 			subtree: true
+		});
+	}
+	function openShareDialog(s, i) {
+		const a = s.assets[i], v = curVersion(a);
+		if (!v || v.kind === "video") return toast(v ? "Chỉ chia sẻ ảnh, không chia sẻ video." : "Ô chưa có ảnh để chia sẻ.", "bad");
+		const srcLock = AC.slotLockMsg(S, s);
+		const st = {
+			mode: srcLock ? "copy" : "link",
+			picked: /* @__PURE__ */ new Set()
+		};
+		const group = a.shareId ? AC.shareGroup(S, a.shareId).filter((m) => m.a !== a) : [];
+		const label = (t) => `${t.time} ${AC.dmy(t.date)} · ${fmtFull(t.formatId)}`;
+		const box = openLayer(`<header class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:nowrap"><div><span class="eyebrow">Chia sẻ ảnh · ${esc(a.name)} · bản v${v.n}</span><h2>Chia sẻ ảnh sang slot khác</h2></div><button class="btn icon ghost" data-act="close-layer" aria-label="Đóng">${icon("close")}</button></header>
+    <div class="stack" style="gap:12px">
+      <div class="row" style="gap:12px;align-items:flex-start;flex-wrap:nowrap"><div class="imgbox" style="flex:none">${imgVisual(v, false, AC.assetRatioOf(a))}</div>
+        <p class="small muted" style="margin:0">Chia sẻ lấy đúng bản đang hiển thị (có cả frame và chữ nếu đã ghép). Chỉ trong tuần đang chọn. Muốn dùng giữa các tuần thì lưu ảnh vào Store ở cuối hộp thoại.</p></div>
+      ${group.length ? `<div class="note small" id="sh-group"><b>Đang dùng chung với:</b> ${group.map((m) => esc(label(m.s))).join("; ")}. <button class="linkbtn small" id="sh-unlink">Tách ảnh (thành bản sao riêng)</button></div>` : ""}
+      <fieldset class="stack" style="gap:6px;border:0;padding:0;margin:0"><legend class="small muted">Cách chia sẻ</legend>
+        <label class="check"><input type="radio" name="sh-mode" value="link" ${srcLock ? "disabled" : "checked"}> <span><b>Chia sẻ</b>: dùng chung một ảnh, sửa ở đâu thì mọi nơi đổi theo. Chỉ cho ô ảnh cùng tỉ lệ.${srcLock ? ` <span class="faint">(${esc(srcLock)})</span>` : ""}</span></label>
+        <label class="check"><input type="radio" name="sh-mode" value="copy" ${srcLock ? "checked" : ""}> <span><b>Sao chép</b>: hai ảnh độc lập. Khác tỉ lệ thì cắt giữa về tỉ lệ ô nhận.</span></label></fieldset>
+      <div id="sh-warn" class="note warn small" hidden>Ảnh này có frame hoặc chữ mang tiêu đề của bài nguồn; dùng chung thì sửa chữ ở slot nào cũng đổi cả hai. Nên chọn Sao chép nếu hai bài cần chữ khác nhau.</div>
+      <div class="stack" style="gap:4px"><span class="small muted">Slot nhận (cùng tuần)</span><div id="sh-list" class="stack" style="gap:4px;max-height:34vh;overflow:auto"></div></div>
+      <div class="actions"><button class="btn ghost" data-act="close-layer">Đóng</button><button class="btn primary" id="sh-go" disabled>Chia sẻ</button></div>
+      <hr>
+      <div class="stack" style="gap:6px"><span class="small muted">Lưu vào Store để dùng giữa các tuần (lấy từ Store qua nút Store trên thanh ảnh)</span>
+        <div class="row" style="gap:8px;flex-wrap:wrap;align-items:flex-end"><div class="field" style="flex:1;min-width:160px"><label for="sh-sname">Tên</label><input id="sh-sname" value="${esc(a.name)}" maxlength="80"></div><div class="field" style="flex:1;min-width:160px"><label for="sh-stags">Nhãn (cách nhau dấu phẩy)</label><input id="sh-stags" placeholder="ví dụ: lớp học, logo"></div><button class="btn" id="sh-store">Lưu vào Store</button></div></div>
+    </div>`, "dialog");
+		box.classList.add("wide");
+		const $b = (q) => box.querySelector(q), go = $b("#sh-go"), listEl = $b("#sh-list");
+		const framed = !!(v.frame || v.text);
+		const rowHtml = (t) => {
+			const link = st.mode === "link";
+			const why = t.locked ? t.locked : t.video ? "Ô nhận đang là video" : t.linked ? "Đã dùng chung" : link && !t.ratioMatch ? `Khác tỉ lệ (${AC.assetRatioOf(a)} và ${t.ratio}): chỉ Sao chép` : "";
+			const key = `${t.slotId}|${t.idx}`, off = !!why;
+			const extra = !off && !link && !t.ratioMatch && v.src ? `Sẽ cắt giữa về ${t.ratio}` : "";
+			return `<label class="check" style="${off ? "opacity:.6" : ""}"><input type="checkbox" data-sh="${esc(key)}" ${off ? "disabled" : ""} ${st.picked.has(key) && !off ? "checked" : ""}> <span>${esc(label(t.slot))}${t.slot.assets.length > 1 ? ` · ${esc(t.name)}` : ""} <span class="small faint">· ${esc(t.ratio)}${t.hasImage ? "" : " · chưa có ảnh"}${why ? " · " + esc(why) : ""}${extra ? " · " + esc(extra) : ""}</span></span></label>`;
+		};
+		const paint = () => {
+			const rows = AC.shareTargets(S, s.id, i);
+			listEl.innerHTML = rows.length ? rows.map(rowHtml).join("") : "<p class=\"small muted\">Tuần này chưa có slot nào có ô ảnh để nhận.</p>";
+			[...st.picked].forEach((k) => {
+				const el = listEl.querySelector(`[data-sh="${CSS.escape(k)}"]`);
+				if (!el || el.disabled) st.picked.delete(k);
+			});
+			go.disabled = !st.picked.size;
+			go.textContent = st.picked.size ? `${st.mode === "link" ? "Chia sẻ" : "Sao chép"} sang ${st.picked.size} slot` : "Chia sẻ";
+			$b("#sh-warn").hidden = !(framed && st.mode === "link");
+		};
+		box.addEventListener("change", (e) => {
+			const m = e.target.closest("input[name=\"sh-mode\"]");
+			if (m) {
+				st.mode = m.value;
+				paint();
+				return;
+			}
+			const c = e.target.closest("[data-sh]");
+			if (c) {
+				if (c.checked) st.picked.add(c.dataset.sh);
+				else st.picked.delete(c.dataset.sh);
+				paint();
+			}
+		});
+		paint();
+		const un = $b("#sh-unlink");
+		if (un) un.addEventListener("click", () => {
+			const r = AC.unshareImage(S, s.id, i);
+			if (!r.ok) return toast(r.error, "bad");
+			afterImageDialog(s, "Đã tách ảnh: ô này giờ có bản sao riêng.");
+		});
+		go.addEventListener("click", async () => {
+			go.disabled = true;
+			const targets = [...st.picked].map((k) => {
+				const [slotId, idx] = k.split("|");
+				return {
+					slotId,
+					idx: Number(idx)
+				};
+			});
+			const r = AC.shareImage(S, s.id, i, targets, st.mode);
+			if (!r.ok) {
+				go.disabled = false;
+				return toast(r.error, "bad");
+			}
+			for (const f of r.needFit) {
+				const t = AC.byId(S.slots, f.slotId);
+				if (t) await fitImageQuiet(t, f.idx);
+			}
+			const sk = r.skipped.length ? ` ${r.skipped.length} slot không nhận được (${r.skipped[0].reason}).` : "";
+			afterImageDialog(s, `${st.mode === "link" ? "Đã chia sẻ" : "Đã sao chép"} ảnh sang ${r.done.length} slot.${r.needFit.length ? ` ${r.needFit.length} ảnh đã cắt giữa về tỉ lệ ô nhận.` : ""}${sk}`);
+		});
+		$b("#sh-store").addEventListener("click", async () => {
+			const b = $b("#sh-store");
+			b.disabled = true;
+			try {
+				const src = await versionToDataUrl(v);
+				const r = AC.addLibraryItem(S, {
+					name: $b("#sh-sname").value,
+					src,
+					tags: $b("#sh-stags").value
+				});
+				if (!r.ok) {
+					b.disabled = false;
+					return toast(r.error, "bad");
+				}
+				save();
+				b.disabled = false;
+				toast(`Đã lưu “${r.item.name}” vào Store. Lấy lại qua nút Store trên thanh ảnh.`);
+			} catch (err) {
+				b.disabled = false;
+				toast("Không lưu được: " + err.message, "bad");
+			}
 		});
 	}
 	var FR_SAMPLE = {

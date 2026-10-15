@@ -30,6 +30,7 @@ export function imgToolbar(o) {
     <label class="btn sm ${lk ? 'disabled' : ''}" for="pvup-${o.idp || ''}${i}" title="Tải ${acc.includes('video') ? 'ảnh hoặc video' : 'ảnh'} của bạn lên làm phiên bản mới">${icon('upload')} Up</label><input id="pvup-${o.idp || ''}${i}" type="file" accept="${acc}" class="sr" data-change="img-upload" data-id="${esc(s.id)}" data-i="${i}" ${lk ? 'disabled' : ''}>
     <button class="btn sm" data-x="img-lib" data-i="${i}" ${lk ? 'disabled' : ''} title="Store: chọn ảnh từ kho ảnh chung">${icon('gallery')} Store</button>
     <button class="btn sm" data-x="img-edit" data-i="${i}" ${!lk && cur ? '' : 'disabled'} title="${cur ? (vid ? 'Sửa video: Bìa, Phụ đề' : 'Sửa ảnh: Frame, Chữ, Img2Img, Cắt, Mẫu') : 'Ô chưa có ảnh'}">${icon('edit')} Edit</button>
+    ${!vid ? `<button class="btn sm" data-x="img-share" data-i="${i}" ${cur ? '' : 'disabled'} title="${cur ? 'Chia sẻ ảnh này sang slot khác trong tuần (dùng chung hoặc sao chép), hoặc lưu vào Store' : 'Ô chưa có ảnh'}">${icon('link')} Chia sẻ${a.shareId && AC.shareCount(S, a) > 1 ? ` · ${AC.shareCount(S, a)}` : ''}</button>` : ''}
     ${bad ? `<button class="btn sm warn-b" data-x="img-fit" data-i="${i}" title="Ảnh ${sz.w}×${sz.h} không đúng tỉ lệ ô ${esc(cellR)}: cắt giữa về ${esc(cellR)} (thành phiên bản mới, bản gốc giữ nguyên)">Cắt về ${esc(cellR)}</button>` : ''}
     ${o.extra || ''}
     ${o.meta === false ? '' : `<span class="small pv-imgmeta">${esc(a.name)} · ${cur ? `v${a.current}/${a.versions.length} · ${versionLabel(cur)}` : 'chưa có ảnh'}</span>`}
@@ -124,13 +125,18 @@ function libZoom(s, i, id) {
 }
 
 // Cắt giữa về đúng tỉ lệ của ô (một bấm); muốn chọn vùng cắt thì dùng Edit → Cắt
-export async function fitImageToRatio(s, i) {
+// Cắt giữa ảnh hiện tại về tỉ lệ ô, thành phiên bản mới (không thông báo, dùng cho Chia sẻ sang slot khác tỉ lệ)
+export async function fitImageQuiet(s, i) {
   const a = s.assets[i], v = curVersion(a), r = AC.assetRatioOf(a);
-  let img; try { img = await loadImg(versionImgSrc(v, r)); } catch (e) { return toast('Không đọc được ảnh.', 'bad'); }
+  let img; try { img = await loadImg(versionImgSrc(v, r)); } catch (e) { return { ok: false, error: 'Không đọc được ảnh.' }; }
   const out = cropToDataUrl(orientImage(img, 0, false), r, 1, 0.5, 0.5);
   const res = AC.addSlotImageVersion(S, s.id, i, { src: out.src, ext: 'jpg', crop: { from: v.n, ratio: r, rot: 0, flip: false, zoom: 1 } });
+  return res.ok ? Object.assign(res, { r, W: out.W, H: out.H, from: v.n }) : res;
+}
+export async function fitImageToRatio(s, i) {
+  const res = await fitImageQuiet(s, i);
   if (!res.ok) return toast(res.error, 'bad');
-  afterImageDialog(s, `Đã cắt giữa về ${r} (${out.W}×${out.H}), thành phiên bản ${res.version}. Bản gốc v${v.n} vẫn giữ.`);
+  afterImageDialog(s, `Đã cắt giữa về ${res.r} (${res.W}×${res.H}), thành phiên bản ${res.version}. Bản gốc v${res.from} vẫn giữ.`);
 }
 
 // ---------- Setup → Chuẩn ảnh: bảng chuẩn theo nền tảng và tỉ lệ mặc định của từng kênh ----------

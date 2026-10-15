@@ -1294,3 +1294,15 @@ Thay bố cục hộp thoại Gen AI của 10.68 (chức năng giữ nguyên). N
 - Xem phiên bản nào bằng < > thì phiên bản đó là ảnh đang dùng của ô. Tạo xong hộp thoại giữ mở để gen tiếp; đóng thì trang và khung bài tự cập nhật.
 - Test 116 logic, 386 giao diện đạt.
 
+## 10.70. Chia sẻ ảnh giữa các slot (15/10/2026, bản 99)
+
+Một ảnh đẹp ở slot này có thể dùng ngay cho slot khác trong cùng tuần.
+- **Nút Chia sẻ** trên thanh ảnh (sau Edit). Hộp thoại có: hình bản đang hiển thị; cách chia sẻ **Chia sẻ** (mặc định) hoặc **Sao chép**; danh sách slot cùng tuần có ô ảnh (ghi giờ, ngày, Format, tỉ lệ, lý do nếu không nhận được); phần **Lưu vào Store** (tên, nhãn).
+- **Chia sẻ** = dùng chung một ảnh: hai ô cùng một lịch sử phiên bản và cùng phiên bản đang chọn. Gen AI, Up, Frame, Chữ, Cắt, Img2Img và < > ở slot nào cũng đổi cho mọi slot trong nhóm. Chỉ cho ô ảnh **cùng tỉ lệ**; slot nguồn phải chưa khóa. Lấy bản đang hiển thị lúc chia sẻ (kèm frame, chữ nếu đã ghép; hộp thoại cảnh báo và gợi ý Sao chép).
+- **Sao chép** = thêm một phiên bản mới vào ô nhận (ghi `copiedFrom`), hai ô độc lập sau đó. Khác tỉ lệ và là ảnh thật thì tự cắt giữa về tỉ lệ ô nhận (thành thêm một phiên bản).
+- Slot nhận đã duyệt thì về Chưa duyệt vì ảnh đổi. Slot đã đăng và tuần đã chốt không nhận được. Sửa ảnh ở một ô trong nhóm mà ô khác đang bị khóa (đã đăng, tuần chốt) hoặc khác tỉ lệ thì ô đó tự **tách** thành bản riêng giữ ảnh cũ; đổi tỉ lệ ô hoặc tải video lên cũng tách. Ảnh bạn tải lên hoặc AI đã tạo sẵn ở ô nhận được giữ lại thành phiên bản của nhóm; ảnh mô phỏng thì bỏ.
+- **Tách ảnh** trong hộp thoại: ô thành bản sao riêng, ảnh đang dùng giữ nguyên. Viết slot lại không tự Gen ảnh mới cho ô dùng chung. Thẻ lịch hiện dấu liên kết khi có ảnh dùng chung.
+- **Lưu vào Store**: lưu bản đang hiển thị (ảnh mô phỏng được vẽ ra JPEG) vào kho, dùng giữa các tuần qua nút Store; khi lấy về slot là sao chép như trước. Chưa chia sẻ trực tiếp giữa các tuần.
+- Kỹ thuật: dữ liệu lưu mỗi ô một bản; `relinkShares` nối lại cùng một mảng khi nạp. Ảnh lớn đã dedupe theo khoá nội dung ở kho IndexedDB nên không tốn gấp đôi.
+- Test 117 logic, 396 giao diện đạt.
+

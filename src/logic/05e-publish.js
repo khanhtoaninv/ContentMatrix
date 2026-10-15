@@ -1,6 +1,6 @@
 // ---------- 05e · R4: Xác nhận lịch, đăng bài, số liệu, đồng hồ demo (mục 10.22) ----------
 import { fold, hash32, isValidTime, isValidUrl, isValidYMD, minutesOf, mondayOf, parseYMD } from './01-util.js';
-import { byId, log, slotColumnId, slotWarnings, weekOf, weekSlots } from './05-model.js';
+import { byId, log, relinkShares, slotColumnId, slotWarnings, weekOf, weekSlots } from './05-model.js';
 import { stampRatios } from './05q-imgspec.js';
 // Đăng và số liệu ở R4 là mô phỏng xác định; dữ liệu đã đúng dạng để R6–R7 nối API/Metricool/Postiz thật.
 
@@ -327,6 +327,7 @@ export function isOnTime(s) { return !!(s.pub && isValidTs(s.pub.at)) && tsToMs(
 export function migrateState(S) {
   if (!Array.isArray(S.blogPosts)) S.blogPosts = [];
   (S.slots || []).forEach(s => stampRatios(S, s)); // chuẩn ảnh theo nền tảng (mục 10.42)
+  relinkShares(S); // ảnh dùng chung giữa các slot (10.70): nối lại cùng một mảng phiên bản
   (S.channels || []).forEach(ch => {
     if (!ch.platform) ch.platform = PLATFORM_OF_ID[ch.id] || 'other';
     if (!ch.publish) ch.publish = defaultPublish(ch.platform);

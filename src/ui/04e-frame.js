@@ -1,7 +1,7 @@
 // ---------- UI · Ghép frame và Image to Image (mục 10.33) ----------
 import { AC } from '../logic/99-export.js';
 import { ACTIONS, CHANGES, INPUTS, S, view } from './00-state.js';
-import { $, assetKind, closeLayer, commit, confirmBox, esc, fmtNum, icon, imgVisual, openLayer, save, toast, versionLabel } from './01-core.js';
+import { $, assetKind, closeLayer, commit, confirmBox, esc, fmtFull, fmtNum, icon, imgVisual, openLayer, save, toast, versionLabel } from './01-core.js';
 import { stateJson } from './01b-mediastore.js';
 import { render } from './02-shell.js';
 import { openSlot } from './04-week.js';
@@ -10,7 +10,7 @@ import { openTextDialog } from './04f-text.js';
 import { designTplSection, openCropDialog, openTemplateDialog } from './04h-design.js';
 import { readImageFile, versionToDataUrl } from './04i-studio.js';
 import { apiGenImage, imageApiCall, openCoverDialog, openSubsDialog, providerLabel } from './04j-media.js';
-import { fitImageToRatio, openImageEditor, openLibraryPicker } from './04m-imgtools.js';
+import { fitImageQuiet, fitImageToRatio, openImageEditor, openLibraryPicker } from './04m-imgtools.js';
 import { lines } from './07-setup.js';
 // Ghép frame vẽ thật bằng canvas trong trình duyệt. Image to Image là mô phỏng: ảnh thật được biến đổi bằng bộ lọc
 // theo từ khoá của yêu cầu, ảnh mô phỏng sinh hình mới. Gen AI (openGenAiDialog) dùng chung bộ lọc này cho ảnh tham chiếu.
@@ -106,6 +106,7 @@ export function afterImageDialog(s, msg) {
 }
 // Mở hộp thoại theo nút trên ảnh; trả true nếu đã xử lý
 export function slotImageDialog(s, x, i) {
+  if (x === 'img-share') { openShareDialog(s, i); return true; }
   if (x === 'img-genai') { const lk = AC.slotLockMsg(S, s); if (lk) toast(lk, 'bad'); else openGenAiDialog(s, i); return true; }
   if (x === 'img-gen' && AC.imageApiOn(S)) { apiGenImage(s, i); return true; }
   if (x === 'img-edit') { openImageEditor(s, i); return true; }
@@ -241,6 +242,73 @@ export function openGenAiDialog(s, i) {
   // Đóng hộp thoại: nếu có thay đổi thì vẽ lại trang và khung bài đang mở
   const obs = new MutationObserver(() => { if (!document.body.contains(box)) { obs.disconnect(); if (st.dirty) { save(); render(); if (!(pvRefresh && pvRefresh(s.id))) openSlot(s.id); } } });
   obs.observe(document.body, { childList: true, subtree: true });
+}
+
+// Chia sẻ ảnh giữa các slot trong tuần (mục 10.70): dùng chung (một ảnh, sửa một nơi đổi mọi nơi) hoặc sao chép (bản độc lập); lưu vào Store
+export function openShareDialog(s, i) {
+  const a = s.assets[i], v = curVersion(a);
+  if (!v || v.kind === 'video') return toast(v ? 'Chỉ chia sẻ ảnh, không chia sẻ video.' : 'Ô chưa có ảnh để chia sẻ.', 'bad');
+  const srcLock = AC.slotLockMsg(S, s);
+  const st = { mode: srcLock ? 'copy' : 'link', picked: new Set() };
+  const group = a.shareId ? AC.shareGroup(S, a.shareId).filter(m => m.a !== a) : [];
+  const label = t => `${t.time} ${AC.dmy(t.date)} · ${fmtFull(t.formatId)}`;
+  const box = openLayer(`<header class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:nowrap"><div><span class="eyebrow">Chia sẻ ảnh · ${esc(a.name)} · bản v${v.n}</span><h2>Chia sẻ ảnh sang slot khác</h2></div><button class="btn icon ghost" data-act="close-layer" aria-label="Đóng">${icon('close')}</button></header>
+    <div class="stack" style="gap:12px">
+      <div class="row" style="gap:12px;align-items:flex-start;flex-wrap:nowrap"><div class="imgbox" style="flex:none">${imgVisual(v, false, AC.assetRatioOf(a))}</div>
+        <p class="small muted" style="margin:0">Chia sẻ lấy đúng bản đang hiển thị (có cả frame và chữ nếu đã ghép). Chỉ trong tuần đang chọn. Muốn dùng giữa các tuần thì lưu ảnh vào Store ở cuối hộp thoại.</p></div>
+      ${group.length ? `<div class="note small" id="sh-group"><b>Đang dùng chung với:</b> ${group.map(m => esc(label(m.s))).join('; ')}. <button class="linkbtn small" id="sh-unlink">Tách ảnh (thành bản sao riêng)</button></div>` : ''}
+      <fieldset class="stack" style="gap:6px;border:0;padding:0;margin:0"><legend class="small muted">Cách chia sẻ</legend>
+        <label class="check"><input type="radio" name="sh-mode" value="link" ${srcLock ? 'disabled' : 'checked'}> <span><b>Chia sẻ</b>: dùng chung một ảnh, sửa ở đâu thì mọi nơi đổi theo. Chỉ cho ô ảnh cùng tỉ lệ.${srcLock ? ` <span class="faint">(${esc(srcLock)})</span>` : ''}</span></label>
+        <label class="check"><input type="radio" name="sh-mode" value="copy" ${srcLock ? 'checked' : ''}> <span><b>Sao chép</b>: hai ảnh độc lập. Khác tỉ lệ thì cắt giữa về tỉ lệ ô nhận.</span></label></fieldset>
+      <div id="sh-warn" class="note warn small" hidden>Ảnh này có frame hoặc chữ mang tiêu đề của bài nguồn; dùng chung thì sửa chữ ở slot nào cũng đổi cả hai. Nên chọn Sao chép nếu hai bài cần chữ khác nhau.</div>
+      <div class="stack" style="gap:4px"><span class="small muted">Slot nhận (cùng tuần)</span><div id="sh-list" class="stack" style="gap:4px;max-height:34vh;overflow:auto"></div></div>
+      <div class="actions"><button class="btn ghost" data-act="close-layer">Đóng</button><button class="btn primary" id="sh-go" disabled>Chia sẻ</button></div>
+      <hr>
+      <div class="stack" style="gap:6px"><span class="small muted">Lưu vào Store để dùng giữa các tuần (lấy từ Store qua nút Store trên thanh ảnh)</span>
+        <div class="row" style="gap:8px;flex-wrap:wrap;align-items:flex-end"><div class="field" style="flex:1;min-width:160px"><label for="sh-sname">Tên</label><input id="sh-sname" value="${esc(a.name)}" maxlength="80"></div><div class="field" style="flex:1;min-width:160px"><label for="sh-stags">Nhãn (cách nhau dấu phẩy)</label><input id="sh-stags" placeholder="ví dụ: lớp học, logo"></div><button class="btn" id="sh-store">Lưu vào Store</button></div></div>
+    </div>`, 'dialog');
+  box.classList.add('wide');
+  const $b = q => box.querySelector(q), go = $b('#sh-go'), listEl = $b('#sh-list');
+  const framed = !!(v.frame || v.text);
+  const rowHtml = t => {
+    const link = st.mode === 'link';
+    const why = t.locked ? t.locked : t.video ? 'Ô nhận đang là video' : t.linked ? 'Đã dùng chung' : link && !t.ratioMatch ? `Khác tỉ lệ (${AC.assetRatioOf(a)} và ${t.ratio}): chỉ Sao chép` : '';
+    const key = `${t.slotId}|${t.idx}`, off = !!why;
+    const extra = !off && !link && !t.ratioMatch && v.src ? `Sẽ cắt giữa về ${t.ratio}` : '';
+    return `<label class="check" style="${off ? 'opacity:.6' : ''}"><input type="checkbox" data-sh="${esc(key)}" ${off ? 'disabled' : ''} ${st.picked.has(key) && !off ? 'checked' : ''}> <span>${esc(label(t.slot))}${t.slot.assets.length > 1 ? ` · ${esc(t.name)}` : ''} <span class="small faint">· ${esc(t.ratio)}${t.hasImage ? '' : ' · chưa có ảnh'}${why ? ' · ' + esc(why) : ''}${extra ? ' · ' + esc(extra) : ''}</span></span></label>`;
+  };
+  const paint = () => {
+    const rows = AC.shareTargets(S, s.id, i);
+    listEl.innerHTML = rows.length ? rows.map(rowHtml).join('') : '<p class="small muted">Tuần này chưa có slot nào có ô ảnh để nhận.</p>';
+    [...st.picked].forEach(k => { const el = listEl.querySelector(`[data-sh="${CSS.escape(k)}"]`); if (!el || el.disabled) st.picked.delete(k); });
+    go.disabled = !st.picked.size; go.textContent = st.picked.size ? `${st.mode === 'link' ? 'Chia sẻ' : 'Sao chép'} sang ${st.picked.size} slot` : 'Chia sẻ';
+    $b('#sh-warn').hidden = !(framed && st.mode === 'link');
+  };
+  box.addEventListener('change', e => {
+    const m = e.target.closest('input[name="sh-mode"]'); if (m) { st.mode = m.value; paint(); return; }
+    const c = e.target.closest('[data-sh]'); if (c) { if (c.checked) st.picked.add(c.dataset.sh); else st.picked.delete(c.dataset.sh); paint(); }
+  });
+  paint();
+  const un = $b('#sh-unlink');
+  if (un) un.addEventListener('click', () => { const r = AC.unshareImage(S, s.id, i); if (!r.ok) return toast(r.error, 'bad'); afterImageDialog(s, 'Đã tách ảnh: ô này giờ có bản sao riêng.'); });
+  go.addEventListener('click', async () => {
+    go.disabled = true;
+    const targets = [...st.picked].map(k => { const [slotId, idx] = k.split('|'); return { slotId, idx: Number(idx) }; });
+    const r = AC.shareImage(S, s.id, i, targets, st.mode);
+    if (!r.ok) { go.disabled = false; return toast(r.error, 'bad'); }
+    for (const f of r.needFit) { const t = AC.byId(S.slots, f.slotId); if (t) await fitImageQuiet(t, f.idx); }
+    const sk = r.skipped.length ? ` ${r.skipped.length} slot không nhận được (${r.skipped[0].reason}).` : '';
+    afterImageDialog(s, `${st.mode === 'link' ? 'Đã chia sẻ' : 'Đã sao chép'} ảnh sang ${r.done.length} slot.${r.needFit.length ? ` ${r.needFit.length} ảnh đã cắt giữa về tỉ lệ ô nhận.` : ''}${sk}`);
+  });
+  $b('#sh-store').addEventListener('click', async () => {
+    const b = $b('#sh-store'); b.disabled = true;
+    try {
+      const src = await versionToDataUrl(v);
+      const r = AC.addLibraryItem(S, { name: $b('#sh-sname').value, src, tags: $b('#sh-stags').value });
+      if (!r.ok) { b.disabled = false; return toast(r.error, 'bad'); }
+      save(); b.disabled = false; toast(`Đã lưu “${r.item.name}” vào Store. Lấy lại qua nút Store trên thanh ảnh.`);
+    } catch (err) { b.disabled = false; toast('Không lưu được: ' + err.message, 'bad'); }
+  });
 }
 
 // ---------- Thiết lập → Frame ảnh ----------

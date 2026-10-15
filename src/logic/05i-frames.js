@@ -1,6 +1,6 @@
 // ---------- Frame ảnh của công ty và Image to Image (mục 10.33) ----------
 import { clone, fold, hash32, splitSentences } from './01-util.js';
-import { byId, chooseSlotImage, genSlotImage, log, nextId, slotLockMsg } from './05-model.js';
+import { byId, chooseSlotImage, genSlotImage, imgGuard, log, nextId, slotLockMsg } from './05-model.js';
 import { normTextLayer, validateTextLayers } from './05j-textlayer.js';
 import { assetRatioOf, ratioFromName } from './05q-imgspec.js';
 // Frame: khung cố định của công ty ghép lên ảnh (vẽ thật trong trình duyệt). Toạ độ là tỉ lệ 0–1 theo khổ ảnh ra.
@@ -76,6 +76,7 @@ export function addSlotImageVersion(S, slotId, idx, data, at) {
   if (!a) return { ok: false, error: 'Không tìm thấy ô ảnh.' };
   { const e = slotLockMsg(S, s); if (e) return { ok: false, error: e }; }
   if (!data || !/^data:image\//.test(data.src || '')) return { ok: false, error: 'Ảnh dựng ra không hợp lệ.' };
+  imgGuard(S, s, a);
   const n = a.versions.length + 1;
   const v = { n, seed: hash32(`${slotId}|${idx}|${n}|${data.src.length}`), createdAt: at || S.settings.demoNow, src: data.src, kind: 'image', ext: data.ext || 'jpg' };
   if (data.frame) v.frame = clone(data.frame);
@@ -127,6 +128,7 @@ export function i2iSlotImage(S, slotId, idx, req, at) {
   const cur = a.versions.find(v => v.n === a.current);
   if (!cur) return { ok: false, error: 'Ô chưa có ảnh để biến đổi.' };
   if (cur.kind === 'video') return { ok: false, error: 'Image to Image chỉ dùng cho ảnh.' };
+  imgGuard(S, s, a);
   const prompt = String((req && req.prompt) || '').replace(/\s+/g, ' ').trim();
   if (!prompt) return { ok: false, error: 'Nhập yêu cầu biến đổi ảnh.' };
   const strength = Math.min(1, Math.max(0.1, Number(req.strength) || 0.5));
