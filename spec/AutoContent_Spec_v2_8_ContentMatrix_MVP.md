@@ -1306,3 +1306,11 @@ Một ảnh đẹp ở slot này có thể dùng ngay cho slot khác trong cùng
 - Kỹ thuật: dữ liệu lưu mỗi ô một bản; `relinkShares` nối lại cùng một mảng khi nạp. Ảnh lớn đã dedupe theo khoá nội dung ở kho IndexedDB nên không tốn gấp đôi.
 - Test 117 logic, 396 giao diện đạt.
 
+## 10.71. Lịch mini chọn slot nhận ảnh chia sẻ (15/10/2026, bản 100)
+
+Trong hộp thoại Chia sẻ (10.70), danh sách slot nhận được thay bằng lịch tuần thu nhỏ 7 cột.
+- Mỗi ô: thumbnail ảnh hiện có, giờ, icon nền tảng. Tiêu đề, tỉ lệ và lý do không nhận được nằm trong chú thích khi rê chuột hoặc chạm và trong chữ ẩn cho trình đọc màn hình.
+- Ô nguồn có viền đậm và nhãn "Nguồn". Ô không nhận được (đã khóa, video, đã dùng chung, khác tỉ lệ khi Chia sẻ) mờ đi. Ô chưa có ảnh viền nét đứt. Ô đã chọn có viền xanh và dấu tick.
+- Bấm ô để chọn; bấm tên ngày để chọn hoặc bỏ chọn cả ngày. Màn hình hẹp xếp 4 cột.
+- Cách chia sẻ, cảnh báo frame/chữ, Tách ảnh và Lưu vào Store giữ nguyên.
+

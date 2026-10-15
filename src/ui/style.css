@@ -1029,3 +1029,29 @@ body.drag-slot .cal .day { transition: background .12s, box-shadow .12s; }
 
 .imgs .shared { display: inline-flex; width: 13px; height: 13px; margin-left: 3px; color: var(--accent); vertical-align: middle; }
 .imgs .shared svg { width: 100%; height: 100%; }
+
+/* Lịch mini chọn slot nhận ảnh chia sẻ (mục 10.71) */
+.shcal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; max-height: 38vh; overflow: auto; }
+.shd { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.shd-h { border: 0; background: var(--surface-2); border-radius: 6px; padding: 4px 2px; font: inherit; font-size: 12px; color: var(--ink); cursor: pointer; text-align: center; }
+.shd-h:disabled { opacity: .5; cursor: default; }
+.shd-b { display: flex; flex-direction: column; gap: 4px; align-items: stretch; }
+.shc { position: relative; display: block; aspect-ratio: 16 / 10; border-radius: 6px; overflow: hidden; border: 2px solid var(--line); background: var(--surface-2); cursor: pointer; }
+.shc.empty { border-style: dashed; border-color: var(--line-strong); }
+.shc.off { opacity: .45; cursor: not-allowed; }
+.shc.on { border-color: var(--accent); border-style: solid; }
+.shc.src { border-color: var(--ink); cursor: default; }
+.shc:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; }
+.shc-img { position: absolute; inset: 0; }
+.shc-img svg, .shc-img img, .shc-img video { display: block; width: 100%; height: 100%; object-fit: cover; }
+.shc-t { position: absolute; top: 1px; left: 2px; font-size: 10px; line-height: 1.2; padding: 0 3px; border-radius: 3px; background: color-mix(in srgb, var(--surface) 85%, transparent); }
+.shc-p { position: absolute; bottom: 1px; right: 1px; width: 16px; height: 16px; display: grid; place-items: center; border-radius: 50%; background: var(--surface); }
+.shc-p .ch { padding: 0; background: none; border: 0; }
+.shc-p .chn { display: none; }
+.shc-p .pfi { width: 11px; height: 11px; }
+.shc-m { position: absolute; bottom: 1px; left: 1px; width: 16px; height: 16px; display: grid; place-items: center; border-radius: 50%; background: var(--surface); }
+.shc-m svg { width: 11px; height: 11px; }
+.shc-ok { position: absolute; top: 1px; right: 1px; width: 16px; height: 16px; display: grid; place-items: center; border-radius: 50%; background: var(--accent); color: #fff; }
+.shc-ok svg { width: 11px; height: 11px; }
+.shc-src { position: absolute; left: 0; right: 0; bottom: 0; font-size: 9px; text-align: center; background: var(--ink); color: var(--surface); }
+@media (max-width: 640px) { .shcal { grid-template-columns: repeat(4, minmax(0, 1fr)); } }

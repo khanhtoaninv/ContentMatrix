@@ -1035,6 +1035,32 @@ body.drag-slot .cal .day { transition: background .12s, box-shadow .12s; }
 .imgs .shared { display: inline-flex; width: 13px; height: 13px; margin-left: 3px; color: var(--accent); vertical-align: middle; }
 .imgs .shared svg { width: 100%; height: 100%; }
 
+/* Lịch mini chọn slot nhận ảnh chia sẻ (mục 10.71) */
+.shcal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; max-height: 38vh; overflow: auto; }
+.shd { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.shd-h { border: 0; background: var(--surface-2); border-radius: 6px; padding: 4px 2px; font: inherit; font-size: 12px; color: var(--ink); cursor: pointer; text-align: center; }
+.shd-h:disabled { opacity: .5; cursor: default; }
+.shd-b { display: flex; flex-direction: column; gap: 4px; align-items: stretch; }
+.shc { position: relative; display: block; aspect-ratio: 16 / 10; border-radius: 6px; overflow: hidden; border: 2px solid var(--line); background: var(--surface-2); cursor: pointer; }
+.shc.empty { border-style: dashed; border-color: var(--line-strong); }
+.shc.off { opacity: .45; cursor: not-allowed; }
+.shc.on { border-color: var(--accent); border-style: solid; }
+.shc.src { border-color: var(--ink); cursor: default; }
+.shc:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; }
+.shc-img { position: absolute; inset: 0; }
+.shc-img svg, .shc-img img, .shc-img video { display: block; width: 100%; height: 100%; object-fit: cover; }
+.shc-t { position: absolute; top: 1px; left: 2px; font-size: 10px; line-height: 1.2; padding: 0 3px; border-radius: 3px; background: color-mix(in srgb, var(--surface) 85%, transparent); }
+.shc-p { position: absolute; bottom: 1px; right: 1px; width: 16px; height: 16px; display: grid; place-items: center; border-radius: 50%; background: var(--surface); }
+.shc-p .ch { padding: 0; background: none; border: 0; }
+.shc-p .chn { display: none; }
+.shc-p .pfi { width: 11px; height: 11px; }
+.shc-m { position: absolute; bottom: 1px; left: 1px; width: 16px; height: 16px; display: grid; place-items: center; border-radius: 50%; background: var(--surface); }
+.shc-m svg { width: 11px; height: 11px; }
+.shc-ok { position: absolute; top: 1px; right: 1px; width: 16px; height: 16px; display: grid; place-items: center; border-radius: 50%; background: var(--accent); color: #fff; }
+.shc-ok svg { width: 11px; height: 11px; }
+.shc-src { position: absolute; left: 0; right: 0; bottom: 0; font-size: 9px; text-align: center; background: var(--ink); color: var(--surface); }
+@media (max-width: 640px) { .shcal { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+
 </style>
 <div class="app" id="app">
   <aside class="rail" aria-label="Điều hướng chính">
@@ -13333,7 +13359,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		DATA_VERSION,
 		STORAGE_KEY,
 		RELEASE: "R4",
-		BUILD: 99,
+		BUILD: 100,
 		TEMPLATES,
 		STEP_NAMES,
 		STEP_COUNT,
@@ -21211,7 +21237,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
         <label class="check"><input type="radio" name="sh-mode" value="link" ${srcLock ? "disabled" : "checked"}> <span><b>Chia sẻ</b>: dùng chung một ảnh, sửa ở đâu thì mọi nơi đổi theo. Chỉ cho ô ảnh cùng tỉ lệ.${srcLock ? ` <span class="faint">(${esc(srcLock)})</span>` : ""}</span></label>
         <label class="check"><input type="radio" name="sh-mode" value="copy" ${srcLock ? "checked" : ""}> <span><b>Sao chép</b>: hai ảnh độc lập. Khác tỉ lệ thì cắt giữa về tỉ lệ ô nhận.</span></label></fieldset>
       <div id="sh-warn" class="note warn small" hidden>Ảnh này có frame hoặc chữ mang tiêu đề của bài nguồn; dùng chung thì sửa chữ ở slot nào cũng đổi cả hai. Nên chọn Sao chép nếu hai bài cần chữ khác nhau.</div>
-      <div class="stack" style="gap:4px"><span class="small muted">Slot nhận (cùng tuần)</span><div id="sh-list" class="stack" style="gap:4px;max-height:34vh;overflow:auto"></div></div>
+      <div class="stack" style="gap:4px"><span class="small muted">Slot nhận (cùng tuần): bấm ô để chọn, bấm tên ngày để chọn cả ngày</span><div id="sh-list"></div><p class="small faint" style="margin:0">Ô mờ là không nhận được (rê chuột hoặc chạm để xem lý do). Ô nét đứt là chưa có ảnh; ô có ảnh sẽ bị thay bằng ảnh chia sẻ.</p></div>
       <div class="actions"><button class="btn ghost" data-act="close-layer">Đóng</button><button class="btn primary" id="sh-go" disabled>Chia sẻ</button></div>
       <hr>
       <div class="stack" style="gap:6px"><span class="small muted">Lưu vào Store để dùng giữa các tuần (lấy từ Store qua nút Store trên thanh ảnh)</span>
@@ -21220,16 +21246,49 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		box.classList.add("wide");
 		const $b = (q) => box.querySelector(q), go = $b("#sh-go"), listEl = $b("#sh-list");
 		const framed = !!(v.frame || v.text);
-		const rowHtml = (t) => {
+		const tileHtml = (t) => {
 			const link = st.mode === "link";
 			const why = t.locked ? t.locked : t.video ? "Ô nhận đang là video" : t.linked ? "Đã dùng chung" : link && !t.ratioMatch ? `Khác tỉ lệ (${AC.assetRatioOf(a)} và ${t.ratio}): chỉ Sao chép` : "";
-			const key = `${t.slotId}|${t.idx}`, off = !!why;
+			const key = `${t.slotId}|${t.idx}`, off = !!why, on = st.picked.has(key) && !off;
 			const extra = !off && !link && !t.ratioMatch && v.src ? `Sẽ cắt giữa về ${t.ratio}` : "";
-			return `<label class="check" style="${off ? "opacity:.6" : ""}"><input type="checkbox" data-sh="${esc(key)}" ${off ? "disabled" : ""} ${st.picked.has(key) && !off ? "checked" : ""}> <span>${esc(label(t.slot))}${t.slot.assets.length > 1 ? ` · ${esc(t.name)}` : ""} <span class="small faint">· ${esc(t.ratio)}${t.hasImage ? "" : " · chưa có ảnh"}${why ? " · " + esc(why) : ""}${extra ? " · " + esc(extra) : ""}</span></span></label>`;
+			const cv = curVersion(t.asset);
+			const tip = `${label(t.slot)}${t.slot.assets.length > 1 ? " · " + t.name : ""} · ${t.ratio}${t.hasImage ? "" : " · chưa có ảnh"}${why ? " · " + why : ""}${extra ? " · " + extra : ""}`;
+			const mark = t.linked ? icon("link") : t.locked ? icon("lock") : "";
+			return `<label class="shc${off ? " off" : ""}${on ? " on" : ""}${t.hasImage ? "" : " empty"}" title="${esc(tip)}"><input type="checkbox" class="sr" data-sh="${esc(key)}" ${off ? "disabled" : ""} ${on ? "checked" : ""}>
+      <span class="shc-img">${cv && !off ? imgVisual(cv, false, t.ratio) : ""}</span>
+      <span class="shc-t mono">${esc(t.slot.time)}</span><span class="shc-p">${chTag(t.slot.channelId)}</span>${mark ? `<span class="shc-m">${mark}</span>` : ""}${on ? `<span class="shc-ok">${icon("check")}</span>` : ""}
+      <span class="sr">${esc(tip)}</span></label>`;
+		};
+		const calHtml = (rows) => {
+			[.../* @__PURE__ */ new Set([...rows.map((t) => t.slot.date), s.date])].sort();
+			const start = AC.mondayOf(s.date);
+			const days = [
+				1,
+				2,
+				3,
+				4,
+				5,
+				6,
+				7
+			].map((d) => ({
+				d,
+				date: AC.addDays(start, d - 1)
+			}));
+			const cell = (date, t) => date === s.date && t === "src" ? `<span class="shc src" title="Slot nguồn: ${esc(label(s))}"><span class="shc-img">${imgVisual(v, false, AC.assetRatioOf(a))}</span><span class="shc-t mono">${esc(s.time)}</span><span class="shc-p">${chTag(s.channelId)}</span><span class="shc-src">Nguồn</span></span>` : "";
+			return `<div class="shcal" role="group" aria-label="Lịch tuần: chọn slot nhận">${days.map(({ d, date }) => {
+				const items = [...rows.filter((t) => t.slot.date === date).map((t) => ({
+					time: t.slot.time,
+					html: tileHtml(t)
+				})), ...date === s.date ? [{
+					time: s.time,
+					html: cell(date, "src")
+				}] : []].sort((x, y) => x.time.localeCompare(y.time));
+				return `<div class="shd"><button type="button" class="shd-h" data-shday="${date}" ${rows.filter((t) => t.slot.date === date && !t.locked && !t.video && !t.linked && (st.mode !== "link" || t.ratioMatch)).length ? "" : "disabled"} title="Chọn cả ngày"><b>${AC.WEEKDAY_SHORT[d]}</b> <span>${esc(AC.dmy(date))}</span></button><div class="shd-b">${items.map((i) => i.html).join("") || "<span class=\"faint small\">·</span>"}</div></div>`;
+			}).join("")}</div>`;
 		};
 		const paint = () => {
 			const rows = AC.shareTargets(S, s.id, i);
-			listEl.innerHTML = rows.length ? rows.map(rowHtml).join("") : "<p class=\"small muted\">Tuần này chưa có slot nào có ô ảnh để nhận.</p>";
+			listEl.innerHTML = rows.length ? calHtml(rows) : "<p class=\"small muted\">Tuần này chưa có slot nào có ô ảnh để nhận.</p>";
 			[...st.picked].forEach((k) => {
 				const el = listEl.querySelector(`[data-sh="${CSS.escape(k)}"]`);
 				if (!el || el.disabled) st.picked.delete(k);
@@ -21251,6 +21310,17 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				else st.picked.delete(c.dataset.sh);
 				paint();
 			}
+		});
+		box.addEventListener("click", (e) => {
+			const h = e.target.closest("[data-shday]");
+			if (!h || h.disabled) return;
+			const els = [...listEl.querySelectorAll(".shd")].find((d) => d.contains(h)).querySelectorAll("[data-sh]:not(:disabled)");
+			const all = [...els].every((x) => x.checked);
+			els.forEach((x) => {
+				if (all) st.picked.delete(x.dataset.sh);
+				else st.picked.add(x.dataset.sh);
+			});
+			paint();
 		});
 		paint();
 		const un = $b("#sh-unlink");

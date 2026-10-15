@@ -1,7 +1,7 @@
 // ---------- UI · Ghép frame và Image to Image (mục 10.33) ----------
 import { AC } from '../logic/99-export.js';
 import { ACTIONS, CHANGES, INPUTS, S, view } from './00-state.js';
-import { $, assetKind, closeLayer, commit, confirmBox, esc, fmtFull, fmtNum, icon, imgVisual, openLayer, save, toast, versionLabel } from './01-core.js';
+import { $, assetKind, chTag, closeLayer, commit, confirmBox, esc, fmtFull, fmtNum, icon, imgVisual, openLayer, save, toast, versionLabel } from './01-core.js';
 import { stateJson } from './01b-mediastore.js';
 import { render } from './02-shell.js';
 import { openSlot } from './04-week.js';
@@ -261,7 +261,7 @@ export function openShareDialog(s, i) {
         <label class="check"><input type="radio" name="sh-mode" value="link" ${srcLock ? 'disabled' : 'checked'}> <span><b>Chia sẻ</b>: dùng chung một ảnh, sửa ở đâu thì mọi nơi đổi theo. Chỉ cho ô ảnh cùng tỉ lệ.${srcLock ? ` <span class="faint">(${esc(srcLock)})</span>` : ''}</span></label>
         <label class="check"><input type="radio" name="sh-mode" value="copy" ${srcLock ? 'checked' : ''}> <span><b>Sao chép</b>: hai ảnh độc lập. Khác tỉ lệ thì cắt giữa về tỉ lệ ô nhận.</span></label></fieldset>
       <div id="sh-warn" class="note warn small" hidden>Ảnh này có frame hoặc chữ mang tiêu đề của bài nguồn; dùng chung thì sửa chữ ở slot nào cũng đổi cả hai. Nên chọn Sao chép nếu hai bài cần chữ khác nhau.</div>
-      <div class="stack" style="gap:4px"><span class="small muted">Slot nhận (cùng tuần)</span><div id="sh-list" class="stack" style="gap:4px;max-height:34vh;overflow:auto"></div></div>
+      <div class="stack" style="gap:4px"><span class="small muted">Slot nhận (cùng tuần): bấm ô để chọn, bấm tên ngày để chọn cả ngày</span><div id="sh-list"></div><p class="small faint" style="margin:0">Ô mờ là không nhận được (rê chuột hoặc chạm để xem lý do). Ô nét đứt là chưa có ảnh; ô có ảnh sẽ bị thay bằng ảnh chia sẻ.</p></div>
       <div class="actions"><button class="btn ghost" data-act="close-layer">Đóng</button><button class="btn primary" id="sh-go" disabled>Chia sẻ</button></div>
       <hr>
       <div class="stack" style="gap:6px"><span class="small muted">Lưu vào Store để dùng giữa các tuần (lấy từ Store qua nút Store trên thanh ảnh)</span>
@@ -270,16 +270,33 @@ export function openShareDialog(s, i) {
   box.classList.add('wide');
   const $b = q => box.querySelector(q), go = $b('#sh-go'), listEl = $b('#sh-list');
   const framed = !!(v.frame || v.text);
-  const rowHtml = t => {
+  const tileHtml = t => {
     const link = st.mode === 'link';
     const why = t.locked ? t.locked : t.video ? 'Ô nhận đang là video' : t.linked ? 'Đã dùng chung' : link && !t.ratioMatch ? `Khác tỉ lệ (${AC.assetRatioOf(a)} và ${t.ratio}): chỉ Sao chép` : '';
-    const key = `${t.slotId}|${t.idx}`, off = !!why;
+    const key = `${t.slotId}|${t.idx}`, off = !!why, on = st.picked.has(key) && !off;
     const extra = !off && !link && !t.ratioMatch && v.src ? `Sẽ cắt giữa về ${t.ratio}` : '';
-    return `<label class="check" style="${off ? 'opacity:.6' : ''}"><input type="checkbox" data-sh="${esc(key)}" ${off ? 'disabled' : ''} ${st.picked.has(key) && !off ? 'checked' : ''}> <span>${esc(label(t.slot))}${t.slot.assets.length > 1 ? ` · ${esc(t.name)}` : ''} <span class="small faint">· ${esc(t.ratio)}${t.hasImage ? '' : ' · chưa có ảnh'}${why ? ' · ' + esc(why) : ''}${extra ? ' · ' + esc(extra) : ''}</span></span></label>`;
+    const cv = curVersion(t.asset);
+    const tip = `${label(t.slot)}${t.slot.assets.length > 1 ? ' · ' + t.name : ''} · ${t.ratio}${t.hasImage ? '' : ' · chưa có ảnh'}${why ? ' · ' + why : ''}${extra ? ' · ' + extra : ''}`;
+    const mark = t.linked ? icon('link') : t.locked ? icon('lock') : '';
+    return `<label class="shc${off ? ' off' : ''}${on ? ' on' : ''}${t.hasImage ? '' : ' empty'}" title="${esc(tip)}"><input type="checkbox" class="sr" data-sh="${esc(key)}" ${off ? 'disabled' : ''} ${on ? 'checked' : ''}>
+      <span class="shc-img">${cv && !off ? imgVisual(cv, false, t.ratio) : ''}</span>
+      <span class="shc-t mono">${esc(t.slot.time)}</span><span class="shc-p">${chTag(t.slot.channelId)}</span>${mark ? `<span class="shc-m">${mark}</span>` : ''}${on ? `<span class="shc-ok">${icon('check')}</span>` : ''}
+      <span class="sr">${esc(tip)}</span></label>`;
+  };
+  const calHtml = rows => {
+    const dates = [...new Set([...rows.map(t => t.slot.date), s.date])].sort();
+    const start = AC.mondayOf(s.date);
+    const days = [1, 2, 3, 4, 5, 6, 7].map(d => ({ d, date: AC.addDays(start, d - 1) }));
+    const cell = (date, t) => date === s.date && t === 'src' ? `<span class="shc src" title="Slot nguồn: ${esc(label(s))}"><span class="shc-img">${imgVisual(v, false, AC.assetRatioOf(a))}</span><span class="shc-t mono">${esc(s.time)}</span><span class="shc-p">${chTag(s.channelId)}</span><span class="shc-src">Nguồn</span></span>` : '';
+    return `<div class="shcal" role="group" aria-label="Lịch tuần: chọn slot nhận">${days.map(({ d, date }) => {
+      const items = [...rows.filter(t => t.slot.date === date).map(t => ({ time: t.slot.time, html: tileHtml(t) })), ...(date === s.date ? [{ time: s.time, html: cell(date, 'src') }] : [])].sort((x, y) => x.time.localeCompare(y.time));
+      const pickable = rows.filter(t => t.slot.date === date && !t.locked && !t.video && !t.linked && (st.mode !== 'link' || t.ratioMatch));
+      return `<div class="shd"><button type="button" class="shd-h" data-shday="${date}" ${pickable.length ? '' : 'disabled'} title="Chọn cả ngày"><b>${AC.WEEKDAY_SHORT[d]}</b> <span>${esc(AC.dmy(date))}</span></button><div class="shd-b">${items.map(i => i.html).join('') || '<span class="faint small">·</span>'}</div></div>`;
+    }).join('')}</div>`;
   };
   const paint = () => {
     const rows = AC.shareTargets(S, s.id, i);
-    listEl.innerHTML = rows.length ? rows.map(rowHtml).join('') : '<p class="small muted">Tuần này chưa có slot nào có ô ảnh để nhận.</p>';
+    listEl.innerHTML = rows.length ? calHtml(rows) : '<p class="small muted">Tuần này chưa có slot nào có ô ảnh để nhận.</p>';
     [...st.picked].forEach(k => { const el = listEl.querySelector(`[data-sh="${CSS.escape(k)}"]`); if (!el || el.disabled) st.picked.delete(k); });
     go.disabled = !st.picked.size; go.textContent = st.picked.size ? `${st.mode === 'link' ? 'Chia sẻ' : 'Sao chép'} sang ${st.picked.size} slot` : 'Chia sẻ';
     $b('#sh-warn').hidden = !(framed && st.mode === 'link');
@@ -287,6 +304,11 @@ export function openShareDialog(s, i) {
   box.addEventListener('change', e => {
     const m = e.target.closest('input[name="sh-mode"]'); if (m) { st.mode = m.value; paint(); return; }
     const c = e.target.closest('[data-sh]'); if (c) { if (c.checked) st.picked.add(c.dataset.sh); else st.picked.delete(c.dataset.sh); paint(); }
+  });
+  box.addEventListener('click', e => {
+    const h = e.target.closest('[data-shday]'); if (!h || h.disabled) return;
+    const els = [...listEl.querySelectorAll('.shd')].find(d => d.contains(h)).querySelectorAll('[data-sh]:not(:disabled)');
+    const all = [...els].every(x => x.checked); els.forEach(x => { if (all) st.picked.delete(x.dataset.sh); else st.picked.add(x.dataset.sh); }); paint();
   });
   paint();
   const un = $b('#sh-unlink');

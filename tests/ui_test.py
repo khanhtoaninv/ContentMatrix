@@ -1410,14 +1410,15 @@ with sync_playwright() as pw:
     labels = [x.strip() for x in page.locator('.pv-dialog .pv-card .imgbar').first.locator('button:visible, label:visible').all_inner_texts() if x.strip()]
     check('10.70 thanh ảnh có nút Chia sẻ', 'Chia sẻ' in labels, str(labels))
     page.locator('.pv-dialog .pv-card [data-x="img-share"]').first.click(); page.wait_for_timeout(250)
-    check('10.70 hộp thoại Chia sẻ: có 2 cách (Chia sẻ mặc định, Sao chép), danh sách slot cùng tuần, ô Lưu vào Store', page.locator('input[name="sh-mode"]').count() == 2 and page.locator('input[name="sh-mode"][value="link"]').is_checked() and page.locator('#sh-list [data-sh]').count() >= 5 and page.locator('#sh-store').count() == 1 and page.locator('#sh-go').is_disabled())
-    wide = page.locator('#sh-list label:has-text("16:9")').first
-    check('10.70 slot khác tỉ lệ: bị tắt khi Chia sẻ, kèm lý do', wide.locator('input').is_disabled() and 'Khác tỉ lệ' in wide.inner_text(), wide.inner_text())
+    check('10.70 hộp thoại Chia sẻ: có 2 cách (Chia sẻ mặc định, Sao chép), danh sách slot cùng tuần, ô Lưu vào Store', page.locator('input[name="sh-mode"]').count() == 2 and page.locator('input[name="sh-mode"][value="link"]').is_checked() and page.locator('#sh-list .shcal [data-sh]').count() >= 5 and page.locator('#sh-list .shd').count() == 7 and page.locator('#sh-store').count() == 1 and page.locator('#sh-go').is_disabled())
+    wide = page.locator('#sh-list label.shc[title*="16:9"]').first
+    check('10.70 slot khác tỉ lệ: bị tắt khi Chia sẻ, kèm lý do', wide.locator('input').is_disabled() and 'Khác tỉ lệ' in (wide.get_attribute('title') or ''), wide.get_attribute('title'))
+    check('10.71 lịch mini: có ô nguồn, ô nhận có icon nền tảng và giờ, thumbnail ở ô đã có ảnh', page.locator('#sh-list .shc.src').count() == 1 and page.locator('#sh-list .shc:not(.src) .shc-p .pfi').count() >= 5 and page.locator('#sh-list .shc:not(.off):not(.empty) .shc-img svg, #sh-list .shc:not(.off):not(.empty) .shc-img img').count() >= 1)
     page.locator('input[name="sh-mode"][value="copy"]').check(); page.wait_for_timeout(100)
-    check('10.70 chọn Sao chép: slot khác tỉ lệ được bật', not page.locator('#sh-list label:has-text("16:9")').first.locator('input').is_disabled())
+    check('10.70 chọn Sao chép: slot khác tỉ lệ được bật', not page.locator('#sh-list label.shc[title*="16:9"]').first.locator('input').is_disabled())
     page.locator('input[name="sh-mode"][value="link"]').check(); page.wait_for_timeout(100)
-    tgt = page.locator('#sh-list label:has-text("Bình chọn")').first
-    tgt.locator('input').check(); page.wait_for_timeout(100)
+    tgt = page.locator('#sh-list label.shc[title*="Bình chọn"]').first
+    tgt.click(); page.wait_for_timeout(100)
     check('10.70 chọn slot nhận: nút bấm ghi số slot', 'sang 1 slot' in page.locator('#sh-go').inner_text())
     page.screenshot(path=str(SHOTS / 'd-share.png'))
     page.locator('#sh-go').click(); page.wait_for_timeout(500)
