@@ -40,7 +40,7 @@ export function renderNav() {
   const st = AC.setupStatus(S);
   $('#rail-foot').innerHTML = `
     <span class="small ${st.ok ? 'faint' : ''}" style="${st.ok ? '' : 'color:var(--warn)'}">${st.ok ? 'Thiết lập đủ' : `Thiết lập chưa đủ (${st.missing.length})`}</span>
-    <span class="small faint">Đợt ${esc(AC.RELEASE)} · dữ liệu ở trình duyệt này</span>`;
+    <span class="small faint">Đợt ${esc(AC.RELEASE)} · bản ${AC.BUILD} · dữ liệu ở trình duyệt này</span>`;
 }
 ACTIONS.nav = el => go({ screen: el.dataset.screen });
 

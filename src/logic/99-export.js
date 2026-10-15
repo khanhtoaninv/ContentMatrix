@@ -1,5 +1,5 @@
 // ---------- 99 · Xuất API ----------
-import { DATA_VERSION, RELEASE, STORAGE_KEY, WEEKDAY_LONG, WEEKDAY_SHORT, addDays, clone, countWords, dmy, dmyFull, fmtYMD, fold, foldWithMap, hash32, isValidTime, isValidUrl, isValidYMD, isoWeek, labelOf, minutesOf, mondayOf, paraBreak, parseYMD, sha256, sha256Bytes, splitSentences, utf8Bytes, weekdayOf } from './01-util.js';
+import { DATA_VERSION, RELEASE, BUILD, STORAGE_KEY, WEEKDAY_LONG, WEEKDAY_SHORT, addDays, clone, countWords, dmy, dmyFull, fmtYMD, fold, foldWithMap, hash32, isValidTime, isValidUrl, isValidYMD, isoWeek, labelOf, minutesOf, mondayOf, paraBreak, parseYMD, sha256, sha256Bytes, splitSentences, utf8Bytes, weekdayOf } from './01-util.js';
 import { BRAND_HEADINGS, TEMPLATES, TOPIC_MAX, TOPIC_SHORT_WORDS, VOICE_HEADINGS, parseBrand, parseFrontmatter, parseTopics, parseVoice, topicSubsections } from './02-parse.js';
 import { RULE_NAMES, checkRules, extractNumbers, hashtagsOf, lengthOf, paragraphsOf, slidesOf, summarizeWarnings } from './03-rules.js';
 import { parseLabeled, scoreText, topicMaterial, writeCell, writeImagePrompt, writeSlot } from './04-mock.js';
@@ -23,7 +23,7 @@ import { IMG_RATIOS, IMG_STANDARDS, PLATFORM_IMG_DEFAULT, RATIO_CSS, RATIO_NUM, 
 import { SKILL_KEEP, SKILL_WARN_CHARS, activeSkill, addSkill, deleteSkill, restoreSkill, setActiveSkill, skillBlock, skillOwnerOf, skillRefOf, skillTag, skillWarnings, skillsOf, updateSkill } from './05r-skill.js';
 import { addCellGen, buildSeed, cancelCell } from './06-seed.js';
 const AC = {
-  DATA_VERSION, STORAGE_KEY, RELEASE, TEMPLATES, STEP_NAMES, STEP_COUNT, RULE_NAMES, WEEKDAY_SHORT, WEEKDAY_LONG, LAYOUTS,
+  DATA_VERSION, STORAGE_KEY, RELEASE, BUILD, TEMPLATES, STEP_NAMES, STEP_COUNT, RULE_NAMES, WEEKDAY_SHORT, WEEKDAY_LONG, LAYOUTS,
   DEFAULT_CELL_CRITERIA, DEFAULT_SLOT_CRITERIA, BRAND_HEADINGS, VOICE_HEADINGS, TOPIC_MAX, TOPIC_SHORT_WORDS,
   clone, hash32, sha256, fold, foldWithMap, addDays, weekdayOf, mondayOf, isValidYMD, isValidTime, isoWeek, dmy, dmyFull, minutesOf, parseYMD, fmtYMD,
   countWords, splitSentences, isValidUrl,
