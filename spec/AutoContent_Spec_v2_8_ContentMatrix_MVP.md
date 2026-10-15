@@ -1277,3 +1277,13 @@ Chỉnh 10.66 theo ý người dùng: nút **Hoàn thành** và **Sửa** gộp 
 - Thanh bên hiện số hiệu bản ("Đợt R4 · bản N"), hằng `BUILD` trong `01-util.js`, tăng 1 mỗi lần publish.
 - Các chỗ ghi "Hoàn thành" và "Sửa" của Matrix ở 10.66 nay đọc là khóa và mở khóa.
 
+## 10.68. Gen AI cho ảnh của slot (15/10/2026, bản 97)
+
+Gộp Gen, Prompt và Image to Image thành một hộp thoại **Gen AI**.
+- Viết slot chỉ ghi **Mô tả ảnh** (tiếng Việt, 1–2 câu: bức ảnh trông thế nào), không viết prompt tạo ảnh. Dữ liệu cũ giữ nguyên: trường `prompt` của ô ảnh chính là Mô tả ảnh; `genPrompt` là prompt người dùng gõ.
+- Nút **Gen AI** thay Gen và nút Prompt nhỏ (popup bài, Cấu hình slot, danh sách ảnh). Hộp thoại có: Mô tả ảnh (sửa được, giữ khi slot viết lại); dấu **+** đính ảnh tham chiếu (tối đa 3) và nút "Dùng ảnh hiện tại" (không tự đính); thanh chat với nút **Prompt** (tạo prompt từ Mô tả ảnh, ghi đè chữ đang có, có Hoàn tác); **Enter** để tạo ảnh (Shift+Enter xuống dòng). Chưa bấm Prompt thì Enter dùng Mô tả ảnh.
+- Có ảnh tham chiếu thì chạy Image to Image (API `/images/edits` khi bật AI ảnh, dùng ảnh tham chiếu đầu tiên); không có thì tạo ảnh mới. Chế độ mô phỏng: ảnh tham chiếu chỉ đổi sáng, màu theo từ khoá trong prompt. Mỗi lần tạo là một phiên bản mới, ghi `genai: {prompt, ref}`; bản cũ giữ nguyên.
+- Tab **Img2Img** trong Edit được bỏ (Edit còn Ảnh, Frame, Chữ, Cắt, Mẫu). Ảnh video vẫn chưa Gen AI được.
+- Nút Prompt hiện chỉ ghép Mô tả ảnh với tỉ lệ và yêu cầu hình (mô phỏng); nối AI chữ để viết prompt tốt hơn là việc sau.
+- Test 116 logic, 385 giao diện đạt.
+

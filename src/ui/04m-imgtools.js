@@ -5,24 +5,23 @@ import { assetKind, closeLayer, commit, esc, icon, layerStack, openLayer, save, 
 import { go, render } from './02-shell.js';
 import { openSlot } from './04-week.js';
 import { pvImageBase, pvRefresh } from './04b-preview.js';
-import { afterImageDialog, curVersion, loadImg, openFrameDialog, openI2IDialog, versionImgSrc } from './04e-frame.js';
+import { afterImageDialog, curVersion, loadImg, openFrameDialog, versionImgSrc } from './04e-frame.js';
 import { openTextDialog } from './04f-text.js';
 import { cropToDataUrl, openCropDialog, openTemplateDialog, orientImage } from './04h-design.js';
 import { addFilesToLibrary, versionToDataUrl } from './04i-studio.js';
 import { apiGenImage, openCoverDialog, openSubsDialog } from './04j-media.js';
 // Gen: tạo lại theo prompt; rê chuột (hoặc focus) hiện nút Prompt nhỏ phía trên. Ô chưa có prompt: Gen mở ô Prompt.
 // Store: kho ảnh chung dạng gallery. Edit: giao diện sửa ảnh có các tab Frame, Chữ, Img2Img, Cắt, Mẫu (video: Bìa, Phụ đề).
-const ED_TABS_IMG = [['img-frame', 'Frame', 'Ghép frame của công ty kèm tiêu đề lên ảnh'], ['img-text', 'Chữ', 'Thêm chữ lên ảnh: font, cỡ, màu, kéo đặt vị trí'], ['img-i2i', 'Img2Img', 'Biến đổi ảnh theo yêu cầu bằng chữ'], ['img-crop', 'Cắt', 'Cắt, xoay, lật, đổi tỉ lệ ảnh'], ['img-tpl', 'Mẫu', 'Áp mẫu thiết kế đã lưu (chữ và frame)']];
+const ED_TABS_IMG = [['img-frame', 'Frame', 'Ghép frame của công ty kèm tiêu đề lên ảnh'], ['img-text', 'Chữ', 'Thêm chữ lên ảnh: font, cỡ, màu, kéo đặt vị trí'], ['img-crop', 'Cắt', 'Cắt, xoay, lật, đổi tỉ lệ ảnh'], ['img-tpl', 'Mẫu', 'Áp mẫu thiết kế đã lưu (chữ và frame)']];
 const ED_TABS_VID = [['vid-cover', 'Bìa', 'Chọn ảnh bìa từ khung hình hoặc tải ảnh lên'], ['vid-subs', 'Phụ đề', 'Tạo, sửa phụ đề; tải .srt/.vtt']];
 
 // o: { s, a, i, lk, via: 'pv' (ô Prompt ngay dưới ảnh) | 'dlg' (hộp thoại), open (ô Prompt đang mở), accept, extra, meta }
 export function imgToolbar(o) {
   const { s, a, i, lk } = o; const ci = a.versions.findIndex(v => v.n === a.current), cur = ci >= 0 ? a.versions[ci] : null;
   const vid = assetKind(a) === 'video' || (cur && cur.kind === 'video');
-  const pAttr = o.via === 'pv' ? `data-pv="prompt" data-i="${i}" aria-expanded="${!!o.open}"` : `data-x="img-prompt" data-i="${i}"`;
   const gen = vid
     ? `<span class="gen-wrap"><button class="btn sm" disabled title="Chưa tạo video bằng AI được">${icon('spark')} Gen</button></span>`
-    : `<span class="gen-wrap"><button class="btn xs gen-p ${o.open ? 'primary' : ''}" ${pAttr} ${lk ? 'disabled' : ''} title="Sửa prompt ảnh">Prompt</button><button class="btn sm" ${a.prompt ? `data-x="img-gen" data-i="${i}"` : pAttr} ${lk ? 'disabled' : ''} title="${a.prompt ? 'Gen lại: tạo phiên bản ảnh mới từ prompt' : 'Chưa có prompt: bấm để viết prompt rồi Gen'}">${icon('spark')} Gen</button></span>`;
+    : `<span class="gen-wrap"><button class="btn sm" data-x="img-genai" data-i="${i}" ${lk ? 'disabled' : ''} title="Gen AI: mô tả ảnh, prompt, ảnh tham chiếu, rồi tạo phiên bản ảnh mới">${icon('spark')} Gen AI</button></span>`;
   const cellR = AC.assetRatioOf(a), sz = cur && !vid ? AC.versionSize(cur) : null, bad = !lk && !!sz && AC.ratioMismatch(sz, cellR);
   const acc = o.accept || (s.free || vid ? 'image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm,video/quicktime' : 'image/png,image/jpeg,image/webp,image/gif');
   return `<div class="pv-imgtools imgbar" role="toolbar" aria-label="Công cụ ${esc(a.name)}">
@@ -37,22 +36,6 @@ export function imgToolbar(o) {
   </div>`;
 }
 
-// Ô Prompt dạng hộp thoại (Cấu hình slot)
-export function openPromptDialog(s, i) {
-  const a = s.assets[i];
-  const box = openLayer(`<header><span class="eyebrow">Prompt ảnh · ${esc(a.name)}</span><h2>Sửa prompt</h2><p class="small muted">Mô tả ảnh cần tạo. Gen tạo một phiên bản mới; bản cũ vẫn giữ, bấm mũi tên để quay lại.</p></header>
-    <div class="field"><label for="pd-text">Prompt</label><textarea id="pd-text" rows="5" spellcheck="false">${esc(a.prompt || '')}</textarea></div>
-    <div class="actions"><button class="btn ghost" data-act="close-layer">Hủy</button><button class="btn" id="pd-save">Chỉ lưu prompt</button><button class="btn primary" id="pd-gen">Lưu prompt và Gen</button></div>`, 'dialog');
-  const go = gen => {
-    const r = AC.setSlotImagePrompt(S, s.id, i, box.querySelector('#pd-text').value); if (!r.ok) return toast(r.error, 'bad');
-    if (!gen) { closeLayer(); save(); render(); if (!(pvRefresh && pvRefresh(s.id))) openSlot(s.id); return toast('Đã lưu prompt.'); }
-    if (AC.imageApiOn(S)) { closeLayer(); save(); render(); return apiGenImage(s, i); }
-    const g = AC.genSlotImage(S, s.id, i); if (!g.ok) return toast(g.error, 'bad');
-    afterImageDialog(s, `Đã tạo ảnh phiên bản ${g.version} từ prompt mới.`);
-  };
-  box.querySelector('#pd-save').addEventListener('click', () => go(false));
-  box.querySelector('#pd-gen').addEventListener('click', () => go(true));
-}
 
 // ---- Edit: giao diện sửa ảnh có tab ----
 function edTabsHtml(a, active) {
@@ -67,7 +50,7 @@ async function edGo(s, i, x) {
   closeLayer();
   if (x === 'home') return openImageEditor(s, i);
   const n = layerStack.length;
-  await ({ 'img-frame': openFrameDialog, 'img-text': openTextDialog, 'img-crop': openCropDialog, 'img-tpl': openTemplateDialog, 'img-i2i': openI2IDialog, 'vid-cover': openCoverDialog, 'vid-subs': openSubsDialog })[x](s, i);
+  await ({ 'img-frame': openFrameDialog, 'img-text': openTextDialog, 'img-crop': openCropDialog, 'img-tpl': openTemplateDialog, 'vid-cover': openCoverDialog, 'vid-subs': openSubsDialog })[x](s, i);
   if (layerStack.length <= n) return openImageEditor(s, i); // không mở được (ví dụ chưa có mẫu): quay lại trang Edit
   const box = layerStack[layerStack.length - 1].querySelector('[role="dialog"]');
   const nav = document.createElement('div'); nav.innerHTML = edTabsHtml(s.assets[i], x);

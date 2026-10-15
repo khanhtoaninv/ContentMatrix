@@ -2450,6 +2450,58 @@ Câu hỏi: … Đáp án: …
 			version: n
 		};
 	}
+	function promptFromDesc(S, slotId, idx, desc) {
+		const s = byId(S.slots, slotId);
+		const a = s && s.assets[idx];
+		const d = String(desc != null ? desc : a && a.prompt || "").replace(/\s+/g, " ").trim();
+		if (!d) return "";
+		const ratio = a ? assetRatioOf(a) : "1:1";
+		return `${d.replace(/[.\s]+$/, "")}. Tỉ lệ ${ratio}, bố cục gọn, ánh sáng tự nhiên, màu theo nhận diện thương hiệu, không thêm chữ ngoài chữ đã nêu.`;
+	}
+	function genAiSlotImage(S, slotId, idx, req, at) {
+		const s = byId(S.slots, slotId);
+		const a = s && s.assets[idx];
+		if (!a) return {
+			ok: false,
+			error: "Không tìm thấy ô ảnh."
+		};
+		{
+			const e = slotLockMsg(S, s);
+			if (e) return {
+				ok: false,
+				error: e
+			};
+		}
+		const desc = String(req && req.desc || "").replace(/\s+/g, " ").trim();
+		const prompt = String(req && req.prompt || "").replace(/\s+/g, " ").trim() || desc || a.prompt;
+		if (!prompt) return {
+			ok: false,
+			error: "Nhập mô tả ảnh hoặc prompt trước khi tạo ảnh."
+		};
+		if (desc && desc !== a.prompt) {
+			a.prompt = desc;
+			a.promptEdited = true;
+			log(S, "edit-image-prompt", "slot", slotId, a.name);
+		}
+		a.genPrompt = prompt === a.prompt ? "" : prompt;
+		const genai = {
+			prompt,
+			ref: !!(req && req.ref)
+		};
+		if (req && req.src) {
+			const r = addSlotImageVersion(S, slotId, idx, {
+				src: req.src,
+				ext: "jpg",
+				ai: req.ai
+			}, at);
+			if (!r.ok) return r;
+			a.versions.find((v) => v.n === r.version).genai = genai;
+			return r;
+		}
+		const g = genSlotImage(S, slotId, idx, at, prompt, genai);
+		if (g.ok) log(S, "genai-image", "slot", slotId, `${a.name} v${g.version}${genai.ref ? " · có ảnh tham chiếu" : ""}`);
+		return g;
+	}
 	function i2iSlotImage(S, slotId, idx, req, at) {
 		const s = byId(S.slots, slotId);
 		const a = s && s.assets[idx];
@@ -10258,6 +10310,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		s.assets.forEach((a) => {
 			a.cellPrompt = "";
 			a.prompt = "";
+			a.genPrompt = "";
 		});
 	}
 	function addSlot(S, weekId, input) {
@@ -11341,16 +11394,17 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		}
 		return { ok: true };
 	}
-	function genSlotImage(S, slotId, idx, at) {
+	function genSlotImage(S, slotId, idx, at, prompt, genai) {
 		const s = byId(S.slots, slotId);
 		const a = s && s.assets[idx];
 		if (!a) return {
 			ok: false,
 			error: "Không tìm thấy ô ảnh."
 		};
-		if (!a.prompt) return {
+		const use = String(prompt || a.prompt || "").trim();
+		if (!use) return {
 			ok: false,
-			error: "Ô ảnh chưa có prompt. Prompt đến từ ô khi Chia bài."
+			error: "Ô ảnh chưa có mô tả ảnh. Mô tả đến từ ô khi Viết slot, hoặc bạn tự nhập trong Gen AI."
 		};
 		{
 			const e = slotLockMsg(S, s);
@@ -11360,11 +11414,11 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			};
 		}
 		const n = a.versions.length + 1;
-		a.versions.push({
+		a.versions.push(Object.assign({
 			n,
-			seed: hash32(`${slotId}|${idx}|${n}|${a.prompt}`),
+			seed: hash32(`${slotId}|${idx}|${n}|${use}`),
 			createdAt: at || S.settings.demoNow
-		});
+		}, genai ? { genai } : {}));
 		chooseSlotImage(S, slotId, idx, n);
 		log(S, "gen-image", "slot", slotId, `${a.name} v${n}`);
 		return {
@@ -13045,7 +13099,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		DATA_VERSION,
 		STORAGE_KEY,
 		RELEASE: "R4",
-		BUILD: 96,
+		BUILD: 97,
 		TEMPLATES,
 		STEP_NAMES,
 		STEP_COUNT,
@@ -13126,6 +13180,8 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		frameTitleHint,
 		addSlotImageVersion,
 		i2iSlotImage,
+		genAiSlotImage,
+		promptFromDesc,
 		i2iLook,
 		TEXT_FONTS,
 		TEXT_EFFECTS,
@@ -15718,11 +15774,6 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			"Thêm chữ lên ảnh: font, cỡ, màu, kéo đặt vị trí"
 		],
 		[
-			"img-i2i",
-			"Img2Img",
-			"Biến đổi ảnh theo yêu cầu bằng chữ"
-		],
-		[
 			"img-crop",
 			"Cắt",
 			"Cắt, xoay, lật, đổi tỉ lệ ảnh"
@@ -15746,8 +15797,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		const { s, a, i, lk } = o;
 		const ci = a.versions.findIndex((v) => v.n === a.current), cur = ci >= 0 ? a.versions[ci] : null;
 		const vid = assetKind(a) === "video" || cur && cur.kind === "video";
-		const pAttr = o.via === "pv" ? `data-pv="prompt" data-i="${i}" aria-expanded="${!!o.open}"` : `data-x="img-prompt" data-i="${i}"`;
-		const gen = vid ? `<span class="gen-wrap"><button class="btn sm" disabled title="Chưa tạo video bằng AI được">${icon("spark")} Gen</button></span>` : `<span class="gen-wrap"><button class="btn xs gen-p ${o.open ? "primary" : ""}" ${pAttr} ${lk ? "disabled" : ""} title="Sửa prompt ảnh">Prompt</button><button class="btn sm" ${a.prompt ? `data-x="img-gen" data-i="${i}"` : pAttr} ${lk ? "disabled" : ""} title="${a.prompt ? "Gen lại: tạo phiên bản ảnh mới từ prompt" : "Chưa có prompt: bấm để viết prompt rồi Gen"}">${icon("spark")} Gen</button></span>`;
+		const gen = vid ? `<span class="gen-wrap"><button class="btn sm" disabled title="Chưa tạo video bằng AI được">${icon("spark")} Gen</button></span>` : `<span class="gen-wrap"><button class="btn sm" data-x="img-genai" data-i="${i}" ${lk ? "disabled" : ""} title="Gen AI: mô tả ảnh, prompt, ảnh tham chiếu, rồi tạo phiên bản ảnh mới">${icon("spark")} Gen AI</button></span>`;
 		const cellR = AC.assetRatioOf(a), sz = cur && !vid ? AC.versionSize(cur) : null, bad = !lk && !!sz && AC.ratioMismatch(sz, cellR);
 		const acc = o.accept || (s.free || vid ? "image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm,video/quicktime" : "image/png,image/jpeg,image/webp,image/gif");
 		return `<div class="pv-imgtools imgbar" role="toolbar" aria-label="Công cụ ${esc(a.name)}">
@@ -15760,34 +15810,6 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
     ${o.extra || ""}
     ${o.meta === false ? "" : `<span class="small pv-imgmeta">${esc(a.name)} · ${cur ? `v${a.current}/${a.versions.length} · ${versionLabel(cur)}` : "chưa có ảnh"}</span>`}
   </div>`;
-	}
-	function openPromptDialog(s, i) {
-		const a = s.assets[i];
-		const box = openLayer(`<header><span class="eyebrow">Prompt ảnh · ${esc(a.name)}</span><h2>Sửa prompt</h2><p class="small muted">Mô tả ảnh cần tạo. Gen tạo một phiên bản mới; bản cũ vẫn giữ, bấm mũi tên để quay lại.</p></header>
-    <div class="field"><label for="pd-text">Prompt</label><textarea id="pd-text" rows="5" spellcheck="false">${esc(a.prompt || "")}</textarea></div>
-    <div class="actions"><button class="btn ghost" data-act="close-layer">Hủy</button><button class="btn" id="pd-save">Chỉ lưu prompt</button><button class="btn primary" id="pd-gen">Lưu prompt và Gen</button></div>`, "dialog");
-		const go = (gen) => {
-			const r = AC.setSlotImagePrompt(S, s.id, i, box.querySelector("#pd-text").value);
-			if (!r.ok) return toast(r.error, "bad");
-			if (!gen) {
-				closeLayer();
-				save();
-				render();
-				if (!(pvRefresh && pvRefresh(s.id))) openSlot(s.id);
-				return toast("Đã lưu prompt.");
-			}
-			if (AC.imageApiOn(S)) {
-				closeLayer();
-				save();
-				render();
-				return apiGenImage(s, i);
-			}
-			const g = AC.genSlotImage(S, s.id, i);
-			if (!g.ok) return toast(g.error, "bad");
-			afterImageDialog(s, `Đã tạo ảnh phiên bản ${g.version} từ prompt mới.`);
-		};
-		box.querySelector("#pd-save").addEventListener("click", () => go(false));
-		box.querySelector("#pd-gen").addEventListener("click", () => go(true));
 	}
 	function edTabsHtml(a, active) {
 		const vid = (curVersion(a) || {}).kind === "video";
@@ -15811,7 +15833,6 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			"img-text": openTextDialog,
 			"img-crop": openCropDialog,
 			"img-tpl": openTemplateDialog,
-			"img-i2i": openI2IDialog,
 			"vid-cover": openCoverDialog,
 			"vid-subs": openSubsDialog
 		}[x](s, i);
@@ -17277,20 +17298,18 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		if (!c || !c.edit || ti == null || !a || c.s.free) return "";
 		const s = c.s, lk = c.locked;
 		a.versions.findIndex((v) => v.n === a.current);
-		const open = c.promptOpen === ti;
 		return `${imgToolbar({
 			s,
 			a,
 			i: ti,
 			lk,
-			via: "pv",
-			open
-		})}${open ? `<div class="pv-prompt"><label class="small" for="pv-prompt-${ti}">Prompt ảnh (sửa rồi bấm Gen để tạo phiên bản mới)</label><textarea id="pv-prompt-${ti}" spellcheck="false">${esc(c.pdraft != null ? c.pdraft : a.prompt)}</textarea><div class="row" style="gap:8px"><button class="btn sm primary" data-pv="pgen" data-i="${ti}">Lưu prompt và Gen</button><button class="btn sm" data-pv="psave" data-i="${ti}">Chỉ lưu prompt</button><button class="btn sm ghost" data-pv="pclose">Đóng</button></div></div>` : ""}`;
+			via: "pv"
+		})}`;
 	}
 	function pvMediaHtml(s, st, lk) {
 		const rows = s.assets.map((a, i) => {
 			const ci = a.versions.findIndex((v) => v.n === a.current), vid = assetKind(a) === "video", cur = ci >= 0 ? a.versions[ci] : null;
-			const openP = st.promptOpen === i, openE = st.editOpen === i;
+			const openE = st.editOpen === i;
 			!lk && cur && !vid && cur.src;
 			return `<div class="imgrow pv-mrow" data-img="${i}"><div>${imgThumb(a)}</div>
       <div class="stack" style="gap:6px;min-width:0">
@@ -17301,11 +17320,9 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				i,
 				lk,
 				via: "pv",
-				open: openP,
 				meta: false,
 				extra: `<button class="btn sm ghost danger" data-x="asset-del" data-i="${i}" ${lk ? "disabled" : ""} aria-label="Xóa ${esc(a.name)}">Xóa</button>`
 			})}
-        ${openP ? `<div class="pv-prompt"><label class="small" for="pv-prompt-${i}">Prompt ảnh (sửa rồi bấm Gen để tạo phiên bản mới)</label><textarea id="pv-prompt-${i}" spellcheck="false">${esc(st.pdraft != null ? st.pdraft : a.prompt)}</textarea><div class="row" style="gap:8px"><button class="btn sm primary" data-pv="pgen" data-i="${i}">Lưu prompt và Gen</button><button class="btn sm" data-pv="psave" data-i="${i}">Chỉ lưu prompt</button><button class="btn sm ghost" data-pv="pclose">Đóng</button></div></div>` : ""}
         ${openE ? `<div class="pv-prompt"><label class="small" for="pv-medit-${i}">Yêu cầu chỉnh ảnh (tạo thêm một phiên bản, mô phỏng)</label><input id="pv-medit-${i}" class="inp" placeholder="Ví dụ: làm sáng hơn, bỏ chữ trên ảnh" value="${esc(st.edraft || "")}"><div class="row" style="gap:8px"><button class="btn sm primary" data-pv="mapply" data-i="${i}">Áp dụng</button><button class="btn sm ghost" data-pv="mclose">Đóng</button></div></div>` : ""}
         ${videoMetaLine(cur)}${cur && cur.ai ? `<span class="small faint">Bản này: tạo bằng ${esc((AC.IMAGE_PROVIDERS[cur.ai.provider] || {}).label || cur.ai.provider)}${cur.ai.model ? " · " + esc(cur.ai.model) : ""} (AI thật)</span>` : ""}
         ${cur && cur.crop ? `<span class="small faint">Bản này: cắt ${esc(AC.CROP_RATIOS[cur.crop.ratio] ? AC.CROP_RATIOS[cur.crop.ratio].label : "")} từ bản v${cur.crop.from}</span>` : cur && cur.tpl ? `<span class="small faint">Bản này: áp mẫu “${esc(cur.tpl.name)}” lên bản v${cur.text.from}</span>` : cur && cur.text ? `<span class="small faint">Bản này: thêm ${cur.text.layers.length} lớp chữ lên bản v${cur.text.from}</span>` : cur && cur.frame ? `<span class="small faint">Bản này: ghép frame “${esc(cur.frame.name)}” từ bản v${cur.frame.from}</span>` : cur && cur.i2i ? `<span class="small faint">Bản này: Image to Image “${esc(cur.i2i.prompt)}” từ bản v${cur.i2i.from} (${cur.i2i.simulated === false ? "AI thật" : "mô phỏng"})</span>` : cur && cur.edit ? `<span class="small faint">Bản này: sửa theo yêu cầu “${esc(cur.edit)}”</span>` : ""}
@@ -17763,13 +17780,6 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				});
 				return;
 			}
-			if (k === "prompt") {
-				const i = Number(b.dataset.i);
-				st.promptOpen = st.promptOpen === i ? null : i;
-				st.pdraft = null;
-				paint();
-				return;
-			}
 			if (k === "medit") {
 				const i = Number(b.dataset.i);
 				st.editOpen = st.editOpen === i ? null : i;
@@ -17792,37 +17802,6 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				render();
 				paint();
 				toast(`Đã tạo ảnh phiên bản ${r.version} theo yêu cầu.`);
-				return;
-			}
-			if (k === "pclose") {
-				st.promptOpen = null;
-				st.pdraft = null;
-				paint();
-				return;
-			}
-			if (k === "psave" || k === "pgen") {
-				const i = Number(b.dataset.i);
-				const ta = box.querySelector(`#pv-prompt-${i}`);
-				const r = AC.setSlotImagePrompt(S, s.id, i, ta ? ta.value : "");
-				if (!r.ok) return toast(r.error, "bad");
-				st.pdraft = null;
-				if (k === "pgen" && AC.imageApiOn(S)) {
-					st.promptOpen = null;
-					save();
-					render();
-					paint();
-					apiGenImage(s, i);
-					return;
-				}
-				if (k === "pgen") {
-					const g = AC.genSlotImage(S, s.id, i);
-					if (!g.ok) return toast(g.error, "bad");
-					st.promptOpen = null;
-					toast(`Đã tạo ảnh phiên bản ${g.version} từ prompt mới.`);
-				} else toast("Đã lưu prompt.");
-				save();
-				render();
-				paint();
 				return;
 			}
 			if (k === "pub") {
@@ -17861,7 +17840,6 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 					danger: true
 				})) return;
 				st.edit = false;
-				st.promptOpen = null;
 				paint();
 				return;
 			}
@@ -17878,7 +17856,6 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 					st.hookKind = null;
 				}
 				st.edit = false;
-				st.promptOpen = null;
 				save();
 				render();
 				paint();
@@ -20604,22 +20581,6 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		g.drawImage(img, 0, 0, c.width, c.height);
 		return c.toDataURL("image/jpeg", .85);
 	}
-	async function i2iEngine(v, prompt, strength, ratio) {
-		if (AC.imageApiOn(S)) {
-			const out = await imageApiCall("i2i", {
-				prompt,
-				strength,
-				ratio,
-				image: await versionToDataUrl(v)
-			});
-			return {
-				src: out.src,
-				ai: out.ai
-			};
-		}
-		if (!v.src) return {};
-		return { src: await renderI2I(v, AC.i2iLook(prompt, strength)) };
-	}
 	function curVersion(a) {
 		return a && a.versions.find((x) => x.n === a.current);
 	}
@@ -20639,6 +20600,12 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		toast(msg + (u.pct >= 80 ? ` Bộ nhớ trình duyệt đã dùng ${u.pct}%: nên Sao lưu và xoá bớt ảnh cũ.` : ""), u.pct >= 80 ? "bad" : void 0);
 	}
 	function slotImageDialog(s, x, i) {
+		if (x === "img-genai") {
+			const lk = AC.slotLockMsg(S, s);
+			if (lk) toast(lk, "bad");
+			else openGenAiDialog(s, i);
+			return true;
+		}
 		if (x === "img-gen" && AC.imageApiOn(S)) {
 			apiGenImage(s, i);
 			return true;
@@ -20647,15 +20614,8 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			openImageEditor(s, i);
 			return true;
 		}
-		if (x === "img-prompt") {
-			const lk = AC.slotLockMsg(S, s);
-			if (lk) toast(lk, "bad");
-			else openPromptDialog(s, i);
-			return true;
-		}
 		if (![
 			"img-frame",
-			"img-i2i",
 			"img-text",
 			"img-crop",
 			"img-tpl",
@@ -20699,8 +20659,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			"img-frame": openFrameDialog,
 			"img-text": openTextDialog,
 			"img-crop": openCropDialog,
-			"img-tpl": openTemplateDialog,
-			"img-i2i": openI2IDialog
+			"img-tpl": openTemplateDialog
 		})[x](s, i);
 		return true;
 	}
@@ -20797,76 +20756,130 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		});
 		preview();
 	}
-	var I2I_PRESETS = [
-		"Làm sáng hơn",
-		"Tông ấm cổ điển",
-		"Tông lạnh xanh",
-		"Đen trắng",
-		"Tương phản mạnh",
-		"Nhẹ nhàng pastel",
-		"Màu rực rỡ",
-		"Xoá phông nền"
-	];
-	function openI2IDialog(s, i) {
-		const a = s.assets[i], v = curVersion(a);
+	var GENAI_REF_MAX = 3;
+	function openGenAiDialog(s, i) {
+		const a = s.assets[i], v = curVersion(a), ratio = AC.assetRatioOf(a);
 		const st = {
-			prompt: "",
-			strength: .5
+			refs: [],
+			busy: false,
+			undo: null
 		};
-		const box = openLayer(`<header class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:nowrap"><div><span class="eyebrow">Image to Image · ${AC.imageApiOn(S) ? "qua " + esc(providerLabel()) : "mô phỏng"} · ${esc(a.name)} · bản v${v.n}</span><h2>Biến đổi ảnh theo yêu cầu</h2><p class="small muted">${AC.imageApiOn(S) ? `Ảnh đang dùng và yêu cầu được gửi tới ${esc(providerLabel())} để vẽ lại (tính phí theo nhà cung cấp). Ô bên phải chỉ xem gần đúng; ảnh thật có sau khi tạo.` : v.src ? "Bản MVP biến đổi ảnh bằng bộ lọc màu theo từ khoá của yêu cầu (sáng, tối, ấm, lạnh, đen trắng, tương phản, pastel, xoá phông)." : "Ảnh này là ảnh mô phỏng: bản MVP sinh một hình mô phỏng mới nối từ ảnh cũ."} ${AC.imageApiOn(S) ? "" : "Muốn AI vẽ lại thật: Setup → AI ảnh & video."} Kết quả thành phiên bản mới; bản v${v.n} vẫn giữ.</p></div><button class="btn icon ghost" data-act="close-layer" aria-label="Đóng">${icon("close")}</button></header>
-    <div class="fr-dlg">
-      <div class="stack" style="gap:8px;min-width:0">
-        <div class="field"><label for="i2i-prompt">Yêu cầu</label><textarea id="i2i-prompt" rows="3" maxlength="300" placeholder="Ví dụ: tông ấm cổ điển, làm sáng hơn"></textarea></div>
-        <div class="row" style="gap:6px;flex-wrap:wrap" aria-label="Gợi ý">${I2I_PRESETS.map((p) => `<button class="btn sm" data-i2p="${esc(p)}">${esc(p)}</button>`).join("")}</div>
-        <div class="field"><label for="i2i-str">Mức biến đổi: <b id="i2i-strv">50%</b></label><input id="i2i-str" type="range" min="10" max="100" step="10" value="50"></div>
+		const box = openLayer(`<header class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:nowrap"><div><span class="eyebrow">Gen AI · ${AC.imageApiOn(S) ? "qua " + esc(providerLabel()) : "mô phỏng"} · ${esc(a.name)}${v ? ` · bản v${v.n}` : ""}</span><h2>Tạo ảnh bằng AI</h2><p class="small muted">Viết hoặc sửa mô tả ảnh, đính ảnh tham chiếu bằng dấu +, bấm Prompt để tạo prompt từ mô tả (hoặc tự gõ), rồi Enter. Mỗi lần tạo là một phiên bản mới; bản cũ vẫn giữ.</p></div><button class="btn icon ghost" data-act="close-layer" aria-label="Đóng">${icon("close")}</button></header>
+    <div class="stack" style="gap:10px">
+      <div class="field"><label for="ga-desc">Mô tả ảnh (để tham khảo)</label><textarea id="ga-desc" rows="3" spellcheck="false" placeholder="Bức ảnh trông thế nào">${esc(a.prompt || "")}</textarea></div>
+      <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center" id="ga-refs" aria-label="Ảnh tham chiếu"></div>
+      <div class="field"><label for="ga-chat">Prompt tạo ảnh</label><textarea id="ga-chat" rows="3" spellcheck="false" placeholder="Bấm Prompt để tạo từ mô tả, hoặc tự gõ. Để trống thì dùng Mô tả ảnh. Enter để tạo ảnh (Shift+Enter xuống dòng).">${esc(a.genPrompt || "")}</textarea></div>
+      <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center">
+        <label class="btn sm" for="ga-file" title="Thêm ảnh tham chiếu (tối đa ${GENAI_REF_MAX})" aria-label="Thêm ảnh tham chiếu">${icon("plus")}</label><input id="ga-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple class="sr">
+        ${v && v.kind !== "video" ? "<button class=\"btn sm\" id=\"ga-cur\" title=\"Dùng ảnh đang chọn của ô làm ảnh tham chiếu\">Dùng ảnh hiện tại</button>" : ""}
+        <button class="btn sm" id="ga-prompt" title="Tạo prompt từ Mô tả ảnh (ghi đè prompt đang có)">Prompt</button><button class="linkbtn small" id="ga-undo" hidden>Hoàn tác prompt</button>
+        <span style="flex:1"></span><span class="small faint" id="ga-note"></span>
+        <button class="btn primary" id="ga-go">Tạo ảnh</button>
       </div>
-      <div class="stack" style="gap:8px"><span class="small muted">Trước · Sau (gần đúng)</span><div class="i2i-pair"><div class="imgbox">${imgVisual(v, false, AC.assetRatioOf(a))}</div><div class="imgbox" id="i2i-after">${imgVisual(v, false, AC.assetRatioOf(a))}</div></div></div>
-    </div>
-    <div class="actions"><button class="btn ghost" data-act="close-layer">Hủy</button><button class="btn primary" id="i2i-ok" disabled>Tạo phiên bản mới</button></div>`, "dialog");
+    </div>`, "dialog");
 		box.classList.add("wide");
-		const ta = box.querySelector("#i2i-prompt"), ok = box.querySelector("#i2i-ok"), after = box.querySelector("#i2i-after");
-		const upd = () => {
-			ok.disabled = !st.prompt.trim();
-			after.firstElementChild.style.filter = st.prompt.trim() ? i2iFilter(AC.i2iLook(st.prompt, st.strength)) : "";
+		const desc = box.querySelector("#ga-desc"), chat = box.querySelector("#ga-chat"), refsEl = box.querySelector("#ga-refs"), go = box.querySelector("#ga-go"), note = box.querySelector("#ga-note"), undo = box.querySelector("#ga-undo");
+		const paintRefs = () => {
+			refsEl.innerHTML = st.refs.length ? `<span class="small muted">Ảnh tham chiếu:</span>${st.refs.map((r, k) => `<span class="row" style="gap:2px"><img src="${esc(r)}" alt="Ảnh tham chiếu ${k + 1}" style="height:44px;width:44px;object-fit:cover;border-radius:6px"><button class="btn xs ghost" data-ga-rm="${k}" aria-label="Bỏ ảnh tham chiếu ${k + 1}">${icon("close")}</button></span>`).join("")}` : "";
+			note.textContent = st.refs.length ? AC.imageApiOn(S) ? "Có ảnh tham chiếu: chạy Image to Image" : "Mô phỏng: ảnh tham chiếu chỉ đổi sáng, màu theo từ khoá trong prompt" : "";
 		};
-		ta.addEventListener("input", () => {
-			st.prompt = ta.value;
-			upd();
+		const addRef = (src) => {
+			if (st.refs.length >= GENAI_REF_MAX) return toast(`Tối đa ${GENAI_REF_MAX} ảnh tham chiếu.`, "bad");
+			st.refs.push(src);
+			paintRefs();
+		};
+		paintRefs();
+		box.querySelector("#ga-file").addEventListener("change", async (e) => {
+			for (const f of [...e.target.files]) try {
+				addRef((await readImageFile(f)).src);
+			} catch (err) {
+				toast(err.message, "bad");
+			}
+			e.target.value = "";
 		});
-		box.querySelector("#i2i-str").addEventListener("input", (e) => {
-			st.strength = Number(e.target.value) / 100;
-			box.querySelector("#i2i-strv").textContent = e.target.value + "%";
-			upd();
+		const cur = box.querySelector("#ga-cur");
+		if (cur) cur.addEventListener("click", async () => {
+			try {
+				addRef(await versionToDataUrl(v));
+			} catch (err) {
+				toast("Không lấy được ảnh hiện tại: " + err.message, "bad");
+			}
 		});
 		box.addEventListener("click", (e) => {
-			const c = e.target.closest("[data-i2p]");
-			if (!c) return;
-			const t = c.dataset.i2p;
-			st.prompt = st.prompt.trim() ? `${st.prompt.trim()}, ${t.toLowerCase()}` : t;
-			ta.value = st.prompt;
-			upd();
+			const r = e.target.closest("[data-ga-rm]");
+			if (r) {
+				st.refs.splice(Number(r.dataset.gaRm), 1);
+				paintRefs();
+			}
 		});
-		ok.addEventListener("click", async () => {
-			ok.disabled = true;
-			ok.textContent = "Đang tạo…";
+		box.querySelector("#ga-prompt").addEventListener("click", () => {
+			const p = AC.promptFromDesc(S, s.id, i, desc.value);
+			if (!p) return toast("Nhập Mô tả ảnh trước khi bấm Prompt.", "bad");
+			st.undo = chat.value;
+			chat.value = p;
+			undo.hidden = false;
+			chat.focus();
+		});
+		undo.addEventListener("click", () => {
+			chat.value = st.undo == null ? "" : st.undo;
+			undo.hidden = true;
+		});
+		const run = async () => {
+			if (st.busy) return;
+			const d = desc.value.trim(), p = chat.value.trim() || d;
+			if (!p) return toast("Nhập mô tả ảnh hoặc prompt trước khi tạo ảnh.", "bad");
+			st.busy = true;
+			go.disabled = true;
+			go.textContent = "Đang tạo…";
 			try {
-				const out = await i2iEngine(v, st.prompt, st.strength, AC.assetRatioOf(a));
-				const r = AC.i2iSlotImage(S, s.id, i, {
-					prompt: st.prompt,
-					strength: st.strength,
+				let out = {};
+				if (AC.imageApiOn(S)) out = st.refs.length ? await imageApiCall("i2i", {
+					prompt: p,
+					strength: .6,
+					ratio,
+					image: st.refs[0]
+				}) : await imageApiCall("gen", {
+					prompt: p,
+					ratio
+				});
+				else if (st.refs.length) out = { src: await renderI2I({
+					n: 0,
+					kind: "image",
+					src: st.refs[0]
+				}, AC.i2iLook(p, .6)) };
+				const r = AC.genAiSlotImage(S, s.id, i, {
+					desc: d,
+					prompt: chat.value.trim(),
+					ref: st.refs.length > 0,
 					src: out.src,
 					ai: out.ai
 				});
-				if (!r.ok) {
-					ok.disabled = false;
-					ok.textContent = "Tạo phiên bản mới";
-					return toast(r.error, "bad");
-				}
-				afterImageDialog(s, `Đã tạo phiên bản ${r.version} bằng Image to Image (${out.ai ? "qua " + providerLabel() : "mô phỏng"}).`);
+				if (!r.ok) throw new Error(r.error);
+				afterImageDialog(s, `Đã tạo phiên bản ${r.version} (${out.ai ? "qua " + providerLabel() : "mô phỏng"}${st.refs.length ? ", có ảnh tham chiếu" : ""}).`);
 			} catch (err) {
-				ok.disabled = false;
-				ok.textContent = "Tạo phiên bản mới";
-				toast("Không biến đổi được ảnh: " + err.message, "bad");
+				st.busy = false;
+				go.disabled = false;
+				go.textContent = "Tạo ảnh";
+				const sim = AC.imageApiOn(S) ? {
+					label: "Dùng mô phỏng",
+					fn: () => {
+						const r = AC.genAiSlotImage(S, s.id, i, {
+							desc: d,
+							prompt: chat.value.trim(),
+							ref: st.refs.length > 0
+						});
+						if (!r.ok) return toast(r.error, "bad");
+						afterImageDialog(s, `Đã tạo ảnh mô phỏng phiên bản ${r.version}.`);
+					}
+				} : void 0;
+				toast("Không tạo được ảnh: " + err.message, "bad", sim);
+			}
+		};
+		go.addEventListener("click", run);
+		chat.addEventListener("keydown", (e) => {
+			if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
+				e.preventDefault();
+				run();
 			}
 		});
 	}

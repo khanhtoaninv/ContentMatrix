@@ -1928,3 +1928,30 @@ test('10.65 · Tuần mẫu Fanpage Facebook: 10 slot Facebook T2–CN, đủ 5 
   assert.equal(AC.applyTemplateWeek(S, '2026-11-09', 'wt-3').slots, 10);
   assert.equal(AC.suggestTemplateId(S, '2026-11-16'), 'wt-1');
 });
+
+test('10.68 · Gen AI: Mô tả ảnh, prompt từ mô tả, tạo ảnh có/không ảnh tham chiếu', () => {
+  const S = seed();
+  const s = AC.weekSlots(S, T2).find(x => x.assets.length);
+  const a = s.assets[0]; const n0 = a.versions.length; const desc0 = a.prompt;
+  assert.ok(desc0, 'Viết slot ghi Mô tả ảnh vào a.prompt');
+  // Prompt sinh từ mô tả: có mô tả, có tỉ lệ; mô tả trống thì rỗng
+  const p = AC.promptFromDesc(S, s.id, 0, 'Lớp học buổi tối, đèn ấm');
+  assert.match(p, /^Lớp học buổi tối, đèn ấm\. Tỉ lệ \d/); assert.equal(AC.promptFromDesc(S, s.id, 0, '   '), '');
+  // Enter không có prompt: dùng Mô tả ảnh
+  const r1 = AC.genAiSlotImage(S, s.id, 0, { desc: desc0, prompt: '' });
+  assert.ok(r1.ok); assert.equal(r1.version, n0 + 1); assert.equal(a.genPrompt, ''); assert.deepEqual(a.versions.at(-1).genai, { prompt: desc0, ref: false });
+  // Sửa mô tả + prompt riêng + ảnh tham chiếu: lưu mô tả (giữ khi viết lại), prompt, ghi nhận có tham chiếu
+  const r2 = AC.genAiSlotImage(S, s.id, 0, { desc: 'Mô tả mới', prompt: p, ref: true });
+  assert.ok(r2.ok); assert.equal(a.prompt, 'Mô tả mới'); assert.equal(a.promptEdited, true); assert.equal(a.genPrompt, p);
+  assert.deepEqual(a.versions.at(-1).genai, { prompt: p, ref: true }); assert.equal(a.current, n0 + 2);
+  // Ảnh dựng từ API (src) thành phiên bản ảnh thật, kèm ai
+  const png = 'data:image/png;base64,iVBORw0KGgo=';
+  const r3 = AC.genAiSlotImage(S, s.id, 0, { desc: 'Mô tả mới', prompt: p, ref: false, src: png, ai: { provider: 'openai', model: 'm' } });
+  assert.ok(r3.ok); const v3 = a.versions.at(-1); assert.equal(v3.src, png); assert.equal(v3.ai.provider, 'openai'); assert.equal(v3.genai.prompt, p);
+  // Trống cả hai: lỗi; slot trống không có mô tả vẫn tạo được nếu người dùng tự nhập
+  const empty = AC.weekSlots(S, T3).find(x => !x.assets.length || !x.assets[0].prompt);
+  if (empty && empty.assets.length) { assert.equal(AC.genAiSlotImage(S, empty.id, 0, { desc: '', prompt: '' }).ok, false); assert.ok(AC.genAiSlotImage(S, empty.id, 0, { desc: 'Ảnh tự nhập' }).ok); }
+  // Tuần đã chốt thì khóa
+  const c = AC.weekSlots(S, T1).find(x => x.assets.length);
+  assert.equal(AC.genAiSlotImage(S, c.id, 0, { desc: 'x' }).ok, false);
+});

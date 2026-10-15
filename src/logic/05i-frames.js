@@ -1,8 +1,8 @@
 // ---------- Frame ảnh của công ty và Image to Image (mục 10.33) ----------
 import { clone, fold, hash32, splitSentences } from './01-util.js';
-import { byId, chooseSlotImage, log, nextId, slotLockMsg } from './05-model.js';
+import { byId, chooseSlotImage, genSlotImage, log, nextId, slotLockMsg } from './05-model.js';
 import { normTextLayer, validateTextLayers } from './05j-textlayer.js';
-import { ratioFromName } from './05q-imgspec.js';
+import { assetRatioOf, ratioFromName } from './05q-imgspec.js';
 // Frame: khung cố định của công ty ghép lên ảnh (vẽ thật trong trình duyệt). Toạ độ là tỉ lệ 0–1 theo khổ ảnh ra.
 export const FRAME_RATIOS = { '1:1': [1080, 1080], '4:5': [1080, 1350], '9:16': [1080, 1920], '16:9': [1280, 720], '1.91:1': [1200, 630] };
 export const FRAME_RATIO_LABEL = { '1:1': 'Vuông 1:1', '4:5': 'Dọc 4:5', '9:16': 'Story 9:16', '16:9': 'Ngang 16:9', '1.91:1': 'Ảnh bìa 1200×630' };
@@ -89,6 +89,35 @@ export function addSlotImageVersion(S, slotId, idx, data, at) {
   log(S, data.ai ? 'ai-image' : data.lib ? 'library-image' : data.crop ? 'crop-image' : data.frame ? 'frame-image' : data.text ? 'text-image' : 'i2i-image', 'slot', slotId, `${a.name} v${n}`);
   return { ok: true, version: n };
 }
+// Gen AI (hộp thoại một chỗ cho Gen và Image to Image): Mô tả ảnh (a.prompt) + prompt người dùng (a.genPrompt) + ảnh tham chiếu.
+// Prompt sinh từ Mô tả ảnh (mô phỏng, không gọi AI): thêm tỉ lệ và yêu cầu hình
+export function promptFromDesc(S, slotId, idx, desc) {
+  const s = byId(S.slots, slotId); const a = s && s.assets[idx];
+  const d = String(desc != null ? desc : (a && a.prompt) || '').replace(/\s+/g, ' ').trim();
+  if (!d) return '';
+  const ratio = a ? assetRatioOf(a) : '1:1';
+  return `${d.replace(/[.\s]+$/, '')}. Tỉ lệ ${ratio}, bố cục gọn, ánh sáng tự nhiên, màu theo nhận diện thương hiệu, không thêm chữ ngoài chữ đã nêu.`;
+}
+// req: { desc, prompt, ref (có ảnh tham chiếu), src, ai } — src là ảnh dựng ra từ API; không có src thì tạo ảnh mô phỏng
+export function genAiSlotImage(S, slotId, idx, req, at) {
+  const s = byId(S.slots, slotId); const a = s && s.assets[idx];
+  if (!a) return { ok: false, error: 'Không tìm thấy ô ảnh.' };
+  { const e = slotLockMsg(S, s); if (e) return { ok: false, error: e }; }
+  const desc = String((req && req.desc) || '').replace(/\s+/g, ' ').trim();
+  const prompt = String((req && req.prompt) || '').replace(/\s+/g, ' ').trim() || desc || a.prompt;
+  if (!prompt) return { ok: false, error: 'Nhập mô tả ảnh hoặc prompt trước khi tạo ảnh.' };
+  if (desc && desc !== a.prompt) { a.prompt = desc; a.promptEdited = true; log(S, 'edit-image-prompt', 'slot', slotId, a.name); }
+  a.genPrompt = prompt === a.prompt ? '' : prompt;
+  const genai = { prompt, ref: !!(req && req.ref) };
+  if (req && req.src) {
+    const r = addSlotImageVersion(S, slotId, idx, { src: req.src, ext: 'jpg', ai: req.ai }, at); if (!r.ok) return r;
+    a.versions.find(v => v.n === r.version).genai = genai;
+    return r;
+  }
+  const g = genSlotImage(S, slotId, idx, at, prompt, genai); if (g.ok) log(S, 'genai-image', 'slot', slotId, `${a.name} v${g.version}${genai.ref ? ' · có ảnh tham chiếu' : ''}`);
+  return g;
+}
+
 // Image to Image (mô phỏng): ảnh đang dùng + yêu cầu → phiên bản mới. Ảnh thật được trình duyệt biến đổi (src gửi kèm);
 // ảnh mô phỏng thì sinh hình mô phỏng mới nối từ hình cũ. Khi gắn API thật chỉ thay phần dựng ảnh.
 export function i2iSlotImage(S, slotId, idx, req, at) {

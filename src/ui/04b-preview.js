@@ -28,20 +28,18 @@ export let pvCtx = null;
 function pvImgTools(a, ti) {
   const c = pvCtx; if (!c || !c.edit || ti == null || !a || c.s.free) return ''; // slot tự do: layout chỉ để xem, thao tác ở mục media bên dưới
   const s = c.s, lk = c.locked; const ci = a.versions.findIndex(v => v.n === a.current);
-  const open = c.promptOpen === ti;
-  return `${imgToolbar({ s, a, i: ti, lk, via: 'pv', open })}${open ? `<div class="pv-prompt"><label class="small" for="pv-prompt-${ti}">Prompt ảnh (sửa rồi bấm Gen để tạo phiên bản mới)</label><textarea id="pv-prompt-${ti}" spellcheck="false">${esc(c.pdraft != null ? c.pdraft : a.prompt)}</textarea><div class="row" style="gap:8px"><button class="btn sm primary" data-pv="pgen" data-i="${ti}">Lưu prompt và Gen</button><button class="btn sm" data-pv="psave" data-i="${ti}">Chỉ lưu prompt</button><button class="btn sm ghost" data-pv="pclose">Đóng</button></div></div>` : ''}`;
+  return `${imgToolbar({ s, a, i: ti, lk, via: 'pv' })}`;
 }
 // Slot tự do: mục Ảnh và video nằm dưới layout; layout chỉ hiện các ô đã có ảnh/video (mục 10.21)
 function pvMediaHtml(s, st, lk) {
   const rows = s.assets.map((a, i) => {
     const ci = a.versions.findIndex(v => v.n === a.current), vid = assetKind(a) === 'video', cur = ci >= 0 ? a.versions[ci] : null;
-    const openP = st.promptOpen === i, openE = st.editOpen === i;
+    const openE = st.editOpen === i;
     const canEdit = !lk && cur && !vid && !cur.src;
     return `<div class="imgrow pv-mrow" data-img="${i}"><div>${imgThumb(a)}</div>
       <div class="stack" style="gap:6px;min-width:0">
         <div class="row" style="gap:8px"><b>${esc(a.name)}</b><span class="small muted">${cur ? `${vid ? 'Video' : 'Ảnh'} · v${a.current}/${a.versions.length}` : 'Trống'}</span></div>
-        ${imgToolbar({ s, a, i, lk, via: 'pv', open: openP, meta: false, extra: `<button class="btn sm ghost danger" data-x="asset-del" data-i="${i}" ${lk ? 'disabled' : ''} aria-label="Xóa ${esc(a.name)}">Xóa</button>` })}
-        ${openP ? `<div class="pv-prompt"><label class="small" for="pv-prompt-${i}">Prompt ảnh (sửa rồi bấm Gen để tạo phiên bản mới)</label><textarea id="pv-prompt-${i}" spellcheck="false">${esc(st.pdraft != null ? st.pdraft : a.prompt)}</textarea><div class="row" style="gap:8px"><button class="btn sm primary" data-pv="pgen" data-i="${i}">Lưu prompt và Gen</button><button class="btn sm" data-pv="psave" data-i="${i}">Chỉ lưu prompt</button><button class="btn sm ghost" data-pv="pclose">Đóng</button></div></div>` : ''}
+        ${imgToolbar({ s, a, i, lk, via: 'pv', meta: false, extra: `<button class="btn sm ghost danger" data-x="asset-del" data-i="${i}" ${lk ? 'disabled' : ''} aria-label="Xóa ${esc(a.name)}">Xóa</button>` })}
         ${openE ? `<div class="pv-prompt"><label class="small" for="pv-medit-${i}">Yêu cầu chỉnh ảnh (tạo thêm một phiên bản, mô phỏng)</label><input id="pv-medit-${i}" class="inp" placeholder="Ví dụ: làm sáng hơn, bỏ chữ trên ảnh" value="${esc(st.edraft || '')}"><div class="row" style="gap:8px"><button class="btn sm primary" data-pv="mapply" data-i="${i}">Áp dụng</button><button class="btn sm ghost" data-pv="mclose">Đóng</button></div></div>` : ''}
         ${videoMetaLine(cur)}${cur && cur.ai ? `<span class="small faint">Bản này: tạo bằng ${esc((AC.IMAGE_PROVIDERS[cur.ai.provider] || {}).label || cur.ai.provider)}${cur.ai.model ? ' · ' + esc(cur.ai.model) : ''} (AI thật)</span>` : ''}
         ${cur && cur.crop ? `<span class="small faint">Bản này: cắt ${esc(AC.CROP_RATIOS[cur.crop.ratio] ? AC.CROP_RATIOS[cur.crop.ratio].label : '')} từ bản v${cur.crop.from}</span>` : cur && cur.tpl ? `<span class="small faint">Bản này: áp mẫu “${esc(cur.tpl.name)}” lên bản v${cur.text.from}</span>` : cur && cur.text ? `<span class="small faint">Bản này: thêm ${cur.text.layers.length} lớp chữ lên bản v${cur.text.from}</span>` : cur && cur.frame ? `<span class="small faint">Bản này: ghép frame “${esc(cur.frame.name)}” từ bản v${cur.frame.from}</span>` : cur && cur.i2i ? `<span class="small faint">Bản này: Image to Image “${esc(cur.i2i.prompt)}” từ bản v${cur.i2i.from} (${cur.i2i.simulated === false ? 'AI thật' : 'mô phỏng'})</span>` : cur && cur.edit ? `<span class="small faint">Bản này: sửa theo yêu cầu “${esc(cur.edit)}”</span>` : ''}
@@ -331,22 +329,12 @@ export function openPreview(id, n, opts) {
     const k = b.dataset.pv;
     if (k.startsWith('b-')) { if (st.edit) { const ta1 = box.querySelector('#pv-edit'); if (ta1) st.draft = ta1.value; } await blogPvAction(s, st, k, b, paint); return; }
     if (k === 'mtable') { const t = box.querySelector('#pv-metrics'); if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
-    if (k === 'prompt') { const i = Number(b.dataset.i); st.promptOpen = st.promptOpen === i ? null : i; st.pdraft = null; paint(); return; }
     if (k === 'medit') { const i = Number(b.dataset.i); st.editOpen = st.editOpen === i ? null : i; st.edraft = ''; paint(); return; }
     if (k === 'mclose') { st.editOpen = null; paint(); return; }
     if (k === 'mapply') {
       const i = Number(b.dataset.i); const inp = box.querySelector(`#pv-medit-${i}`);
       const r = AC.editSlotImage(S, s.id, i, inp ? inp.value : ''); if (!r.ok) return toast(r.error, 'bad');
       st.editOpen = null; save(); render(); paint(); toast(`Đã tạo ảnh phiên bản ${r.version} theo yêu cầu.`); return;
-    }
-    if (k === 'pclose') { st.promptOpen = null; st.pdraft = null; paint(); return; }
-    if (k === 'psave' || k === 'pgen') {
-      const i = Number(b.dataset.i); const ta = box.querySelector(`#pv-prompt-${i}`);
-      const r = AC.setSlotImagePrompt(S, s.id, i, ta ? ta.value : ''); if (!r.ok) return toast(r.error, 'bad');
-      st.pdraft = null;
-      if (k === 'pgen' && AC.imageApiOn(S)) { st.promptOpen = null; save(); render(); paint(); apiGenImage(s, i); return; }
-      if (k === 'pgen') { const g = AC.genSlotImage(S, s.id, i); if (!g.ok) return toast(g.error, 'bad'); st.promptOpen = null; toast(`Đã tạo ảnh phiên bản ${g.version} từ prompt mới.`); } else toast('Đã lưu prompt.');
-      save(); render(); paint(); return;
     }
     if (k === 'pub') { if (await publishDialog(s)) paint(); return; }
     if (k === 'unpub') {
@@ -357,13 +345,13 @@ export function openPreview(id, n, opts) {
     if (k === 'edit') { st.edit = true; st.draft = s.text; st.more = true; paint(); const ta = box.querySelector('.pv-seg') || box.querySelector('#pv-edit'); if (ta) ta.focus(); return; }
     if (k === 'cancel') {
       if (st.draft !== s.text && !(await confirmBox({ title: 'Bỏ các thay đổi?', body: '<p>Chữ bạn vừa sửa chưa được lưu.</p>', ok: 'Bỏ thay đổi', danger: true }))) return;
-      st.edit = false; st.promptOpen = null; paint(); return;
+      st.edit = false; paint(); return;
     }
     if (k === 'save') {
       if (st.draft === s.text) { st.edit = false; paint(); return; }
       const r = AC.editSlot(S, s.id, st.draft); if (!r.ok) return toast(r.error, 'bad');
       if (st.hookKind) { AC.setSlotHookKind(S, s.id, st.hookKind); st.hookKind = null; }
-      st.edit = false; st.promptOpen = null; save(); render(); paint(); toast('Đã lưu bản sửa. Slot chờ duyệt lại.'); return;
+      st.edit = false; save(); render(); paint(); toast('Đã lưu bản sửa. Slot chờ duyệt lại.'); return;
     }
     if (k === 'regen') { const r = await withAiText(C => AC.regenSlot(C, s.id)); if (!r.ok) return toast(r.error, 'bad'); st.slide = 0; st.more = false; save(); render(); paint(); toast(`Đã tạo bản ${r.n}. Bấm Hoàn tác để quay lại bản trước.`); return; }
     if (k === 'undo') { const r = AC.useSlotVersion(S, s.id, s.undoN); if (!r.ok) return toast(r.error, 'bad'); st.slide = 0; save(); render(); paint(); toast('Đã quay lại bản trước.'); return; }

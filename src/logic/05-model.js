@@ -333,7 +333,7 @@ export function validateSlotInput(S, weekId, input) {
 // Đưa slot về "Chưa có bài" (giữ nguyên các bản ảnh đã tạo; prompt ảnh nhận lại khi Viết tất cả slot)
 export function clearSlotContent(s) {
   Object.assign(s, { sourceCellId: null, sourceStamp: null, text: '', prevText: null, state: s.state === 'PUBLISHED' ? 'PUBLISHED' : 'EMPTY', needsUpdate: false, scores: [], total: null, tip: '', keepReason: '' });
-  s.assets.forEach(a => { a.cellPrompt = ''; a.prompt = ''; });
+  s.assets.forEach(a => { a.cellPrompt = ''; a.prompt = ''; a.genPrompt = ''; });
 }
 export function addSlot(S, weekId, input) {
   if (isLocked(S, weekId)) return { ok: false, error: 'Tuần đã chốt. Bấm "Mở lại để sửa" trước.' };
@@ -911,13 +911,15 @@ export function setSlotImagePrompt(S, slotId, idx, prompt) {
   if (p !== a.prompt) { a.prompt = p; a.promptEdited = true; log(S, 'edit-image-prompt', 'slot', slotId, a.name); }
   return { ok: true };
 }
-export function genSlotImage(S, slotId, idx, at) {
+// prompt (tuỳ chọn): prompt người dùng gõ trong Gen AI; không có thì dùng Mô tả ảnh (a.prompt)
+export function genSlotImage(S, slotId, idx, at, prompt, genai) {
   const s = byId(S.slots, slotId); const a = s && s.assets[idx];
   if (!a) return { ok: false, error: 'Không tìm thấy ô ảnh.' };
-  if (!a.prompt) return { ok: false, error: 'Ô ảnh chưa có prompt. Prompt đến từ ô khi Chia bài.' };
+  const use = String(prompt || a.prompt || '').trim();
+  if (!use) return { ok: false, error: 'Ô ảnh chưa có mô tả ảnh. Mô tả đến từ ô khi Viết slot, hoặc bạn tự nhập trong Gen AI.' };
   { const e = slotLockMsg(S, s); if (e) return { ok: false, error: e }; }
   const n = a.versions.length + 1;
-  a.versions.push({ n, seed: hash32(`${slotId}|${idx}|${n}|${a.prompt}`), createdAt: at || S.settings.demoNow });
+  a.versions.push(Object.assign({ n, seed: hash32(`${slotId}|${idx}|${n}|${use}`), createdAt: at || S.settings.demoNow }, genai ? { genai } : {}));
   chooseSlotImage(S, slotId, idx, n);
   log(S, 'gen-image', 'slot', slotId, `${a.name} v${n}`);
   return { ok: true, version: n };

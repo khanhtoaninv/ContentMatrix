@@ -8,12 +8,12 @@ import { openSlot } from './04-week.js';
 import { pvRefresh } from './04b-preview.js';
 import { openTextDialog } from './04f-text.js';
 import { designTplSection, openCropDialog, openTemplateDialog } from './04h-design.js';
-import { versionToDataUrl } from './04i-studio.js';
+import { readImageFile, versionToDataUrl } from './04i-studio.js';
 import { apiGenImage, imageApiCall, openCoverDialog, openSubsDialog, providerLabel } from './04j-media.js';
-import { fitImageToRatio, openImageEditor, openLibraryPicker, openPromptDialog } from './04m-imgtools.js';
+import { fitImageToRatio, openImageEditor, openLibraryPicker } from './04m-imgtools.js';
 import { lines } from './07-setup.js';
 // Ghép frame vẽ thật bằng canvas trong trình duyệt. Image to Image là mô phỏng: ảnh thật được biến đổi bằng bộ lọc
-// theo từ khoá của yêu cầu, ảnh mô phỏng sinh hình mới. Khi gắn API thật chỉ thay i2iEngine bên dưới.
+// theo từ khoá của yêu cầu, ảnh mô phỏng sinh hình mới. Gen AI (openGenAiDialog) dùng chung bộ lọc này cho ảnh tham chiếu.
 const FRAME_FONT = '"Be Vietnam Pro", system-ui, sans-serif';
 export function loadImg(src) { return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('Không đọc được ảnh.')); i.src = src; }); }
 // Ảnh nguồn của một phiên bản: ảnh thật, hoặc hình mô phỏng đổi thành SVG độc lập để vẽ lên canvas
@@ -97,13 +97,6 @@ async function renderI2I(v, look) {
   g.drawImage(img, 0, 0, c.width, c.height);
   return c.toDataURL('image/jpeg', 0.85);
 }
-// Chỗ gắn API Image to Image thật: nhận phiên bản ảnh + yêu cầu, trả { src } (data URL) hoặc {} khi chỉ mô phỏng.
-// Ảnh mô phỏng (không có src) trả {}: logic tự sinh hình mô phỏng mới.
-async function i2iEngine(v, prompt, strength, ratio) {
-  if (AC.imageApiOn(S)) { const out = await imageApiCall('i2i', { prompt, strength, ratio, image: await versionToDataUrl(v) }); return { src: out.src, ai: out.ai }; }
-  if (!v.src) return {};
-  return { src: await renderI2I(v, AC.i2iLook(prompt, strength)) };
-}
 export function curVersion(a) { return a && a.versions.find(x => x.n === a.current); }
 // Dung lượng dữ liệu đang lưu (localStorage khoảng 5 triệu ký tự)
 export function storeUse() { const n = stateJson(null).length; return { n, pct: Math.min(100, Math.round(n / 5e6 * 100)) }; }
@@ -113,17 +106,17 @@ export function afterImageDialog(s, msg) {
 }
 // Mở hộp thoại theo nút trên ảnh; trả true nếu đã xử lý
 export function slotImageDialog(s, x, i) {
+  if (x === 'img-genai') { const lk = AC.slotLockMsg(S, s); if (lk) toast(lk, 'bad'); else openGenAiDialog(s, i); return true; }
   if (x === 'img-gen' && AC.imageApiOn(S)) { apiGenImage(s, i); return true; }
   if (x === 'img-edit') { openImageEditor(s, i); return true; }
-  if (x === 'img-prompt') { const lk = AC.slotLockMsg(S, s); if (lk) toast(lk, 'bad'); else openPromptDialog(s, i); return true; }
-  if (!['img-frame', 'img-i2i', 'img-text', 'img-crop', 'img-tpl', 'img-lib', 'img-fit', 'vid-cover', 'vid-subs'].includes(x)) return false;
+  if (!['img-frame', 'img-text', 'img-crop', 'img-tpl', 'img-lib', 'img-fit', 'vid-cover', 'vid-subs'].includes(x)) return false;
   const a = s.assets[i]; const v = curVersion(a);
   const lock = AC.slotLockMsg(S, s); if (lock) { toast(lock, 'bad'); return true; }
   if (x === 'vid-cover' || x === 'vid-subs') { if (!v || v.kind !== 'video') { toast('Ô này chưa có video.', 'bad'); return true; } (x === 'vid-cover' ? openCoverDialog : openSubsDialog)(s, i); return true; }
   if (x === 'img-lib') { if (a && assetKind(a) === 'video' && v) { toast('Kho chỉ chứa ảnh; ô này đang là video.', 'bad'); return true; } openLibraryPicker(s, i); return true; }
   if (!v || v.kind === 'video') { toast(v ? 'Chỉ dùng cho ảnh, không dùng cho video.' : 'Ô chưa có ảnh.', 'bad'); return true; }
   if (x === 'img-fit') { fitImageToRatio(s, i); return true; }
-  ({ 'img-frame': openFrameDialog, 'img-text': openTextDialog, 'img-crop': openCropDialog, 'img-tpl': openTemplateDialog, 'img-i2i': openI2IDialog })[x](s, i);
+  ({ 'img-frame': openFrameDialog, 'img-text': openTextDialog, 'img-crop': openCropDialog, 'img-tpl': openTemplateDialog })[x](s, i);
   return true;
 }
 
@@ -169,38 +162,66 @@ export function openFrameDialog(s, i) {
   preview();
 }
 
-const I2I_PRESETS = ['Làm sáng hơn', 'Tông ấm cổ điển', 'Tông lạnh xanh', 'Đen trắng', 'Tương phản mạnh', 'Nhẹ nhàng pastel', 'Màu rực rỡ', 'Xoá phông nền'];
-export function openI2IDialog(s, i) {
-  const a = s.assets[i], v = curVersion(a);
-  const st = { prompt: '', strength: 0.5 };
-  const box = openLayer(`<header class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:nowrap"><div><span class="eyebrow">Image to Image · ${AC.imageApiOn(S) ? 'qua ' + esc(providerLabel()) : 'mô phỏng'} · ${esc(a.name)} · bản v${v.n}</span><h2>Biến đổi ảnh theo yêu cầu</h2><p class="small muted">${AC.imageApiOn(S) ? `Ảnh đang dùng và yêu cầu được gửi tới ${esc(providerLabel())} để vẽ lại (tính phí theo nhà cung cấp). Ô bên phải chỉ xem gần đúng; ảnh thật có sau khi tạo.` : v.src ? 'Bản MVP biến đổi ảnh bằng bộ lọc màu theo từ khoá của yêu cầu (sáng, tối, ấm, lạnh, đen trắng, tương phản, pastel, xoá phông).' : 'Ảnh này là ảnh mô phỏng: bản MVP sinh một hình mô phỏng mới nối từ ảnh cũ.'} ${AC.imageApiOn(S) ? '' : 'Muốn AI vẽ lại thật: Setup → AI ảnh & video.'} Kết quả thành phiên bản mới; bản v${v.n} vẫn giữ.</p></div><button class="btn icon ghost" data-act="close-layer" aria-label="Đóng">${icon('close')}</button></header>
-    <div class="fr-dlg">
-      <div class="stack" style="gap:8px;min-width:0">
-        <div class="field"><label for="i2i-prompt">Yêu cầu</label><textarea id="i2i-prompt" rows="3" maxlength="300" placeholder="Ví dụ: tông ấm cổ điển, làm sáng hơn"></textarea></div>
-        <div class="row" style="gap:6px;flex-wrap:wrap" aria-label="Gợi ý">${I2I_PRESETS.map(p => `<button class="btn sm" data-i2p="${esc(p)}">${esc(p)}</button>`).join('')}</div>
-        <div class="field"><label for="i2i-str">Mức biến đổi: <b id="i2i-strv">50%</b></label><input id="i2i-str" type="range" min="10" max="100" step="10" value="50"></div>
+// Gen AI (mục 10.68): một hộp thoại cho Gen và Image to Image. Mô tả ảnh (do Viết slot ghi, sửa được), ảnh tham chiếu (+),
+// thanh chat với nút Prompt (sinh prompt từ Mô tả ảnh, ghi đè chữ đang có), Enter để tạo ảnh. Có ảnh tham chiếu thì chạy Image to Image.
+const GENAI_REF_MAX = 3;
+export function openGenAiDialog(s, i) {
+  const a = s.assets[i], v = curVersion(a), ratio = AC.assetRatioOf(a);
+  const st = { refs: [], busy: false, undo: null };
+  const box = openLayer(`<header class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:nowrap"><div><span class="eyebrow">Gen AI · ${AC.imageApiOn(S) ? 'qua ' + esc(providerLabel()) : 'mô phỏng'} · ${esc(a.name)}${v ? ` · bản v${v.n}` : ''}</span><h2>Tạo ảnh bằng AI</h2><p class="small muted">Viết hoặc sửa mô tả ảnh, đính ảnh tham chiếu bằng dấu +, bấm Prompt để tạo prompt từ mô tả (hoặc tự gõ), rồi Enter. Mỗi lần tạo là một phiên bản mới; bản cũ vẫn giữ.</p></div><button class="btn icon ghost" data-act="close-layer" aria-label="Đóng">${icon('close')}</button></header>
+    <div class="stack" style="gap:10px">
+      <div class="field"><label for="ga-desc">Mô tả ảnh (để tham khảo)</label><textarea id="ga-desc" rows="3" spellcheck="false" placeholder="Bức ảnh trông thế nào">${esc(a.prompt || '')}</textarea></div>
+      <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center" id="ga-refs" aria-label="Ảnh tham chiếu"></div>
+      <div class="field"><label for="ga-chat">Prompt tạo ảnh</label><textarea id="ga-chat" rows="3" spellcheck="false" placeholder="Bấm Prompt để tạo từ mô tả, hoặc tự gõ. Để trống thì dùng Mô tả ảnh. Enter để tạo ảnh (Shift+Enter xuống dòng).">${esc(a.genPrompt || '')}</textarea></div>
+      <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center">
+        <label class="btn sm" for="ga-file" title="Thêm ảnh tham chiếu (tối đa ${GENAI_REF_MAX})" aria-label="Thêm ảnh tham chiếu">${icon('plus')}</label><input id="ga-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple class="sr">
+        ${v && v.kind !== 'video' ? '<button class="btn sm" id="ga-cur" title="Dùng ảnh đang chọn của ô làm ảnh tham chiếu">Dùng ảnh hiện tại</button>' : ''}
+        <button class="btn sm" id="ga-prompt" title="Tạo prompt từ Mô tả ảnh (ghi đè prompt đang có)">Prompt</button><button class="linkbtn small" id="ga-undo" hidden>Hoàn tác prompt</button>
+        <span style="flex:1"></span><span class="small faint" id="ga-note"></span>
+        <button class="btn primary" id="ga-go">Tạo ảnh</button>
       </div>
-      <div class="stack" style="gap:8px"><span class="small muted">Trước · Sau (gần đúng)</span><div class="i2i-pair"><div class="imgbox">${imgVisual(v, false, AC.assetRatioOf(a))}</div><div class="imgbox" id="i2i-after">${imgVisual(v, false, AC.assetRatioOf(a))}</div></div></div>
-    </div>
-    <div class="actions"><button class="btn ghost" data-act="close-layer">Hủy</button><button class="btn primary" id="i2i-ok" disabled>Tạo phiên bản mới</button></div>`, 'dialog');
+    </div>`, 'dialog');
   box.classList.add('wide');
-  const ta = box.querySelector('#i2i-prompt'), ok = box.querySelector('#i2i-ok'), after = box.querySelector('#i2i-after');
-  const upd = () => {
-    ok.disabled = !st.prompt.trim();
-    after.firstElementChild.style.filter = st.prompt.trim() ? i2iFilter(AC.i2iLook(st.prompt, st.strength)) : '';
+  const desc = box.querySelector('#ga-desc'), chat = box.querySelector('#ga-chat'), refsEl = box.querySelector('#ga-refs'), go = box.querySelector('#ga-go'), note = box.querySelector('#ga-note'), undo = box.querySelector('#ga-undo');
+  const paintRefs = () => {
+    refsEl.innerHTML = st.refs.length ? `<span class="small muted">Ảnh tham chiếu:</span>${st.refs.map((r, k) => `<span class="row" style="gap:2px"><img src="${esc(r)}" alt="Ảnh tham chiếu ${k + 1}" style="height:44px;width:44px;object-fit:cover;border-radius:6px"><button class="btn xs ghost" data-ga-rm="${k}" aria-label="Bỏ ảnh tham chiếu ${k + 1}">${icon('close')}</button></span>`).join('')}` : '';
+    note.textContent = st.refs.length ? (AC.imageApiOn(S) ? 'Có ảnh tham chiếu: chạy Image to Image' : 'Mô phỏng: ảnh tham chiếu chỉ đổi sáng, màu theo từ khoá trong prompt') : '';
   };
-  ta.addEventListener('input', () => { st.prompt = ta.value; upd(); });
-  box.querySelector('#i2i-str').addEventListener('input', e => { st.strength = Number(e.target.value) / 100; box.querySelector('#i2i-strv').textContent = e.target.value + '%'; upd(); });
-  box.addEventListener('click', e => { const c = e.target.closest('[data-i2p]'); if (!c) return; const t = c.dataset.i2p; st.prompt = st.prompt.trim() ? `${st.prompt.trim()}, ${t.toLowerCase()}` : t; ta.value = st.prompt; upd(); });
-  ok.addEventListener('click', async () => {
-    ok.disabled = true; ok.textContent = 'Đang tạo…';
-    try {
-      const out = await i2iEngine(v, st.prompt, st.strength, AC.assetRatioOf(a));
-      const r = AC.i2iSlotImage(S, s.id, i, { prompt: st.prompt, strength: st.strength, src: out.src, ai: out.ai });
-      if (!r.ok) { ok.disabled = false; ok.textContent = 'Tạo phiên bản mới'; return toast(r.error, 'bad'); }
-      afterImageDialog(s, `Đã tạo phiên bản ${r.version} bằng Image to Image (${out.ai ? 'qua ' + providerLabel() : 'mô phỏng'}).`);
-    } catch (err) { ok.disabled = false; ok.textContent = 'Tạo phiên bản mới'; toast('Không biến đổi được ảnh: ' + err.message, 'bad'); }
+  const addRef = src => { if (st.refs.length >= GENAI_REF_MAX) return toast(`Tối đa ${GENAI_REF_MAX} ảnh tham chiếu.`, 'bad'); st.refs.push(src); paintRefs(); };
+  paintRefs();
+  box.querySelector('#ga-file').addEventListener('change', async e => {
+    for (const f of [...e.target.files]) { try { addRef((await readImageFile(f)).src); } catch (err) { toast(err.message, 'bad'); } }
+    e.target.value = '';
   });
+  const cur = box.querySelector('#ga-cur');
+  if (cur) cur.addEventListener('click', async () => { try { addRef(await versionToDataUrl(v)); } catch (err) { toast('Không lấy được ảnh hiện tại: ' + err.message, 'bad'); } });
+  box.addEventListener('click', e => { const r = e.target.closest('[data-ga-rm]'); if (r) { st.refs.splice(Number(r.dataset.gaRm), 1); paintRefs(); } });
+  box.querySelector('#ga-prompt').addEventListener('click', () => {
+    const p = AC.promptFromDesc(S, s.id, i, desc.value);
+    if (!p) return toast('Nhập Mô tả ảnh trước khi bấm Prompt.', 'bad');
+    st.undo = chat.value; chat.value = p; undo.hidden = false; chat.focus();
+  });
+  undo.addEventListener('click', () => { chat.value = st.undo == null ? '' : st.undo; undo.hidden = true; });
+  const run = async () => {
+    if (st.busy) return;
+    const d = desc.value.trim(), p = chat.value.trim() || d;
+    if (!p) return toast('Nhập mô tả ảnh hoặc prompt trước khi tạo ảnh.', 'bad');
+    st.busy = true; go.disabled = true; go.textContent = 'Đang tạo…';
+    try {
+      let out = {};
+      if (AC.imageApiOn(S)) out = st.refs.length ? await imageApiCall('i2i', { prompt: p, strength: 0.6, ratio, image: st.refs[0] }) : await imageApiCall('gen', { prompt: p, ratio });
+      else if (st.refs.length) out = { src: await renderI2I({ n: 0, kind: 'image', src: st.refs[0] }, AC.i2iLook(p, 0.6)) }; // mô phỏng: ảnh tham chiếu biến đổi theo từ khoá màu sắc
+      const r = AC.genAiSlotImage(S, s.id, i, { desc: d, prompt: chat.value.trim(), ref: st.refs.length > 0, src: out.src, ai: out.ai });
+      if (!r.ok) throw new Error(r.error);
+      afterImageDialog(s, `Đã tạo phiên bản ${r.version} (${out.ai ? 'qua ' + providerLabel() : 'mô phỏng'}${st.refs.length ? ', có ảnh tham chiếu' : ''}).`);
+    } catch (err) {
+      st.busy = false; go.disabled = false; go.textContent = 'Tạo ảnh';
+      const sim = AC.imageApiOn(S) ? { label: 'Dùng mô phỏng', fn: () => { const r = AC.genAiSlotImage(S, s.id, i, { desc: d, prompt: chat.value.trim(), ref: st.refs.length > 0 }); if (!r.ok) return toast(r.error, 'bad'); afterImageDialog(s, `Đã tạo ảnh mô phỏng phiên bản ${r.version}.`); } } : undefined;
+      toast('Không tạo được ảnh: ' + err.message, 'bad', sim);
+    }
+  };
+  go.addEventListener('click', run);
+  chat.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); run(); } });
 }
 
 // ---------- Thiết lập → Frame ảnh ----------

@@ -11,7 +11,7 @@ import { METRICS_VIA, MILESTONES, PLATFORMS, PUBLISH_VIA, channelPlatform, chann
 import { buildExportFiles, crc32, dataUrlBytes, exportFileName, slugOf, zipFiles } from './05f-export.js';
 import { cellPrompt, columnLayoutGuide, defaultLayoutGuide, layoutIssues, layoutSkeleton, plainSocial, reformatCell, tidyMarkdown } from './05g-format.js';
 import { DEFAULT_TOPIC_FRAME, TOPIC_STYLES, agentPromptOf, matchTopicSection, normalizeTopicMd, resetTopicFrame, setTopicFrame, topicFrameOf, topicFramePrompt, validateTopicFrame } from './05h-topicframe.js';
-import { BUILTIN_FRAMES, FRAME_RATIOS, FRAME_RATIO_LABEL, addSlotImageVersion, assetRatio, deleteFrame, frameOf, frameStyleOf, frameTitleHint, framesFor, framesOf, i2iLook, i2iSlotImage, saveFrame, setFrameStyle, validateFrame } from './05i-frames.js';
+import { BUILTIN_FRAMES, FRAME_RATIOS, FRAME_RATIO_LABEL, addSlotImageVersion, assetRatio, deleteFrame, frameOf, frameStyleOf, frameTitleHint, framesFor, framesOf, i2iLook, i2iSlotImage, genAiSlotImage, promptFromDesc, saveFrame, setFrameStyle, validateFrame } from './05i-frames.js';
 import { TEXT_EFFECTS, TEXT_FONTS, TEXT_PLACES, newTextLayer, normTextLayer, placeTextLayer, textFontCss, validateTextLayers } from './05j-textlayer.js';
 import { AI_OPS, DEFAULT_SNIPPETS, HOOK_KINDS, aiOpsOf, aiRewrite, captionOptions, coreIdea, deleteSnippet, hookOptions, replaceHook, saveSnippet, setSlotHookKind, snippetsFor, snippetsOf, useSnippet } from './05k-assist.js';
 import { CROP_RATIOS, applyDesignTemplate, cropOutSize, cropRect, deleteDesignTemplate, designTemplatesOf, normRotation, saveDesignTemplate } from './05l-design.js';
@@ -29,7 +29,7 @@ const AC = {
   countWords, splitSentences, isValidUrl,
   parseBrand, parseVoice, parseTopics, topicSubsections, parseFrontmatter,
   checkRules, summarizeWarnings, extractNumbers, lengthOf, slidesOf, hashtagsOf, paragraphsOf,
-  scoreText, paraBreak, labelOf, defaultLayoutGuide, columnLayoutGuide, layoutSkeleton, cellPrompt, layoutIssues, tidyMarkdown, reformatCell, plainSocial, TOPIC_STYLES, DEFAULT_TOPIC_FRAME, topicFrameOf, validateTopicFrame, setTopicFrame, resetTopicFrame, matchTopicSection, topicFramePrompt, agentPromptOf, normalizeTopicMd, FRAME_RATIOS, FRAME_RATIO_LABEL, BUILTIN_FRAMES, frameStyleOf, setFrameStyle, framesOf, frameOf, assetRatio, framesFor, validateFrame, saveFrame, deleteFrame, frameTitleHint, addSlotImageVersion, i2iSlotImage, i2iLook,
+  scoreText, paraBreak, labelOf, defaultLayoutGuide, columnLayoutGuide, layoutSkeleton, cellPrompt, layoutIssues, tidyMarkdown, reformatCell, plainSocial, TOPIC_STYLES, DEFAULT_TOPIC_FRAME, topicFrameOf, validateTopicFrame, setTopicFrame, resetTopicFrame, matchTopicSection, topicFramePrompt, agentPromptOf, normalizeTopicMd, FRAME_RATIOS, FRAME_RATIO_LABEL, BUILTIN_FRAMES, frameStyleOf, setFrameStyle, framesOf, frameOf, assetRatio, framesFor, validateFrame, saveFrame, deleteFrame, frameTitleHint, addSlotImageVersion, i2iSlotImage, genAiSlotImage, promptFromDesc, i2iLook,
   TEXT_FONTS, TEXT_EFFECTS, TEXT_PLACES, newTextLayer, normTextLayer, placeTextLayer, textFontCss, validateTextLayers,
   AI_OPS, HOOK_KINDS, aiOpsOf, aiRewrite, coreIdea, hookOptions, replaceHook, captionOptions, setSlotHookKind, DEFAULT_SNIPPETS, snippetsOf, snippetsFor, saveSnippet, deleteSnippet, useSnippet,
   CROP_RATIOS, cropRect, cropOutSize, normRotation, designTemplatesOf, saveDesignTemplate, deleteDesignTemplate, applyDesignTemplate, dataUrlBytes, slugOf,
