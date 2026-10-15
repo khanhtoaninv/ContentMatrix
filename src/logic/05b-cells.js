@@ -50,7 +50,7 @@ export function writeGate(S, weekId) {
   const rows = w ? topicsOf(S, weekId).filter(r => topicCurrent(r)) : [];
   const reasons = [];
   if (w && w.status === 'CONFIRMED') reasons.push('Tuần đã chốt');
-  if (w && w.matrixDoneAt) reasons.push('Matrix đã Hoàn thành (bấm Sửa để mở khóa)');
+  if (w && w.matrixDoneAt) reasons.push('Matrix đã khóa (bấm ổ khóa để mở)');
   let queue = writeQueue(S, weekId), mode = 'empty';
   if (rows.length && !queue.length) { const redo = writeQueue(S, weekId, 'redo'); if (redo.length) { queue = redo; mode = 'redo'; } }
   if (!rows.length) reasons.push('Chưa có Topic');

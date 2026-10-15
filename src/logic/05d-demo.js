@@ -31,12 +31,12 @@ export function demoGate(S, startDate, step) {
     if (!w) return no('Chưa lập tuần');
     const sc = slotCounts(S, wid);
     const needImg = weekSlots(S, wid).some(s => s.assets.some(a => a.prompt && !a.versions.length));
-    return (sc.DRAFT && !sc.needsUpdate) || needImg ? { ok: true, reason: '' } : no(sc.EMPTY ? 'Viết tất cả slot trước' : sc.needsUpdate ? 'Có slot cần cập nhật: xử lý trước' : 'Mọi slot đã duyệt và có ảnh');
+    return (sc.DRAFT && !sc.needsUpdate) || needImg ? { ok: true, reason: '' } : no(sc.EMPTY ? 'Viết tất cả trước' : sc.needsUpdate ? 'Có slot cần cập nhật: xử lý trước' : 'Mọi slot đã duyệt và có ảnh');
   }
   if (step === 'confirm') {
     if (!w) return no('Chưa lập tuần');
     const sc = slotCounts(S, wid);
-    return !sc.total ? no('Tuần chưa có slot') : sc.EMPTY ? no('Còn slot chưa có bài: Viết tất cả slot trước') : sc.needsUpdate ? no('Có slot cần cập nhật: xử lý trước') : { ok: true, reason: '' };
+    return !sc.total ? no('Tuần chưa có slot') : sc.EMPTY ? no('Còn slot chưa có bài: Viết tất cả trước') : sc.needsUpdate ? no('Có slot cần cập nhật: xử lý trước') : { ok: true, reason: '' };
   }
   if (step === 'clear') return w ? { ok: true, reason: '' } : no('Tuần chưa có dữ liệu');
   return no('Bước không hợp lệ');

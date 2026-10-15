@@ -13,6 +13,12 @@ URL = wrapped.as_uri()
 SHOTS = ROOT / 'tests/shots'; SHOTS.mkdir(exist_ok=True)
 results = []
 
+def unlock(page):
+    b = page.locator('[data-testid="mx-lock"]')
+    if b.count() and 'Đã khóa' in b.inner_text() and not b.is_disabled():
+        b.click(); page.wait_for_timeout(150)
+
+
 def check(name, cond, detail=''):
     results.append((name, bool(cond), detail))
     print(('PASS ' if cond else 'FAIL ') + name + (f' — {detail}' if detail and not cond else ''))
@@ -198,7 +204,7 @@ with sync_playwright() as pw:
     check('Việc tiếp theo sau Lập tuần: Nạp Topic', 'Nạp Topic' in txt(page, '.nextband'))
     page.locator('.cal .slot:has-text("Facebook")').first.click()
     d = page.locator('.drawer.cfg').inner_text().replace('\n', ' ')
-    check('Slot mới (chưa có bài): bấm thẻ ra Cấu hình slot, có nút Tạo bài (Matrix chưa Hoàn thành thì khóa, ghi lý do), sơ đồ layout', page.locator('.pv-dialog').count() == 0 and page.locator('.drawer.cfg [data-x="write"]').count() == 1 and page.locator('.drawer.cfg .fl-wrap').count() == 1 and 'Matrix chưa Hoàn thành' in d, d[:200])
+    check('Slot mới (chưa có bài): bấm thẻ ra Cấu hình slot, có nút Tạo bài (Matrix chưa khóa thì khóa, ghi lý do), sơ đồ layout', page.locator('.pv-dialog').count() == 0 and page.locator('.drawer.cfg [data-x="write"]').count() == 1 and page.locator('.drawer.cfg .fl-wrap').count() == 1 and 'Matrix chưa khóa' in d, d[:200])
     page.keyboard.press('Escape')
     # xóa hết slot để mở lại nút Tuần mẫu
     for i in range(9):
@@ -227,7 +233,7 @@ with sync_playwright() as pw:
     click_nav(page, 'Matrix')
     t = txt(page)
     check('Matrix tuần 19/10: bảng 3 hàng Topic × 5 cột, đếm 11 duyệt / 3 chưa duyệt / 1 hủy', page.locator('.matrix .mrow').count() == 3 and page.locator('.matrix .cellbtn').count() == 15 and '11 đã duyệt' in t and '3 chưa duyệt' in t and '1 đã hủy' in t, t[:300])
-    check('Matrix: Hoàn thành khóa, nêu lý do "3 ô chưa duyệt"; không còn nút Chia bài', page.locator('[data-testid="mx-complete"]').is_disabled() and '3 ô chưa duyệt' in t and page.locator('[data-act="mx-deal"]').count() == 0)
+    check('Matrix: ổ khóa tắt, nêu lý do "3 ô chưa duyệt"; không còn nút Chia bài', page.locator('[data-testid="mx-lock"]').is_disabled() and '3 ô chưa duyệt' in t and page.locator('[data-act="mx-deal"]').count() == 0)
     check('Matrix: Viết ma trận khóa vì mọi ô đã có bài; Hủy Topic bật; không có menu tab Input/Ma trận/Phân bổ', page.locator('button.btn:has-text("Viết ma trận")').first.is_disabled() and 'Mọi ô đã có bài' in t and page.locator('.matrix [data-act="topic-remove"]').count() == 3 and page.locator('.tabs').count() == 0)
     page.screenshot(path=str(SHOTS / 'd-matrix.png'), full_page=True)
     # ô
@@ -278,14 +284,14 @@ with sync_playwright() as pw:
     page.locator('.dialog button:has-text("Vẫn duyệt")').click(); page.wait_for_timeout(100)
     check('10.55 sau khi duyệt trên ô: hết nút Duyệt trong Matrix', page.locator('.matrix .cell-ok').count() == 0)
     t = txt(page)
-    check('Duyệt đủ T3: 0 chưa duyệt, Hoàn thành sẵn sàng', '0 chưa duyệt' in txt(page, '#mx-counts') and not page.locator('[data-testid="mx-complete"]').is_disabled(), t[:400])
+    check('Duyệt đủ T3: 0 chưa duyệt, Hoàn thành sẵn sàng', '0 chưa duyệt' in txt(page, '#mx-counts') and not page.locator('[data-testid="mx-lock"]').is_disabled(), t[:400])
     click_nav(page, 'Dashboard')
-    check('Viết tất cả slot khóa khi Matrix chưa Hoàn thành', page.locator('[data-testid="deal"]').is_disabled())
+    check('Viết tất cả slot khóa khi Matrix chưa khóa', page.locator('[data-testid="deal"]').is_disabled())
     click_nav(page, 'Matrix')
-    page.locator('[data-testid="mx-complete"]').click(); page.wait_for_timeout(150)
-    check('Hoàn thành: Matrix khóa (Viết ma trận tắt; hiện nút Sửa)', page.locator('[data-testid="mx-reopen"]').count() == 1 and page.locator('button.btn:has-text("Viết ma trận")').first.is_disabled() and 'Matrix đã Hoàn thành' in txt(page))
+    page.locator('[data-testid="mx-lock"]').click(); page.wait_for_timeout(150)
+    check('Khóa Matrix: nút Sửa Topic tắt, Viết ma trận tắt, hiện "Đã khóa"', 'Đã khóa' in txt(page, '[data-testid="mx-lock"]') and page.locator('.matrix [data-act="topic-edit"]').first.is_disabled() and page.locator('button.btn:has-text("Viết ma trận")').first.is_disabled() and 'Matrix đã khóa' in txt(page))
     click_nav(page, 'Dashboard')
-    check('Dashboard sau Hoàn thành: Viết tất cả slot bật (17 slot), việc tiếp theo cùng tên', 'Viết tất cả slot (17 slot)' in txt(page, '[data-testid="deal"]') and not page.locator('[data-testid="deal"]').is_disabled() and 'Viết tất cả slot' in txt(page, '.nextband'))
+    check('Dashboard sau khi khóa: Viết tất cả slot bật (17 slot), việc tiếp theo cùng tên', 'Viết tất cả (17 slot)' in txt(page, '[data-testid="deal"]') and not page.locator('[data-testid="deal"]').is_disabled() and 'Viết tất cả' in txt(page, '.nextband'))
     page.locator('[data-testid="deal"]').click()
     page.wait_for_timeout(4500)
     check('C1 Chia bài: về Dashboard, 17 slot Chưa duyệt, việc tiếp theo "Duyệt 17 slot"', page.locator('.cal .slot:has-text("Chưa duyệt")').count() == 17 and 'Duyệt 17 slot' in txt(page, '.nextband'), txt(page, '.nextband'))
@@ -302,8 +308,8 @@ with sync_playwright() as pw:
     check('Tìm Topic không dấu lọc hàng', n < 3, f'{n} hàng, đếm: {txt(page, "#tpc-count")}')
     page.fill('#tpc-search', '')
     # Sửa Matrix để mở khóa trước khi Hủy Topic
-    page.locator('[data-testid="mx-reopen"]').click(); page.wait_for_timeout(100); page.locator('.dialog button:has-text("Mở khóa")').click(); page.wait_for_timeout(150)
-    check('Sửa: mở khóa Matrix, hiện lại nút Hoàn thành', page.locator('[data-testid="mx-complete"]').count() == 1 and page.locator('[data-testid="mx-reopen"]').count() == 0)
+    page.locator('[data-testid="mx-lock"]').click(); page.wait_for_timeout(150)
+    check('Bấm ổ khóa lần nữa: mở khóa, nút Sửa bật lại', 'Khóa Matrix' in txt(page, '[data-testid="mx-lock"]') and not page.locator('.matrix [data-act="topic-edit"]').first.is_disabled())
     # Hủy Topic
     page.locator('.matrix [data-act="topic-remove"]').nth(2).click()
     check('Hủy Topic hiện hộp xác nhận nêu số ô', '5 ô' in txt(page, '.dialog'))
@@ -343,7 +349,7 @@ with sync_playwright() as pw:
     page.fill('#inp-text', sample)
     page.locator('#inp-go').click()
     page.wait_for_timeout(100)
-    check('Nạp Topic vào tuần chưa lập: có bảng Topic, Hoàn thành vẫn khóa', page.locator('.matrix .mrow').count() >= 1 and page.locator('[data-testid="mx-complete"]').is_disabled(), txt(page)[:300])
+    check('Nạp Topic vào tuần chưa lập: có bảng Topic, Hoàn thành vẫn khóa', page.locator('.matrix .mrow').count() >= 1 and page.locator('[data-testid="mx-lock"]').is_disabled(), txt(page)[:300])
     # R2′ · Viết ma trận có nút Dừng
     nmx = page.locator('.matrix .cellbtn').count()
     page.locator('[data-act="mx-write"]').click()
@@ -535,7 +541,7 @@ with sync_playwright() as pw:
     page.locator('.cal .day').nth(0).locator('[data-act="add-slot"]').click()
     page.select_option('.dialog #sf-ch', 'ch-fb'); page.select_option('.dialog #sf-fmt', 'f-fb-quote')
     page.locator('.dialog [data-x="write"]').click(); page.wait_for_timeout(300)
-    check('Tuần chưa có ô Đã duyệt: vẫn thêm slot, báo lý do chưa tạo được bài', page.locator('.pv-dialog').count() == 0 and page.locator('.cal .slot').count() == 1 and 'Matrix chưa Hoàn thành' in txt(page, 'body'))
+    check('Tuần chưa có ô Đã duyệt: vẫn thêm slot, báo lý do chưa tạo được bài', page.locator('.pv-dialog').count() == 0 and page.locator('.cal .slot').count() == 1 and 'Matrix chưa khóa' in txt(page, 'body'))
     ctx.close()
 
     # ---------- Dữ liệu cũ v2.6 và v2.7 ----------
@@ -745,7 +751,7 @@ with sync_playwright() as pw:
 
     # ---------- Trình chỉnh sửa Markdown, khung trình bày (mục 10.28) ----------
     ctx, page, errs = fresh(p)
-    click_nav(page, 'Matrix'); page.locator('[data-act="open-cell"]').nth(1).click(); page.wait_for_timeout(150)
+    click_nav(page, 'Matrix'); unlock(page); page.locator('[data-act="open-cell"]').nth(1).click(); page.wait_for_timeout(150)
     page.locator('#cell-actions [data-act="cell-edit"]').click(); page.wait_for_timeout(150)
     ta = page.locator('.dialog #ce-text')
     check('10.28 Sửa ô: thanh công cụ Tiêu đề, Đậm, •, 1., Bước, Hoàn tác và tab Viết/Xem trước; chữ dùng font chính', page.locator('.dialog .mded-bar [data-op]').count() == 6 and page.locator('.dialog .mded-tabs [data-tab]').count() == 2 and 'Be Vietnam Pro' in ta.evaluate("e => getComputedStyle(e).fontFamily"), '')

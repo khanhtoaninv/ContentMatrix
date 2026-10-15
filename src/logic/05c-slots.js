@@ -66,7 +66,7 @@ export function regenSlot(S, slotId, at) {
   const err = slotGuard(S, s); if (err) return { ok: false, error: err };
   if (s.free) return { ok: false, error: 'Slot tự do không có ô nguồn để tạo lại. Hãy sửa bài trực tiếp.' };
   const cell = slotSourceCell(S, s);
-  if (!cell) return { ok: false, error: 'Slot chưa có ô nguồn. Bấm Viết tất cả slot ở Dashboard hoặc chọn ô.' };
+  if (!cell) return { ok: false, error: 'Slot chưa có ô nguồn. Bấm Viết tất cả ở Dashboard hoặc chọn ô.' };
   if (cellView(S, cell).state !== 'APPROVED') return { ok: false, error: 'Ô nguồn chưa ở trạng thái Đã duyệt. Duyệt lại ô hoặc chọn ô khác.' };
   const before = s.text; const prevN = s.genN;
   writeSlotFromCell(S, s, cell, at);

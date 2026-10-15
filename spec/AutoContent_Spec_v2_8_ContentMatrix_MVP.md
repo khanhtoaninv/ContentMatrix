@@ -1265,3 +1265,15 @@ Thay nút "Chia bài" của Matrix. Quy trình mới: duyệt hết ô, bấm Ho
 - Tuần mẫu "Fanpage Facebook" thêm T7 19:30 Bài kể chuyện và CN 10:00 Điền vào chỗ trống (10 slot, đủ 7 ngày). Theo Cột: Hướng dẫn 3, Bất ngờ và ngộ nhận 2, Câu chuyện 2, Luyện tập 2, Giải thích 1. Căn cứ cuối tuần: nhu cầu của người dùng (mục tiêu thêm nội dung cuối tuần); giờ T7, CN nằm ngoài khung "tốt nhất" của Sprout Social cho ngành giáo dục, là lựa chọn của người dùng, nên chỉnh theo Page Insights sau 4 tuần.
 - Mục 10.65 bên trên: phần "Chỉ T2–T6, cuối tuần để trống" nay không còn đúng. Mọi chỗ ghi "Chia bài" ở các mục cũ nghĩa là Viết tất cả slot sau khi Hoàn thành.
 - Test 115 logic và 387 giao diện đạt.
+
+## 10.67. Một ổ khóa cho Matrix (15/10/2026, bản 96)
+
+Chỉnh 10.66 theo ý người dùng: nút **Hoàn thành** và **Sửa** gộp thành một nút ổ khóa ở thanh công cụ Matrix.
+- Khóa mở: nút "Khóa Matrix" (biểu tượng ổ khóa mở). Chỉ bấm được khi mọi ô đã duyệt hoặc hủy (`completeGate`); chưa đủ thì nút tắt và dòng chú thích nêu lý do.
+- Khóa đóng: nút "Đã khóa" (ổ khóa đóng); bấm lần nữa là mở khóa, không hỏi xác nhận (`reopenMatrix`). Tuần đã chốt thì ổ khóa tắt.
+- Khóa đóng thì mọi nút sửa trong ô và Topic bị tắt (Duyệt, Tạo lại, Sửa, Hủy ô, Dùng bản này, Sửa/Xóa Topic, Sửa Topic, Dùng phiên bản này) và Viết ma trận tắt. Logic vẫn chặn ở `MATRIX_LOCK_MSG`.
+- **Viết tất cả** (đổi tên từ "Viết tất cả slot") chỉ có ở Dashboard, bật khi khóa đóng, tắt khi khóa mở. Việc tiếp theo: bước 4 "Khóa Matrix", bước 5 "Viết tất cả (n slot)".
+- Không đặt nút Viết tất cả ở Matrix: người dùng khóa xong sang Dashboard bấm Viết tất cả hoặc Tạo bài từng slot.
+- Thanh bên hiện số hiệu bản ("Đợt R4 · bản N"), hằng `BUILD` trong `01-util.js`, tăng 1 mỗi lần publish.
+- Các chỗ ghi "Hoàn thành" và "Sửa" của Matrix ở 10.66 nay đọc là khóa và mở khóa.
+

@@ -276,7 +276,7 @@ export function weekIdOf(startDate) { return `w-${startDate}`; }
 export function weekOf(S, weekId) { return byId(S.weeks, weekId); }
 export function isLocked(S, weekId) { const w = weekOf(S, weekId); return !!w && w.status === 'CONFIRMED'; }
 // Matrix đã Hoàn thành (10.66): ô và Topic chỉ xem; muốn đổi phải bấm Sửa (reopenMatrix)
-export const MATRIX_LOCK_MSG = 'Matrix đã Hoàn thành. Bấm "Sửa" ở Matrix để mở khóa.';
+export const MATRIX_LOCK_MSG = 'Matrix đã khóa. Bấm ổ khóa ở Matrix để mở.';
 export function matrixDone(S, weekId) { const w = weekOf(S, weekId); return !!(w && w.matrixDoneAt); }
 export function matrixLockMsg(S, weekId) { return matrixDone(S, weekId) ? MATRIX_LOCK_MSG : ''; }
 // Slot không sửa được (mục 10.24): bài Đã đăng chỉ xem; tuần đã chốt thì phải Mở lại để sửa
@@ -682,7 +682,7 @@ export function completeGate(S, weekId) {
   const reasons = [];
   const w = weekOf(S, weekId);
   if (w && w.status === 'CONFIRMED') reasons.push('Tuần đã chốt');
-  if (w && w.matrixDoneAt) reasons.push('Matrix đã Hoàn thành');
+  if (w && w.matrixDoneAt) reasons.push('Matrix đã khóa');
   const rows = w ? topicsOf(S, weekId).filter(r => topicCurrent(r)) : [];
   if (!rows.length) reasons.push('Chưa có Topic');
   else {
@@ -705,7 +705,7 @@ export function reopenMatrix(S, weekId) {
   const w = weekOf(S, weekId);
   if (!w) return { ok: false, error: 'Chưa có tuần.' };
   if (w.status === 'CONFIRMED') return { ok: false, error: 'Tuần đã chốt. Bấm "Mở lại để sửa" trước.' };
-  if (!w.matrixDoneAt) return { ok: false, error: 'Matrix chưa Hoàn thành.' };
+  if (!w.matrixDoneAt) return { ok: false, error: 'Matrix chưa khóa.' };
   w.matrixDoneAt = null;
   log(S, 'reopen', 'matrix', weekId);
   return { ok: true, slots: weekSlots(S, weekId).filter(s => s.sourceCellId).length };
@@ -716,7 +716,7 @@ export function dealGate(S, weekId) {
   const w = weekOf(S, weekId);
   if (!w) return { ok: false, reasons: ['Chưa lập tuần'], willFill: 0 };
   if (w.status === 'CONFIRMED') reasons.push('Tuần đã chốt');
-  if (!w.matrixDoneAt) reasons.push('Matrix chưa Hoàn thành');
+  if (!w.matrixDoneAt) reasons.push('Matrix chưa khóa');
   const sc = slotCounts(S, weekId);
   if (!sc.total) reasons.push('Chưa có slot (Lập tuần trước)');
   else if (!sc.EMPTY) reasons.push('Mọi slot đã có bài');
@@ -778,7 +778,7 @@ export function slotWriteGate(S, slotId) {
   if (s.free) return { ok: false, reason: 'Slot tự do: bạn tự viết bài' };
   if (s.state === 'PUBLISHED') return { ok: false, reason: 'Bài đã đăng chỉ xem' };
   if (isLocked(S, s.weekId)) return { ok: false, reason: 'Tuần đã chốt' };
-  if (!matrixDone(S, s.weekId)) return { ok: false, reason: 'Matrix chưa Hoàn thành (bấm Hoàn thành ở Matrix trước)' };
+  if (!matrixDone(S, s.weekId)) return { ok: false, reason: 'Matrix chưa khóa (bấm ổ khóa ở Matrix trước)' };
   const f = byId(S.formats, s.formatId); if (!f) return { ok: false, reason: 'Slot chưa có Format' };
   const live = new Set(topicsOf(S, s.weekId).filter(r => topicCurrent(r)).map(r => r.id));
   const cells = cellsOf(S, s.weekId).filter(c => c.columnId === slotColumnId(S, s) && live.has(c.topicId) && cellView(S, c).state === 'APPROVED');
@@ -1015,7 +1015,7 @@ export function weekProgress(S, weekId) {
   st.push({ done: rows.length > 0, reason: rows.length ? `${rows.length} Topic` : 'Chưa có Topic' });
   const nc = mc.EMPTY ? noCaseEmptyCount(S, weekId) : 0;
   st.push({ done: written, reason: rows.length && mc.EMPTY ? (mc.EMPTY > nc ? `${mc.EMPTY - nc}/${mc.total} ô chưa viết` : `${nc} ô Câu chuyện nên Hủy`) : '' });
-  st.push({ done: completed, reason: written && mc.DRAFT ? `${mc.DRAFT} ô chưa duyệt` : (approved && !completed ? 'Chờ bấm Hoàn thành' : '') });
+  st.push({ done: completed, reason: written && mc.DRAFT ? `${mc.DRAFT} ô chưa duyệt` : (approved && !completed ? 'Chờ khóa Matrix' : '') });
   st.push({ done: dealt, reason: sc.EMPTY ? `${sc.EMPTY} slot chưa có bài` : '' });
   st.push({ done: dealt && sc.DRAFT === 0 && sc.needsUpdate === 0, reason: sc.needsUpdate ? `${sc.needsUpdate} slot cần cập nhật` : (dealt && sc.DRAFT ? `${sc.DRAFT} slot chưa duyệt${ic.boxes ? ` · ${ic.done}/${ic.boxes} ảnh` : ''}` : '') });
   st.push({ done: w.status === 'CONFIRMED', reason: w.status === 'REOPENED' ? 'Đang sửa' : (w.status === 'CONFIRMED' ? `Đã chốt · bản ${w.revision}` : '') });
@@ -1041,8 +1041,8 @@ export function nextAction(S, weekId) {
     1: { label: 'Lập tuần: chọn Tuần mẫu', target: { screen: 'week', action: 'plan-week' } },
     2: { label: 'Nạp Topic', target: { screen: 'matrix' } },
     3: (() => { const n = writeQueue(S, weekId).length; return n ? { label: `Viết ma trận (${n} ô)`, target: { screen: 'matrix' } } : { label: `Hủy ${p.mc.EMPTY} ô Câu chuyện`, target: { screen: 'matrix' } }; })(),
-    4: p.mc.DRAFT ? { label: `Duyệt ${p.mc.DRAFT} ô`, target: { screen: 'matrix' } } : { label: 'Hoàn thành Matrix', target: { screen: 'matrix', action: 'mx-complete' } },
-    5: { label: `Viết tất cả slot (${p.sc.EMPTY} slot)`, target: { screen: 'week', action: 'deal-all' } },
+    4: p.mc.DRAFT ? { label: `Duyệt ${p.mc.DRAFT} ô`, target: { screen: 'matrix' } } : { label: 'Khóa Matrix', target: { screen: 'matrix', action: 'mx-lock' } },
+    5: { label: `Viết tất cả (${p.sc.EMPTY} slot)`, target: { screen: 'week', action: 'deal-all' } },
     6: { label: p.sc.needsUpdate ? `Cập nhật ${p.sc.needsUpdate} slot` : `Duyệt ${p.sc.DRAFT} slot`, target: { screen: 'week' } },
     7: { label: 'Xác nhận lịch', target: { screen: 'week', action: 'confirm-week' } },
   };

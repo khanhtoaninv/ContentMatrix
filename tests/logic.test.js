@@ -7,7 +7,7 @@ import AC from '../src/logic/99-export.js';
 
 const T1 = 'w-2026-10-05', T2 = 'w-2026-10-12', T3 = 'w-2026-10-19';
 const seed = () => AC.buildSeed();
-// Từ 10.66: Chia bài thành Hoàn thành Matrix + Viết tất cả slot; dealFull làm cả hai (nếu Matrix chưa Hoàn thành)
+// Từ 10.66: Chia bài thành Hoàn thành Matrix + Viết tất cả slot; dealFull làm cả hai (nếu Matrix chưa khóa)
 const dealFullWeek = (S, w, at) => { if (!AC.matrixDone(S, w)) AC.completeMatrix(S, w, at); return AC.dealWeek(S, w, at); };
 const dealFull = (S, w, at) => { if (!AC.matrixDone(S, w)) AC.completeMatrix(S, w, at); return AC.dealSlots(S, w, at); };
 const fileOf = (S, w) => AC.topicFileOf(S, w).md;
@@ -252,7 +252,7 @@ test('Đổi Format sang Cột khác làm slot mất ô nguồn', () => {
 test('Chia bài (DST) · cổng điều kiện, T3 sau khi duyệt đủ: 17/17, đúng Cột, xen kẽ, bỏ qua ô hủy', () => {
   const S = seed();
   const g0 = AC.dealGate(S, T3);
-  assert.equal(g0.ok, false); assert.deepEqual(g0.reasons, ['Matrix chưa Hoàn thành']); assert.equal(g0.willFill, 0);
+  assert.equal(g0.ok, false); assert.deepEqual(g0.reasons, ['Matrix chưa khóa']); assert.equal(g0.willFill, 0);
   assert.deepEqual(AC.completeGate(S, T3).reasons, ['3 ô chưa duyệt']);
   assert.equal(AC.completeMatrix(S, T3).ok, false);
   assert.equal(dealFull(S, T3).ok, false);
@@ -299,7 +299,7 @@ test('Chia bài: cổng chặn khi chưa lập tuần, chưa có Topic, tuần �
   const S = seed();
   assert.match(AC.dealGate(S, 'w-2026-10-26').reasons[0], /Chưa lập tuần/);
   const w = AC.applyTemplateWeek(S, '2026-10-26', 'wt-2').week;
-  assert.ok(AC.completeGate(S, w.id).reasons.includes('Chưa có Topic')); assert.ok(AC.dealGate(S, w.id).reasons.includes('Matrix chưa Hoàn thành'));
+  assert.ok(AC.completeGate(S, w.id).reasons.includes('Chưa có Topic')); assert.ok(AC.dealGate(S, w.id).reasons.includes('Matrix chưa khóa'));
   assert.ok(AC.dealGate(S, T1).reasons.includes('Tuần đã chốt'));
   AC.importTopics(S, w.id, fileOf(S, T2));
   assert.equal(AC.completeGate(S, w.id).reasons[0], '15 ô chưa viết');
@@ -462,7 +462,7 @@ test('10.12 Tạo bài ngay trong slot: thêm slot sau Chia bài, viết từ ô
   assert.equal(use(w.cellId), minUse);
   // tuần chưa có ô Đã duyệt: không tạo được, có lý do
   const e = AC.addSlotToStart(S, '2026-10-26', { date: '2026-10-27', time: '09:00', channelId: 'ch-fb', formatId: 'f-fb-quote' });
-  const g = AC.slotWriteGate(S, e.slot.id); assert.equal(g.ok, false); assert.match(g.reason, /Matrix chưa Hoàn thành/);
+  const g = AC.slotWriteGate(S, e.slot.id); assert.equal(g.ok, false); assert.match(g.reason, /Matrix chưa khóa/);
   assert.equal(AC.writeSlotNow(S, e.slot.id).ok, false);
   // tuần đã chốt
   assert.equal(AC.slotWriteGate(S, AC.weekSlots(S, T1)[0].id).ok, false);
@@ -720,11 +720,11 @@ test('MTX-03/04 · Duyệt ô (kể cả có cảnh báo), duyệt xong T3 thì 
   assert.ok(r.ok); assert.ok(r.warnings > 0);
   assert.equal(AC.approveCell(S, withErr.id).ok, false); // đã duyệt
   drafts.forEach(c => AC.approveCell(S, c.id));
-  assert.equal(AC.nextAction(S, T3).label, 'Hoàn thành Matrix');
+  assert.equal(AC.nextAction(S, T3).label, 'Khóa Matrix');
   assert.equal(AC.dealGate(S, T3).ok, false);
   assert.equal(AC.completeMatrix(S, T3).ok, true);
   assert.ok(AC.dealGate(S, T3).ok);
-  assert.equal(AC.nextAction(S, T3).label, 'Viết tất cả slot (17 slot)');
+  assert.equal(AC.nextAction(S, T3).label, 'Viết tất cả (17 slot)');
 });
 
 test('MTX-08 · Duyệt hàng loạt chỉ duyệt ô không cảnh báo', () => {

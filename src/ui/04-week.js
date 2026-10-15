@@ -392,7 +392,7 @@ export function openSlot(id, browseN, center) {
       ${!cfg && s.needsUpdate && !viewing ? `<p class="note warn">Ô nguồn đã đổi sau khi slot được viết. "Cập nhật từ ô" viết lại slot theo bản mới của ô (ô phải Đã duyệt); "Giữ bản slot" cần ghi lý do.</p>` : ''}
       ${!cfg && s.keepReason && !s.needsUpdate ? `<p class="small muted">Đang giữ bản slot: ${esc(s.keepReason)}</p>` : ''}
       ${cfg ? '' : shownText ? `<section class="stack"><div class="row" style="justify-content:space-between"><h3>Nội dung bài${viewing ? ' (bản cũ)' : ''}</h3><span class="row" style="gap:8px"><span class="small faint">${esc(len)} <span class="mock">Mô phỏng</span></span><button class="btn sm" data-act="slot-preview" data-id="${esc(s.id)}" ${viewing ? `data-n="${viewing.n}"` : ''}>${icon('eye')} Xem như khi đăng</button></span></div>
-        <div class="content-text rich">${richText(shownText, viewing ? [] : warnMarks(ws))}</div></section>` : `<div class="empty"><p><b>Chưa có bài.</b> ${s.emptyReason ? esc(s.emptyReason) + '. ' : ''}Bấm <b>Tạo bài</b> ở trên (cần Matrix đã Hoàn thành), hoặc <b>Viết tất cả slot</b> ở Dashboard cho cả tuần, hoặc chọn ô bên dưới. Cột của slot này: <b>${esc(colName(AC.slotColumnId(S, s)))}</b>.</p></div>`}
+        <div class="content-text rich">${richText(shownText, viewing ? [] : warnMarks(ws))}</div></section>` : `<div class="empty"><p><b>Chưa có bài.</b> ${s.emptyReason ? esc(s.emptyReason) + '. ' : ''}Bấm <b>Tạo bài</b> ở trên (cần Matrix đã khóa), hoặc <b>Viết tất cả slot</b> ở Dashboard cho cả tuần, hoặc chọn ô bên dưới. Cột của slot này: <b>${esc(colName(AC.slotColumnId(S, s)))}</b>.</p></div>`}
       <section class="cfg-sec cfg-src"><div class="cfg-h"><span class="cfg-n">1</span><h3>Ô nguồn</h3></div>
         ${s.free ? `<div class="srccard"><div class="srctop"><span class="chip-col">Slot tự do</span></div><h4 class="srctitle">Không lấy nguồn từ Matrix</h4><p class="small muted">Bạn tự viết bài và tải ảnh, video của riêng bạn. ${s.columnId ? `Cột ${esc(colName(s.columnId))}` : 'Không gắn Cột'} chỉ dùng để phân loại; đổi ở Vị trí đăng bên dưới.</p></div>` : cell && row ? `<div class="srccard"><div class="srctop"><span class="chip-col">Cột ${esc(colName(cell.columnId))}</span><span class="srcstate">${AC.cellView(S, cell).state === 'APPROVED' ? 'Ô Đã duyệt' : 'Ô chưa duyệt'}</span></div>
           <h4 class="srctitle">Topic ${row.order} · ${esc(AC.topicCurrent(row).title)}</h4>
@@ -538,7 +538,7 @@ function dealBtnHtml(w) {
   const run = view.dealRun;
   if (run) return `<button class="btn danger" data-act="deal-stop">Dừng</button><span class="small" id="deal-run" aria-live="polite">Đang viết ${run.done}/${run.total} slot…</span>`;
   const g = AC.dealGate(S, w.id);
-  return `<button class="btn ${g.ok ? 'primary' : ''}" data-act="deal-all" data-testid="deal" ${g.ok ? '' : 'disabled'} title="${esc(g.ok ? `Viết ${g.willFill} slot còn trống từ ô Đã duyệt` : 'Chưa bật: ' + g.reasons.join('; '))}">Viết tất cả slot${g.ok ? ` (${g.willFill} slot)` : ''}</button>`;
+  return `<button class="btn ${g.ok ? 'primary' : ''}" data-act="deal-all" data-testid="deal" ${g.ok ? '' : 'disabled'} title="${esc(g.ok ? `Viết ${g.willFill} slot còn trống từ ô Đã duyệt` : 'Chưa bật: ' + g.reasons.join('; '))}">Viết tất cả${g.ok ? ` (${g.willFill} slot)` : ''}</button>`;
 }
 const DEAL_BUSY_WAIT = 1500, DEAL_DELAY = 160;
 ACTIONS['deal-all'] = () => {
