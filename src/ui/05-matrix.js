@@ -94,7 +94,7 @@ function mxToolsHtml(w, gate) {
   const run = view.mxRun;
   const writeBtn = run
     ? `<button class="btn danger" data-act="mx-stop">Dừng</button><span class="small" id="mx-run" aria-live="polite">Đang viết ${run.done}/${run.total} ô…</span>`
-    : `<button class="btn ${wg.ok ? 'primary' : ''}" data-act="mx-write" ${wg.ok ? '' : 'disabled'} title="${esc(wg.ok ? `Viết ${wg.count} ô Trống` : wg.reasons.join('; '))}">Viết ma trận${wg.ok ? ` (${wg.count} ô)` : ''}</button>`;
+    : `<button class="btn ${wg.ok ? 'primary' : ''}" data-act="mx-write" ${wg.ok ? '' : 'disabled'} title="${esc(wg.ok ? (wg.redo ? `Viết lại ${wg.count} ô Đã hủy` : `Viết ${wg.count} ô Trống`) : wg.reasons.join('; '))}">${wg.redo ? 'Viết lại ma trận' : 'Viết ma trận'}${wg.ok ? ` (${wg.count} ô)` : ''}</button>`;
   return `<div class="row" id="mx-tools">
       ${writeBtn}
       ${bulk && !run ? `<button class="btn" data-act="mx-bulk">Duyệt tất cả (${bulk} ô)</button>` : ''}
@@ -114,20 +114,20 @@ ACTIONS['mx-deal'] = async () => {
 ACTIONS['mx-write'] = () => {
   const w = curWeek(); if (!w || view.mxRun) return;
   const g = AC.writeGate(S, w.id); if (!g.ok) return toast(g.reasons.join('; '), 'bad');
-  view.mxRun = { weekId: w.id, total: g.count, done: 0, stop: false };
+  view.mxRun = { weekId: w.id, total: g.count, done: 0, stop: false, mode: g.mode };
   render(); mxStep();
 };
 async function mxStep() {
   const run = view.mxRun; if (!run) return;
-  const q = AC.writeQueue(S, run.weekId);
+  const q = AC.writeQueue(S, run.weekId, run.mode === 'redo' ? 'redo' : undefined);
   if (run.stop || !q.length || AC.weekIdOf(curStart()) !== run.weekId) {
     view.mxRun = null; save();
-    const left = AC.writeQueue(S, run.weekId).length;
+    const left = AC.writeQueue(S, run.weekId, run.mode === 'redo' ? 'redo' : undefined).length;
     render();
-    toast(run.stop || left ? `Đã viết ${run.done} ô · còn ${left} ô Trống.` : `Đã viết ${run.done} ô. Mời bạn duyệt từng ô.`);
+    toast(run.stop || left ? `Đã viết ${run.done} ô · còn ${left} ô ${run.mode === 'redo' ? 'Đã hủy' : 'Trống'}.` : `Đã viết ${run.done} ô. Mời bạn duyệt từng ô.`);
     return;
   }
-  const r = await withAiText(C => AC.writeCellNow(C, q[0]), { noAi: run.mock, fallbackAll: true });
+  const r = await withAiText(C => AC.writeCellNow(C, q[0]), { noAi: run.mock, fallbackAll: true, progress: run });
   if (r.busy && !run.stop) { setTimeout(mxStep, MX_BUSY_WAIT); return; }   // AI đang bận việc khác: chờ rồi thử lại, không bỏ hàng chờ
   if (r.fellBack) run.mock = true;
   if (!r.ok) { view.mxRun = null; save(); render(); toast(r.error, 'bad'); return; }

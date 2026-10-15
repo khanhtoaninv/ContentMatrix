@@ -668,6 +668,24 @@ test('MTX-01 · Viết ma trận viết mọi ô Trống, mỗi ô một bài + 
   assert.equal(AC.weekProgress(S, T4).steps[3].reason, '15 ô chưa duyệt');
 });
 
+test('MTX-01 · Viết lại ma trận: hết ô Trống mà còn ô Đã hủy thì hàng chờ là các ô Đã hủy, bấm được nhiều lần', () => {
+  const S = seed();
+  loadT2File(S, T4);
+  AC.writeMatrix(S, T4);
+  assert.equal(AC.writeGate(S, T4).ok, false);
+  const cs = AC.cellsOf(S, T4);
+  cs.slice(0, 4).forEach(c => assert.ok(AC.cancelCellNow(S, c.id).ok));
+  const g = AC.writeGate(S, T4);
+  assert.ok(g.ok); assert.equal(g.redo, true); assert.equal(g.count, 4); assert.equal(AC.writeQueue(S, T4).length, 0);
+  const r = AC.writeMatrix(S, T4);
+  assert.equal(r.written, 4);
+  assert.deepEqual([AC.matrixCounts(S, T4).DRAFT, AC.matrixCounts(S, T4).CANCELLED || 0], [15, 0]);
+  cs.slice(0, 4).forEach(c => assert.equal(c.gens.length, 2));
+  assert.equal(AC.writeGate(S, T4).ok, false);
+  cs.forEach(c => AC.cancelCellNow(S, c.id));
+  assert.equal(AC.writeGate(S, T4).count, 15);
+});
+
 test('MTX-01/07 · không viết lại ô Đã duyệt/Đã hủy; Câu chuyện không có trường hợp: không viết, nên Hủy', () => {
   const S = seed();
   const rows = AC.topicsOf(S, T3);

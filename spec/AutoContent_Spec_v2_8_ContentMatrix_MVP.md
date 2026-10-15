@@ -1240,3 +1240,9 @@ Mỗi lần gọi AI viết bài thử tối đa 3 lần: phản hồi rỗng đ
 
 - Hộp Nạp Topic cho chọn nhiều tệp. Các tệp được sắp theo tên tự nhiên, ghép thành một văn bản; tệp không có đề mục `##` thành 1 Topic (tên từ `#` hoặc tên tệp). Xem trước hiện thứ tự tệp. Mỗi tệp tối đa 2 MB. Dùng được cho cả "Nạp" và "Nạp thêm".
 - Viết ma trận chạy tuần tự từng ô. AI đang bận việc khác thì chờ và thử lại. AI lỗi: hỏi một lần; chọn mô phỏng thì mọi ô còn lại viết mô phỏng (có nhãn "Bài mô phỏng"), Hủy thì dừng.
+## 10.64. Viết lại ma trận và dòng tiến độ AI (15/10/2026, bản 91)
+
+- Nút Viết ma trận chỉ tính ô Trống, nên Hủy hết ô thì khóa ("Mọi ô đã có bài"). Nay `writeQueue(S, weekId, 'redo')` trả các ô Đã hủy (trừ ô Câu chuyện không có trường hợp). `writeGate` thấy hết ô Trống mà còn ô Đã hủy thì trả `redo: true`, `mode: 'redo'`; nút ghi "Viết lại ma trận (n ô)". Còn ô Trống thì vẫn chỉ viết ô Trống (ô Đã hủy cố ý không bị sống lại). `writeCellNow` nhận cả ô Đã hủy: thêm bản mới, bản cũ vẫn trong lịch sử ô; ô Nháp và Đã duyệt không bị đụng. Lượt chạy giữ `mode` nên không lẫn hai hàng chờ.
+- Thanh tiến độ góc dưới (`aiBusy`, 04k-aitext.js) ghi "Claude - Đang viết <Cột · Topic> (ô n/tổng)…" (Viết ma trận truyền `progress`); việc nhiều bài ghi "(n/tổng bài)"; tên nhà cung cấp có "Claude" rút thành "Claude". Nhãn lấy từ `label` của việc AI (`cellJob`/`slotJob`), cập nhật khi mỗi việc bắt đầu.
+- Test 114 logic (thêm "Viết lại ma trận") và 382 giao diện đạt. Ghi chú môi trường: thư mục dự án (ổ gắn) không cho tạo symlink nên `npm install` phải chạy ở bản sao (`cp` sang /home/claude/ac), rồi chép `dist/` về.
+

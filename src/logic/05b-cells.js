@@ -30,12 +30,14 @@ export function genImagePrompt(gen, editRev) {
 function lastEditRev(gen) { return gen && gen.edits.length ? gen.edits[gen.edits.length - 1].rev : 0; }
 
 // ---- Viết ma trận (MTX-01): các ô Trống của phiên bản Topic hiện hành, theo thứ tự Topic rồi Cột ----
-export function writeQueue(S, weekId) {
+// mode 'redo': các ô Đã hủy (dùng khi không còn ô Trống: "Viết lại ma trận")
+export function writeQueue(S, weekId, mode) {
   const w = weekOf(S, weekId); if (!w) return [];
+  const want = mode === 'redo' ? 'CANCELLED' : 'EMPTY';
   const out = [];
   topicsOf(S, weekId).filter(r => topicCurrent(r)).forEach(r => weekLanes(S, w).forEach(({ colId, k }) => {
     const c = cellAt(S, weekId, r.id, colId, k);
-    if (c && cellView(S, c).state === 'EMPTY' && !cellNoCase(S, c)) out.push(c.id);
+    if (c && cellView(S, c).state === want && !cellNoCase(S, c)) out.push(c.id);
   }));
   return out;
 }
@@ -47,19 +49,21 @@ export function writeGate(S, weekId) {
   const rows = w ? topicsOf(S, weekId).filter(r => topicCurrent(r)) : [];
   const reasons = [];
   if (w && w.status === 'CONFIRMED') reasons.push('Tuần đã chốt');
-  const queue = writeQueue(S, weekId);
+  let queue = writeQueue(S, weekId), mode = 'empty';
+  if (rows.length && !queue.length) { const redo = writeQueue(S, weekId, 'redo'); if (redo.length) { queue = redo; mode = 'redo'; } }
   if (!rows.length) reasons.push('Chưa có Topic');
   else if (!queue.length) {
     const nc = noCaseEmptyCount(S, weekId);
     reasons.push(nc ? `Mọi ô viết được đã có bài; ${nc} ô Câu chuyện không viết (Topic không có trường hợp) · nên Hủy` : 'Mọi ô đã có bài');
   }
-  return { ok: !reasons.length, reasons, count: queue.length, queue };
+  return { ok: !reasons.length, reasons, count: queue.length, queue, mode, redo: mode === 'redo' };
 }
 // Viết một ô Trống (một lượt sinh: một bài + một gợi ý ảnh, MTX-01/02)
 export function writeCellNow(S, cellId, at) {
   const cell = byId(S.cells, cellId);
   const err = cellGuard(S, cell); if (err) return { ok: false, error: err };
-  if (cellView(S, cell).state !== 'EMPTY') return { ok: false, error: 'Ô đã có bài.' };
+  const st0 = cellView(S, cell).state;
+  if (st0 !== 'EMPTY' && st0 !== 'CANCELLED') return { ok: false, error: 'Ô đã có bài.' };
   if (cellNoCase(S, cell)) return { ok: false, error: 'Topic không có trường hợp cụ thể · nên Hủy ô Câu chuyện này.' };
   const row = byId(S.topics, cell.topicId);
   const gen = addCellGen(S, cell, row.currentVersion, 'DRAFT', at || S.settings.demoNow);

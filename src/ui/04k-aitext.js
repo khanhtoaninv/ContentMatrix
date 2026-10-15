@@ -58,25 +58,30 @@ async function finishPost(j, p) {
   return p;
 }
 // Thanh tiến độ góc dưới (không chặn màn hình); có nút Dừng
-function aiBusy(total) {
+function aiBusy(total, prog, first) {
   const el = document.createElement('div'); el.className = 'ai-busy'; el.setAttribute('role', 'status');
-  let done = 0; const st = { stopped: false };
-  const paint = () => { el.innerHTML = `<span class="spin" aria-hidden="true"></span><span>${esc(textProviderLabel())} đang viết ${done}/${total} bài…</span><button class="btn sm ghost" type="button">Dừng</button>`; el.querySelector('button').addEventListener('click', () => { st.stopped = true; el.querySelector('span:nth-child(2)').textContent = 'Đang dừng…'; }); };
+  let done = 0; const st = { stopped: false, label: first || '' };
+  const paint = () => {
+    const prov = /claude/i.test(textProviderLabel()) ? 'Claude' : (textProviderLabel() || 'AI');
+    const cnt = prog ? ` (ô ${Math.min(prog.done + 1, prog.total)}/${prog.total})` : total > 1 ? ` (${done}/${total} bài)` : '';
+    el.innerHTML = `<span class="spin" aria-hidden="true"></span><span>${esc(prov)} - Đang viết ${esc(st.label || 'bài')}${esc(cnt)}…</span><button class="btn sm ghost" type="button">Dừng</button>`;
+    el.querySelector('button').addEventListener('click', () => { st.stopped = true; el.querySelector('span:nth-child(2)').textContent = 'Đang dừng…'; });
+  };
   paint(); document.body.appendChild(el);
-  return Object.assign(st, { step() { done++; if (!st.stopped) paint(); }, close() { el.remove(); } });
+  return Object.assign(st, { show(label) { st.label = label; if (!st.stopped) paint(); }, step() { done++; if (!st.stopped) paint(); }, close() { el.remove(); } });
 }
 // Chạy một thao tác viết ô/slot: AI thật thì chuẩn bị bài trước, rồi chạy thao tác trên S
 let aiRunning = false;
-// opts.noAi: bỏ qua AI, viết bản mô phỏng; opts.fallbackAll: câu hỏi khi AI lỗi nói rõ "cho các ô còn lại" (Viết ma trận)
+// opts.progress: {done,total} của hàng chờ Viết ma trận (hiện "ô n/total"); opts.noAi: bỏ qua AI, viết bản mô phỏng; opts.fallbackAll: câu hỏi khi AI lỗi nói rõ "cho các ô còn lại" (Viết ma trận)
 export async function withAiText(run, opts = {}) {
   if (!AC.textApiOn(S) || opts.noAi) return run(S);
   const jobs = AC.aiPlan(S, run); if (!jobs.length) return run(S);
   if (aiRunning) return { ok: false, busy: true, error: 'AI đang viết bài khác, đợi xong đã.' };
   aiRunning = true;
-  const cfg = AC.textApiOf(S); const bar = aiBusy(jobs.length); let fail = 0, firstErr = '', next = 0, unfinished = 0;
+  const cfg = AC.textApiOf(S); const bar = aiBusy(jobs.length, opts.progress, jobs[0].label); let fail = 0, firstErr = '', next = 0, unfinished = 0;
   const worker = async () => {
     while (next < jobs.length && !bar.stopped) {
-      const j = jobs[next++];
+      const j = jobs[next++]; bar.show(j.label);
       try {
         const res = await callRetry(j); let p = AC.parseAiPost(res.text, j.criteria); if (!p.ok) throw new Error(p.error);
         if (res.cut) p.cut = true;

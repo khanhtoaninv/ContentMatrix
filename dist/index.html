@@ -8529,13 +8529,14 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 	function lastEditRev(gen) {
 		return gen && gen.edits.length ? gen.edits[gen.edits.length - 1].rev : 0;
 	}
-	function writeQueue(S, weekId) {
+	function writeQueue(S, weekId, mode) {
 		const w = weekOf(S, weekId);
 		if (!w) return [];
+		const want = mode === "redo" ? "CANCELLED" : "EMPTY";
 		const out = [];
 		topicsOf(S, weekId).filter((r) => topicCurrent(r)).forEach((r) => weekLanes(S, w).forEach(({ colId, k }) => {
 			const c = cellAt(S, weekId, r.id, colId, k);
-			if (c && cellView(S, c).state === "EMPTY" && !cellNoCase(S, c)) out.push(c.id);
+			if (c && cellView(S, c).state === want && !cellNoCase(S, c)) out.push(c.id);
 		}));
 		return out;
 	}
@@ -8547,7 +8548,14 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		const rows = w ? topicsOf(S, weekId).filter((r) => topicCurrent(r)) : [];
 		const reasons = [];
 		if (w && w.status === "CONFIRMED") reasons.push("Tuần đã chốt");
-		const queue = writeQueue(S, weekId);
+		let queue = writeQueue(S, weekId), mode = "empty";
+		if (rows.length && !queue.length) {
+			const redo = writeQueue(S, weekId, "redo");
+			if (redo.length) {
+				queue = redo;
+				mode = "redo";
+			}
+		}
 		if (!rows.length) reasons.push("Chưa có Topic");
 		else if (!queue.length) {
 			const nc = noCaseEmptyCount(S, weekId);
@@ -8557,7 +8565,9 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			ok: !reasons.length,
 			reasons,
 			count: queue.length,
-			queue
+			queue,
+			mode,
+			redo: mode === "redo"
 		};
 	}
 	function writeCellNow(S, cellId, at) {
@@ -8567,7 +8577,8 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			ok: false,
 			error: err
 		};
-		if (cellView(S, cell).state !== "EMPTY") return {
+		const st0 = cellView(S, cell).state;
+		if (st0 !== "EMPTY" && st0 !== "CANCELLED") return {
 			ok: false,
 			error: "Ô đã có bài."
 		};
@@ -14594,14 +14605,19 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		}
 		return p;
 	}
-	function aiBusy(total) {
+	function aiBusy(total, prog, first) {
 		const el = document.createElement("div");
 		el.className = "ai-busy";
 		el.setAttribute("role", "status");
 		let done = 0;
-		const st = { stopped: false };
+		const st = {
+			stopped: false,
+			label: first || ""
+		};
 		const paint = () => {
-			el.innerHTML = `<span class="spin" aria-hidden="true"></span><span>${esc(textProviderLabel())} đang viết ${done}/${total} bài…</span><button class="btn sm ghost" type="button">Dừng</button>`;
+			const prov = /claude/i.test(textProviderLabel()) ? "Claude" : textProviderLabel() || "AI";
+			const cnt = prog ? ` (ô ${Math.min(prog.done + 1, prog.total)}/${prog.total})` : total > 1 ? ` (${done}/${total} bài)` : "";
+			el.innerHTML = `<span class="spin" aria-hidden="true"></span><span>${esc(prov)} - Đang viết ${esc(st.label || "bài")}${esc(cnt)}…</span><button class="btn sm ghost" type="button">Dừng</button>`;
 			el.querySelector("button").addEventListener("click", () => {
 				st.stopped = true;
 				el.querySelector("span:nth-child(2)").textContent = "Đang dừng…";
@@ -14610,6 +14626,10 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		paint();
 		document.body.appendChild(el);
 		return Object.assign(st, {
+			show(label) {
+				st.label = label;
+				if (!st.stopped) paint();
+			},
 			step() {
 				done++;
 				if (!st.stopped) paint();
@@ -14631,11 +14651,12 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		};
 		aiRunning = true;
 		const cfg = AC.textApiOf(S);
-		const bar = aiBusy(jobs.length);
+		const bar = aiBusy(jobs.length, opts.progress, jobs[0].label);
 		let fail = 0, firstErr = "", next = 0, unfinished = 0;
 		const worker = async () => {
 			while (next < jobs.length && !bar.stopped) {
 				const j = jobs[next++];
+				bar.show(j.label);
 				try {
 					const res = await callRetry(j);
 					let p = AC.parseAiPost(res.text, j.criteria);
@@ -15813,7 +15834,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		const bulk = AC.bulkApprovable(S, w.id, true).length;
 		const run = view.mxRun;
 		return `<div class="row" id="mx-tools">
-      ${run ? `<button class="btn danger" data-act="mx-stop">Dừng</button><span class="small" id="mx-run" aria-live="polite">Đang viết ${run.done}/${run.total} ô…</span>` : `<button class="btn ${wg.ok ? "primary" : ""}" data-act="mx-write" ${wg.ok ? "" : "disabled"} title="${esc(wg.ok ? `Viết ${wg.count} ô Trống` : wg.reasons.join("; "))}">Viết ma trận${wg.ok ? ` (${wg.count} ô)` : ""}</button>`}
+      ${run ? `<button class="btn danger" data-act="mx-stop">Dừng</button><span class="small" id="mx-run" aria-live="polite">Đang viết ${run.done}/${run.total} ô…</span>` : `<button class="btn ${wg.ok ? "primary" : ""}" data-act="mx-write" ${wg.ok ? "" : "disabled"} title="${esc(wg.ok ? wg.redo ? `Viết lại ${wg.count} ô Đã hủy` : `Viết ${wg.count} ô Trống` : wg.reasons.join("; "))}">${wg.redo ? "Viết lại ma trận" : "Viết ma trận"}${wg.ok ? ` (${wg.count} ô)` : ""}</button>`}
       ${bulk && !run ? `<button class="btn" data-act="mx-bulk">Duyệt tất cả (${bulk} ô)</button>` : ""}
       <button class="btn ${gate.ok && !run ? "primary" : ""}" data-act="mx-deal" data-testid="deal" ${gate.ok && !run ? "" : "disabled"} title="${esc(gate.ok ? `Viết ${gate.willFill} slot còn trống từ ô Đã duyệt` : "Chưa bật: " + gate.reasons.join("; "))}">Chia bài${gate.ok ? ` (${gate.willFill} slot)` : ""}</button>
     </div>
@@ -15837,7 +15858,8 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			weekId: w.id,
 			total: g.count,
 			done: 0,
-			stop: false
+			stop: false,
+			mode: g.mode
 		};
 		render();
 		mxStep();
@@ -15845,18 +15867,19 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 	async function mxStep() {
 		const run = view.mxRun;
 		if (!run) return;
-		const q = AC.writeQueue(S, run.weekId);
+		const q = AC.writeQueue(S, run.weekId, run.mode === "redo" ? "redo" : void 0);
 		if (run.stop || !q.length || AC.weekIdOf(curStart()) !== run.weekId) {
 			view.mxRun = null;
 			save();
-			const left = AC.writeQueue(S, run.weekId).length;
+			const left = AC.writeQueue(S, run.weekId, run.mode === "redo" ? "redo" : void 0).length;
 			render();
-			toast(run.stop || left ? `Đã viết ${run.done} ô · còn ${left} ô Trống.` : `Đã viết ${run.done} ô. Mời bạn duyệt từng ô.`);
+			toast(run.stop || left ? `Đã viết ${run.done} ô · còn ${left} ô ${run.mode === "redo" ? "Đã hủy" : "Trống"}.` : `Đã viết ${run.done} ô. Mời bạn duyệt từng ô.`);
 			return;
 		}
 		const r = await withAiText((C) => AC.writeCellNow(C, q[0]), {
 			noAi: run.mock,
-			fallbackAll: true
+			fallbackAll: true,
+			progress: run
 		});
 		if (r.busy && !run.stop) {
 			setTimeout(mxStep, MX_BUSY_WAIT);
