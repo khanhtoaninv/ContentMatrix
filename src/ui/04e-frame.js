@@ -1,7 +1,7 @@
 // ---------- UI · Ghép frame và Image to Image (mục 10.33) ----------
 import { AC } from '../logic/99-export.js';
 import { ACTIONS, CHANGES, INPUTS, S, view } from './00-state.js';
-import { $, assetKind, closeLayer, commit, confirmBox, esc, fmtNum, icon, imgVisual, openLayer, save, toast } from './01-core.js';
+import { $, assetKind, closeLayer, commit, confirmBox, esc, fmtNum, icon, imgVisual, openLayer, save, toast, versionLabel } from './01-core.js';
 import { stateJson } from './01b-mediastore.js';
 import { render } from './02-shell.js';
 import { openSlot } from './04-week.js';
@@ -162,41 +162,56 @@ export function openFrameDialog(s, i) {
   preview();
 }
 
-// Gen AI (mục 10.68): một hộp thoại cho Gen và Image to Image. Mô tả ảnh (do Viết slot ghi, sửa được), ảnh tham chiếu (+),
-// thanh chat với nút Prompt (sinh prompt từ Mô tả ảnh, ghi đè chữ đang có), Enter để tạo ảnh. Có ảnh tham chiếu thì chạy Image to Image.
+// Gen AI (mục 10.68, giao diện chỉnh ở 10.69): khung ảnh, < > xem các phiên bản, Mô tả ảnh, thanh chat có dấu + (ảnh tham chiếu),
+// nút Dùng ảnh hiện tại / Prompt / Hoàn tác. Enter tạo ảnh; tạo xong hộp thoại giữ mở để tạo tiếp và so các phiên bản.
 const GENAI_REF_MAX = 3;
 export function openGenAiDialog(s, i) {
-  const a = s.assets[i], v = curVersion(a), ratio = AC.assetRatioOf(a);
-  const st = { refs: [], busy: false, undo: null };
-  const box = openLayer(`<header class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:nowrap"><div><span class="eyebrow">Gen AI · ${AC.imageApiOn(S) ? 'qua ' + esc(providerLabel()) : 'mô phỏng'} · ${esc(a.name)}${v ? ` · bản v${v.n}` : ''}</span><h2>Tạo ảnh bằng AI</h2><p class="small muted">Viết hoặc sửa mô tả ảnh, đính ảnh tham chiếu bằng dấu +, bấm Prompt để tạo prompt từ mô tả (hoặc tự gõ), rồi Enter. Mỗi lần tạo là một phiên bản mới; bản cũ vẫn giữ.</p></div><button class="btn icon ghost" data-act="close-layer" aria-label="Đóng">${icon('close')}</button></header>
-    <div class="stack" style="gap:10px">
-      <div class="field"><label for="ga-desc">Mô tả ảnh (để tham khảo)</label><textarea id="ga-desc" rows="3" spellcheck="false" placeholder="Bức ảnh trông thế nào">${esc(a.prompt || '')}</textarea></div>
-      <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center" id="ga-refs" aria-label="Ảnh tham chiếu"></div>
-      <div class="field"><label for="ga-chat">Prompt tạo ảnh</label><textarea id="ga-chat" rows="3" spellcheck="false" placeholder="Bấm Prompt để tạo từ mô tả, hoặc tự gõ. Để trống thì dùng Mô tả ảnh. Enter để tạo ảnh (Shift+Enter xuống dòng).">${esc(a.genPrompt || '')}</textarea></div>
+  const a = s.assets[i], ratio = AC.assetRatioOf(a);
+  const st = { refs: [], busy: false, undo: null, dirty: false };
+  const box = openLayer(`<header class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:nowrap"><div><span class="eyebrow">Gen AI · ${AC.imageApiOn(S) ? 'qua ' + esc(providerLabel()) : 'mô phỏng'} · ${esc(a.name)}</span><h2>Tạo ảnh bằng AI</h2></div><button class="btn icon ghost" data-act="close-layer" aria-label="Đóng">${icon('close')}</button></header>
+    <div class="stack ga" style="gap:10px">
+      <div class="ga-view"><button class="btn icon" id="ga-prev" aria-label="Phiên bản trước">${icon('left')}</button><div class="ga-frame" id="ga-frame" style="--ga-r:${esc(ratio.replace(':', ' / '))}"></div><button class="btn icon" id="ga-next" aria-label="Phiên bản sau">${icon('right')}</button></div>
+      <div class="small muted" id="ga-meta" style="text-align:center"></div>
+      <div class="field"><label for="ga-desc">Mô tả ảnh (để tham khảo)</label><textarea id="ga-desc" rows="2" spellcheck="false" placeholder="Bức ảnh trông thế nào">${esc(a.prompt || '')}</textarea></div>
+      <div class="ga-bar">
+        <div class="row" id="ga-refs" aria-label="Ảnh tham chiếu" hidden></div>
+        <textarea id="ga-chat" rows="2" spellcheck="false" aria-label="Prompt tạo ảnh" placeholder="Prompt tạo ảnh. Bấm Prompt để tạo từ mô tả, hoặc tự gõ; để trống thì dùng Mô tả ảnh. Enter để tạo ảnh.">${esc(a.genPrompt || '')}</textarea>
+        <div class="row" style="justify-content:space-between"><label class="btn sm icon" for="ga-file" title="Thêm ảnh tham chiếu (tối đa ${GENAI_REF_MAX})" aria-label="Thêm ảnh tham chiếu">${icon('plus')}</label><input id="ga-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple class="sr"><button class="btn sm primary" id="ga-go">Tạo ảnh</button></div>
+      </div>
       <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center">
-        <label class="btn sm" for="ga-file" title="Thêm ảnh tham chiếu (tối đa ${GENAI_REF_MAX})" aria-label="Thêm ảnh tham chiếu">${icon('plus')}</label><input id="ga-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple class="sr">
-        ${v && v.kind !== 'video' ? '<button class="btn sm" id="ga-cur" title="Dùng ảnh đang chọn của ô làm ảnh tham chiếu">Dùng ảnh hiện tại</button>' : ''}
-        <button class="btn sm" id="ga-prompt" title="Tạo prompt từ Mô tả ảnh (ghi đè prompt đang có)">Prompt</button><button class="linkbtn small" id="ga-undo" hidden>Hoàn tác prompt</button>
-        <span style="flex:1"></span><span class="small faint" id="ga-note"></span>
-        <button class="btn primary" id="ga-go">Tạo ảnh</button>
+        <button class="btn sm" id="ga-cur" title="Dùng ảnh đang chọn của ô làm ảnh tham chiếu">Dùng ảnh hiện tại</button>
+        <button class="btn sm" id="ga-prompt" title="Tạo prompt từ Mô tả ảnh (ghi đè prompt đang có)">Prompt</button><button class="btn sm ghost" id="ga-undo" hidden>Hoàn tác</button>
+        <span class="small faint" id="ga-note"></span>
       </div>
     </div>`, 'dialog');
   box.classList.add('wide');
-  const desc = box.querySelector('#ga-desc'), chat = box.querySelector('#ga-chat'), refsEl = box.querySelector('#ga-refs'), go = box.querySelector('#ga-go'), note = box.querySelector('#ga-note'), undo = box.querySelector('#ga-undo');
+  const $b = q => box.querySelector(q);
+  const desc = $b('#ga-desc'), chat = $b('#ga-chat'), refsEl = $b('#ga-refs'), go = $b('#ga-go'), note = $b('#ga-note'), undo = $b('#ga-undo'), frame = $b('#ga-frame');
+  const paintView = () => {
+    const v = curVersion(a), ci = a.versions.findIndex(x => x.n === a.current);
+    frame.classList.toggle('busy', st.busy);
+    frame.innerHTML = st.busy ? '<span class="small muted">Đang tạo…</span>' : v ? imgVisual(v, false, ratio) : '<span class="small faint">Chưa có ảnh</span>';
+    $b('#ga-meta').textContent = v ? `v${a.current}/${a.versions.length} · ${versionLabel(v)}${v.genai && v.genai.ref ? ' · có ảnh tham chiếu' : ''}` : '';
+    $b('#ga-prev').disabled = st.busy || ci <= 0; $b('#ga-next').disabled = st.busy || ci < 0 || ci >= a.versions.length - 1;
+    $b('#ga-cur').disabled = !v || v.kind === 'video' || st.busy;
+  };
   const paintRefs = () => {
-    refsEl.innerHTML = st.refs.length ? `<span class="small muted">Ảnh tham chiếu:</span>${st.refs.map((r, k) => `<span class="row" style="gap:2px"><img src="${esc(r)}" alt="Ảnh tham chiếu ${k + 1}" style="height:44px;width:44px;object-fit:cover;border-radius:6px"><button class="btn xs ghost" data-ga-rm="${k}" aria-label="Bỏ ảnh tham chiếu ${k + 1}">${icon('close')}</button></span>`).join('')}` : '';
+    refsEl.hidden = !st.refs.length;
+    refsEl.innerHTML = st.refs.map((r, k) => `<span class="ga-ref"><img src="${esc(r)}" alt="Ảnh tham chiếu ${k + 1}"><button class="btn xs ghost" data-ga-rm="${k}" aria-label="Bỏ ảnh tham chiếu ${k + 1}">${icon('close')}</button></span>`).join('');
+    chat.rows = st.refs.length ? 3 : 2;
     note.textContent = st.refs.length ? (AC.imageApiOn(S) ? 'Có ảnh tham chiếu: chạy Image to Image' : 'Mô phỏng: ảnh tham chiếu chỉ đổi sáng, màu theo từ khoá trong prompt') : '';
   };
   const addRef = src => { if (st.refs.length >= GENAI_REF_MAX) return toast(`Tối đa ${GENAI_REF_MAX} ảnh tham chiếu.`, 'bad'); st.refs.push(src); paintRefs(); };
-  paintRefs();
-  box.querySelector('#ga-file').addEventListener('change', async e => {
+  paintView(); paintRefs();
+  $b('#ga-file').addEventListener('change', async e => {
     for (const f of [...e.target.files]) { try { addRef((await readImageFile(f)).src); } catch (err) { toast(err.message, 'bad'); } }
     e.target.value = '';
   });
-  const cur = box.querySelector('#ga-cur');
-  if (cur) cur.addEventListener('click', async () => { try { addRef(await versionToDataUrl(v)); } catch (err) { toast('Không lấy được ảnh hiện tại: ' + err.message, 'bad'); } });
+  $b('#ga-cur').addEventListener('click', async () => { const v = curVersion(a); if (!v) return; try { addRef(await versionToDataUrl(v)); } catch (err) { toast('Không lấy được ảnh hiện tại: ' + err.message, 'bad'); } });
+  const step = dir => { const r = AC.stepSlotImage(S, s.id, i, dir); if (!r.ok) return toast(r.error, 'bad'); st.dirty = true; save(); paintView(); };
+  $b('#ga-prev').addEventListener('click', () => step(-1)); $b('#ga-next').addEventListener('click', () => step(1));
   box.addEventListener('click', e => { const r = e.target.closest('[data-ga-rm]'); if (r) { st.refs.splice(Number(r.dataset.gaRm), 1); paintRefs(); } });
-  box.querySelector('#ga-prompt').addEventListener('click', () => {
+  $b('#ga-prompt').addEventListener('click', () => {
     const p = AC.promptFromDesc(S, s.id, i, desc.value);
     if (!p) return toast('Nhập Mô tả ảnh trước khi bấm Prompt.', 'bad');
     st.undo = chat.value; chat.value = p; undo.hidden = false; chat.focus();
@@ -206,22 +221,26 @@ export function openGenAiDialog(s, i) {
     if (st.busy) return;
     const d = desc.value.trim(), p = chat.value.trim() || d;
     if (!p) return toast('Nhập mô tả ảnh hoặc prompt trước khi tạo ảnh.', 'bad');
-    st.busy = true; go.disabled = true; go.textContent = 'Đang tạo…';
+    st.busy = true; go.disabled = true; go.textContent = 'Đang tạo…'; paintView();
     try {
       let out = {};
       if (AC.imageApiOn(S)) out = st.refs.length ? await imageApiCall('i2i', { prompt: p, strength: 0.6, ratio, image: st.refs[0] }) : await imageApiCall('gen', { prompt: p, ratio });
       else if (st.refs.length) out = { src: await renderI2I({ n: 0, kind: 'image', src: st.refs[0] }, AC.i2iLook(p, 0.6)) }; // mô phỏng: ảnh tham chiếu biến đổi theo từ khoá màu sắc
       const r = AC.genAiSlotImage(S, s.id, i, { desc: d, prompt: chat.value.trim(), ref: st.refs.length > 0, src: out.src, ai: out.ai });
       if (!r.ok) throw new Error(r.error);
-      afterImageDialog(s, `Đã tạo phiên bản ${r.version} (${out.ai ? 'qua ' + providerLabel() : 'mô phỏng'}${st.refs.length ? ', có ảnh tham chiếu' : ''}).`);
+      st.dirty = true; save(); st.busy = false; go.disabled = false; go.textContent = 'Tạo ảnh'; paintView();
+      toast(`Đã tạo phiên bản ${r.version} (${out.ai ? 'qua ' + providerLabel() : 'mô phỏng'}${st.refs.length ? ', có ảnh tham chiếu' : ''}).`);
     } catch (err) {
-      st.busy = false; go.disabled = false; go.textContent = 'Tạo ảnh';
-      const sim = AC.imageApiOn(S) ? { label: 'Dùng mô phỏng', fn: () => { const r = AC.genAiSlotImage(S, s.id, i, { desc: d, prompt: chat.value.trim(), ref: st.refs.length > 0 }); if (!r.ok) return toast(r.error, 'bad'); afterImageDialog(s, `Đã tạo ảnh mô phỏng phiên bản ${r.version}.`); } } : undefined;
+      st.busy = false; go.disabled = false; go.textContent = 'Tạo ảnh'; paintView();
+      const sim = AC.imageApiOn(S) ? { label: 'Dùng mô phỏng', fn: () => { const r = AC.genAiSlotImage(S, s.id, i, { desc: d, prompt: chat.value.trim(), ref: st.refs.length > 0 }); if (!r.ok) return toast(r.error, 'bad'); st.dirty = true; save(); paintView(); toast(`Đã tạo ảnh mô phỏng phiên bản ${r.version}.`); } } : undefined;
       toast('Không tạo được ảnh: ' + err.message, 'bad', sim);
     }
   };
   go.addEventListener('click', run);
   chat.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); run(); } });
+  // Đóng hộp thoại: nếu có thay đổi thì vẽ lại trang và khung bài đang mở
+  const obs = new MutationObserver(() => { if (!document.body.contains(box)) { obs.disconnect(); if (st.dirty) { save(); render(); if (!(pvRefresh && pvRefresh(s.id))) openSlot(s.id); } } });
+  obs.observe(document.body, { childList: true, subtree: true });
 }
 
 // ---------- Thiết lập → Frame ảnh ----------

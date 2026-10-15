@@ -49,11 +49,15 @@ def genai_open(page, scope='.pv-dialog .pv-card', i=None):
     # Mở hộp thoại Gen AI (mục 10.68)
     page.locator(f'{scope} [data-x="img-genai"]' + (f'[data-i="{i}"]' if i is not None else '')).first.click(); page.wait_for_timeout(250)
 
-def genai_go(page, desc=None, prompt=None, wait=400):
+def genai_close(page):
+    page.locator('.dialog.wide [aria-label="Đóng"]').click(); page.wait_for_timeout(250)
+
+def genai_go(page, desc=None, prompt=None, wait=400, close=True):
     # Điền Mô tả ảnh / prompt (nếu có) rồi bấm Tạo ảnh
     if desc is not None: page.locator('#ga-desc').fill(desc)
     if prompt is not None: page.locator('#ga-chat').fill(prompt)
     page.locator('#ga-go').click(); page.wait_for_timeout(wait)
+    if close: genai_close(page)
 
 def ed(page, x, scope='.pv-dialog .pv-card', i=None):
     # Mở công cụ sửa qua nút Edit (mục 10.41); nếu trang Edit đang mở thì bấm thẳng tab
@@ -124,7 +128,7 @@ with sync_playwright() as pw:
     genai_open(page)
     page.locator('#ga-desc').fill('Nền cam, một chiếc loa nhỏ'); page.locator('#ga-prompt').click()
     check('Gen AI: bấm Prompt tạo prompt từ Mô tả ảnh (ghi đè), có Hoàn tác', page.locator('#ga-chat').input_value().startswith('Nền cam, một chiếc loa nhỏ. Tỉ lệ') and not page.locator('#ga-undo').is_hidden())
-    page.locator('#ga-go').click(); page.wait_for_timeout(300)
+    page.locator('#ga-go').click(); page.wait_for_timeout(300); genai_close(page)
     genai_open(page)
     check('Gen AI: Mô tả ảnh mới và prompt được lưu cho lần mở sau', page.locator('#ga-desc').input_value() == 'Nền cam, một chiếc loa nhỏ' and page.locator('#ga-chat').input_value().startswith('Nền cam'))
     page.locator('.dialog.wide [aria-label="Đóng"]').click(); page.wait_for_timeout(150)
@@ -903,8 +907,11 @@ with sync_playwright() as pw:
     check('10.33 Xác nhận ghép: thành phiên bản mới (ảnh JPEG), bản gốc vẫn giữ, khung bài hiện ảnh đã ghép', st and st['src'] == 'data:image/jpeg' and st['frame']['id'] == 'fr-card' and st['frame']['sub'] == 'noiduocenglish.vn' and st['n'] == st['cur'] and st['frame']['from'] < st['cur'] and txt(page, '.pv-dialog .pv-imgmeta') != m0 and page.locator('#layer .fr-dlg').count() == 0, str(st)[:200])
     genai_open(page, '.pv-dialog .pv-card')   # popup đang mở sau khi ghép frame; Edit có thể đã đóng
     check('10.68 hộp Gen AI: có Mô tả ảnh, thanh chat, nút +, Prompt, Dùng ảnh hiện tại, ghi rõ mô phỏng', page.locator('#ga-desc').count() == 1 and page.locator('#ga-chat').count() == 1 and page.locator('label[for="ga-file"]').count() == 1 and page.locator('#ga-prompt').count() == 1 and page.locator('#ga-cur').count() == 1 and 'mô phỏng' in txt(page, '#layer .dialog.wide').lower())
+    h0 = page.locator('.ga-bar').bounding_box()['height']
     page.locator('#ga-cur').click(); page.wait_for_timeout(300)
-    check('10.68 Dùng ảnh hiện tại: có 1 ảnh tham chiếu, ghi chú Image to Image mô phỏng', page.locator('#ga-refs img').count() == 1 and 'Mô phỏng' in txt(page, '#ga-note'))
+    page.screenshot(path=str(SHOTS / 'd-genai.png'))
+    check('10.69 bố cục Gen AI từ trên xuống: khung ảnh, Mô tả ảnh, thanh chat, hàng nút; nút Gen AI không còn biểu tượng', page.locator('#ga-frame').bounding_box()['y'] < page.locator('#ga-desc').bounding_box()['y'] < page.locator('#ga-chat').bounding_box()['y'] < page.locator('#ga-cur').bounding_box()['y'] and page.locator('#ga-prev').count() == 1 and page.locator('#ga-next').count() == 1 and page.locator('#ga-meta').inner_text().startswith('v'))
+    check('10.68 Dùng ảnh hiện tại: có 1 ảnh tham chiếu, ghi chú Image to Image mô phỏng; thanh chat cao hơn khi có ảnh tham chiếu', page.locator('#ga-refs img').count() == 1 and 'Mô phỏng' in txt(page, '#ga-note') and page.locator('.ga-bar').bounding_box()['height'] > h0)
     genai_go(page, prompt='Tông ấm cổ điển', wait=1500)
     st2 = page.evaluate("() => { const S = window.__AC_S(); for (const s of S.slots) for (const a of s.assets) { const v = a.versions.find(x => x.n === a.current); if (v && v.genai && v.genai.ref) return { cur: a.current, src: !!v.src, genai: v.genai, gp: a.genPrompt }; } return null; }")
     check('10.68 Gen AI có ảnh tham chiếu: ảnh thật biến đổi thành phiên bản mới, ghi prompt và ref', st2 and st2['src'] and st2['genai']['prompt'] == 'Tông ấm cổ điển' and st2['genai']['ref'] is True and st2['gp'] == 'Tông ấm cổ điển', str(st2))
@@ -1117,11 +1124,11 @@ with sync_playwright() as pw:
     page.locator('#ga-cur').click(); page.wait_for_timeout(300)
     genai_go(page, prompt='tông ấm', wait=1500)
     check('10.38 Gen AI có ảnh tham chiếu gọi /images/edits, nhãn AI thật', calls[-1][0].endswith('/images/edits') and 'AI thật' in page.locator('.pv-dialog').inner_text())
-    genai_open(page); genai_go(page, prompt='ảnh lỗi', wait=800)
+    genai_open(page); genai_go(page, prompt='ảnh lỗi', wait=800, close=False)
     check('10.38 API lỗi: báo lỗi, có nút Dùng mô phỏng', page.locator('.toast:has-text("hạn mức") .toast-act:has-text("Dùng mô phỏng")').count() == 1)
     page.locator('.toast-act:has-text("Dùng mô phỏng")').click(); page.wait_for_timeout(300)
     check('10.38 Dùng mô phỏng tạo ảnh mô phỏng', 'Đã tạo ảnh mô phỏng' in ' '.join(page.locator('.toast').all_inner_texts()))
-    page.keyboard.press('Escape'); page.wait_for_timeout(150)
+    genai_close(page); page.keyboard.press('Escape'); page.wait_for_timeout(150)
     import shutil, subprocess
     vf = os.path.join(tempfile.mkdtemp(), 'clip.webm')
     if shutil.which('ffmpeg') and subprocess.run(['ffmpeg', '-loglevel', 'error', '-y', '-f', 'lavfi', '-i', 'testsrc=duration=4:size=320x180:rate=10', '-c:v', 'libvpx', '-b:v', '100k', vf]).returncode == 0:

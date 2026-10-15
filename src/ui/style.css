@@ -1015,3 +1015,14 @@ body.drag-slot .cal .day { transition: background .12s, box-shadow .12s; }
   .fmtl { flex-direction: row; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--line); }
   .fmtch { width: auto; flex: 0 0 auto; }
 }
+
+/* Gen AI (10.69) */
+.ga-view { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.ga-frame { height: min(42vh, 340px); aspect-ratio: var(--ga-r, 1 / 1); max-width: calc(100% - 96px); background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-s); overflow: hidden; display: grid; place-items: center; }
+.ga-frame svg, .ga-frame img { width: 100%; height: 100%; display: block; object-fit: contain; }
+.ga-frame.busy { background: var(--line); }
+.ga-bar { border: 1px solid var(--line-strong); border-radius: var(--r-m); padding: 8px; display: flex; flex-direction: column; gap: 6px; background: var(--surface); }
+.ga-bar:focus-within { border-color: var(--accent); }
+.ga-bar textarea { border: 0; outline: 0; resize: none; background: transparent; width: 100%; font: inherit; color: inherit; }
+.ga-ref { display: inline-flex; align-items: center; gap: 2px; }
+.ga-ref img { height: 44px; width: 44px; object-fit: cover; border-radius: 6px; }

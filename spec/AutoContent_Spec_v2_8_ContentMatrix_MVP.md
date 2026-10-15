@@ -1287,3 +1287,10 @@ Gộp Gen, Prompt và Image to Image thành một hộp thoại **Gen AI**.
 - Nút Prompt hiện chỉ ghép Mô tả ảnh với tỉ lệ và yêu cầu hình (mô phỏng); nối AI chữ để viết prompt tốt hơn là việc sau.
 - Test 116 logic, 385 giao diện đạt.
 
+## 10.69. Chỉnh giao diện Gen AI (15/10/2026, bản 98)
+
+Thay bố cục hộp thoại Gen AI của 10.68 (chức năng giữ nguyên). Nút Gen AI chỉ còn chữ, không biểu tượng.
+- Từ trên xuống: **khung ảnh** đúng tỉ lệ ô ảnh (xám khi ô chưa có ảnh hoặc đang tạo, ô đã có ảnh thì hiện ảnh đang dùng); hai nút **< >** hai bên xem lại và chọn phiên bản, dòng nhỏ dưới khung ghi "vN/tổng · nhãn"; **Mô tả ảnh** ngay dưới khung; **thanh chat** có dấu + và nút Tạo ảnh (Enter hoặc bấm), ảnh tham chiếu hiện trong thanh và thanh cao hơn khi có ảnh; hàng nút dưới thanh: **Dùng ảnh hiện tại**, **Prompt**, **Hoàn tác** (hiện sau khi bấm Prompt).
+- Xem phiên bản nào bằng < > thì phiên bản đó là ảnh đang dùng của ô. Tạo xong hộp thoại giữ mở để gen tiếp; đóng thì trang và khung bài tự cập nhật.
+- Test 116 logic, 386 giao diện đạt.
+
