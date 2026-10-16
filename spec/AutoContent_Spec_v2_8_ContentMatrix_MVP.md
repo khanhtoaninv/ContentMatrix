@@ -1379,3 +1379,7 @@ Ráp popup mẫu "bản 4" vào app. Quyết định D163–D166.
 - **Giao diện**: `ui/09-shortvid.js` (header có ‹ › và Tạo Kịch bản, bản cũ dựng bản sao chỉ xem `ghostOf`, bảng Phân cảnh sửa lời / mô tả hình ngay, Script thu gọn có báo Chia lại cảnh, sang Biên tập là duyệt). `ui/09c-videdit.js` (thẻ cảnh: ảnh chính, ảnh nhỏ ghi giây và ✕, + Up, Gen ảnh, Nội dung, VO cảnh một hàng, dòng Cue, lấp đầy / âm lượng; timeline có hàng Cue trên hàng hình, vạch kéo giữa các hình; lớp cue trên khung xem thử kéo được; popup Cue Icon / Text / SFX với ★ Yêu thích, Gần đây, Thư viện có tìm và lọc nhóm; tooltip; SFX phát đúng giây khi xem thử; `openGenImage`; chế độ chỉ xem cho bản cũ qua `hooks.view`). CSS `.vp-*` mới trong `style.css`.
 - **Kiểm thử**: logic 128 (thêm test 10.77), UI sửa khối 10.72/10.75/10.76 theo giao diện mới và thêm khối 10.77.
 - Chưa làm: mốc từng từ thật (TTS có timestamp hoặc Whisper), file SFX thật, xuất file video (WebCodecs trong trình duyệt hoặc Cloudflare Containers + ffmpeg).
+
+## 10.78. Short Vid: sóng VO không tràn khỏi cảnh (16/10/2026, bản 107)
+- **Lỗi**: sóng VO có 50–120 vạch, mỗi vạch rộng tối thiểu 1px cộng khe 1px, nên ở cảnh ngắn (ví dụ 7.1s) các vạch tràn sang phía sau, nhìn như VO dài hơn cảnh dù độ dài VO đúng.
+- **Sửa**: khung sóng `.vp-wv` cắt gọn (`overflow:hidden`), vạch co theo độ rộng khung (`flex:1 1 0`, không khe cố định). Sửa cả mock. Test UI thêm 1 kiểm tra các vạch nằm trong vùng sóng.

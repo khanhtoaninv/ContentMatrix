@@ -1639,6 +1639,7 @@ with sync_playwright() as pw:
     check('10.76 Gỡ VO toàn bài: VO cảnh dùng lại được', dlg.locator('[data-a="voai"]').count() >= 4)
     dlg.locator('[data-a="voai"]').first.click(); page.wait_for_timeout(250)
     check('10.76 VO cảnh (Gen AI): hiện tên VO, vạch VO trên timeline và sóng âm', 'vo-canh-1-ai' in dlg.locator('.vp-sc').first.inner_text() and dlg.locator('.vp-vob').count() == 1 and dlg.locator('#vp-wave .vp-wv').count() == 1)
+    check('10.78 sóng VO không tràn khỏi khung: mọi vạch nằm trong vùng sóng', dlg.evaluate("() => { const w = document.querySelector('#vp-wave .vp-wv'); if (!w) return false; const r = w.getBoundingClientRect(); return [...w.children].every(i => { const q = i.getBoundingClientRect(); return q.right <= r.right + 0.5 && q.left >= r.left - 0.5; }); }"))
     mn = S_("AC.sceneMin(S.videos[0].edit, S.videos[0].edit.scenes[0])")
     h = dlg.locator('.vp-hdl[data-h="0"]'); h.focus(); h.press('ArrowLeft'); h.press('ArrowLeft'); h.press('ArrowLeft'); page.wait_for_timeout(300)
     check('10.76 Phím mũi tên trên mép cảnh: đổi 0,5 giây nhưng không dưới độ dài VO của cảnh', S_("S.videos[0].edit.scenes[0].dur") >= mn)
