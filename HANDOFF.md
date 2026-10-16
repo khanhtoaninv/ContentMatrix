@@ -6,6 +6,7 @@ Cập nhật lần cuối: 16/10/2026, bản **104** (R4 + 10.23–10.75; artifa
 ## QUY TẮC BẮT BUỘC cho mọi thread: xác nhận mã trước, rồi tự đẩy Git (14/10/2026)
 - Repo riêng: https://github.com/khanhtoaninv/ContentMatrix (nhánh `main`). Người dùng chạy app trên PC bằng `dist/index.html` (artifact claude.ai chặn gọi API ngoài), và lấy mã mới bằng `git pull` hoặc `chay.bat`.
 - **Trước khi viết hoặc sửa mã, nêu rõ định làm gì và chờ người dùng xác nhận.** Sau khi mã được duyệt, thread tự build, test, cập nhật HANDOFF/đặc tả, đẩy lên Git và xuất bản artifact, không hỏi lại. Các bước: `npm install` (lần đầu), `npm test` (build + 2 bộ test), rồi gọi `add_repo` (owner `khanhtoaninv`, repo `ContentMatrix`) nếu phiên chưa có quyền, rồi `bash /mnt/project-files/AutoContent/tools/sync-git.sh "lời nhắn"`. Báo người dùng một dòng: đã đẩy, cần `git pull`.
+- **Từ 16/10/2026 người dùng không cần cập nhật artifact claude.ai nữa**: không publish artifact và không nhắc đến nó; chỉ build, test, đẩy Git và báo `git pull`/`chay.bat`.
 - Thư mục dự án `/mnt/project-files/AutoContent` vẫn là nơi sửa chính; Git là bản sao để PC lấy. Luôn đọc lại HANDOFF.md ngay trước khi sửa để không ghi đè thread khác.
 - AI chữ trong artifact dùng nhà cung cấp "Claude của claude.ai" (mục 10.47); gọi Anthropic/OpenAI trực tiếp chỉ chạy ở bản trên PC.
 
