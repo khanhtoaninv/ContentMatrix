@@ -149,7 +149,7 @@ export function captionAt(v, t) {
 // Mỗi mẫu chia các câu của kịch bản vào vài cảnh theo trọng số, gợi ý hình và chữ phủ; thời lượng theo số chữ.
 export const VID_TEMPLATES = {
   script: { name: 'Theo kịch bản (tự chia)', hint: 'Mỗi phần có nhãn trong kịch bản thành một hay vài cảnh.' },
-  hoidap: { name: 'Hỏi đáp 3 bước', w: [2, 1, 2, 2], hints: ['Người nói, cận mặt', 'B-roll minh họa vấn đề', 'Biểu đồ hoặc sơ đồ đơn giản', 'Người nói, chốt việc làm ngay'] },
+  hoidap: { name: 'Hỏi đáp 3 bước', sec: [0, 1, 1, 1], w: [2, 1, 2, 2], hints: ['Người nói, cận mặt', 'B-roll minh họa vấn đề', 'Biểu đồ hoặc sơ đồ đơn giản', 'Người nói, chốt việc làm ngay'] },
   chunhan: { name: 'Chữ nhấn ý', w: [2, 2, 1, 2], hints: ['Nền đơn sắc, chữ lớn', 'Nền đơn sắc, chữ lớn', 'Nền đơn sắc, chữ lớn', 'Nền đơn sắc, chữ lớn'] },
   nguoinoi: { name: 'Người nói + b-roll', w: [1, 2, 1, 2, 1], hints: ['Người nói, cận mặt', 'B-roll minh họa ý đầu', 'Người nói, nhấn ý chính', 'B-roll minh họa cách làm', 'Người nói, chốt'] },
 };
@@ -168,7 +168,7 @@ export function applyTemplate(S, id, key) {
   const cuts = []; let acc = 0; W.forEach((x, i) => { acc += x; cuts.push(i === k - 1 ? ss.length : Math.max((cuts[i - 1] || 0) + 1, Math.min(ss.length - (k - 1 - i), Math.round(ss.length * acc / sum)))); });
   const texts = cuts.map((e, i) => ss.slice(i ? cuts[i - 1] : 0, e).join(' '));
   ed.seq = ed.seq || 1;
-  ed.scenes = texts.map((t, i) => { const d = Math.max(SCENE_FLOOR, r1(countWords(t) / c.wps)); return { id: `sc${ed.seq++}`, label: `Cảnh ${i + 1}`, text: t, dur: d, defDur: d, items: [], prompt: T.hints[i] || scenePrompt(S, v, t), fit: 'fill', vol: 100, vo: null, ph: false }; });
+  ed.scenes = texts.map((t, i) => { const d = Math.max(SCENE_FLOOR, r1(countWords(t) / c.wps)); return { id: `sc${ed.seq++}`, label: `Cảnh ${i + 1}`, text: t, dur: d, defDur: d, items: [], prompt: T.hints[i] || scenePrompt(S, v, t), fit: 'fill', vol: 100, vo: null, ph: false, tr: null, mo: null, sec: !!(T.sec && T.sec[i]) }; });
   if (ed.voAll && ed.voAll.dur > 0 && ed.voAll.kind === 'up') fitTotal(ed, ed.voAll.dur);
   ed.tpl = key; ed.segs = null; ed.capStale = true; ed.doneAt = null; ed.plannedAt = S.settings.demoNow; ed.cues = []; ed.splitFrom = v.script || '';
   return { ok: true, count: ed.scenes.length, template: key };

@@ -1,4 +1,4 @@
-// ---------- UI · Short Vid: biên tập trong popup thẻ Vid, bản 4 (mục 10.76, 10.77) ----------
+// ---------- UI · Short Vid: biên tập trong popup thẻ Vid, bản 5 (mục 10.76, 10.77, 10.79) ----------
 // Trái: Scene / Cài đặt (+ Quản lý caption). Phải: xem thử 9:16 có lớp cue (icon, chữ) trên hình. Dưới: hàng Cue, hàng cảnh và ảnh, sóng âm.
 // Dữ liệu đi qua AC (resizeScene, resizeItem, addCue, editCue…); module này chỉ vẽ, phát thử, tổng hợp SFX và hoàn tác. Xem trước mô phỏng, chưa ghép thành file video.
 import { AC } from '../logic/99-export.js';
@@ -76,7 +76,7 @@ export function openGenImage(id, sid, done) {
   const v0 = vOf(id); const sc0 = v0 && v0.edit && v0.edit.scenes.find(x => x.id === sid); if (!sc0) return;
   const api = AC.imageApiOn(S); const st = { opts: null, pick: new Set(), pr: sc0.prompt || '', stl: GEN_STYLES[0], busy: false };
   const idx = () => vOf(id).edit.scenes.findIndex(x => x.id === sid);
-  const html = () => { const sc = vOf(id).edit.scenes.find(x => x.id === sid) || sc0; return `<header class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:nowrap"><div><span class="eyebrow">Gen ảnh · Cảnh ${idx() + 1} · ${api ? `qua ${esc(providerLabel())}` : 'mô phỏng'}</span><h2>Tạo ảnh cho cảnh</h2></div><button class="btn icon ghost" data-act="close-layer" aria-label="Đóng">${icon('close')}</button></header>
+  const html = () => { const sc = vOf(id).edit.scenes.find(x => x.id === sid) || sc0; return `<header class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:nowrap"><div><span class="eyebrow">Gen ảnh · Scene ${idx() + 1} · ${api ? `qua ${esc(providerLabel())}` : 'mô phỏng'}</span><h2>Tạo ảnh cho cảnh</h2></div><button class="btn icon ghost" data-act="close-layer" aria-label="Đóng">${icon('close')}</button></header>
     <div class="body stack" style="gap:8px">
       <div class="field"><label for="vg-p">Mô tả hình ảnh (prompt)</label><textarea id="vg-p" rows="3">${esc(st.pr)}</textarea></div>
       <div class="row" style="gap:8px;align-items:flex-end"><div class="field"><label for="vg-s">Phong cách</label><select id="vg-s">${GEN_STYLES.map(x => `<option ${x === st.stl ? 'selected' : ''}>${esc(x)}</option>`).join('')}</select></div><div class="field"><label>Khung</label><select disabled><option>Dọc 9:16</option></select></div>
@@ -104,7 +104,7 @@ export function openGenImage(id, sid, done) {
     if (e.target.closest('#vg-add')) {
       const list = [...st.pick].sort().map((k, j) => ({ src: st.opts[k], name: `gen-ai-${idx() + 1}-${j + 1}.png`, gen: true }));
       const r = AC.addSceneItems(S, id, sid, list); if (!r.ok) return toast(r.error, 'bad');
-      closeLayer(); if (done) done(`Đã thêm ${list.length} ảnh Gen vào cảnh ${idx() + 1}.`);
+      closeLayer(); if (done) done(`Đã thêm ${list.length} ảnh Gen vào scene ${idx() + 1}.`);
     }
   });
   box.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[data-gk]')) { e.preventDefault(); e.target.click(); } });
@@ -123,6 +123,26 @@ function cueRow(v, sc, i, st) {
   if (!t) return `<div class="vp-cuerow off" data-testid="ve-cuerow"><b>Cue</b>&nbsp;<span class="small muted">cần VO của cảnh để tính giây từng từ${mine.length ? ` · ${mine.length} cue đang chờ` : ''}</span>${lost}</div>`;
   return `<div class="vp-cuerow" data-testid="ve-cuerow"><b>Cue</b>&nbsp;${ws.map((w, k) => { const c = mine.find(x => !x.lost && x.wi === k); return `<button class="vp-cw${c ? ' on' : ''}" data-a="cw" data-i="${i}" data-j="${k}" title="${f3(t[k].s)}–${f3(t[k].e)}s${c ? ` · ${AC.cueLabel(c)}` : ''}">${c && c.icon ? `${c.icon.g} ` : ''}${esc(w)}${c ? `<span class="vp-cx" data-a="cuex" data-c="${esc(c.id)}" title="Xóa cue" aria-label="Xóa cue">✕</span>` : ''}</button>`; }).join('')}${lost}<span class="small muted vp-cuenote">${st.reCue ? 'Bấm một từ để đặt lại cue · ' : ''}${ed.voAll ? 'theo VO toàn bài' : 'đã căn với VO'} (mô phỏng)</span></div>`;
 }
+const mmss = t => { t = Math.max(0, Math.round(t * 10) / 10); const m = Math.floor(t / 60), x = t - m * 60; return `${m}:${x < 10 ? '0' : ''}${x.toFixed(1).replace('.', ',')}`; };
+function tbarHtml(v, st) {
+  const T = AC.editTimeline(v).total || 1; let a = 0; const ticks = v.edit.scenes.slice(0, -1).map(s => { a += s.dur; return `<i class="vp-tk" style="left:${a / T * 100}%"></i>`; }).join('');
+  return `<div class="vp-tbar"><div class="vp-trk"><input type="range" id="vp-time" data-testid="ve-time" min="0" max="${Math.round(T * 10)}" step="1" value="${Math.round(st.t * 10)}" aria-label="Thanh thời gian video" aria-valuetext="${mmss(st.t)} trên ${mmss(T)}">${ticks}</div><span class="vp-tt" id="vp-tt">${mmss(st.t)} / ${mmss(T)}</span></div>`;
+}
+// Chip hiệu ứng ở đầu cảnh: tóm tắt chuyển động + chuyển cảnh; "tự động" khi cảnh không chỉnh riêng
+function fxSum(v, i) {
+  const ed = v.edit, sc = ed.scenes[i], ki = sc.items.findIndex(m => m.kind !== 'video');
+  const mo = !sc.items.length ? '—' : ki < 0 ? 'Video giữ nguyên' : AC.VID_MOTIONS[AC.motionOf(ed, i, ki)] + (AC.sceneImgCount(sc) > 1 && !sc.mo ? ' …' : '') + (AC.sceneVidCount(sc) ? ' (chỉ ảnh)' : '');
+  return `✦ ${mo}${i || sc.tr ? ` · vào: ${AC.VID_TRANS[AC.transOf(ed, i)]}` : ''}${sc.mo || sc.tr ? '' : ' · tự động'}`;
+}
+function fxBox(v, i) {
+  const ed = v.edit, sc = ed.scenes[i], n = sc.items.length, nImg = AC.sceneImgCount(sc), nVid = AC.sceneVidCount(sc), vid = n && !nImg, mix = nImg && nVid;
+  const fi = sc.items.findIndex(m => m.kind !== 'video'), am = n && fi >= 0 ? AC.VID_MOTIONS[ed.fxMo !== 'auto' ? ed.fxMo : AC.autoMotion(ed, i, fi)] : '—';
+  const at = AC.VID_TRANS[ed.fxTr !== 'auto' ? ed.fxTr : AC.autoTransition(ed, i)];
+  return `<div class="vp-fxbox"><label>Chuyển động <select data-a="fmo" data-i="${i}" ${vid ? 'disabled title="Scene chỉ có video: giữ chuyển động gốc"' : ''}><option value="">Tự động (${vid ? 'giữ nguyên' : esc(am)})</option>${Object.entries(AC.VID_MOTIONS).map(([k, nm]) => `<option value="${k}" ${sc.mo === k ? 'selected' : ''}>${esc(nm)}</option>`).join('')}</select></label>
+    <label>Vào scene <select data-a="ftr" data-i="${i}"><option value="">${i ? `Tự động (${esc(at)})` : 'Mặc định (Không, bắt đầu ngay)'}</option>${Object.entries(AC.VID_TRANS).map(([k, nm]) => `<option value="${k}" ${sc.tr === k ? 'selected' : ''}>${esc(nm)}</option>`).join('')}</select></label>
+    ${vid ? '<span class="small muted">Scene chỉ có video: giữ chuyển động gốc của clip.</span>' : mix ? `<span class="small muted">Chuyển động chỉ áp dụng cho ${nImg} ảnh; ${nVid} video trong scene giữ nguyên.</span>` : ''}
+    <button class="btn sm" data-a="fauto" data-i="${i}" ${sc.mo || sc.tr ? '' : 'disabled'}>Về tự động</button></div>`;
+}
 const curItem = (sc, loc) => { let k = 0, off = 0; const n = sc.items.length; while (k < n - 1 && loc >= off + sc.items[k].d) { off += sc.items[k].d; k++; } return { k, off }; };
 function sceneCard(v, it, i, n, st) {
   const sc = it.scene, k = sc.items.length, cur = st.cur === i;
@@ -136,13 +156,14 @@ function sceneCard(v, it, i, n, st) {
   }).join('');
   const units = AC.brollUnits(v);
   return `<div class="vp-sc" data-sid="${esc(sc.id)}" data-c="${i}" aria-current="${cur}" data-testid="ve-scene">
-    <div class="vp-mcol"><div class="vp-add${k ? ' has' : sc.ph ? ' ph' : ''}" data-a="up" data-i="${i}" role="button" tabindex="0" aria-label="${k ? `Up thêm hình cho cảnh ${i + 1}` : `Up hình hoặc video cho cảnh ${i + 1}`}">${main}</div>
+    <div class="vp-mcol"><div class="vp-add${k ? ' has' : sc.ph ? ' ph' : ''}" data-a="up" data-i="${i}" role="button" tabindex="0" aria-label="${k ? `Up thêm hình cho scene ${i + 1}` : `Up hình hoặc video cho scene ${i + 1}`}">${main}</div>
       ${k ? `<div class="vp-thumbs">${sc.items.map((m, j) => `<span class="vp-th" data-a="pick" data-i="${i}" data-j="${j}" aria-current="${cur && j === ik}" title="Ảnh ${j + 1}: ${f1(m.d)} giây">${thumbHtml(v, m)}<span class="vp-d">${f1(m.d)}s</span><button class="vp-x" data-a="itx" data-i="${i}" data-j="${j}" aria-label="Bỏ ảnh ${j + 1}">✕</button></span>`).join('')}</div>` : ''}
       <button class="vp-plus" data-a="up" data-i="${i}">＋ ${k ? 'Thêm' : 'Up'}</button><button class="vp-plus" data-a="gen" data-i="${i}" data-testid="ve-gen" title="Tạo ảnh bằng AI từ mô tả hình">Gen ảnh</button></div>
     <div class="vp-scb">
-      <div class="vp-hd"><b>Cảnh ${i + 1}</b><span class="small muted">${fmt(it.t0)}–${fmt(it.t1)}</span>
+      <div class="vp-hd"><b>Scene ${i + 1}</b><span class="small muted">${fmt(it.t0)}–${fmt(it.t1)}</span>
         <span><button class="btn icon sm ghost" data-a="dd" data-i="${i}" data-d="-0.5" title="Ngắn hơn 0,5 giây" aria-label="Ngắn hơn 0,5 giây">−</button><button class="btn icon sm ghost" data-a="dd" data-i="${i}" data-d="0.5" title="Dài hơn 0,5 giây" aria-label="Dài hơn 0,5 giây">+</button></span>
-        <span class="vp-r"><button class="btn icon sm ghost" data-a="mv" data-i="${i}" data-d="-1" ${i ? '' : 'disabled'} aria-label="Lên">↑</button><button class="btn icon sm ghost" data-a="mv" data-i="${i}" data-d="1" ${i < n - 1 ? '' : 'disabled'} aria-label="Xuống">↓</button><button class="btn icon sm ghost danger" data-a="del" data-i="${i}" ${n < 2 ? 'disabled' : ''} aria-label="Xóa cảnh">${icon('close')}</button></span></div>
+        <button class="vp-fxc${sc.mo || sc.tr ? ' own' : ''}" data-a="fxo" data-i="${i}" data-testid="ve-fxchip" aria-expanded="${st.fx === i}" title="Hiệu ứng của scene: bấm để chỉnh riêng">${esc(fxSum(v, i))}</button>
+        <span class="vp-r"><button class="btn icon sm ghost" data-a="mv" data-i="${i}" data-d="-1" ${i ? '' : 'disabled'} aria-label="Lên">↑</button><button class="btn icon sm ghost" data-a="mv" data-i="${i}" data-d="1" ${i < n - 1 ? '' : 'disabled'} aria-label="Xuống">↓</button><button class="btn icon sm ghost danger" data-a="del" data-i="${i}" ${n < 2 ? 'disabled' : ''} aria-label="Xóa scene">${icon('close')}</button></span></div>
       <label class="vp-f" for="vp-t-${esc(sc.id)}">Nội dung</label><textarea id="vp-t-${esc(sc.id)}" class="vp-r2" data-sf="text" data-i="${i}" rows="2" placeholder="Lời của cảnh">${esc(sc.text)}</textarea>
       ${voRow(v, sc, i)}${cueRow(v, sc, i, st)}
       <div class="vp-tools small">${k ? `<label class="sr" for="vp-fit-${esc(sc.id)}">Cách đặt hình</label><select id="vp-fit-${esc(sc.id)}" data-a="fit" data-i="${i}">${opt(AC.VID_FIT, sc.fit)}</select><label>🔊 Âm clip <input type="range" min="0" max="100" value="${sc.vol}" data-a="vol" data-i="${i}"></label>`
@@ -163,8 +184,8 @@ function scenePane(v, st) {
   const sug = AC.suggestTemplate(S, v);
   const voAll = vo ? `<b class="vp-nm">${esc(vo.name)}</b> <span class="small muted">${f1(vo.dur)}s · ${vo.kind === 'ai' ? 'AI' : 'Up'}</span><button class="btn icon sm ghost" data-a="voallx" aria-label="Gỡ VO toàn bài">${icon('close')}</button>`
     : `<button class="btn sm" data-a="voallup">Up</button><button class="btn sm" data-a="voallai" data-testid="ve-voallai">Gen AI</button>`;
-  return `<div class="vp-pane">${cutsHtml(v)}<div class="vp-ctl"><div><label class="vp-f" for="ve-tpl">Mẫu dựng</label><select id="ve-tpl" data-a="tpl">${opt(Object.fromEntries(Object.entries(AC.VID_TEMPLATES).map(([k, t]) => [k, t.name + (k === sug ? ' (gợi ý)' : '')])), ed.tpl)}</select></div>
-      <div><span class="vp-f">VO toàn bài</span><div class="vp-vo1">${voAll}</div></div><span class="small muted" style="padding-bottom:6px">Tổng ${f1(tl.total)}s</span></div>
+  return `<div class="vp-pane">${cutsHtml(v)}<div class="vp-ctl"><label class="vp-lb2" for="ve-tpl">Mẫu dựng</label><select id="ve-tpl" data-a="tpl">${opt(Object.fromEntries(Object.entries(AC.VID_TEMPLATES).map(([k, t]) => [k, t.name + (k === sug ? ' (gợi ý)' : '')])), ed.tpl)}</select>
+      <span class="vp-lb2">VO toàn bài</span><div class="vp-vo1">${voAll}</div><button class="btn sm" data-a="origscr" data-testid="ve-orig" title="Chia lại scene theo kịch bản gốc và mẫu dựng đang chọn">↺ Kịch bản gốc</button><span class="small muted vp-tot">Tổng <b>${f1(tl.total)}s</b></span></div>
     ${tl.items.map((it, i) => sceneCard(v, it, i, n, st)).join('')}
     <button class="btn sm" data-a="add">${icon('plus')} Thêm cảnh</button></div>`;
 }
@@ -175,6 +196,11 @@ function settingsPane(v) {
   return `<div class="vp-pane"><div class="vp-grp"><div class="eyebrow">Caption <button class="btn sm" data-a="capopen" data-testid="ve-capopen">Quản lý caption →</button></div>
       <div class="vp-styles">${AC.VID_CAPTION_STYLES.map((n, i) => `<button class="vp-cs s${i}" data-a="cstyle" data-i="${i}" aria-pressed="${ed.captions.style === i}">Aa<small>${esc(n)}</small></button>`).join('')}</div>
       <div class="vp-tools small"><label>Kiểu <select id="ve-cap">${opt(AC.VID_CAPTION_MODES, ed.captions.mode)}</select></label><label>Vị trí <select id="ve-pos">${opt(AC.VID_CAPTION_POS, ed.captions.pos)}</select></label></div></div>
+    <div class="vp-grp"><div class="eyebrow">Hiệu ứng <span class="small muted" style="text-transform:none;letter-spacing:0">áp dụng cho mọi scene chưa chỉnh riêng</span></div><div class="vp-fxg">
+      <label for="ve-gtr">Chuyển cảnh</label><select id="ve-gtr"><option value="auto" ${ed.fxTr === 'auto' ? 'selected' : ''}>Tự động (Cắt; Mờ dần khi sang phần mới và scene chốt)</option>${opt(AC.VID_TRANS, ed.fxTr)}</select>
+      <label for="ve-gmo">Chuyển động ảnh tĩnh</label><select id="ve-gmo"><option value="auto" ${ed.fxMo === 'auto' ? 'selected' : ''}>Tự động (luân phiên Zoom vào, Lia, Zoom ra)</option>${opt(AC.VID_MOTIONS, ed.fxMo)}</select>
+      <label for="ve-gdu">Thời gian chuyển</label><select id="ve-gdu">${AC.VID_FX_DURS.map(x => `<option value="${x}" ${ed.fxDur === x ? 'selected' : ''}>${f1(x)} giây</option>`).join('')}</select></div>
+      <div class="vp-tools small">${(() => { const own = ed.scenes.filter(x => x.mo || x.tr).length; return own ? `<span class="muted">${own} scene đang chỉnh riêng, giữ lựa chọn của scene đó.</span><button class="btn sm" data-a="fxclr">Đưa mọi scene về tự động</button>` : '<span class="muted">Chuyển động chỉ áp dụng cho ảnh; video giữ nguyên chuyển động gốc. Chỉnh riêng từng scene bằng chip ✦ ở đầu scene.</span>'; })()}</div></div>
     <div class="vp-grp"><div class="eyebrow">Frame</div><div class="vp-frames">${fr.map(([k, n]) => {
       const pf = (S.frames || []).find(f => f.id === k);
       return `<button class="vp-fr" data-a="frame" data-k="${esc(k)}" aria-pressed="${ed.frame === k}" title="${esc(n)}"><i>${pf ? `<img src="${esc(pf.src)}" alt="">` : FRAME_TILE[k] || ''}</i>${esc(n)}</button>`;
@@ -199,8 +225,8 @@ function timelineHtml(v, st) {
   const ctrack = `<div class="vp-ctrack" id="vp-ctrack" data-testid="ve-ctrack">${cues.map(({ c, t }) => `<button class="vp-cb" data-a="cb" data-c="${esc(c.id)}" style="left:${t / T * 100}%" aria-current="${st.cue === c.id}" aria-label="Cue “${esc(c.w)}”, ${f3(t)} giây">${esc(AC.cueLabel(c))}<span class="vp-cx" data-a="cuex" data-c="${esc(c.id)}" title="Xóa cue" aria-label="Xóa cue">✕</span></button>`).join('')}${cues.length ? '' : '<span class="small muted vp-chint">Hàng Cue: bấm một từ ở dòng Cue của cảnh (cảnh cần có VO)</span>'}</div>`;
   const blocks = tl.items.map((it, i) => { const s = it.scene, k = s.items.length; let acc = 0;
     const segs = s.items.map((m, j) => { const l = acc / s.dur * 100, w = m.d / s.dur * 100; acc += m.d; return `<span class="vp-seg2" style="left:${l}%;width:${w}%">${f1(m.d)}s</span>${j < k - 1 ? `<span class="vp-ih" data-ih="${i},${j}" tabindex="0" role="slider" aria-label="Ranh giới ảnh ${j + 1} và ${j + 2} của cảnh ${i + 1}" aria-valuenow="${m.d}" style="left:${acc / s.dur * 100}%"></span>` : ''}`; }).join('');
-    return `<div class="vp-blk${k || s.ph ? '' : ' empty'}" data-i="${i}" style="width:${s.dur / T * 100}%" aria-current="${st.cur === i}"><span class="vp-bl">${i + 1} · ${f1(s.dur)}s${k ? ` · ${k} hình` : s.ph ? ' · ▢' : ' · ＋'}</span>${segs}${s.vo && !roll ? `<span class="vp-vob" style="width:${Math.min(100, s.vo.dur / s.dur * 100)}%"></span>` : ''}<span class="vp-hdl" data-h="${i}" tabindex="0" role="slider" aria-label="Độ dài cảnh ${i + 1}" aria-valuenow="${s.dur}" aria-valuemin="${AC.sceneMin(ed, s)}" ${roll && i === tl.items.length - 1 ? 'hidden' : ''}></span></div>`; }).join('');
-  return `<div class="vp-tlw"><div class="vp-tlh"><span>Timeline · ${roll ? 'VO toàn bài cố định: kéo mép = dời ranh giới hai cảnh, kéo vạch = dời ranh giới hai ảnh' : 'kéo mép cảnh: các ảnh co giãn theo; kéo vạch giữa hai ảnh: chỉnh riêng từng ảnh. Cảnh không ngắn hơn VO'}</span><span>${ed.capStale && ed.captions.mode !== 'off' ? '<span class="vp-badge" data-testid="ve-stale">Caption chưa khớp timeline</span> ' : ''}<button class="btn sm" data-a="reset" data-testid="ve-reset">Hoàn trả mặc định</button> <span class="mono" id="vp-tlt"></span></span></div>
+    return `<div class="vp-blk${k || s.ph ? '' : ' empty'}" data-i="${i}" style="width:${s.dur / T * 100}%" aria-current="${st.cur === i}"><span class="vp-bl">${i + 1} · ${f1(s.dur)}s${k ? ` · ${k} hình` : s.ph ? ' · ▢' : ' · ＋'}</span>${segs}${AC.transOf(ed, i) !== 'cut' ? `<span class="vp-trm" title="Vào scene: ${esc(AC.VID_TRANS[AC.transOf(ed, i)])}">◆</span>` : ''}${s.vo && !roll ? `<span class="vp-vob" style="width:${Math.min(100, s.vo.dur / s.dur * 100)}%"></span>` : ''}<span class="vp-hdl" data-h="${i}" tabindex="0" role="slider" aria-label="Độ dài cảnh ${i + 1}" aria-valuenow="${s.dur}" aria-valuemin="${AC.sceneMin(ed, s)}" ${roll && i === tl.items.length - 1 ? 'hidden' : ''}></span></div>`; }).join('');
+  return `<div class="vp-tlw"><div class="vp-tlh"><span>Timeline${roll ? ' · VO toàn bài cố định: kéo mép = dời ranh giới hai cảnh, kéo vạch = dời ranh giới hai ảnh' : ''}</span><span>${ed.capStale && ed.captions.mode !== 'off' ? '<span class="vp-badge" data-testid="ve-stale">Caption chưa khớp timeline</span> ' : ''}<button class="btn sm" data-a="reset" data-testid="ve-reset">Hoàn trả mặc định</button> <span class="mono" id="vp-tlt"></span></span></div>
     ${ctrack}<div class="vp-tl" id="vp-tl">${blocks}<div class="vp-phl" id="vp-phl"></div></div><div class="vp-wave" id="vp-wave">${waveHtml(v)}</div>
     ${ed.music ? `<div class="vp-wave m" id="vp-wave2"><div class="vp-wv m" style="left:0;width:100%">${bars(peaksOf(ed.music, 3))}</div></div>` : ''}
     <div class="small muted" style="margin-top:2px">Hàng Cue: rê chuột để xem, bấm để sửa, ✕ để xóa; cue bám theo từ trong VO · Hàng giữa: cảnh và ảnh · Hàng đỏ: VO (bám đầu ảnh thứ nhất của cảnh).</div></div>`;
@@ -215,11 +241,10 @@ function bodyHtml(v, st, ro) {
   const left = st.cap ? capPane(v, ro) : st.sub === 'scene' ? scenePane(v, st) : settingsPane(v);
   const bl = AC.editBlockers(v); const iss = ro ? [] : AC.editIssues(S, v);
   return `<div class="vp-ed"><div class="vp-l"><div class="vp-mini" role="tablist" aria-label="Công cụ biên tập"><button role="tab" data-a="sub" data-k="scene" aria-selected="${st.sub === 'scene' && !st.cap}" data-testid="ve-sub-scene">Scene</button><button role="tab" data-a="sub" data-k="set" aria-selected="${st.sub === 'set' || st.cap}" data-testid="ve-sub-set">Cài đặt</button></div><fieldset class="vp-fs" ${dis}>${left}</fieldset></div>
-    <div class="vp-pv"><div class="eyebrow"><span id="vp-pvt"></span></div><div class="vp-box" id="vp-box" data-testid="ve-stage"></div>
-      <div class="vp-pvbar"><button class="btn sm" data-a="prev" aria-label="Cảnh trước">⏮</button><button class="btn sm primary" data-a="play" id="vp-play" data-testid="ve-play">▶ Phát</button><button class="btn sm" data-a="next" aria-label="Cảnh sau">⏭</button><label class="small" style="margin-left:8px"><input type="checkbox" data-a="safe" ${st.safe ? 'checked' : ''}> Vùng an toàn</label></div>
-      <p class="small faint">Xem thử mô phỏng, chưa ghép thành file video. Giọng AI dùng giọng đọc có sẵn của trình duyệt; SFX là âm tổng hợp.</p></div></div>
+    <div class="vp-pv"><div class="vp-box" id="vp-box" data-testid="ve-stage"></div>${tbarHtml(v, st)}
+      <div class="vp-pvbar"><button class="btn sm primary" data-a="play" id="vp-play" data-testid="ve-play">▶ Phát</button><button class="btn sm" data-a="replay" data-testid="ve-replay" title="Phát lại từ đầu">↺ Replay</button><label class="small" style="margin-left:8px"><input type="checkbox" data-a="safe" ${st.safe ? 'checked' : ''}> Vùng an toàn</label></div></div></div>
     <fieldset class="vp-fs" ${dis}>${timelineHtml(v, st)}</fieldset>
-    ${ro ? '<div class="vp-foot"><span class="small muted">Bản cũ: chỉ xem. Bấm Dùng bản này để sửa tiếp.</span></div>' : `<div class="vp-foot"><span class="small ${bl.length ? '' : 'muted'}" id="ve-issues">${bl.length ? bl.map(x => `<a href="#" data-a="goto" data-i="${x.i}">Cảnh ${x.i + 1} chưa có hình</a>`).join(' · ') : ed.doneAt ? 'Đã hoàn thành. Lệnh dựng đã lưu; file video có khi bộ xuất chạy.' : 'Đủ hình cho mọi cảnh'}${iss.filter(x => !/chưa có hình/.test(x)).length ? `<br><span class="vp-warn">${iss.filter(x => !/chưa có hình/.test(x)).map(esc).join(' · ')}</span>` : ''}</span>
+    ${ro ? '<div class="vp-foot"><span class="small muted">Bản cũ: chỉ xem. Bấm Dùng bản này để sửa tiếp.</span></div>' : `<div class="vp-foot"><span class="small ${bl.length ? '' : 'muted'}" id="ve-issues">${bl.length ? bl.map(x => `<a href="#" data-a="goto" data-i="${x.i}">Scene ${x.i + 1} chưa có hình</a>`).join(' · ') : ed.doneAt ? 'Đã hoàn thành. Lệnh dựng đã lưu; file video có khi bộ xuất chạy.' : 'Đủ hình cho mọi cảnh'}${iss.filter(x => !/chưa có hình/.test(x)).length ? `<br><span class="vp-warn">${iss.filter(x => !/chưa có hình/.test(x)).map(esc).join(' · ')}</span>` : ''}</span>
       <button class="btn" data-a="export" data-testid="ve-export">Xuất lệnh dựng (JSON)</button><button class="btn primary" data-a="done" data-testid="ve-done" ${bl.length ? 'disabled' : ''}>${ed.doneAt ? 'Đã hoàn thành ✓' : 'Hoàn thành'}</button></div>`}
     <input type="file" id="vp-file" accept="image/*,video/*" multiple class="sr" tabindex="-1"><input type="file" id="vp-fileA" accept="audio/*" class="sr" tabindex="-1"><input type="file" id="vp-fileM" accept="audio/*" class="sr" tabindex="-1">`;
 }
@@ -255,7 +280,7 @@ function cueHtml(v, c, st, ro) {
   if (sec === 'text') body = c.text ? `<input value="${esc(c.text.t)}" data-ctt aria-label="Chữ của cue" maxlength="80" style="margin:4px 0"><div class="vp-tools small" style="margin:0"><select data-cst aria-label="Kiểu chữ">${AC.VID_CUE_TEXT_STYLES.map((n, k) => `<option value="${k}" ${c.text.st === k ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select><label>Cỡ <input type="range" min="14" max="56" value="${c.text.sz}" data-csz="text"></label></div><div class="vp-tools small">${dur('text')}${fxSel('text')}</div>` : '<p class="small muted" style="margin:4px 0">Bật công tắc để thêm chữ (mặc định là từ được đặt cue).</p>';
   if (sec === 'sfx') body = `${c.sfx ? `<div class="vp-curr">Đang dùng <b>${esc(sfxName(c.sfx.k))}</b><button class="vp-ic" data-sp="${esc(c.sfx.k)}" title="Nghe thử" aria-label="Nghe thử">▶</button><label style="margin-left:auto">🔊 <input type="range" min="0" max="100" value="${c.sfx.vol}" data-csv aria-label="Âm lượng SFX" style="width:90px"></label></div>` : ''}
     ${tabs('stab', stb, [['fav', '★ Yêu thích'], ['rec', 'Gần đây'], ['lib', 'Thư viện']])}${stb === 'lib' ? `<input placeholder="Tìm âm thanh (vd: vút, chuông)…" value="${esc(st.sQ || '')}" data-sq aria-label="Tìm âm thanh" style="margin-bottom:4px"><div class="vp-subt" style="flex-wrap:wrap;margin-top:0">${['', ...AC.VID_SFX_GROUPS].map(g => `<button data-sg="${esc(g)}" aria-selected="${(st.sGrp || '') === g}">${esc(g || 'Tất cả')}</button>`).join('')}</div>` : ''}<div class="vp-sfxl" id="vp-sfxl">${sfxLib(c, st)}</div>`;
-  return `<fieldset class="vp-fs" ${ro ? 'disabled' : ''}><div class="eyebrow" style="margin-bottom:4px"><span>Cue · “${esc(c.w)}” · cảnh ${si + 1}</span><button class="vp-ic" data-cpx title="Đóng" aria-label="Đóng">✕</button></div>
+  return `<fieldset class="vp-fs" ${ro ? 'disabled' : ''}><div class="eyebrow" style="margin-bottom:4px"><span>Cue · “${esc(c.w)}” · Scene ${si + 1}</span><button class="vp-ic" data-cpx title="Đóng" aria-label="Đóng">✕</button></div>
     <div class="vp-tools small" style="margin:0">${c.lost ? '<span style="color:var(--bad)">Từ này đã bị xóa khỏi lời cảnh. Bấm một từ ở dòng Cue để đặt lại.</span>' : t == null ? '<span class="muted">Cảnh chưa có VO nên chưa có giây</span>' : `<b data-testid="ve-cuetime">${f3(t)}s</b><button class="btn sm" data-nud="-0.1">‹ −0,1s</button><button class="btn sm" data-nud="0.1">+0,1s ›</button>${c.dt ? `<span class="muted">${c.dt > 0 ? '+' : ''}${f1(c.dt)}s so với từ</span>` : ''}`}</div>
     <div class="vp-csec">${head('icon', 'Icon')}${sec === 'icon' ? body : ''}</div><div class="vp-csec">${head('text', 'Text')}${sec === 'text' ? body : ''}</div><div class="vp-csec">${head('sfx', 'SFX')}${sec === 'sfx' ? body : ''}</div>
     <div class="vp-tools small" style="margin-top:8px;border-top:1px solid var(--line);padding-top:6px"><span class="muted">Kéo icon/chữ trên khung xem thử để đổi vị trí. Yêu thích dùng chung cho mọi video.</span><button class="btn sm danger" data-cdel style="margin-left:auto">Xóa cue</button></div></fieldset>`;
@@ -265,7 +290,7 @@ function cueHtml(v, c, st, ro) {
 // hooks.view: bản kịch bản cũ (chỉ xem); khi có, mọi thao tác ghi dữ liệu bị chặn
 export function mountEditor(host, id, hooks) {
   const H = hooks || {}; const RO = !!H.view; const key = RO ? `${id}#${H.view.verN}` : id;
-  const st = ST[key] = ST[key] && ST[key].keep ? Object.assign(ST[key], { play: false, cue: null, reCue: null }) : { cur: 0, t: 0, play: false, sub: 'scene', cap: false, safe: false, hist: [], fut: [], saved: '', keep: true, cue: null };
+  const st = ST[key] = ST[key] && ST[key].keep ? Object.assign(ST[key], { play: false, cue: null, reCue: null, fx: null, scrub: false }) : { cur: 0, t: 0, play: false, sub: 'scene', cap: false, safe: false, hist: [], fut: [], saved: '', keep: true, cue: null };
   let timer = 0; const au = { list: [], music: null }; let drag = false;
   const v = () => H.view || vOf(id);
   const tot = () => AC.editTimeline(v()).total;
@@ -313,13 +338,14 @@ export function mountEditor(host, id, hooks) {
       box.dataset.k = key2; let h = '';
       if (it && src) h += it.kind === 'video' ? `<video class="vp-media${sc.fit === 'fit' ? ' contain' : ''}" src="${esc(src)}" playsinline preload="auto"></video>` : `<img class="vp-media${sc.fit === 'fit' ? ' contain' : ''}" src="${esc(src)}" alt="">`;
       else h += `<div class="vp-ph"><b>Thẻ giữ chỗ</b><span>${esc(sc.prompt || 'Chưa có mô tả hình')}</span></div>`;
-      h += `${k > 1 ? `<div class="vp-ovk">ảnh ${ik + 1}/${k}</div>` : ''}<div class="vp-cap pos-${esc(ed.captions.pos)} s${style}" ${ed.captions.mode === 'off' ? 'hidden' : ''}><span></span></div><div class="vp-lys" id="vp-lys" data-testid="ve-layers"></div><div class="vp-fm">${frameHtml(vv, ed)}</div>${st.safe ? '<div class="vp-safe"></div>' : ''}`;
+      h += `<div class="vp-flash"></div>${k > 1 ? `<div class="vp-ovk">ảnh ${ik + 1}/${k}</div>` : ''}<div class="vp-cap pos-${esc(ed.captions.pos)} s${style}" ${ed.captions.mode === 'off' ? 'hidden' : ''}><span></span></div><div class="vp-lys" id="vp-lys" data-testid="ve-layers"></div><div class="vp-fm">${frameHtml(vv, ed)}</div>${st.safe ? '<div class="vp-safe"></div>' : ''}`;
       box.innerHTML = h;
       host.querySelectorAll('.vp-th').forEach(e => e.setAttribute('aria-current', String(Number(e.dataset.i) === st.cur && Number(e.dataset.j) === ik)));
       const mn = host.querySelector(`.vp-sc[data-c="${st.cur}"] .vp-add.has`); if (mn && it && mn.dataset.src !== src.slice(-40)) { mn.dataset.src = src.slice(-40); mn.innerHTML = thumbHtml(vv, it); }
     }
     const el = box.querySelector('video');
     if (el) { el.muted = ed.voice.mode !== 'clip'; el.volume = Math.max(0, Math.min(1, sc.vol / 100)); try { const tt = vidTime(it, loc - off, it.d, el); if (!st.play || Math.abs(el.currentTime - tt) > 0.5) el.currentTime = tt; if (st.play && el.paused) el.play().catch(() => {}); if (!st.play) el.pause(); } catch (e) { /* chưa sẵn sàng */ } }
+    fxPaint(box, ed, ik, it, loc, off);
     const cs = box.querySelector('.vp-cap span'); if (cs) cs.innerHTML = ct;
     // Lớp cue (icon, chữ) đang hiện ở giây hiện tại; nằm trên hình và caption
     const ly = box.querySelector('#vp-lys');
@@ -329,21 +355,52 @@ export function mountEditor(host, id, hooks) {
       if (ly.dataset.k !== lk) { ly.dataset.k = lk; ly.innerHTML = on.map(([c, kk, o]) => `<div class="vp-ly fx${o.fx || 0} ${kk === 'text' ? `lt${o.st}` : ''}${st.cue === c.id ? ' sel' : ''}" data-ly="${esc(c.id)},${kk}" style="left:${o.x}%;top:${o.y}%;font-size:${o.sz}px" title="${RO ? 'Cue' : 'Kéo để đổi vị trí'}">${kk === 'icon' ? o.g : esc(o.t)}${RO ? '' : '<span class="vp-rz" title="Kéo để đổi cỡ"></span>'}</div>`).join(''); }
     }
     host.querySelectorAll('.vp-cb').forEach(b => b.setAttribute('aria-current', String(st.cue === b.dataset.c)));
-    const pt = host.querySelector('#vp-pvt'); if (pt) pt.textContent = `Xem thử · cảnh ${st.cur + 1}`; const pl = host.querySelector('#vp-play'); if (pl) pl.textContent = st.play ? '⏸ Dừng' : '▶ Phát';
+    { const tb = host.querySelector('#vp-time'); if (tb && !st.scrub) { tb.max = String(Math.round(T * 10)); tb.value = String(Math.round(st.t * 10)); tb.setAttribute('aria-valuetext', `${mmss(st.t)} trên ${mmss(T)}`); } const tx = host.querySelector('#vp-tt'); if (tx) tx.textContent = `${mmss(st.t)} / ${mmss(T)}`; }
+    const pl = host.querySelector('#vp-play'); if (pl) pl.textContent = st.play ? '⏸ Dừng' : '▶ Phát';
     const ph = host.querySelector('#vp-phl'); if (ph) ph.style.left = `${st.t / (T || 1) * 100}%`; const tt = host.querySelector('#vp-tlt'); if (tt) tt.textContent = `${st.t.toFixed(1)}s / ${f1(T)}s`;
     host.querySelectorAll('.vp-seg').forEach(e => { const g = vv.edit.segs && vv.edit.segs[Number(e.dataset.g)]; e.classList.toggle('now', !!g && txt === g.t && g.at <= st.t); });
+  }
+  // Chuyển động chỉ áp dụng cho ảnh (AC.motionOf trả 'none' cho video); chuyển cảnh chỉ chạy khi đang phát
+  function fxPaint(box, ed, ik, it, loc, off) {
+    const md = box.querySelector('.vp-media'), fl = box.querySelector('.vp-flash'); if (fl) fl.style.opacity = '0'; if (!md || !it) return;
+    const p = Math.max(0, Math.min(1, (loc - off) / (it.d || 1))), mt = AC.motionTransform(AC.motionOf(ed, st.cur, ik), p);
+    const tr = AC.transOf(ed, st.cur), D = ed.fxDur || 0.5, q = st.play && ik === 0 && loc < D ? Math.max(0, loc / D) : 1;
+    let pre = '', op = 1, clip = 'none';
+    if (q < 1) { if (tr === 'fade') op = q; else if (tr === 'slide') pre = `translateX(${(1 - q) * 100}%) `; else if (tr === 'zoom') { pre = `scale(${0.75 + 0.25 * q}) `; op = q; } else if (tr === 'wipe') clip = `inset(0 ${(1 - q) * 100}% 0 0)`; else if (tr === 'flash' && fl) fl.style.opacity = String(1 - q); }
+    md.style.transform = (pre + (it.kind === 'video' ? '' : mt)).trim() || 'none'; md.style.opacity = String(op); md.style.clipPath = clip;
+  }
+  // Đồng bộ Scene ↔ Timeline: cảnh được chọn ở một bên thì bên kia sáng lên; chọn ở timeline thì cột Scene cuộn cảnh đó lên mép trên
+  function revealScene(i, flash) {
+    const pc = host.querySelector('.vp-pane'), el = host.querySelector(`.vp-sc[data-c="${i}"]`); if (!pc || !el) return;
+    const a = pc.getBoundingClientRect(), b = el.getBoundingClientRect();
+    if (b.top < a.top + 4 || b.bottom > a.bottom - 4) pc.scrollTo({ top: pc.scrollTop + b.top - a.top - 8, behavior: 'smooth' });
+    if (flash) { el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); }
+  }
+  function flashBlk(i) { const b = host.querySelector(`.vp-blk[data-i="${i}"]`); if (!b) return; b.classList.remove('flash'); void b.offsetWidth; b.classList.add('flash'); const r = b.getBoundingClientRect(); if (r.top > innerHeight || r.bottom < 0) b.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+  // ---- Cửa sổ chỉnh hiệu ứng riêng của scene ----
+  const fxEl = () => document.getElementById('vp-fxpop');
+  function fxPos() { const p = fxEl(), a = st.fx == null ? null : host.querySelector(`[data-a="fxo"][data-i="${st.fx}"]`); if (!p || !a) return; const r = a.getBoundingClientRect(), h = p.offsetHeight, w = p.offsetWidth; let y = r.bottom + 6; if (y + h > innerHeight - 8) y = Math.max(8, r.top - h - 6); p.style.left = `${Math.max(8, Math.min(innerWidth - w - 8, r.left))}px`; p.style.top = `${y}px`; }
+  function closeFx() { st.fx = null; const p = fxEl(); if (p) p.remove(); host.querySelectorAll('[data-a="fxo"]').forEach(b => b.setAttribute('aria-expanded', 'false')); }
+  function drawFx() {
+    let p = fxEl(); const vv = v();
+    if (st.fx == null || RO || st.sub !== 'scene' || st.cap || !vv || !vv.edit || !vv.edit.scenes[st.fx]) { if (p) p.remove(); if (st.fx != null && (!vv || !vv.edit || !vv.edit.scenes[st.fx])) st.fx = null; return; }
+    if (!p) { p = document.createElement('div'); p.id = 'vp-fxpop'; p.className = 'vp-pop'; p.setAttribute('role', 'dialog'); p.setAttribute('aria-label', 'Hiệu ứng scene'); p.dataset.testid = 've-fxpop'; layerRoot().appendChild(p);
+      p.addEventListener('change', e => { const el = e.target, a = el.dataset.a; if (a !== 'fmo' && a !== 'ftr') return; const i = Number(el.dataset.i), sc = v().edit.scenes[i]; if (!sc) return; if (act(AC.editScene(S, id, sc.id, { [a === 'fmo' ? 'mo' : 'tr']: el.value || null }))) { seekScene(i); st.play = true; startAudio(); paint(); } });
+      p.addEventListener('click', e => { const b = e.target.closest('[data-a="fauto"]'); if (!b || b.disabled) return; const sc = v().edit.scenes[Number(b.dataset.i)]; if (sc) act(AC.editScene(S, id, sc.id, { mo: null, tr: null })); }); }
+    p.innerHTML = `<div class="eyebrow" style="margin-bottom:6px"><span>Hiệu ứng · Scene ${st.fx + 1}</span><button class="vp-ic" data-fxx title="Đóng" aria-label="Đóng">✕</button></div>${fxBox(vv, st.fx)}`;
+    p.querySelector('[data-fxx]').onclick = closeFx; fxPos(); const pc = host.querySelector('.vp-pane'); if (pc) pc.onscroll = fxPos;
   }
   function mark() { host.querySelectorAll('.vp-sc').forEach(e => e.setAttribute('aria-current', String(Number(e.dataset.c) === st.cur))); host.querySelectorAll('.vp-blk').forEach(e => e.setAttribute('aria-current', String(Number(e.dataset.i) === st.cur))); }
   function seekT(t) { st.t = Math.round(Math.max(0, Math.min(tot() - 0.05, t)) * 1000) / 1000; const sts = starts(); let c = 0; sts.forEach((x, i) => { if (st.t >= x) c = i; }); st.cur = c; if (st.play) startAudio(); mark(); paint(); }
   function seekScene(i, j) { const sc = v().edit.scenes[i]; let t = starts()[i] || 0; for (let q = 0; q < (j || 0); q++) t += sc.items[q].d; st.cur = i; st.t = r1(t); if (st.play) startAudio(); mark(); paint(); }
-  function cleanup() { stopAudio(); closeCue(); hideTip(); document.removeEventListener('pointerdown', outside, true); }
+  function cleanup() { stopAudio(); closeCue(); closeFx(); hideTip(); document.removeEventListener('pointerdown', outside, true); window.removeEventListener('keydown', fxKey, true); }
   function tick() {
     if (!host.isConnected) { clearInterval(timer); cleanup(); return; }
     if (!st.play) return; const p0 = st.t; st.t = Math.round((st.t + 0.1) * 10) / 10; const T = tot(); const ed = v().edit;
     (ed.cues || []).forEach(c => { if (!c.sfx) return; const a = AC.cueTime(ed, c); if (a != null && a > p0 && a <= st.t + 1e-9) playSfx(c.sfx.k, c.sfx.vol); });
     if (st.t >= T) { st.t = 0; st.cur = 0; st.play = false; stopAudio(); mark(); paint(); return; }
     const sts = starts(); let c = 0; sts.forEach((x, i) => { if (st.t >= x) c = i; });
-    if (c !== st.cur) { st.cur = c; mark(); startAudio(); } paint();
+    if (c !== st.cur) { st.cur = c; mark(); startAudio(); const ae = document.activeElement; if (!(ae && ae.closest && ae.closest('.vp-pane') && ae.matches('textarea,input'))) revealScene(c, false); } paint();
   }
 
   // ---- Cue: tooltip khi rê chuột, popup khi bấm ----
@@ -405,7 +462,9 @@ export function mountEditor(host, id, hooks) {
     });
   }
   function delCue(cid) { if (RO) return; const r = AC.removeCue(S, id, cid); if (!r.ok) return toast(r.error, 'bad'); if (st.cue === cid) closeCue(); hideTip(); commit(); render(); }
-  function outside(e) { if (st.cue && !e.target.closest('#vp-cuepop,.vp-cb,.vp-cw,.vp-ly')) closeCue(); }
+  function fxKey(e) { if (e.key === 'Escape' && st.fx != null) { closeFx(); e.stopPropagation(); } }   // bắt ở window để Esc chỉ đóng cửa sổ hiệu ứng, không đóng cả popup Vid
+  window.addEventListener('keydown', fxKey, true);
+  function outside(e) { if (st.fx != null && !e.target.closest('#vp-fxpop,[data-a="fxo"]')) closeFx(); if (st.cue && !e.target.closest('#vp-cuepop,.vp-cb,.vp-cw,.vp-ly')) closeCue(); }
   document.addEventListener('pointerdown', outside, true);
   // Kéo icon / chữ trên khung xem thử: đổi vị trí; góc dưới phải: đổi cỡ
   host.addEventListener('pointerdown', e => {
@@ -426,7 +485,7 @@ export function mountEditor(host, id, hooks) {
     if (!vv.edit || !vv.edit.scenes.length) { host.innerHTML = emptyHtml(vv, RO); return; }
     if (!st.hist.length && !RO) st.hist.push(snapOf(vv.edit));
     hideTip(); host.innerHTML = bodyHtml(vv, st, RO); const p = host.querySelector('.vp-pane'); if (p) p.scrollTop = sy;
-    bindTl(); paint();
+    drawFx(); bindTl(); paint();
     if (st.cue) { if (cueById(st.cue)) drawCue(); else closeCue(); }
   }
   function bindTl() {
@@ -478,10 +537,14 @@ export function mountEditor(host, id, hooks) {
     if (e.target.type === 'file') { onFiles(e); return; }
     const el = e.target; const a = el.dataset.a;
     if (a === 'safe') { st.safe = el.checked; paint(); return; }
+    if (el.id === 'vp-time') { st.scrub = false; paint(); return; }
     if (RO) return;
     const i = Number(el.dataset.i); const ed = v().edit; const sc = ed && ed.scenes[i];
     if (el.dataset.sf && sc) { const r = AC.editScene(S, id, sc.id, { [el.dataset.sf]: el.value }); if (r.ok) { commit(); if (el.dataset.sf === 'text') render(); else paint(); } else { toast(r.error, 'bad'); render(); } return; }
     if (a === 'tpl') { applyTpl(el.value); return; }
+    if (el.id === 've-gtr') { act(AC.setEditOptions(S, id, { fxTr: el.value })); return; }
+    if (el.id === 've-gmo') { act(AC.setEditOptions(S, id, { fxMo: el.value })); return; }
+    if (el.id === 've-gdu') { act(AC.setEditOptions(S, id, { fxDur: Number(el.value) })); return; }
     if (a === 'fit') { AC.editScene(S, id, sc.id, { fit: el.value }); commit(); paint(); return; }
     if (a === 'vol') { AC.editScene(S, id, sc.id, { vol: el.value }); commit(); return; }
     if (a === 'short') { AC.editSceneItem(S, id, sc.id, Number(el.dataset.j), { short: el.value }); commit(); paint(); return; }
@@ -498,7 +561,9 @@ export function mountEditor(host, id, hooks) {
     if (el.id === 've-pos') { AC.setEditOptions(S, id, { pos: el.value }); commit(); paint(); }
   });
   host.addEventListener('input', e => {
-    const el = e.target; if (RO) return;
+    const el = e.target;
+    if (el.id === 'vp-time') { st.scrub = true; seekT(Number(el.value) / 10); revealScene(st.cur, false); return; }
+    if (RO) return;
     if (el.dataset.a === 'musvol') { const ed = v().edit; if (ed.music) ed.music.vol = Number(el.value) / 100; if (au.music) au.music.volume = ed.music.vol; }
     if (el.dataset.a === 'trim') { const sc = v().edit.scenes[Number(el.dataset.i)]; sc.items[Number(el.dataset.j)].trim = Number(el.value); if (el.nextElementSibling) el.nextElementSibling.textContent = el.value; st.cur = Number(el.dataset.i); paint(); }
   });
@@ -507,13 +572,14 @@ export function mountEditor(host, id, hooks) {
     if (has && !(await confirmBox({ title: 'Đổi mẫu?', body: '<p>Chia lại cảnh theo mẫu mới: hình, VO cảnh và cue đã thêm sẽ bị xóa. VO toàn bài, kiểu caption, frame, nhạc giữ nguyên.</p>', ok: 'Đổi mẫu' }))) { render(); return; }
     st.cur = 0; st.t = 0; closeCue(); act(AC.applyTemplate(S, id, k), 'Đã chia cảnh theo mẫu.');
   }
+  host.addEventListener('focusin', e => { const c = e.target.closest && e.target.closest('.vp-sc'); if (!c) return; const i = Number(c.dataset.c); if (st.cur !== i) { st.cur = i; st.t = starts()[i]; if (st.play) startAudio(); mark(); paint(); flashBlk(i); } });
   host.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('.vp-add')) { e.preventDefault(); e.target.click(); } });
   // Thao tác chỉ xem, dùng được cả ở bản cũ
-  const VIEW_ACTS = new Set(['sub', 'capopen', 'capback', 'play', 'prev', 'next', 'seek', 'goto', 'pick', 'cb']);
+  const VIEW_ACTS = new Set(['sub', 'capopen', 'capback', 'play', 'replay', 'seek', 'goto', 'pick', 'cb']);
   host.addEventListener('click', async e => {
     const b = e.target.closest('[data-a]'); if (!b || b.disabled || b.tagName === 'SELECT' || b.tagName === 'INPUT' && b.type !== 'button') {
-      const c = e.target.closest('.vp-sc'); if (c && !e.target.closest('button,select,input,textarea,.vp-add,.vp-th,summary,a')) seekScene(Number(c.dataset.c));
-      const blk = e.target.closest('.vp-blk'); if (blk && !e.target.closest('.vp-hdl,.vp-ih')) seekScene(Number(blk.dataset.i));
+      const c = e.target.closest('.vp-sc'); if (c && !e.target.closest('button,select,input,textarea,.vp-add,.vp-th,summary,a')) { seekScene(Number(c.dataset.c)); flashBlk(Number(c.dataset.c)); }
+      const blk = e.target.closest('.vp-blk'); if (blk && !e.target.closest('.vp-hdl,.vp-ih')) { const bi = Number(blk.dataset.i); if (st.sub !== 'scene' || st.cap) { st.sub = 'scene'; st.cap = false; seekScene(bi); render(); } else seekScene(bi); revealScene(bi, true); }
       return;
     }
     const a = b.dataset.a; if (RO && !VIEW_ACTS.has(a)) return;
@@ -523,10 +589,9 @@ export function mountEditor(host, id, hooks) {
     if (a === 'capopen') { st.sub = 'set'; st.cap = true; render(); return; }
     if (a === 'capback') { st.cap = false; render(); return; }
     if (a === 'play') { st.play = !st.play; if (st.play) startAudio(); else stopAudio(); paint(); return; }
-    if (a === 'prev') return seekScene(Math.max(0, st.cur - 1));
-    if (a === 'next') return seekScene(Math.min(ed.scenes.length - 1, st.cur + 1));
+    if (a === 'replay') { st.play = true; seekScene(0); startAudio(); revealScene(0, false); paint(); return; }
     if (a === 'pick') return seekScene(i, Number(b.dataset.j));
-    if (a === 'cb') { e.stopPropagation(); hideTip(); const c = cueById(b.dataset.c); if (!c) return; showCueTime(c); openCue(c.id, b); return; }
+    if (a === 'cb') { e.stopPropagation(); hideTip(); const c = cueById(b.dataset.c); if (!c) return; showCueTime(c); revealScene(st.cur, false); openCue(c.id, b); return; }
     if (a === 'cuex') { e.stopPropagation(); delCue(b.dataset.c); return; }
     if (a === 'cw') {
       const k = Number(b.dataset.j);
@@ -540,7 +605,17 @@ export function mountEditor(host, id, hooks) {
     if (a === 'ph') { act(AC.editScene(S, id, sc.id, { ph: !sc.ph })); return; }
     if (a === 'itx') { act(AC.removeSceneItem(S, id, sc.id, Number(b.dataset.j))); return; }
     if (a === 'mv') { const d = Number(b.dataset.d); if (act(AC.moveScene(S, id, sc.id, d))) { st.cur = i + d; mark(); paint(); } return; }
-    if (a === 'del') { if (act(AC.removeScene(S, id, sc.id))) { st.cur = 0; st.t = 0; render(); } return; }
+    if (a === 'del') {
+      const lost = [sc.items.length ? `${sc.items.length} hình` : '', sc.vo ? 'VO cảnh' : '', (ed.cues || []).some(c => c.sc === sc.id) ? 'cue' : ''].filter(Boolean);
+      if (!(await confirmBox({ title: `Xóa Scene ${i + 1}?`, body: `<p>${lost.length ? `Sẽ mất ${esc(lost.join(', '))} của scene này.` : 'Scene này chưa có hình, VO hay cue.'}</p>`, ok: 'Xóa scene' }))) return;
+      if (act(AC.removeScene(S, id, sc.id))) { st.cur = 0; st.t = 0; closeFx(); render(); } return;
+    }
+    if (a === 'origscr') {
+      if (!(await confirmBox({ title: 'Quay về kịch bản gốc?', body: '<p>Các scene được chia lại theo kịch bản và mẫu dựng đang chọn. Scene đã thêm, xóa, sửa, hình, VO cảnh và cue đã làm sẽ mất. VO toàn bài, caption, frame, nhạc giữ nguyên.</p>', ok: 'Quay về kịch bản gốc' }))) return;
+      st.cur = 0; st.t = 0; st.play = false; closeCue(); closeFx(); act(AC.applyTemplate(S, id, ed.tpl || 'script'), 'Đã chia lại scene theo kịch bản gốc.'); return;
+    }
+    if (a === 'fxo') { e.stopPropagation(); if (st.fx === i) { closeFx(); return; } st.fx = i; if (st.cur !== i) seekScene(i); render(); return; }
+    if (a === 'fxclr') { act(AC.clearSceneFx(S, id)); return; }
     if (a === 'add') { const r = AC.addScene(S, id, ed.scenes[st.cur].id); if (act(r)) { st.cur = Math.min(ed.scenes.length - 1, st.cur + 1); render(); } return; }
     if (a === 'dd') { const r = AC.nudgeScene(S, id, sc.id, Number(b.dataset.d)); if (r.ok && !r.changed) return toast('Đã đến mức tối thiểu của cảnh.'); act(r); return; }
     if (a === 'reset') { act(AC.resetDurations(S, id), 'Đã hoàn trả timeline mặc định. Caption cần Gen lại.'); return; }

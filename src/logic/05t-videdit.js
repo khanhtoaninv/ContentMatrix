@@ -26,8 +26,47 @@ export const VID_CAPTION_STYLES = ['Trắng viền đen', 'Nền vàng', 'Nhấn
 export const VID_FIT = { fill: 'Lấp đầy khung', fit: 'Vừa khung' };
 export const VID_SHORT = { hold: 'Giữ khung cuối', loop: 'Lặp lại', slow: 'Kéo chậm' };
 export const SCENE_FLOOR = 1.5;
-export const VID_POPUP_VER = 4;   // số hiệu bản popup mẫu (notes/mau-popup/popup-vid-mau.html) đã được ráp vào app
+export const VID_POPUP_VER = 5;   // số hiệu bản popup mẫu (notes/mau-popup/popup-vid-mau.html) đã được ráp vào app
 export const ITEM_MIN = 1;        // mỗi hình trong cảnh ít nhất 1 giây
+// Hiệu ứng (popup bản 5, mục 10.79): chuyển cảnh = hiệu ứng khi vào cảnh; chuyển động chỉ áp dụng cho ảnh, không bao giờ cho video.
+export const VID_TRANS = { cut: 'Cắt', fade: 'Mờ dần', slide: 'Trượt', zoom: 'Zoom', wipe: 'Wipe', flash: 'Nháy sáng' };
+export const VID_MOTIONS = { none: 'Đứng yên', zin: 'Zoom vào', zout: 'Zoom ra', pl: 'Lia trái', pr: 'Lia phải', pu: 'Lia lên', pd: 'Lia xuống', kb: 'Ken Burns' };
+export const VID_FX_DURS = [0.3, 0.5, 0.8];
+const MO_AUTO = ['zin', 'pl', 'zout', 'pr'];
+// transform CSS của chuyển động tại tiến độ p (0..1) trong thời lượng của hình
+export function motionTransform(key, p) {
+  p = Math.max(0, Math.min(1, Number(p) || 0));
+  switch (key) {
+    case 'zin': return `scale(${1 + 0.12 * p})`; case 'zout': return `scale(${1.12 - 0.12 * p})`;
+    case 'pl': return `scale(1.1) translateX(${4 - 8 * p}%)`; case 'pr': return `scale(1.1) translateX(${-4 + 8 * p}%)`;
+    case 'pu': return `scale(1.1) translateY(${4 - 8 * p}%)`; case 'pd': return `scale(1.1) translateY(${-4 + 8 * p}%)`;
+    case 'kb': return `scale(${1.04 + 0.1 * p}) translate(${-2 * p}%,${-2 * p}%)`;
+    default: return '';
+  }
+}
+const isImg = it => !!it && it.kind !== 'video';
+export const sceneImgCount = sc => (sc.items || []).filter(isImg).length;
+export const sceneVidCount = sc => (sc.items || []).filter(it => it.kind === 'video').length;
+// Kiểu tự động: ảnh tĩnh luân phiên Zoom vào, Lia trái, Zoom ra, Lia phải theo thứ tự ảnh trong cả video (chỉ đếm ảnh)
+export function autoMotion(ed, i, k) {
+  let n = 0; for (let j = 0; j < i; j++) n += sceneImgCount(ed.scenes[j]) || 1;
+  let q = 0; const sc = ed.scenes[i]; for (let j = 0; j < k; j++) if (isImg(sc.items[j])) q++;
+  return MO_AUTO[(n + q) % MO_AUTO.length];
+}
+// Kiểu chuyển động thực tế của hình k trong cảnh i: video luôn 'none', kể cả khi cảnh hoặc cài đặt chung chọn kiểu riêng
+export function motionOf(ed, i, k) {
+  const sc = ed.scenes[i], it = sc && sc.items[k]; if (it && it.kind === 'video') return 'none';
+  if (sc && sc.mo && VID_MOTIONS[sc.mo]) return sc.mo;
+  return ed.fxMo && ed.fxMo !== 'auto' && VID_MOTIONS[ed.fxMo] ? ed.fxMo : autoMotion(ed, i, k);
+}
+// Chuyển cảnh tự động: Cắt; Mờ dần khi sang phần mới (`sec`) và vào cảnh chốt cuối. Cảnh 1 mặc định không có, chỉ khi người dùng chọn.
+export function autoTransition(ed, i) { if (!i) return 'cut'; const sc = ed.scenes[i]; return sc.sec || i === ed.scenes.length - 1 ? 'fade' : 'cut'; }
+export function transOf(ed, i) {
+  const sc = ed.scenes[i]; if (!sc) return 'cut'; if (sc.tr && VID_TRANS[sc.tr]) return sc.tr; if (!i) return 'cut';
+  return ed.fxTr && ed.fxTr !== 'auto' && VID_TRANS[ed.fxTr] ? ed.fxTr : autoTransition(ed, i);
+}
+const ensureFx = ed => { if (!ed) return ed; if (!ed.fxTr) ed.fxTr = 'auto'; if (!ed.fxMo) ed.fxMo = 'auto'; if (!VID_FX_DURS.includes(ed.fxDur)) ed.fxDur = 0.5; (ed.scenes || []).forEach(sc => { if (sc.tr === undefined) sc.tr = null; if (sc.mo === undefined) sc.mo = null; sc.sec = !!sc.sec; }); return ed; };
+
 const MEDIA_RE = /^data:(video|audio|image)\//;
 const short = (s, n) => { s = String(s || '').replace(/\s+/g, ' ').trim(); return s.length > n ? s.slice(0, n - 1).replace(/\s+\S*$/, '') + '…' : s; };
 const r1 = x => Math.round(Number(x) * 10) / 10;
@@ -252,7 +291,8 @@ export function editOf(v) {
 const itemOf = (a, dur) => { const d = a.kind === 'image' ? 0 : r1(a.to > a.from ? a.to - (a.from || 0) : (dur || 0)); return Object.assign({ kind: a.kind, name: a.name || '', from: r1(a.from || 0), to: a.kind === 'image' ? 0 : r1(a.to || 0), dur: d, short: 'hold', trim: 0 }, a.mediaId ? { mediaId: a.mediaId } : { src: a.src }, a.thumb ? { thumb: a.thumb } : {}); };
 // Bản 4 (mục 10.77): mỗi hình có độ dài riêng `d` (cảnh = tổng các hình), chữ phủ cũ thành cue Text ở từ đầu cảnh, danh sách cue `cues`
 export function migrateEdit(ed) {
-  if (!ed || ed.v === 3) return ed;
+  if (!ed) return ed;
+  if (ed.v === 3) return ensureFx(ed);
   ed.voAll = ed.voAll || null; ed.segs = ed.segs || null; ed.capStale = !!ed.capStale; ed.tpl = ed.tpl || 'script'; ed.doneAt = ed.doneAt || null;
   ed.captions = Object.assign({ mode: 'full', pos: 'bottom', style: 0 }, ed.captions || {});
   if (ed.music && ed.music.duck == null) ed.music.duck = true;
@@ -269,7 +309,7 @@ export function migrateEdit(ed) {
     if (ov && sceneWords(sc.text).length) ed.cues.push({ id: `cu${ed.cueSeq++}`, sc: sc.id, wi: 0, w: sceneWords(sc.text)[0], dt: 0, icon: null, text: { t: ov.slice(0, 80), st: 0, x: 50, y: 24, sz: 26, dur: Math.min(3, sc.dur), fx: 0 }, sfx: null, lost: false });
     delete sc.overlay;
   });
-  ed.v = 3; return ed;
+  ed.v = 3; return ensureFx(ed);
 }
 // ---- Độ dài từng hình: cảnh = tổng độ dài các hình ----
 const sumItems = sc => r1((sc.items || []).reduce((a, it) => a + (it.d || 0), 0));
@@ -317,7 +357,7 @@ export function rematchCues(ed, sc, text) {
     if (best >= 0) c.wi = best; else c.lost = true;
   });
 }
-const newScene = (ed, p) => { const sc = Object.assign({ id: `sc${ed.seq++}`, label: '', text: '', dur: 3, items: [], prompt: '', fit: 'fill', vol: 100, vo: null, ph: false }, p); if (sc.defDur == null) sc.defDur = sc.dur; return sc; };
+const newScene = (ed, p) => { const sc = Object.assign({ id: `sc${ed.seq++}`, label: '', text: '', dur: 3, items: [], prompt: '', fit: 'fill', vol: 100, vo: null, ph: false, tr: null, mo: null, sec: false }, p); if (sc.defDur == null) sc.defDur = sc.dur; return sc; };
 const itemFromUnit = (u, sc) => ({ kind: u.kind, mediaId: u.mediaId, name: '', from: u.from, to: u.kind === 'image' ? 0 : r1(u.from + Math.min(u.dur || sc.dur, sc.dur)), dur: u.kind === 'image' ? 0 : r1(u.dur || 0), short: 'hold', trim: 0, d: sc.dur });
 export function scenePrompt(S, v, text) { const c = vidSettingsOf(S); return `Hình dọc ${c.ratio} minh hoạ: ${short(text, 140) || short(v.insight.title, 100)}${c.brand.visual ? ` ${c.brand.visual}` : ''}`; }
 // Tách đoạn lời dài thành nhiều cảnh (≈ 28 chữ ≈ 11 giây mỗi cảnh), cắt theo câu
@@ -385,6 +425,8 @@ export function editScene(S, id, sid, patch) {
   if (P.fit != null && VID_FIT[P.fit]) sc.fit = P.fit;
   if (P.vol != null) sc.vol = Math.max(0, Math.min(100, Math.round(Number(P.vol)) || 0));
   if (P.ph != null) sc.ph = !!P.ph;
+  if (P.tr !== undefined) { if (P.tr && !VID_TRANS[P.tr]) return { ok: false, error: 'Kiểu chuyển cảnh không hợp lệ.' }; sc.tr = P.tr || null; }
+  if (P.mo !== undefined) { if (P.mo && !VID_MOTIONS[P.mo]) return { ok: false, error: 'Kiểu chuyển động không hợp lệ.' }; sc.mo = P.mo || null; }
   return { ok: true };
 }
 // Gán hình cho cảnh: thay toàn bộ hình hiện có bằng một hình (bản cũ); thêm nhiều hình dùng addSceneItems
@@ -424,6 +466,8 @@ export function editSceneItem(S, id, sid, k, patch) {
   if (patch.trim != null) it.trim = Math.max(0, r1(Number(patch.trim) || 0));
   return { ok: true };
 }
+// Đưa mọi cảnh về hiệu ứng tự động (bỏ lựa chọn riêng của từng cảnh)
+export function clearSceneFx(S, id) { const v = vidGet(S, id); const ed = v && v.edit; if (!ed) return { ok: false, error: 'Không thấy thẻ Vid.' }; ed.scenes.forEach(sc => { sc.tr = null; sc.mo = null; }); return { ok: true }; }
 export function addScene(S, id, afterSid) {
   const v = vidGet(S, id); if (!v) return { ok: false, error: 'Không thấy thẻ Vid.' };
   const ed = editOf(v); const i = afterSid ? ed.scenes.findIndex(x => x.id === afterSid) : ed.scenes.length - 1;
@@ -456,6 +500,9 @@ export function setEditOptions(S, id, patch) {
   if (P.musicVol != null && ed.music) ed.music.vol = Math.max(0, Math.min(1, Number(P.musicVol) || 0));
   if (P.musicDuck != null && ed.music) ed.music.duck = !!P.musicDuck;
   if (P.musicPeaks && ed.music) ed.music.peaks = P.musicPeaks;
+  if (P.fxTr != null) { if (P.fxTr !== 'auto' && !VID_TRANS[P.fxTr]) return { ok: false, error: 'Kiểu chuyển cảnh không hợp lệ.' }; ed.fxTr = P.fxTr; }
+  if (P.fxMo != null) { if (P.fxMo !== 'auto' && !VID_MOTIONS[P.fxMo]) return { ok: false, error: 'Kiểu chuyển động không hợp lệ.' }; ed.fxMo = P.fxMo; }
+  if (P.fxDur != null) { const d = Number(P.fxDur); if (!VID_FX_DURS.includes(d)) return { ok: false, error: 'Thời gian chuyển không hợp lệ.' }; ed.fxDur = d; }
   if (P.musicLicense != null && ed.music) ed.music.license = String(P.musicLicense).trim().slice(0, 200);
   return { ok: true };
 }
@@ -507,6 +554,8 @@ export function editCommands(S, v) {
     app: 'Content Matrix', kind: 'vid-edit-list', version: 3, popup: VID_POPUP_VER, video: { id: v.id, title: v.insight.title, origin: vidOrigin(v) }, ratio: c.ratio, duration: tl.total,
     voice: Object.assign({}, ed.voice, ed.voice.mediaId ? { file: mediaName(ed.voice.mediaId) } : {}), voiceover: ed.voAll ? { scope: 'all', ...voInfo(ed.voAll) } : null,
     captions: Object.assign({}, ed.captions, { styleName: VID_CAPTION_STYLES[ed.captions.style] || '' }), frame: ed.frame,
+    // Hiệu ứng: chuyển cảnh vào từng cảnh (transitionIn) và chuyển động từng hình ảnh (motion); video luôn 'none'
+    effects: { transition: ed.fxTr, motion: ed.fxMo, transitionDuration: ed.fxDur },
     music: ed.music ? { file: ed.music.name, volume: ed.music.vol, duck: ed.music.duck !== false, license: ed.music.license || '' } : null,
     cuts: (ed.cuts || []).filter(x => x.on !== false).map(x => ({ from: x.from, to: x.to })),
     // Cue: giây tính theo VO; vị trí x, y là phần trăm khung (tâm lớp phủ), cỡ là px ở khung xem thử rộng 270 px
@@ -514,11 +563,11 @@ export function editCommands(S, v) {
       icon: c.icon ? { glyph: c.icon.g, x: c.icon.x, y: c.icon.y, size: c.icon.sz, duration: c.icon.dur, effect: c.icon.fx || 0 } : null,
       text: c.text ? { text: c.text.t, style: c.text.st, x: c.text.x, y: c.text.y, size: c.text.sz, duration: c.text.dur, effect: c.text.fx || 0 } : null,
       sfx: c.sfx ? { key: c.sfx.k, volume: c.sfx.vol / 100 } : null })),
-    scenes: tl.items.map(({ scene: s, t0, t1 }) => {
+    scenes: tl.items.map(({ scene: s, t0, t1 }, si) => {
       const offs = itemOffsets(s);
-      return { id: s.id, start: t0, end: t1, label: s.label, text: s.text, fit: s.fit, volume: s.vol / 100,
+      return { id: s.id, start: t0, end: t1, label: s.label, text: s.text, fit: s.fit, volume: s.vol / 100, transitionIn: transOf(ed, si), transitionDuration: ed.fxDur,
         voiceover: ed.voAll ? null : s.vo ? { scope: 'scene', ...voInfo(s.vo), start: t0 } : null,
-        sources: s.items.map((it, k) => ({ file: it.mediaId ? mediaName(it.mediaId) : it.name || 'tệp tải lên', kind: it.kind, from: r1((it.from || 0) + (it.trim || 0)), to: it.kind === 'image' ? 0 : r1((it.from || 0) + (it.trim || 0) + Math.min(it.d, it.dur || it.d)), start: r1(t0 + offs[k]), end: r1(t0 + offs[k] + it.d), whenShort: it.short || 'hold' })),
+        sources: s.items.map((it, k) => ({ file: it.mediaId ? mediaName(it.mediaId) : it.name || 'tệp tải lên', kind: it.kind, from: r1((it.from || 0) + (it.trim || 0)), to: it.kind === 'image' ? 0 : r1((it.from || 0) + (it.trim || 0) + Math.min(it.d, it.dur || it.d)), motion: motionOf(ed, si, k), start: r1(t0 + offs[k]), end: r1(t0 + offs[k] + it.d), whenShort: it.short || 'hold' })),
         ...(s.items.length ? {} : { placeholder: true, prompt: s.prompt }),
         captions: capsOf(s, t0, t1) };
     }),

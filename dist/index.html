@@ -1127,18 +1127,19 @@ button.kchip { cursor: pointer; font: inherit; color: inherit; }
 .vp-note { background: var(--accent-soft); color: var(--ink); border-radius: var(--r-s); padding: 7px 10px; font-size: var(--fs-2); margin-bottom: 10px; }
 .vp-note.warn { background: var(--warn-soft); color: var(--warn); }
 .vp-warn { color: var(--warn); }
-.vp-ed { display: grid; grid-template-columns: minmax(0, 1fr) 250px; gap: 16px; align-items: start; }
-.vp-l { border: 1px solid var(--line); border-radius: var(--r-m, 10px); overflow: hidden; min-width: 0; }
+.vp-ed { display: grid; grid-template-columns: minmax(0, 1fr) 250px; gap: 16px; align-items: stretch; }
+.vp-l { border: 1px solid var(--line); border-radius: var(--r-m, 10px); overflow: hidden; min-width: 0; contain: size; display: flex; flex-direction: column; }
+.vp-l > .vp-fs { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .vp-mini { display: flex; border-bottom: 1px solid var(--line); background: var(--surface-2); }
 .vp-mini button { flex: 1; border: 0; background: none; padding: 8px; cursor: pointer; font-weight: 600; color: var(--ink-2); border-bottom: 2px solid transparent; min-height: 40px; }
 .vp-mini button[aria-selected="true"] { background: var(--surface); color: var(--accent); border-color: var(--accent); }
-.vp-pane { padding: 10px; height: 440px; overflow: auto; }
+.vp-pane { padding: 10px; flex: 1; min-height: 0; overflow: auto; position: relative; background: var(--surface-2); }
 .vp-tools { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 5px; }
-.vp-tools select { width: auto; padding: 2px 4px; }
+.vp-tools select { width: auto; height: 26px; padding: 0 8px; border-radius: 8px; }
 .vp-tools input[type="range"] { width: 90px; }
 .vp-r { margin-left: auto; display: flex; gap: 2px; align-items: center; }
-.vp-sc { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 10px; padding: 9px; border: 1px solid var(--line); border-radius: var(--r-s); margin-bottom: 8px; }
-.vp-sc[aria-current="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.vp-sc { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 10px; padding: 9px; border: 1px solid var(--line); border-radius: var(--r-m, 10px); margin-bottom: 8px; background: var(--surface); scroll-margin-top: 8px; }
+.vp-sc[aria-current="true"] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, var(--surface)); box-shadow: 0 0 0 1px var(--accent); }
 .vp-scb { display: grid; gap: 4px; min-width: 0; }
 textarea.vp-r2, .vp-scb textarea.vp-r2 { height: calc(2 * 1.45em + 14px); min-height: 0; line-height: 1.45; resize: vertical; }
 .vp-f { display: block; font-size: var(--fs-1); color: var(--ink-3); margin-bottom: 2px; }
@@ -1171,11 +1172,16 @@ details.vp-src summary { cursor: pointer; font-size: var(--fs-2); color: var(--i
 .vp-x { position: absolute; top: 0; right: 0; background: rgb(0 0 0 / 60%); color: #fff; font-size: 9px; padding: 0 3px; line-height: 13px; border: 0; cursor: pointer; border-radius: 0 0 0 4px; }
 .vp-plus { border: 1px dashed var(--line-strong); background: var(--surface); border-radius: 5px; cursor: pointer; color: var(--accent); font-size: 12px; padding: 3px 0; min-height: 26px; }
 .vp-plus:disabled { opacity: .45; cursor: not-allowed; }
-.vp-ctl { display: grid; grid-template-columns: minmax(150px, 210px) minmax(0, 1fr) auto; gap: 10px; align-items: end; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
-.vp-vo1 { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; min-height: 31px; }
+.vp-ctl { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--line-strong); font-size: 12px; }
+.vp-lb2 { color: var(--ink-3); white-space: nowrap; }
+.vp-ctl select { width: auto; max-width: 210px; height: 28px; padding: 0 8px; font-size: 12px; border-radius: 8px; }
+.vp-ctl .btn.sm { height: 28px; border-radius: 8px; }
+.vp-tot { margin-left: auto; white-space: nowrap; }
+.vp-vo1 { display: flex; gap: 6px; align-items: center; flex-wrap: nowrap; min-width: 0; }
+.vp-vo1 .vp-nm { max-width: 150px; }
 .vp-nm { overflow: hidden; text-overflow: ellipsis; min-width: 0; white-space: nowrap; }
-.vp-voline { display: flex; gap: 6px; align-items: center; flex-wrap: nowrap; font-size: 12px; margin-top: 4px; padding: 4px 8px; background: var(--surface-2); border-radius: var(--r-s); white-space: nowrap; overflow: hidden; min-height: 32px; }
-.vp-cuerow { display: flex; flex-wrap: wrap; gap: 2px; align-items: center; font-size: 12px; margin-top: 4px; padding: 4px 6px; border: 1px dashed var(--line-strong); border-radius: 6px; }
+.vp-voline { display: flex; gap: 6px; align-items: center; flex-wrap: nowrap; font-size: 12px; margin-top: 6px; padding: 4px 8px; background: var(--surface-2); border-radius: 8px; white-space: nowrap; overflow: hidden; min-height: 34px; }
+.vp-cuerow { display: flex; flex-wrap: wrap; gap: 2px; align-items: center; font-size: 12px; margin-top: 6px; padding: 4px 8px; min-height: 34px; border: 1px dashed var(--line-strong); border-radius: 8px; }
 .vp-cuerow.off { opacity: .7; border-style: dotted; }
 .vp-cuenote { margin-left: auto; }
 .vp-cw { position: relative; border: 0; background: none; padding: 0 3px; border-radius: 4px; cursor: pointer; color: var(--ink); font-size: 12px; line-height: 22px; min-height: 22px; }
@@ -1189,7 +1195,7 @@ details.vp-src summary { cursor: pointer; font-size: var(--fs-2); color: var(--i
 .vp-chint { position: absolute; left: 8px; top: 4px; }
 .vp-cb { position: absolute; top: 3px; transform: translateX(-50%); height: 20px; min-width: 20px; border-radius: 10px; border: 1px solid var(--accent); background: var(--surface); color: var(--ink); font-size: 11px; padding: 0 5px; cursor: pointer; line-height: 18px; white-space: nowrap; z-index: 2; }
 .vp-cb[aria-current="true"] { background: var(--accent); color: var(--accent-ink); }
-.vp-grp { margin-bottom: 14px; }
+.vp-grp { margin-bottom: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-m, 10px); padding: 12px; }
 .vp-styles, .vp-frames { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
 .vp-cs { border: 2px solid var(--line); border-radius: 8px; padding: 6px 4px; background: #2a3446; cursor: pointer; text-align: center; font-size: 13px; font-weight: 700; color: #fff; }
 .vp-cs[aria-pressed="true"] { border-color: var(--accent); }
@@ -1200,9 +1206,9 @@ details.vp-src summary { cursor: pointer; font-size: var(--fs-2); color: var(--i
 .vp-fr i img { width: 100%; height: 100%; object-fit: cover; }
 .vp-fm-logo { position: absolute; top: 6%; left: 8%; width: 40%; height: 9%; border-radius: 99px; background: var(--mark, #f3c24c); }
 .vp-fm-band { position: absolute; left: 0; right: 0; bottom: 0; height: 22%; background: var(--mark, #f3c24c); opacity: .85; }
-.vp-pv { position: sticky; top: 0; min-width: 0; }
+.vp-pv { position: relative; min-width: 0; }
 .vp-box { aspect-ratio: 9 / 16; background: linear-gradient(170deg, #243049, #0d1117); border-radius: 18px; border: 5px solid #2b3440; position: relative; overflow: hidden; color: #fff; container-type: inline-size; }
-.vp-media { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.vp-media { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform-origin: 50% 50%; }
 .vp-media.contain { object-fit: contain; }
 .vp-ph { position: absolute; inset: 0; display: grid; align-content: center; gap: 6px; padding: 18px; text-align: center; background: repeating-linear-gradient(135deg, #222 0 14px, #2b2b2b 14px 28px); font-size: 12px; line-height: 1.4; }
 .vp-ph span { color: #ddd; }
@@ -1301,8 +1307,32 @@ details.vp-src summary { cursor: pointer; font-size: var(--fs-2); color: var(--i
 .vp-slc.pick, .vp-slc.on { background: var(--accent); color: var(--accent-ink); font-size: 12px; font-weight: 600; }
 .vp-slc.busy { background: var(--surface-2); color: var(--ink-2); font-size: 11px; cursor: not-allowed; }
 .legend { display: flex; gap: 14px; margin: 8px 0; }
-@media (max-width: 900px) { .vp-ctl { grid-template-columns: minmax(0, 1fr); } .vp-ver { margin-left: 0; } .vp-ed { grid-template-columns: minmax(0, 1fr); } .vp-pv { position: static; max-width: 280px; margin: 0 auto; width: 100%; } .vp-pane { height: auto; max-height: 460px; } }
+@media (max-width: 900px) { .vp-ver { margin-left: 0; } .vp-ed { grid-template-columns: minmax(0, 1fr); } .vp-pv { position: static; max-width: 280px; margin: 0 auto; width: 100%; } .vp-l { contain: none; } .vp-pane { flex: none; height: 65vh; } }
 @media (max-width: 560px) { .vp-gopts { grid-template-columns: repeat(2, minmax(0, 1fr)); } .vp-styles, .vp-frames { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* popup Vid bản 5: thanh thời gian, hiệu ứng, đồng bộ Scene và Timeline */
+.vp-tbar { margin-top: 8px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 8px; align-items: center; font-size: 12px; color: var(--ink-3); }
+.vp-trk { position: relative; height: 18px; }
+.vp-trk input { position: absolute; inset: 0; width: 100%; margin: 0; height: 18px; background: none; accent-color: var(--accent); cursor: pointer; }
+.vp-tk { position: absolute; top: 4px; width: 2px; height: 10px; margin-left: -1px; background: var(--line-strong); border-radius: 1px; pointer-events: none; }
+.vp-tt { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.vp-fxc { border: 1px solid var(--line); background: var(--surface-2); border-radius: 99px; font-size: 11px; padding: 0 9px; line-height: 22px; min-height: 24px; cursor: pointer; color: var(--ink-2); white-space: nowrap; max-width: 230px; overflow: hidden; text-overflow: ellipsis; }
+.vp-fxc.own { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.vp-fxc[aria-expanded="true"] { border-color: var(--accent); }
+.vp-fxbox { display: flex; flex-direction: column; gap: 8px; font-size: 12px; }
+.vp-fxbox label { display: grid; grid-template-columns: 86px minmax(0, 1fr); gap: 8px; align-items: center; }
+.vp-fxbox select { height: 28px; padding: 0 8px; font-size: 12px; }
+.vp-fxbox .btn { align-self: flex-end; }
+#vp-fxpop { width: 300px; }
+.vp-fxg { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 10px; align-items: center; font-size: 12px; }
+.vp-fxg select { height: 28px; padding: 0 8px; }
+.vp-trm { position: absolute; left: 2px; bottom: 6px; width: 15px; height: 15px; border-radius: 4px; background: var(--surface); color: var(--accent); border: 1px solid var(--accent); font-size: 9px; line-height: 13px; text-align: center; z-index: 3; pointer-events: none; }
+.vp-flash { position: absolute; inset: 0; background: #fff; pointer-events: none; opacity: 0; z-index: 3; }
+@keyframes vpscflash { 0% { box-shadow: 0 0 0 0 var(--accent); } 100% { box-shadow: 0 0 0 7px transparent; } }
+.vp-sc.flash { animation: vpscflash .8s ease-out; }
+@keyframes vpblkflash { 0% { box-shadow: inset 0 0 0 3px var(--mark, #f3c24c); } 100% { box-shadow: inset 0 0 0 3px transparent; } }
+.vp-blk.flash { animation: vpblkflash .9s ease-out; }
+@media (prefers-reduced-motion: reduce) { .vp-sc.flash, .vp-blk.flash { animation: none; } }
 
 </style>
 <div class="app" id="app">
@@ -7473,6 +7503,88 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		slow: "Kéo chậm"
 	};
 	var SCENE_FLOOR = 1.5;
+	var VID_TRANS = {
+		cut: "Cắt",
+		fade: "Mờ dần",
+		slide: "Trượt",
+		zoom: "Zoom",
+		wipe: "Wipe",
+		flash: "Nháy sáng"
+	};
+	var VID_MOTIONS = {
+		none: "Đứng yên",
+		zin: "Zoom vào",
+		zout: "Zoom ra",
+		pl: "Lia trái",
+		pr: "Lia phải",
+		pu: "Lia lên",
+		pd: "Lia xuống",
+		kb: "Ken Burns"
+	};
+	var VID_FX_DURS = [
+		.3,
+		.5,
+		.8
+	];
+	var MO_AUTO = [
+		"zin",
+		"pl",
+		"zout",
+		"pr"
+	];
+	function motionTransform(key, p) {
+		p = Math.max(0, Math.min(1, Number(p) || 0));
+		switch (key) {
+			case "zin": return `scale(${1 + .12 * p})`;
+			case "zout": return `scale(${1.12 - .12 * p})`;
+			case "pl": return `scale(1.1) translateX(${4 - 8 * p}%)`;
+			case "pr": return `scale(1.1) translateX(${-4 + 8 * p}%)`;
+			case "pu": return `scale(1.1) translateY(${4 - 8 * p}%)`;
+			case "pd": return `scale(1.1) translateY(${-4 + 8 * p}%)`;
+			case "kb": return `scale(${1.04 + .1 * p}) translate(${-2 * p}%,${-2 * p}%)`;
+			default: return "";
+		}
+	}
+	var isImg = (it) => !!it && it.kind !== "video";
+	var sceneImgCount = (sc) => (sc.items || []).filter(isImg).length;
+	var sceneVidCount = (sc) => (sc.items || []).filter((it) => it.kind === "video").length;
+	function autoMotion(ed, i, k) {
+		let n = 0;
+		for (let j = 0; j < i; j++) n += sceneImgCount(ed.scenes[j]) || 1;
+		let q = 0;
+		const sc = ed.scenes[i];
+		for (let j = 0; j < k; j++) if (isImg(sc.items[j])) q++;
+		return MO_AUTO[(n + q) % MO_AUTO.length];
+	}
+	function motionOf(ed, i, k) {
+		const sc = ed.scenes[i], it = sc && sc.items[k];
+		if (it && it.kind === "video") return "none";
+		if (sc && sc.mo && VID_MOTIONS[sc.mo]) return sc.mo;
+		return ed.fxMo && ed.fxMo !== "auto" && VID_MOTIONS[ed.fxMo] ? ed.fxMo : autoMotion(ed, i, k);
+	}
+	function autoTransition(ed, i) {
+		if (!i) return "cut";
+		return ed.scenes[i].sec || i === ed.scenes.length - 1 ? "fade" : "cut";
+	}
+	function transOf(ed, i) {
+		const sc = ed.scenes[i];
+		if (!sc) return "cut";
+		if (sc.tr && VID_TRANS[sc.tr]) return sc.tr;
+		if (!i) return "cut";
+		return ed.fxTr && ed.fxTr !== "auto" && VID_TRANS[ed.fxTr] ? ed.fxTr : autoTransition(ed, i);
+	}
+	var ensureFx = (ed) => {
+		if (!ed) return ed;
+		if (!ed.fxTr) ed.fxTr = "auto";
+		if (!ed.fxMo) ed.fxMo = "auto";
+		if (!VID_FX_DURS.includes(ed.fxDur)) ed.fxDur = .5;
+		(ed.scenes || []).forEach((sc) => {
+			if (sc.tr === void 0) sc.tr = null;
+			if (sc.mo === void 0) sc.mo = null;
+			sc.sec = !!sc.sec;
+		});
+		return ed;
+	};
 	var MEDIA_RE = /^data:(video|audio|image)\//;
 	var short$1 = (s, n) => {
 		s = String(s || "").replace(/\s+/g, " ").trim();
@@ -8016,7 +8128,8 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		}, a.mediaId ? { mediaId: a.mediaId } : { src: a.src }, a.thumb ? { thumb: a.thumb } : {});
 	};
 	function migrateEdit(ed) {
-		if (!ed || ed.v === 3) return ed;
+		if (!ed) return ed;
+		if (ed.v === 3) return ensureFx(ed);
 		ed.voAll = ed.voAll || null;
 		ed.segs = ed.segs || null;
 		ed.capStale = !!ed.capStale;
@@ -8065,7 +8178,7 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 			delete sc.overlay;
 		});
 		ed.v = 3;
-		return ed;
+		return ensureFx(ed);
 	}
 	var sumItems = (sc) => r1$2((sc.items || []).reduce((a, it) => a + (it.d || 0), 0));
 	function evenSplit(sc, tot) {
@@ -8174,7 +8287,10 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 			fit: "fill",
 			vol: 100,
 			vo: null,
-			ph: false
+			ph: false,
+			tr: null,
+			mo: null,
+			sec: false
 		}, p);
 		if (sc.defDur == null) sc.defDur = sc.dur;
 		return sc;
@@ -8375,6 +8491,20 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		if (P.fit != null && VID_FIT[P.fit]) sc.fit = P.fit;
 		if (P.vol != null) sc.vol = Math.max(0, Math.min(100, Math.round(Number(P.vol)) || 0));
 		if (P.ph != null) sc.ph = !!P.ph;
+		if (P.tr !== void 0) {
+			if (P.tr && !VID_TRANS[P.tr]) return {
+				ok: false,
+				error: "Kiểu chuyển cảnh không hợp lệ."
+			};
+			sc.tr = P.tr || null;
+		}
+		if (P.mo !== void 0) {
+			if (P.mo && !VID_MOTIONS[P.mo]) return {
+				ok: false,
+				error: "Kiểu chuyển động không hợp lệ."
+			};
+			sc.mo = P.mo || null;
+		}
 		return { ok: true };
 	}
 	function setSceneAsset(S, id, sid, a) {
@@ -8493,6 +8623,19 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		if (patch.trim != null) it.trim = Math.max(0, r1$2(Number(patch.trim) || 0));
 		return { ok: true };
 	}
+	function clearSceneFx(S, id) {
+		const v = vidGet$2(S, id);
+		const ed = v && v.edit;
+		if (!ed) return {
+			ok: false,
+			error: "Không thấy thẻ Vid."
+		};
+		ed.scenes.forEach((sc) => {
+			sc.tr = null;
+			sc.mo = null;
+		});
+		return { ok: true };
+	}
 	function addScene(S, id, afterSid) {
 		const v = vidGet$2(S, id);
 		if (!v) return {
@@ -8601,6 +8744,28 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		if (P.musicVol != null && ed.music) ed.music.vol = Math.max(0, Math.min(1, Number(P.musicVol) || 0));
 		if (P.musicDuck != null && ed.music) ed.music.duck = !!P.musicDuck;
 		if (P.musicPeaks && ed.music) ed.music.peaks = P.musicPeaks;
+		if (P.fxTr != null) {
+			if (P.fxTr !== "auto" && !VID_TRANS[P.fxTr]) return {
+				ok: false,
+				error: "Kiểu chuyển cảnh không hợp lệ."
+			};
+			ed.fxTr = P.fxTr;
+		}
+		if (P.fxMo != null) {
+			if (P.fxMo !== "auto" && !VID_MOTIONS[P.fxMo]) return {
+				ok: false,
+				error: "Kiểu chuyển động không hợp lệ."
+			};
+			ed.fxMo = P.fxMo;
+		}
+		if (P.fxDur != null) {
+			const d = Number(P.fxDur);
+			if (!VID_FX_DURS.includes(d)) return {
+				ok: false,
+				error: "Thời gian chuyển không hợp lệ."
+			};
+			ed.fxDur = d;
+		}
 		if (P.musicLicense != null && ed.music) ed.music.license = String(P.musicLicense).trim().slice(0, 200);
 		return { ok: true };
 	}
@@ -8707,7 +8872,7 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 			app: "Content Matrix",
 			kind: "vid-edit-list",
 			version: 3,
-			popup: 4,
+			popup: 5,
 			video: {
 				id: v.id,
 				title: v.insight.title,
@@ -8722,6 +8887,11 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 			} : null,
 			captions: Object.assign({}, ed.captions, { styleName: VID_CAPTION_STYLES[ed.captions.style] || "" }),
 			frame: ed.frame,
+			effects: {
+				transition: ed.fxTr,
+				motion: ed.fxMo,
+				transitionDuration: ed.fxDur
+			},
 			music: ed.music ? {
 				file: ed.music.name,
 				volume: ed.music.vol,
@@ -8761,7 +8931,7 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 					volume: c.sfx.vol / 100
 				} : null
 			})),
-			scenes: tl.items.map(({ scene: s, t0, t1 }) => {
+			scenes: tl.items.map(({ scene: s, t0, t1 }, si) => {
 				const offs = itemOffsets(s);
 				return {
 					id: s.id,
@@ -8771,6 +8941,8 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 					text: s.text,
 					fit: s.fit,
 					volume: s.vol / 100,
+					transitionIn: transOf(ed, si),
+					transitionDuration: ed.fxDur,
 					voiceover: ed.voAll ? null : s.vo ? {
 						scope: "scene",
 						...voInfo(s.vo),
@@ -8781,6 +8953,7 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 						kind: it.kind,
 						from: r1$2((it.from || 0) + (it.trim || 0)),
 						to: it.kind === "image" ? 0 : r1$2((it.from || 0) + (it.trim || 0) + Math.min(it.d, it.dur || it.d)),
+						motion: motionOf(ed, si, k),
 						start: r1$2(t0 + offs[k]),
 						end: r1$2(t0 + offs[k] + it.d),
 						whenShort: it.short || "hold"
@@ -16850,6 +17023,12 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		},
 		hoidap: {
 			name: "Hỏi đáp 3 bước",
+			sec: [
+				0,
+				1,
+				1,
+				1
+			],
 			w: [
 				2,
 				1,
@@ -16949,7 +17128,10 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				fit: "fill",
 				vol: 100,
 				vo: null,
-				ph: false
+				ph: false,
+				tr: null,
+				mo: null,
+				sec: !!(T.sec && T.sec[i])
 			};
 		});
 		if (ed.voAll && ed.voAll.dur > 0 && ed.voAll.kind === "up") fitTotal(ed, ed.voAll.dur);
@@ -17660,7 +17842,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		DATA_VERSION,
 		STORAGE_KEY,
 		RELEASE: "R4",
-		BUILD: 107,
+		BUILD: 108,
 		TEMPLATES,
 		STEP_NAMES,
 		STEP_COUNT,
@@ -18224,7 +18406,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		VID_FIT,
 		VID_SHORT,
 		SCENE_FLOOR,
-		VID_POPUP_VER: 4,
+		VID_POPUP_VER: 5,
 		migrateEdit,
 		editOf,
 		sceneMin,
@@ -18267,6 +18449,17 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		sceneWordTimes,
 		cueTime,
 		rematchCues,
+		VID_TRANS,
+		VID_MOTIONS,
+		VID_FX_DURS,
+		motionTransform,
+		motionOf,
+		transOf,
+		autoMotion,
+		autoTransition,
+		sceneImgCount,
+		sceneVidCount,
+		clearSceneFx,
 		resizeItem,
 		VID_ICONS,
 		VID_SFX,
@@ -27700,7 +27893,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		const idx = () => vOf(id).edit.scenes.findIndex((x) => x.id === sid);
 		const html = () => {
 			const sc = vOf(id).edit.scenes.find((x) => x.id === sid) || sc0;
-			return `<header class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:nowrap"><div><span class="eyebrow">Gen ảnh · Cảnh ${idx() + 1} · ${api ? `qua ${esc(providerLabel())}` : "mô phỏng"}</span><h2>Tạo ảnh cho cảnh</h2></div><button class="btn icon ghost" data-act="close-layer" aria-label="Đóng">${icon("close")}</button></header>
+			return `<header class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:nowrap"><div><span class="eyebrow">Gen ảnh · Scene ${idx() + 1} · ${api ? `qua ${esc(providerLabel())}` : "mô phỏng"}</span><h2>Tạo ảnh cho cảnh</h2></div><button class="btn icon ghost" data-act="close-layer" aria-label="Đóng">${icon("close")}</button></header>
     <div class="body stack" style="gap:8px">
       <div class="field"><label for="vg-p">Mô tả hình ảnh (prompt)</label><textarea id="vg-p" rows="3">${esc(st.pr)}</textarea></div>
       <div class="row" style="gap:8px;align-items:flex-end"><div class="field"><label for="vg-s">Phong cách</label><select id="vg-s">${GEN_STYLES.map((x) => `<option ${x === st.stl ? "selected" : ""}>${esc(x)}</option>`).join("")}</select></div><div class="field"><label>Khung</label><select disabled><option>Dọc 9:16</option></select></div>
@@ -27776,7 +27969,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				const r = AC.addSceneItems(S, id, sid, list);
 				if (!r.ok) return toast(r.error, "bad");
 				closeLayer();
-				if (done) done(`Đã thêm ${list.length} ảnh Gen vào cảnh ${idx() + 1}.`);
+				if (done) done(`Đã thêm ${list.length} ảnh Gen vào scene ${idx() + 1}.`);
 			}
 		});
 		box.addEventListener("keydown", (e) => {
@@ -27800,6 +27993,33 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			const c = mine.find((x) => !x.lost && x.wi === k);
 			return `<button class="vp-cw${c ? " on" : ""}" data-a="cw" data-i="${i}" data-j="${k}" title="${f3(t[k].s)}–${f3(t[k].e)}s${c ? ` · ${AC.cueLabel(c)}` : ""}">${c && c.icon ? `${c.icon.g} ` : ""}${esc(w)}${c ? `<span class="vp-cx" data-a="cuex" data-c="${esc(c.id)}" title="Xóa cue" aria-label="Xóa cue">✕</span>` : ""}</button>`;
 		}).join("")}${lost}<span class="small muted vp-cuenote">${st.reCue ? "Bấm một từ để đặt lại cue · " : ""}${ed.voAll ? "theo VO toàn bài" : "đã căn với VO"} (mô phỏng)</span></div>`;
+	}
+	var mmss = (t) => {
+		t = Math.max(0, Math.round(t * 10) / 10);
+		const m = Math.floor(t / 60), x = t - m * 60;
+		return `${m}:${x < 10 ? "0" : ""}${x.toFixed(1).replace(".", ",")}`;
+	};
+	function tbarHtml(v, st) {
+		const T = AC.editTimeline(v).total || 1;
+		let a = 0;
+		const ticks = v.edit.scenes.slice(0, -1).map((s) => {
+			a += s.dur;
+			return `<i class="vp-tk" style="left:${a / T * 100}%"></i>`;
+		}).join("");
+		return `<div class="vp-tbar"><div class="vp-trk"><input type="range" id="vp-time" data-testid="ve-time" min="0" max="${Math.round(T * 10)}" step="1" value="${Math.round(st.t * 10)}" aria-label="Thanh thời gian video" aria-valuetext="${mmss(st.t)} trên ${mmss(T)}">${ticks}</div><span class="vp-tt" id="vp-tt">${mmss(st.t)} / ${mmss(T)}</span></div>`;
+	}
+	function fxSum(v, i) {
+		const ed = v.edit, sc = ed.scenes[i], ki = sc.items.findIndex((m) => m.kind !== "video");
+		return `✦ ${!sc.items.length ? "—" : ki < 0 ? "Video giữ nguyên" : AC.VID_MOTIONS[AC.motionOf(ed, i, ki)] + (AC.sceneImgCount(sc) > 1 && !sc.mo ? " …" : "") + (AC.sceneVidCount(sc) ? " (chỉ ảnh)" : "")}${i || sc.tr ? ` · vào: ${AC.VID_TRANS[AC.transOf(ed, i)]}` : ""}${sc.mo || sc.tr ? "" : " · tự động"}`;
+	}
+	function fxBox(v, i) {
+		const ed = v.edit, sc = ed.scenes[i], n = sc.items.length, nImg = AC.sceneImgCount(sc), nVid = AC.sceneVidCount(sc), vid = n && !nImg, mix = nImg && nVid;
+		const fi = sc.items.findIndex((m) => m.kind !== "video"), am = n && fi >= 0 ? AC.VID_MOTIONS[ed.fxMo !== "auto" ? ed.fxMo : AC.autoMotion(ed, i, fi)] : "—";
+		const at = AC.VID_TRANS[ed.fxTr !== "auto" ? ed.fxTr : AC.autoTransition(ed, i)];
+		return `<div class="vp-fxbox"><label>Chuyển động <select data-a="fmo" data-i="${i}" ${vid ? "disabled title=\"Scene chỉ có video: giữ chuyển động gốc\"" : ""}><option value="">Tự động (${vid ? "giữ nguyên" : esc(am)})</option>${Object.entries(AC.VID_MOTIONS).map(([k, nm]) => `<option value="${k}" ${sc.mo === k ? "selected" : ""}>${esc(nm)}</option>`).join("")}</select></label>
+    <label>Vào scene <select data-a="ftr" data-i="${i}"><option value="">${i ? `Tự động (${esc(at)})` : "Mặc định (Không, bắt đầu ngay)"}</option>${Object.entries(AC.VID_TRANS).map(([k, nm]) => `<option value="${k}" ${sc.tr === k ? "selected" : ""}>${esc(nm)}</option>`).join("")}</select></label>
+    ${vid ? "<span class=\"small muted\">Scene chỉ có video: giữ chuyển động gốc của clip.</span>" : mix ? `<span class="small muted">Chuyển động chỉ áp dụng cho ${nImg} ảnh; ${nVid} video trong scene giữ nguyên.</span>` : ""}
+    <button class="btn sm" data-a="fauto" data-i="${i}" ${sc.mo || sc.tr ? "" : "disabled"}>Về tự động</button></div>`;
 	}
 	var curItem = (sc, loc) => {
 		let k = 0, off = 0;
@@ -27825,13 +28045,14 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		}).join("");
 		const units = AC.brollUnits(v);
 		return `<div class="vp-sc" data-sid="${esc(sc.id)}" data-c="${i}" aria-current="${cur}" data-testid="ve-scene">
-    <div class="vp-mcol"><div class="vp-add${k ? " has" : sc.ph ? " ph" : ""}" data-a="up" data-i="${i}" role="button" tabindex="0" aria-label="${k ? `Up thêm hình cho cảnh ${i + 1}` : `Up hình hoặc video cho cảnh ${i + 1}`}">${main}</div>
+    <div class="vp-mcol"><div class="vp-add${k ? " has" : sc.ph ? " ph" : ""}" data-a="up" data-i="${i}" role="button" tabindex="0" aria-label="${k ? `Up thêm hình cho scene ${i + 1}` : `Up hình hoặc video cho scene ${i + 1}`}">${main}</div>
       ${k ? `<div class="vp-thumbs">${sc.items.map((m, j) => `<span class="vp-th" data-a="pick" data-i="${i}" data-j="${j}" aria-current="${cur && j === ik}" title="Ảnh ${j + 1}: ${f1(m.d)} giây">${thumbHtml(v, m)}<span class="vp-d">${f1(m.d)}s</span><button class="vp-x" data-a="itx" data-i="${i}" data-j="${j}" aria-label="Bỏ ảnh ${j + 1}">✕</button></span>`).join("")}</div>` : ""}
       <button class="vp-plus" data-a="up" data-i="${i}">＋ ${k ? "Thêm" : "Up"}</button><button class="vp-plus" data-a="gen" data-i="${i}" data-testid="ve-gen" title="Tạo ảnh bằng AI từ mô tả hình">Gen ảnh</button></div>
     <div class="vp-scb">
-      <div class="vp-hd"><b>Cảnh ${i + 1}</b><span class="small muted">${fmt(it.t0)}–${fmt(it.t1)}</span>
+      <div class="vp-hd"><b>Scene ${i + 1}</b><span class="small muted">${fmt(it.t0)}–${fmt(it.t1)}</span>
         <span><button class="btn icon sm ghost" data-a="dd" data-i="${i}" data-d="-0.5" title="Ngắn hơn 0,5 giây" aria-label="Ngắn hơn 0,5 giây">−</button><button class="btn icon sm ghost" data-a="dd" data-i="${i}" data-d="0.5" title="Dài hơn 0,5 giây" aria-label="Dài hơn 0,5 giây">+</button></span>
-        <span class="vp-r"><button class="btn icon sm ghost" data-a="mv" data-i="${i}" data-d="-1" ${i ? "" : "disabled"} aria-label="Lên">↑</button><button class="btn icon sm ghost" data-a="mv" data-i="${i}" data-d="1" ${i < n - 1 ? "" : "disabled"} aria-label="Xuống">↓</button><button class="btn icon sm ghost danger" data-a="del" data-i="${i}" ${n < 2 ? "disabled" : ""} aria-label="Xóa cảnh">${icon("close")}</button></span></div>
+        <button class="vp-fxc${sc.mo || sc.tr ? " own" : ""}" data-a="fxo" data-i="${i}" data-testid="ve-fxchip" aria-expanded="${st.fx === i}" title="Hiệu ứng của scene: bấm để chỉnh riêng">${esc(fxSum(v, i))}</button>
+        <span class="vp-r"><button class="btn icon sm ghost" data-a="mv" data-i="${i}" data-d="-1" ${i ? "" : "disabled"} aria-label="Lên">↑</button><button class="btn icon sm ghost" data-a="mv" data-i="${i}" data-d="1" ${i < n - 1 ? "" : "disabled"} aria-label="Xuống">↓</button><button class="btn icon sm ghost danger" data-a="del" data-i="${i}" ${n < 2 ? "disabled" : ""} aria-label="Xóa scene">${icon("close")}</button></span></div>
       <label class="vp-f" for="vp-t-${esc(sc.id)}">Nội dung</label><textarea id="vp-t-${esc(sc.id)}" class="vp-r2" data-sf="text" data-i="${i}" rows="2" placeholder="Lời của cảnh">${esc(sc.text)}</textarea>
       ${voRow(v, sc, i)}${cueRow(v, sc, i, st)}
       <div class="vp-tools small">${k ? `<label class="sr" for="vp-fit-${esc(sc.id)}">Cách đặt hình</label><select id="vp-fit-${esc(sc.id)}" data-a="fit" data-i="${i}">${opt(AC.VID_FIT, sc.fit)}</select><label>🔊 Âm clip <input type="range" min="0" max="100" value="${sc.vol}" data-a="vol" data-i="${i}"></label>` : `<button class="btn sm ${sc.ph ? "primary" : ""}" data-a="ph" data-i="${i}" aria-pressed="${!!sc.ph}">Dùng thẻ giữ chỗ</button>${units.length ? `<label class="sr" for="vp-u-${esc(sc.id)}">Chọn từ tệp nguồn</label><select id="vp-u-${esc(sc.id)}" data-a="unit" data-i="${i}"><option value="">Từ nguồn vào…</option>${units.map((u, x) => `<option value="${x}">${esc(`${u.label.includes("s") ? "Đoạn" : "Tệp"} ${x + 1}: ${u.desc}`.slice(0, 60))}</option>`).join("")}</select>` : ""}`}</div>
@@ -27852,8 +28073,8 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		const ed = v.edit, tl = AC.editTimeline(v), n = tl.items.length, vo = ed.voAll;
 		const sug = AC.suggestTemplate(S, v);
 		const voAll = vo ? `<b class="vp-nm">${esc(vo.name)}</b> <span class="small muted">${f1(vo.dur)}s · ${vo.kind === "ai" ? "AI" : "Up"}</span><button class="btn icon sm ghost" data-a="voallx" aria-label="Gỡ VO toàn bài">${icon("close")}</button>` : `<button class="btn sm" data-a="voallup">Up</button><button class="btn sm" data-a="voallai" data-testid="ve-voallai">Gen AI</button>`;
-		return `<div class="vp-pane">${cutsHtml(v)}<div class="vp-ctl"><div><label class="vp-f" for="ve-tpl">Mẫu dựng</label><select id="ve-tpl" data-a="tpl">${opt(Object.fromEntries(Object.entries(AC.VID_TEMPLATES).map(([k, t]) => [k, t.name + (k === sug ? " (gợi ý)" : "")])), ed.tpl)}</select></div>
-      <div><span class="vp-f">VO toàn bài</span><div class="vp-vo1">${voAll}</div></div><span class="small muted" style="padding-bottom:6px">Tổng ${f1(tl.total)}s</span></div>
+		return `<div class="vp-pane">${cutsHtml(v)}<div class="vp-ctl"><label class="vp-lb2" for="ve-tpl">Mẫu dựng</label><select id="ve-tpl" data-a="tpl">${opt(Object.fromEntries(Object.entries(AC.VID_TEMPLATES).map(([k, t]) => [k, t.name + (k === sug ? " (gợi ý)" : "")])), ed.tpl)}</select>
+      <span class="vp-lb2">VO toàn bài</span><div class="vp-vo1">${voAll}</div><button class="btn sm" data-a="origscr" data-testid="ve-orig" title="Chia lại scene theo kịch bản gốc và mẫu dựng đang chọn">↺ Kịch bản gốc</button><span class="small muted vp-tot">Tổng <b>${f1(tl.total)}s</b></span></div>
     ${tl.items.map((it, i) => sceneCard(v, it, i, n, st)).join("")}
     <button class="btn sm" data-a="add">${icon("plus")} Thêm cảnh</button></div>`;
 	}
@@ -27872,6 +28093,14 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		return `<div class="vp-pane"><div class="vp-grp"><div class="eyebrow">Caption <button class="btn sm" data-a="capopen" data-testid="ve-capopen">Quản lý caption →</button></div>
       <div class="vp-styles">${AC.VID_CAPTION_STYLES.map((n, i) => `<button class="vp-cs s${i}" data-a="cstyle" data-i="${i}" aria-pressed="${ed.captions.style === i}">Aa<small>${esc(n)}</small></button>`).join("")}</div>
       <div class="vp-tools small"><label>Kiểu <select id="ve-cap">${opt(AC.VID_CAPTION_MODES, ed.captions.mode)}</select></label><label>Vị trí <select id="ve-pos">${opt(AC.VID_CAPTION_POS, ed.captions.pos)}</select></label></div></div>
+    <div class="vp-grp"><div class="eyebrow">Hiệu ứng <span class="small muted" style="text-transform:none;letter-spacing:0">áp dụng cho mọi scene chưa chỉnh riêng</span></div><div class="vp-fxg">
+      <label for="ve-gtr">Chuyển cảnh</label><select id="ve-gtr"><option value="auto" ${ed.fxTr === "auto" ? "selected" : ""}>Tự động (Cắt; Mờ dần khi sang phần mới và scene chốt)</option>${opt(AC.VID_TRANS, ed.fxTr)}</select>
+      <label for="ve-gmo">Chuyển động ảnh tĩnh</label><select id="ve-gmo"><option value="auto" ${ed.fxMo === "auto" ? "selected" : ""}>Tự động (luân phiên Zoom vào, Lia, Zoom ra)</option>${opt(AC.VID_MOTIONS, ed.fxMo)}</select>
+      <label for="ve-gdu">Thời gian chuyển</label><select id="ve-gdu">${AC.VID_FX_DURS.map((x) => `<option value="${x}" ${ed.fxDur === x ? "selected" : ""}>${f1(x)} giây</option>`).join("")}</select></div>
+      <div class="vp-tools small">${(() => {
+			const own = ed.scenes.filter((x) => x.mo || x.tr).length;
+			return own ? `<span class="muted">${own} scene đang chỉnh riêng, giữ lựa chọn của scene đó.</span><button class="btn sm" data-a="fxclr">Đưa mọi scene về tự động</button>` : "<span class=\"muted\">Chuyển động chỉ áp dụng cho ảnh; video giữ nguyên chuyển động gốc. Chỉnh riêng từng scene bằng chip ✦ ở đầu scene.</span>";
+		})()}</div></div>
     <div class="vp-grp"><div class="eyebrow">Frame</div><div class="vp-frames">${fr.map(([k, n]) => {
 			const pf = (S.frames || []).find((f) => f.id === k);
 			return `<button class="vp-fr" data-a="frame" data-k="${esc(k)}" aria-pressed="${ed.frame === k}" title="${esc(n)}"><i>${pf ? `<img src="${esc(pf.src)}" alt="">` : FRAME_TILE[k] || ""}</i>${esc(n)}</button>`;
@@ -27906,9 +28135,9 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				acc += m.d;
 				return `<span class="vp-seg2" style="left:${l}%;width:${w}%">${f1(m.d)}s</span>${j < k - 1 ? `<span class="vp-ih" data-ih="${i},${j}" tabindex="0" role="slider" aria-label="Ranh giới ảnh ${j + 1} và ${j + 2} của cảnh ${i + 1}" aria-valuenow="${m.d}" style="left:${acc / s.dur * 100}%"></span>` : ""}`;
 			}).join("");
-			return `<div class="vp-blk${k || s.ph ? "" : " empty"}" data-i="${i}" style="width:${s.dur / T * 100}%" aria-current="${st.cur === i}"><span class="vp-bl">${i + 1} · ${f1(s.dur)}s${k ? ` · ${k} hình` : s.ph ? " · ▢" : " · ＋"}</span>${segs}${s.vo && !roll ? `<span class="vp-vob" style="width:${Math.min(100, s.vo.dur / s.dur * 100)}%"></span>` : ""}<span class="vp-hdl" data-h="${i}" tabindex="0" role="slider" aria-label="Độ dài cảnh ${i + 1}" aria-valuenow="${s.dur}" aria-valuemin="${AC.sceneMin(ed, s)}" ${roll && i === tl.items.length - 1 ? "hidden" : ""}></span></div>`;
+			return `<div class="vp-blk${k || s.ph ? "" : " empty"}" data-i="${i}" style="width:${s.dur / T * 100}%" aria-current="${st.cur === i}"><span class="vp-bl">${i + 1} · ${f1(s.dur)}s${k ? ` · ${k} hình` : s.ph ? " · ▢" : " · ＋"}</span>${segs}${AC.transOf(ed, i) !== "cut" ? `<span class="vp-trm" title="Vào scene: ${esc(AC.VID_TRANS[AC.transOf(ed, i)])}">◆</span>` : ""}${s.vo && !roll ? `<span class="vp-vob" style="width:${Math.min(100, s.vo.dur / s.dur * 100)}%"></span>` : ""}<span class="vp-hdl" data-h="${i}" tabindex="0" role="slider" aria-label="Độ dài cảnh ${i + 1}" aria-valuenow="${s.dur}" aria-valuemin="${AC.sceneMin(ed, s)}" ${roll && i === tl.items.length - 1 ? "hidden" : ""}></span></div>`;
 		}).join("");
-		return `<div class="vp-tlw"><div class="vp-tlh"><span>Timeline · ${roll ? "VO toàn bài cố định: kéo mép = dời ranh giới hai cảnh, kéo vạch = dời ranh giới hai ảnh" : "kéo mép cảnh: các ảnh co giãn theo; kéo vạch giữa hai ảnh: chỉnh riêng từng ảnh. Cảnh không ngắn hơn VO"}</span><span>${ed.capStale && ed.captions.mode !== "off" ? "<span class=\"vp-badge\" data-testid=\"ve-stale\">Caption chưa khớp timeline</span> " : ""}<button class="btn sm" data-a="reset" data-testid="ve-reset">Hoàn trả mặc định</button> <span class="mono" id="vp-tlt"></span></span></div>
+		return `<div class="vp-tlw"><div class="vp-tlh"><span>Timeline${roll ? " · VO toàn bài cố định: kéo mép = dời ranh giới hai cảnh, kéo vạch = dời ranh giới hai ảnh" : ""}</span><span>${ed.capStale && ed.captions.mode !== "off" ? "<span class=\"vp-badge\" data-testid=\"ve-stale\">Caption chưa khớp timeline</span> " : ""}<button class="btn sm" data-a="reset" data-testid="ve-reset">Hoàn trả mặc định</button> <span class="mono" id="vp-tlt"></span></span></div>
     ${ctrack}<div class="vp-tl" id="vp-tl">${blocks}<div class="vp-phl" id="vp-phl"></div></div><div class="vp-wave" id="vp-wave">${waveHtml(v)}</div>
     ${ed.music ? `<div class="vp-wave m" id="vp-wave2"><div class="vp-wv m" style="left:0;width:100%">${bars(peaksOf(ed.music, 3))}</div></div>` : ""}
     <div class="small muted" style="margin-top:2px">Hàng Cue: rê chuột để xem, bấm để sửa, ✕ để xóa; cue bám theo từ trong VO · Hàng giữa: cảnh và ảnh · Hàng đỏ: VO (bám đầu ảnh thứ nhất của cảnh).</div></div>`;
@@ -27925,11 +28154,10 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		const bl = AC.editBlockers(v);
 		const iss = ro ? [] : AC.editIssues(S, v);
 		return `<div class="vp-ed"><div class="vp-l"><div class="vp-mini" role="tablist" aria-label="Công cụ biên tập"><button role="tab" data-a="sub" data-k="scene" aria-selected="${st.sub === "scene" && !st.cap}" data-testid="ve-sub-scene">Scene</button><button role="tab" data-a="sub" data-k="set" aria-selected="${st.sub === "set" || st.cap}" data-testid="ve-sub-set">Cài đặt</button></div><fieldset class="vp-fs" ${dis}>${left}</fieldset></div>
-    <div class="vp-pv"><div class="eyebrow"><span id="vp-pvt"></span></div><div class="vp-box" id="vp-box" data-testid="ve-stage"></div>
-      <div class="vp-pvbar"><button class="btn sm" data-a="prev" aria-label="Cảnh trước">⏮</button><button class="btn sm primary" data-a="play" id="vp-play" data-testid="ve-play">▶ Phát</button><button class="btn sm" data-a="next" aria-label="Cảnh sau">⏭</button><label class="small" style="margin-left:8px"><input type="checkbox" data-a="safe" ${st.safe ? "checked" : ""}> Vùng an toàn</label></div>
-      <p class="small faint">Xem thử mô phỏng, chưa ghép thành file video. Giọng AI dùng giọng đọc có sẵn của trình duyệt; SFX là âm tổng hợp.</p></div></div>
+    <div class="vp-pv"><div class="vp-box" id="vp-box" data-testid="ve-stage"></div>${tbarHtml(v, st)}
+      <div class="vp-pvbar"><button class="btn sm primary" data-a="play" id="vp-play" data-testid="ve-play">▶ Phát</button><button class="btn sm" data-a="replay" data-testid="ve-replay" title="Phát lại từ đầu">↺ Replay</button><label class="small" style="margin-left:8px"><input type="checkbox" data-a="safe" ${st.safe ? "checked" : ""}> Vùng an toàn</label></div></div></div>
     <fieldset class="vp-fs" ${dis}>${timelineHtml(v, st)}</fieldset>
-    ${ro ? "<div class=\"vp-foot\"><span class=\"small muted\">Bản cũ: chỉ xem. Bấm Dùng bản này để sửa tiếp.</span></div>" : `<div class="vp-foot"><span class="small ${bl.length ? "" : "muted"}" id="ve-issues">${bl.length ? bl.map((x) => `<a href="#" data-a="goto" data-i="${x.i}">Cảnh ${x.i + 1} chưa có hình</a>`).join(" · ") : ed.doneAt ? "Đã hoàn thành. Lệnh dựng đã lưu; file video có khi bộ xuất chạy." : "Đủ hình cho mọi cảnh"}${iss.filter((x) => !/chưa có hình/.test(x)).length ? `<br><span class="vp-warn">${iss.filter((x) => !/chưa có hình/.test(x)).map(esc).join(" · ")}</span>` : ""}</span>
+    ${ro ? "<div class=\"vp-foot\"><span class=\"small muted\">Bản cũ: chỉ xem. Bấm Dùng bản này để sửa tiếp.</span></div>" : `<div class="vp-foot"><span class="small ${bl.length ? "" : "muted"}" id="ve-issues">${bl.length ? bl.map((x) => `<a href="#" data-a="goto" data-i="${x.i}">Scene ${x.i + 1} chưa có hình</a>`).join(" · ") : ed.doneAt ? "Đã hoàn thành. Lệnh dựng đã lưu; file video có khi bộ xuất chạy." : "Đủ hình cho mọi cảnh"}${iss.filter((x) => !/chưa có hình/.test(x)).length ? `<br><span class="vp-warn">${iss.filter((x) => !/chưa có hình/.test(x)).map(esc).join(" · ")}</span>` : ""}</span>
       <button class="btn" data-a="export" data-testid="ve-export">Xuất lệnh dựng (JSON)</button><button class="btn primary" data-a="done" data-testid="ve-done" ${bl.length ? "disabled" : ""}>${ed.doneAt ? "Đã hoàn thành ✓" : "Hoàn thành"}</button></div>`}
     <input type="file" id="vp-file" accept="image/*,video/*" multiple class="sr" tabindex="-1"><input type="file" id="vp-fileA" accept="audio/*" class="sr" tabindex="-1"><input type="file" id="vp-fileM" accept="audio/*" class="sr" tabindex="-1">`;
 	}
@@ -27977,7 +28205,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			["rec", "Gần đây"],
 			["lib", "Thư viện"]
 		])}${stb === "lib" ? `<input placeholder="Tìm âm thanh (vd: vút, chuông)…" value="${esc(st.sQ || "")}" data-sq aria-label="Tìm âm thanh" style="margin-bottom:4px"><div class="vp-subt" style="flex-wrap:wrap;margin-top:0">${["", ...AC.VID_SFX_GROUPS].map((g) => `<button data-sg="${esc(g)}" aria-selected="${(st.sGrp || "") === g}">${esc(g || "Tất cả")}</button>`).join("")}</div>` : ""}<div class="vp-sfxl" id="vp-sfxl">${sfxLib(c, st)}</div>`;
-		return `<fieldset class="vp-fs" ${ro ? "disabled" : ""}><div class="eyebrow" style="margin-bottom:4px"><span>Cue · “${esc(c.w)}” · cảnh ${si + 1}</span><button class="vp-ic" data-cpx title="Đóng" aria-label="Đóng">✕</button></div>
+		return `<fieldset class="vp-fs" ${ro ? "disabled" : ""}><div class="eyebrow" style="margin-bottom:4px"><span>Cue · “${esc(c.w)}” · Scene ${si + 1}</span><button class="vp-ic" data-cpx title="Đóng" aria-label="Đóng">✕</button></div>
     <div class="vp-tools small" style="margin:0">${c.lost ? "<span style=\"color:var(--bad)\">Từ này đã bị xóa khỏi lời cảnh. Bấm một từ ở dòng Cue để đặt lại.</span>" : t == null ? "<span class=\"muted\">Cảnh chưa có VO nên chưa có giây</span>" : `<b data-testid="ve-cuetime">${f3(t)}s</b><button class="btn sm" data-nud="-0.1">‹ −0,1s</button><button class="btn sm" data-nud="0.1">+0,1s ›</button>${c.dt ? `<span class="muted">${c.dt > 0 ? "+" : ""}${f1(c.dt)}s so với từ</span>` : ""}`}</div>
     <div class="vp-csec">${head("icon", "Icon")}${sec === "icon" ? body : ""}</div><div class="vp-csec">${head("text", "Text")}${sec === "text" ? body : ""}</div><div class="vp-csec">${head("sfx", "SFX")}${sec === "sfx" ? body : ""}</div>
     <div class="vp-tools small" style="margin-top:8px;border-top:1px solid var(--line);padding-top:6px"><span class="muted">Kéo icon/chữ trên khung xem thử để đổi vị trí. Yêu thích dùng chung cho mọi video.</span><button class="btn sm danger" data-cdel style="margin-left:auto">Xóa cue</button></div></fieldset>`;
@@ -27989,7 +28217,9 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		const st = ST[key] = ST[key] && ST[key].keep ? Object.assign(ST[key], {
 			play: false,
 			cue: null,
-			reCue: null
+			reCue: null,
+			fx: null,
+			scrub: false
 		}) : {
 			cur: 0,
 			t: 0,
@@ -28210,7 +28440,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				let h = "";
 				if (it && src) h += it.kind === "video" ? `<video class="vp-media${sc.fit === "fit" ? " contain" : ""}" src="${esc(src)}" playsinline preload="auto"></video>` : `<img class="vp-media${sc.fit === "fit" ? " contain" : ""}" src="${esc(src)}" alt="">`;
 				else h += `<div class="vp-ph"><b>Thẻ giữ chỗ</b><span>${esc(sc.prompt || "Chưa có mô tả hình")}</span></div>`;
-				h += `${k > 1 ? `<div class="vp-ovk">ảnh ${ik + 1}/${k}</div>` : ""}<div class="vp-cap pos-${esc(ed.captions.pos)} s${style}" ${ed.captions.mode === "off" ? "hidden" : ""}><span></span></div><div class="vp-lys" id="vp-lys" data-testid="ve-layers"></div><div class="vp-fm">${frameHtml(vv, ed)}</div>${st.safe ? "<div class=\"vp-safe\"></div>" : ""}`;
+				h += `<div class="vp-flash"></div>${k > 1 ? `<div class="vp-ovk">ảnh ${ik + 1}/${k}</div>` : ""}<div class="vp-cap pos-${esc(ed.captions.pos)} s${style}" ${ed.captions.mode === "off" ? "hidden" : ""}><span></span></div><div class="vp-lys" id="vp-lys" data-testid="ve-layers"></div><div class="vp-fm">${frameHtml(vv, ed)}</div>${st.safe ? "<div class=\"vp-safe\"></div>" : ""}`;
 				box.innerHTML = h;
 				host.querySelectorAll(".vp-th").forEach((e) => e.setAttribute("aria-current", String(Number(e.dataset.i) === st.cur && Number(e.dataset.j) === ik)));
 				const mn = host.querySelector(`.vp-sc[data-c="${st.cur}"] .vp-add.has`);
@@ -28230,6 +28460,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 					if (!st.play) el.pause();
 				} catch (e) {}
 			}
+			fxPaint(box, ed, ik, it, loc, off);
 			const cs = box.querySelector(".vp-cap span");
 			if (cs) cs.innerHTML = ct;
 			const ly = box.querySelector("#vp-lys");
@@ -28265,8 +28496,16 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				}
 			}
 			host.querySelectorAll(".vp-cb").forEach((b) => b.setAttribute("aria-current", String(st.cue === b.dataset.c)));
-			const pt = host.querySelector("#vp-pvt");
-			if (pt) pt.textContent = `Xem thử · cảnh ${st.cur + 1}`;
+			{
+				const tb = host.querySelector("#vp-time");
+				if (tb && !st.scrub) {
+					tb.max = String(Math.round(T * 10));
+					tb.value = String(Math.round(st.t * 10));
+					tb.setAttribute("aria-valuetext", `${mmss(st.t)} trên ${mmss(T)}`);
+				}
+				const tx = host.querySelector("#vp-tt");
+				if (tx) tx.textContent = `${mmss(st.t)} / ${mmss(T)}`;
+			}
 			const pl = host.querySelector("#vp-play");
 			if (pl) pl.textContent = st.play ? "⏸ Dừng" : "▶ Phát";
 			const ph = host.querySelector("#vp-phl");
@@ -28277,6 +28516,112 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				const g = vv.edit.segs && vv.edit.segs[Number(e.dataset.g)];
 				e.classList.toggle("now", !!g && txt === g.t && g.at <= st.t);
 			});
+		}
+		function fxPaint(box, ed, ik, it, loc, off) {
+			const md = box.querySelector(".vp-media"), fl = box.querySelector(".vp-flash");
+			if (fl) fl.style.opacity = "0";
+			if (!md || !it) return;
+			const p = Math.max(0, Math.min(1, (loc - off) / (it.d || 1))), mt = AC.motionTransform(AC.motionOf(ed, st.cur, ik), p);
+			const tr = AC.transOf(ed, st.cur), D = ed.fxDur || .5, q = st.play && ik === 0 && loc < D ? Math.max(0, loc / D) : 1;
+			let pre = "", op = 1, clip = "none";
+			if (q < 1) {
+				if (tr === "fade") op = q;
+				else if (tr === "slide") pre = `translateX(${(1 - q) * 100}%) `;
+				else if (tr === "zoom") {
+					pre = `scale(${.75 + .25 * q}) `;
+					op = q;
+				} else if (tr === "wipe") clip = `inset(0 ${(1 - q) * 100}% 0 0)`;
+				else if (tr === "flash" && fl) fl.style.opacity = String(1 - q);
+			}
+			md.style.transform = (pre + (it.kind === "video" ? "" : mt)).trim() || "none";
+			md.style.opacity = String(op);
+			md.style.clipPath = clip;
+		}
+		function revealScene(i, flash) {
+			const pc = host.querySelector(".vp-pane"), el = host.querySelector(`.vp-sc[data-c="${i}"]`);
+			if (!pc || !el) return;
+			const a = pc.getBoundingClientRect(), b = el.getBoundingClientRect();
+			if (b.top < a.top + 4 || b.bottom > a.bottom - 4) pc.scrollTo({
+				top: pc.scrollTop + b.top - a.top - 8,
+				behavior: "smooth"
+			});
+			if (flash) {
+				el.classList.remove("flash");
+				el.offsetWidth;
+				el.classList.add("flash");
+			}
+		}
+		function flashBlk(i) {
+			const b = host.querySelector(`.vp-blk[data-i="${i}"]`);
+			if (!b) return;
+			b.classList.remove("flash");
+			b.offsetWidth;
+			b.classList.add("flash");
+			const r = b.getBoundingClientRect();
+			if (r.top > innerHeight || r.bottom < 0) b.scrollIntoView({
+				block: "nearest",
+				behavior: "smooth"
+			});
+		}
+		const fxEl = () => document.getElementById("vp-fxpop");
+		function fxPos() {
+			const p = fxEl(), a = st.fx == null ? null : host.querySelector(`[data-a="fxo"][data-i="${st.fx}"]`);
+			if (!p || !a) return;
+			const r = a.getBoundingClientRect(), h = p.offsetHeight, w = p.offsetWidth;
+			let y = r.bottom + 6;
+			if (y + h > innerHeight - 8) y = Math.max(8, r.top - h - 6);
+			p.style.left = `${Math.max(8, Math.min(innerWidth - w - 8, r.left))}px`;
+			p.style.top = `${y}px`;
+		}
+		function closeFx() {
+			st.fx = null;
+			const p = fxEl();
+			if (p) p.remove();
+			host.querySelectorAll("[data-a=\"fxo\"]").forEach((b) => b.setAttribute("aria-expanded", "false"));
+		}
+		function drawFx() {
+			let p = fxEl();
+			const vv = v();
+			if (st.fx == null || RO || st.sub !== "scene" || st.cap || !vv || !vv.edit || !vv.edit.scenes[st.fx]) {
+				if (p) p.remove();
+				if (st.fx != null && (!vv || !vv.edit || !vv.edit.scenes[st.fx])) st.fx = null;
+				return;
+			}
+			if (!p) {
+				p = document.createElement("div");
+				p.id = "vp-fxpop";
+				p.className = "vp-pop";
+				p.setAttribute("role", "dialog");
+				p.setAttribute("aria-label", "Hiệu ứng scene");
+				p.dataset.testid = "ve-fxpop";
+				layerRoot().appendChild(p);
+				p.addEventListener("change", (e) => {
+					const el = e.target, a = el.dataset.a;
+					if (a !== "fmo" && a !== "ftr") return;
+					const i = Number(el.dataset.i), sc = v().edit.scenes[i];
+					if (!sc) return;
+					if (act(AC.editScene(S, id, sc.id, { [a === "fmo" ? "mo" : "tr"]: el.value || null }))) {
+						seekScene(i);
+						st.play = true;
+						startAudio();
+						paint();
+					}
+				});
+				p.addEventListener("click", (e) => {
+					const b = e.target.closest("[data-a=\"fauto\"]");
+					if (!b || b.disabled) return;
+					const sc = v().edit.scenes[Number(b.dataset.i)];
+					if (sc) act(AC.editScene(S, id, sc.id, {
+						mo: null,
+						tr: null
+					}));
+				});
+			}
+			p.innerHTML = `<div class="eyebrow" style="margin-bottom:6px"><span>Hiệu ứng · Scene ${st.fx + 1}</span><button class="vp-ic" data-fxx title="Đóng" aria-label="Đóng">✕</button></div>${fxBox(vv, st.fx)}`;
+			p.querySelector("[data-fxx]").onclick = closeFx;
+			fxPos();
+			const pc = host.querySelector(".vp-pane");
+			if (pc) pc.onscroll = fxPos;
 		}
 		function mark() {
 			host.querySelectorAll(".vp-sc").forEach((e) => e.setAttribute("aria-current", String(Number(e.dataset.c) === st.cur)));
@@ -28307,8 +28652,10 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		function cleanup() {
 			stopAudio();
 			closeCue();
+			closeFx();
 			hideTip();
 			document.removeEventListener("pointerdown", outside, true);
+			window.removeEventListener("keydown", fxKey, true);
 		}
 		function tick() {
 			if (!host.isConnected) {
@@ -28344,6 +28691,8 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				st.cur = c;
 				mark();
 				startAudio();
+				const ae = document.activeElement;
+				if (!(ae && ae.closest && ae.closest(".vp-pane") && ae.matches("textarea,input"))) revealScene(c, false);
 			}
 			paint();
 		}
@@ -28575,7 +28924,15 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			commit();
 			render();
 		}
+		function fxKey(e) {
+			if (e.key === "Escape" && st.fx != null) {
+				closeFx();
+				e.stopPropagation();
+			}
+		}
+		window.addEventListener("keydown", fxKey, true);
 		function outside(e) {
+			if (st.fx != null && !e.target.closest("#vp-fxpop,[data-a=\"fxo\"]")) closeFx();
 			if (st.cue && !e.target.closest("#vp-cuepop,.vp-cb,.vp-cw,.vp-ly")) closeCue();
 		}
 		document.addEventListener("pointerdown", outside, true);
@@ -28646,6 +29003,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			host.innerHTML = bodyHtml(vv, st, RO);
 			const p = host.querySelector(".vp-pane");
 			if (p) p.scrollTop = sy;
+			drawFx();
 			bindTl();
 			paint();
 			if (st.cue) {
@@ -28813,6 +29171,11 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				paint();
 				return;
 			}
+			if (el.id === "vp-time") {
+				st.scrub = false;
+				paint();
+				return;
+			}
 			if (RO) return;
 			const i = Number(el.dataset.i);
 			const ed = v().edit;
@@ -28831,6 +29194,18 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			}
 			if (a === "tpl") {
 				applyTpl(el.value);
+				return;
+			}
+			if (el.id === "ve-gtr") {
+				act(AC.setEditOptions(S, id, { fxTr: el.value }));
+				return;
+			}
+			if (el.id === "ve-gmo") {
+				act(AC.setEditOptions(S, id, { fxMo: el.value }));
+				return;
+			}
+			if (el.id === "ve-gdu") {
+				act(AC.setEditOptions(S, id, { fxDur: Number(el.value) }));
 				return;
 			}
 			if (a === "fit") {
@@ -28925,6 +29300,12 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		});
 		host.addEventListener("input", (e) => {
 			const el = e.target;
+			if (el.id === "vp-time") {
+				st.scrub = true;
+				seekT(Number(el.value) / 10);
+				revealScene(st.cur, false);
+				return;
+			}
 			if (RO) return;
 			if (el.dataset.a === "musvol") {
 				const ed = v().edit;
@@ -28954,6 +29335,19 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			closeCue();
 			act(AC.applyTemplate(S, id, k), "Đã chia cảnh theo mẫu.");
 		}
+		host.addEventListener("focusin", (e) => {
+			const c = e.target.closest && e.target.closest(".vp-sc");
+			if (!c) return;
+			const i = Number(c.dataset.c);
+			if (st.cur !== i) {
+				st.cur = i;
+				st.t = starts()[i];
+				if (st.play) startAudio();
+				mark();
+				paint();
+				flashBlk(i);
+			}
+		});
 		host.addEventListener("keydown", (e) => {
 			if ((e.key === "Enter" || e.key === " ") && e.target.matches(".vp-add")) {
 				e.preventDefault();
@@ -28965,8 +29359,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			"capopen",
 			"capback",
 			"play",
-			"prev",
-			"next",
+			"replay",
 			"seek",
 			"goto",
 			"pick",
@@ -28976,9 +29369,21 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			const b = e.target.closest("[data-a]");
 			if (!b || b.disabled || b.tagName === "SELECT" || b.tagName === "INPUT" && b.type !== "button") {
 				const c = e.target.closest(".vp-sc");
-				if (c && !e.target.closest("button,select,input,textarea,.vp-add,.vp-th,summary,a")) seekScene(Number(c.dataset.c));
+				if (c && !e.target.closest("button,select,input,textarea,.vp-add,.vp-th,summary,a")) {
+					seekScene(Number(c.dataset.c));
+					flashBlk(Number(c.dataset.c));
+				}
 				const blk = e.target.closest(".vp-blk");
-				if (blk && !e.target.closest(".vp-hdl,.vp-ih")) seekScene(Number(blk.dataset.i));
+				if (blk && !e.target.closest(".vp-hdl,.vp-ih")) {
+					const bi = Number(blk.dataset.i);
+					if (st.sub !== "scene" || st.cap) {
+						st.sub = "scene";
+						st.cap = false;
+						seekScene(bi);
+						render();
+					} else seekScene(bi);
+					revealScene(bi, true);
+				}
 				return;
 			}
 			const a = b.dataset.a;
@@ -29021,8 +29426,14 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				paint();
 				return;
 			}
-			if (a === "prev") return seekScene(Math.max(0, st.cur - 1));
-			if (a === "next") return seekScene(Math.min(ed.scenes.length - 1, st.cur + 1));
+			if (a === "replay") {
+				st.play = true;
+				seekScene(0);
+				startAudio();
+				revealScene(0, false);
+				paint();
+				return;
+			}
 			if (a === "pick") return seekScene(i, Number(b.dataset.j));
 			if (a === "cb") {
 				e.stopPropagation();
@@ -29030,6 +29441,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				const c = cueById(b.dataset.c);
 				if (!c) return;
 				showCueTime(c);
+				revealScene(st.cur, false);
 				openCue(c.id, b);
 				return;
 			}
@@ -29099,11 +29511,51 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				return;
 			}
 			if (a === "del") {
+				const lost = [
+					sc.items.length ? `${sc.items.length} hình` : "",
+					sc.vo ? "VO cảnh" : "",
+					(ed.cues || []).some((c) => c.sc === sc.id) ? "cue" : ""
+				].filter(Boolean);
+				if (!await confirmBox({
+					title: `Xóa Scene ${i + 1}?`,
+					body: `<p>${lost.length ? `Sẽ mất ${esc(lost.join(", "))} của scene này.` : "Scene này chưa có hình, VO hay cue."}</p>`,
+					ok: "Xóa scene"
+				})) return;
 				if (act(AC.removeScene(S, id, sc.id))) {
 					st.cur = 0;
 					st.t = 0;
+					closeFx();
 					render();
 				}
+				return;
+			}
+			if (a === "origscr") {
+				if (!await confirmBox({
+					title: "Quay về kịch bản gốc?",
+					body: "<p>Các scene được chia lại theo kịch bản và mẫu dựng đang chọn. Scene đã thêm, xóa, sửa, hình, VO cảnh và cue đã làm sẽ mất. VO toàn bài, caption, frame, nhạc giữ nguyên.</p>",
+					ok: "Quay về kịch bản gốc"
+				})) return;
+				st.cur = 0;
+				st.t = 0;
+				st.play = false;
+				closeCue();
+				closeFx();
+				act(AC.applyTemplate(S, id, ed.tpl || "script"), "Đã chia lại scene theo kịch bản gốc.");
+				return;
+			}
+			if (a === "fxo") {
+				e.stopPropagation();
+				if (st.fx === i) {
+					closeFx();
+					return;
+				}
+				st.fx = i;
+				if (st.cur !== i) seekScene(i);
+				render();
+				return;
+			}
+			if (a === "fxclr") {
+				act(AC.clearSceneFx(S, id));
 				return;
 			}
 			if (a === "add") {

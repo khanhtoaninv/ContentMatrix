@@ -2249,7 +2249,7 @@ test('10.76 · Popup bản 1: cảnh nhiều hình, VO toàn bài / VO cảnh, c
   AC.setSceneAsset(S, id, ed.scenes[0].id, { src: IMG, name: 'a.jpg' }); AC.addSceneItems(S, id, ed.scenes[0].id, [{ src: IMG, name: 'b.jpg' }]); AC.setVoAll(S, id, { kind: 'up', name: 'all.mp3', src: AUD, dur: 30 });
   const cmd = AC.editCommands(S, v); assert.equal(cmd.version, 3); assert.equal(cmd.popup, AC.VID_POPUP_VER); assert.equal(cmd.voiceover.scope, 'all'); assert.equal(cmd.voiceover.file, 'all.mp3');
   assert.equal(cmd.scenes[0].sources.length, 2); assert.equal(cmd.scenes[0].sources[1].start, cmd.scenes[0].sources[0].end); assert.ok(cmd.scenes[0].voiceover === null && cmd.scenes[1].placeholder); assert.ok(cmd.captions.styleName); assert.ok(!JSON.stringify(cmd).includes('base64'));
-  assert.equal(AC.VID_POPUP_VER, 4);
+  assert.equal(AC.VID_POPUP_VER, 5);
 });
 test('10.76 · Xếp Slot theo ô Thứ × Kênh: mỗi kênh một ngày, cần video thành phẩm, ô của video khác bị khóa', () => {
   const S = seed(); const days = AC.weekDays(S, T2); assert.equal(days.length, 7); assert.equal(days[0], '2026-10-12');
@@ -2323,4 +2323,37 @@ test('10.77 · Popup bản 4: độ dài từng hình, VO, cue bám từ trong V
   assert.equal(AC.vidVersions(v).length, AC.VID_KEEP_VERSIONS); assert.deepEqual(AC.vidVersions(v).map(x => x.n), [2, 3, 4, 5, 6]);
   assert.ok(AC.editVidScript(S, id, { script: '[Hook]\nSửa tay.' }).ok); assert.equal(AC.vidVersions(v).length, 5, 'sửa tay không tạo bản mới');
   const u = AC.useVidVersion(S, id, 2); assert.ok(u.ok); assert.equal(v.verN, 7); assert.ok(v.script.includes('Bản hai')); assert.deepEqual(AC.vidVersions(v).map(x => x.n), [3, 4, 5, 6, 7]); assert.equal(AC.useVidVersion(S, id, 1).ok, false);
+});
+
+test('10.79 · Popup bản 5: hiệu ứng tự động, chuyển động chỉ cho ảnh (không cho video), chuyển cảnh Scene 1 mặc định không có', () => {
+  const S = seed();
+  const SCR = '[Hook]\nBạn nghĩ học tám tiếng mỗi ngày thì sẽ giỏi hơn? Chưa chắc.\n\n[Cơ chế]\nNhiều người ngồi cả ngày nhưng đầu óc đã tắt từ giờ thứ ba. Điều quyết định là mức tập trung, không phải số giờ.\n\n[Cách làm]\nHãy thử hai mươi lăm phút học sâu, nghỉ năm phút. Lặp lại bốn lần mỗi ngày.\n\n[CTA]\nLưu lại và thử ngay hôm nay.';
+  const v = AC.addFreeVideo(S, T2, { origin: 'script', script: SCR }).video; const id = v.id;
+  assert.ok(AC.planEdit(S, id).ok); const ed = v.edit; assert.ok(ed.scenes.length >= 3);
+  assert.deepEqual([ed.fxTr, ed.fxMo, ed.fxDur], ['auto', 'auto', 0.5]); assert.ok(ed.scenes.every(s => s.tr === null && s.mo === null));
+  // dữ liệu cũ (bản 4, v3 chưa có trường hiệu ứng) vẫn nạp được
+  delete ed.fxTr; delete ed.fxMo; delete ed.fxDur; ed.scenes.forEach(s => { delete s.tr; delete s.mo; delete s.sec; }); AC.migrateEdit(ed); assert.equal(ed.fxTr, 'auto'); assert.equal(ed.scenes[0].tr, null);
+  // thêm hình: ảnh luân phiên Zoom vào, Lia trái, Zoom ra, Lia phải; video luôn đứng yên
+  const a = ed.scenes[0], b = ed.scenes[1];
+  assert.ok(AC.addSceneItems(S, id, a.id, [{ src: IMG, name: 'a.jpg' }, { src: VID, name: 'v.webm', dur: 8 }, { src: IMG, name: 'b.jpg' }]).ok);
+  assert.deepEqual(a.items.map(x => x.kind), ['image', 'video', 'image']);
+  assert.deepEqual([0, 1, 2].map(k => AC.motionOf(ed, 0, k)), ['zin', 'none', 'pl']);
+  // chọn kiểu riêng cho scene hoặc cài đặt chung: video vẫn 'none'
+  assert.ok(AC.editScene(S, id, a.id, { mo: 'kb' }).ok); assert.deepEqual([0, 1, 2].map(k => AC.motionOf(ed, 0, k)), ['kb', 'none', 'kb']);
+  assert.ok(AC.editScene(S, id, a.id, { mo: null }).ok); assert.ok(AC.setEditOptions(S, id, { fxMo: 'zout' }).ok); assert.deepEqual([0, 1, 2].map(k => AC.motionOf(ed, 0, k)), ['zout', 'none', 'zout']);
+  assert.equal(AC.editScene(S, id, a.id, { mo: 'khong-co' }).ok, false); assert.equal(AC.setEditOptions(S, id, { fxMo: 'x' }).ok, false); assert.equal(AC.setEditOptions(S, id, { fxDur: 0.7 }).ok, false); assert.ok(AC.setEditOptions(S, id, { fxDur: 0.8 }).ok);
+  assert.equal(AC.motionTransform('none', 0.5), ''); assert.equal(AC.motionTransform('zin', 1), 'scale(1.12)'); assert.ok(AC.motionTransform('pl', 0).includes('translateX(4%)'));
+  // scene chỉ có video: không chuyển động dù chọn kiểu nào
+  assert.ok(AC.addSceneItems(S, id, b.id, [{ src: VID, name: 'v2.webm', dur: 8 }]).ok); assert.ok(AC.editScene(S, id, b.id, { mo: 'zin' }).ok); assert.equal(AC.motionOf(ed, 1, 0), 'none');
+  assert.equal(AC.sceneImgCount(a), 2); assert.equal(AC.sceneVidCount(a), 1);
+  // chuyển cảnh: Scene 1 mặc định Cắt kể cả khi cài đặt chung đổi, vẫn chọn riêng được; tự động Mờ dần ở scene chốt
+  assert.equal(AC.transOf(ed, 0), 'cut'); assert.equal(AC.transOf(ed, 1), 'cut'); assert.equal(AC.transOf(ed, ed.scenes.length - 1), 'fade');
+  assert.ok(AC.setEditOptions(S, id, { fxTr: 'slide' }).ok); assert.equal(AC.transOf(ed, 0), 'cut'); assert.equal(AC.transOf(ed, 1), 'slide');
+  assert.ok(AC.editScene(S, id, ed.scenes[0].id, { tr: 'fade' }).ok); assert.equal(AC.transOf(ed, 0), 'fade'); assert.equal(AC.editScene(S, id, ed.scenes[0].id, { tr: 'bay' }).ok, false);
+  // lệnh dựng ghi hiệu ứng; Đưa mọi scene về tự động
+  const cmd = AC.editCommands(S, v); assert.deepEqual([cmd.effects.transition, cmd.effects.motion, cmd.effects.transitionDuration], ['slide', 'zout', 0.8]);
+  assert.equal(cmd.scenes[0].transitionIn, 'fade'); assert.deepEqual(cmd.scenes[0].sources.map(x => x.motion), ['zout', 'none', 'zout']);
+  assert.ok(AC.clearSceneFx(S, id).ok); assert.ok(ed.scenes.every(s => s.tr === null && s.mo === null)); assert.equal(AC.transOf(ed, 0), 'cut');
+  // mẫu Hỏi đáp: sang phần mới tự Mờ dần
+  assert.ok(AC.setEditOptions(S, id, { fxTr: 'auto' }).ok); assert.ok(AC.applyTemplate(S, id, 'hoidap').ok); assert.deepEqual(ed.scenes.map(s => s.sec), [false, true, true, true]); assert.deepEqual(ed.scenes.map((_, i) => AC.transOf(ed, i)), ['cut', 'fade', 'fade', 'fade']);
 });
