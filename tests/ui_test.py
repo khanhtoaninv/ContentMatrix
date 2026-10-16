@@ -1578,7 +1578,7 @@ with sync_playwright() as pw:
     page.evaluate("() => { const e = document.querySelector('#vp-time'); e.value = Math.round(e.max / 2); e.dispatchEvent(new Event('input', { bubbles: true })); e.dispatchEvent(new Event('change', { bubbles: true })); }"); page.wait_for_timeout(250)
     check('10.79 Kéo thanh thời gian: tua tới giữa video, chọn đúng scene', not page.locator('#vp-tt').inner_text().startswith('0:00,0') and page.locator('.vp-sc[aria-current="true"]').count() == 1)
     page.locator('[data-testid="ve-replay"]').click(); page.wait_for_timeout(500)
-    check('10.79 Replay: phát lại từ đầu', 'Dừng' in page.locator('#vp-play').inner_text() and page.locator('#vp-tt').inner_text().startswith('0:0'))
+    check('10.79 Replay: phát lại từ đầu', page.locator('#vp-play').get_attribute('aria-label') == 'Dừng' and page.locator('#vp-tt').inner_text().startswith('0:0'))
     page.locator('[data-testid="ve-play"]').click(); page.wait_for_timeout(150)
     page.locator('[data-testid="ve-orig"]').click(); page.wait_for_timeout(250)
     check('10.79 Kịch bản gốc hỏi xác nhận; Hủy thì giữ nguyên scene', page.locator('[data-x="yes"]').count() == 1)

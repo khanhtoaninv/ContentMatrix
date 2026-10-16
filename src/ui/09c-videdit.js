@@ -125,7 +125,8 @@ function cueRow(v, sc, i, st) {
 }
 const mmss = t => { t = Math.max(0, Math.round(t * 10) / 10); const m = Math.floor(t / 60), x = t - m * 60; return `${m}:${x < 10 ? '0' : ''}${x.toFixed(1).replace('.', ',')}`; };
 function tbarHtml(v, st) {
-  const T = AC.editTimeline(v).total || 1; let a = 0; const ticks = v.edit.scenes.slice(0, -1).map(s => { a += s.dur; return `<i class="vp-tk" style="left:${a / T * 100}%"></i>`; }).join('');
+  // vạch đậm và cao giữa các cảnh; vạch mờ và ngắn giữa các ảnh trong cảnh
+  const T = AC.editTimeline(v).total || 1; let a = 0; const ticks = v.edit.scenes.map((s, i) => { let o = ''; const t0 = a; if (i) o += `<i class="vp-tk" style="left:${t0 / T * 100}%"></i>`; let x = t0; s.items.slice(0, -1).forEach(m => { x += m.d; o += `<i class="vp-tk im" style="left:${x / T * 100}%"></i>`; }); a += s.dur; return o; }).join('');
   return `<div class="vp-tbar"><div class="vp-trk"><input type="range" id="vp-time" data-testid="ve-time" min="0" max="${Math.round(T * 10)}" step="1" value="${Math.round(st.t * 10)}" aria-label="Thanh thời gian video" aria-valuetext="${mmss(st.t)} trên ${mmss(T)}">${ticks}</div><span class="vp-tt" id="vp-tt">${mmss(st.t)} / ${mmss(T)}</span></div>`;
 }
 // Chip hiệu ứng ở đầu cảnh: tóm tắt chuyển động + chuyển cảnh; "tự động" khi cảnh không chỉnh riêng
@@ -158,7 +159,7 @@ function sceneCard(v, it, i, n, st) {
   return `<div class="vp-sc" data-sid="${esc(sc.id)}" data-c="${i}" aria-current="${cur}" data-testid="ve-scene">
     <div class="vp-mcol"><div class="vp-add${k ? ' has' : sc.ph ? ' ph' : ''}" data-a="up" data-i="${i}" role="button" tabindex="0" aria-label="${k ? `Up thêm hình cho scene ${i + 1}` : `Up hình hoặc video cho scene ${i + 1}`}">${main}</div>
       ${k ? `<div class="vp-thumbs">${sc.items.map((m, j) => `<span class="vp-th" data-a="pick" data-i="${i}" data-j="${j}" aria-current="${cur && j === ik}" title="Ảnh ${j + 1}: ${f1(m.d)} giây">${thumbHtml(v, m)}<span class="vp-d">${f1(m.d)}s</span><button class="vp-x" data-a="itx" data-i="${i}" data-j="${j}" aria-label="Bỏ ảnh ${j + 1}">✕</button></span>`).join('')}</div>` : ''}
-      <button class="vp-plus" data-a="up" data-i="${i}">＋ ${k ? 'Thêm' : 'Up'}</button><button class="vp-plus" data-a="gen" data-i="${i}" data-testid="ve-gen" title="Tạo ảnh bằng AI từ mô tả hình">Gen ảnh</button></div>
+      <button class="vp-plus" data-a="up" data-i="${i}" title="Upload ${k ? 'thêm ' : ''}hình hoặc video"><b>Upload</b></button><button class="vp-plus" data-a="gen" data-i="${i}" data-testid="ve-gen" title="Tạo ảnh bằng AI từ mô tả hình"><b>Gen AI</b></button></div>
     <div class="vp-scb">
       <div class="vp-hd"><b>Scene ${i + 1}</b><span class="small muted">${fmt(it.t0)}–${fmt(it.t1)}</span>
         <span><button class="btn icon sm ghost" data-a="dd" data-i="${i}" data-d="-0.5" title="Ngắn hơn 0,5 giây" aria-label="Ngắn hơn 0,5 giây">−</button><button class="btn icon sm ghost" data-a="dd" data-i="${i}" data-d="0.5" title="Dài hơn 0,5 giây" aria-label="Dài hơn 0,5 giây">+</button></span>
@@ -242,7 +243,7 @@ function bodyHtml(v, st, ro) {
   const bl = AC.editBlockers(v); const iss = ro ? [] : AC.editIssues(S, v);
   return `<div class="vp-ed"><div class="vp-l"><div class="vp-mini" role="tablist" aria-label="Công cụ biên tập"><button role="tab" data-a="sub" data-k="scene" aria-selected="${st.sub === 'scene' && !st.cap}" data-testid="ve-sub-scene">Scene</button><button role="tab" data-a="sub" data-k="set" aria-selected="${st.sub === 'set' || st.cap}" data-testid="ve-sub-set">Cài đặt</button></div><fieldset class="vp-fs" ${dis}>${left}</fieldset></div>
     <div class="vp-pv"><div class="vp-box" id="vp-box" data-testid="ve-stage"></div>${tbarHtml(v, st)}
-      <div class="vp-pvbar"><button class="btn sm primary" data-a="play" id="vp-play" data-testid="ve-play">▶ Phát</button><button class="btn sm" data-a="replay" data-testid="ve-replay" title="Phát lại từ đầu">↺ Replay</button><label class="small" style="margin-left:8px"><input type="checkbox" data-a="safe" ${st.safe ? 'checked' : ''}> Vùng an toàn</label></div></div></div>
+      <div class="vp-pvbar"><button class="btn sm primary vp-ico" data-a="play" id="vp-play" data-testid="ve-play" title="Phát" aria-label="Phát">▶</button><button class="btn sm vp-ico" data-a="replay" data-testid="ve-replay" title="Phát lại từ đầu" aria-label="Phát lại từ đầu">↺</button><label class="small vp-safe-l"><input type="checkbox" data-a="safe" ${st.safe ? 'checked' : ''}> Vùng an toàn</label></div></div></div>
     <fieldset class="vp-fs" ${dis}>${timelineHtml(v, st)}</fieldset>
     ${ro ? '<div class="vp-foot"><span class="small muted">Bản cũ: chỉ xem. Bấm Dùng bản này để sửa tiếp.</span></div>' : `<div class="vp-foot"><span class="small ${bl.length ? '' : 'muted'}" id="ve-issues">${bl.length ? bl.map(x => `<a href="#" data-a="goto" data-i="${x.i}">Scene ${x.i + 1} chưa có hình</a>`).join(' · ') : ed.doneAt ? 'Đã hoàn thành. Lệnh dựng đã lưu; file video có khi bộ xuất chạy.' : 'Đủ hình cho mọi cảnh'}${iss.filter(x => !/chưa có hình/.test(x)).length ? `<br><span class="vp-warn">${iss.filter(x => !/chưa có hình/.test(x)).map(esc).join(' · ')}</span>` : ''}</span>
       <button class="btn" data-a="export" data-testid="ve-export">Xuất lệnh dựng (JSON)</button><button class="btn primary" data-a="done" data-testid="ve-done" ${bl.length ? 'disabled' : ''}>${ed.doneAt ? 'Đã hoàn thành ✓' : 'Hoàn thành'}</button></div>`}
@@ -356,7 +357,7 @@ export function mountEditor(host, id, hooks) {
     }
     host.querySelectorAll('.vp-cb').forEach(b => b.setAttribute('aria-current', String(st.cue === b.dataset.c)));
     { const tb = host.querySelector('#vp-time'); if (tb && !st.scrub) { tb.max = String(Math.round(T * 10)); tb.value = String(Math.round(st.t * 10)); tb.setAttribute('aria-valuetext', `${mmss(st.t)} trên ${mmss(T)}`); } const tx = host.querySelector('#vp-tt'); if (tx) tx.textContent = `${mmss(st.t)} / ${mmss(T)}`; }
-    const pl = host.querySelector('#vp-play'); if (pl) pl.textContent = st.play ? '⏸ Dừng' : '▶ Phát';
+    const pl = host.querySelector('#vp-play'); if (pl) { pl.textContent = st.play ? '⏸' : '▶'; pl.title = st.play ? 'Dừng' : 'Phát'; pl.setAttribute('aria-label', st.play ? 'Dừng' : 'Phát'); }
     const ph = host.querySelector('#vp-phl'); if (ph) ph.style.left = `${st.t / (T || 1) * 100}%`; const tt = host.querySelector('#vp-tlt'); if (tt) tt.textContent = `${st.t.toFixed(1)}s / ${f1(T)}s`;
     host.querySelectorAll('.vp-seg').forEach(e => { const g = vv.edit.segs && vv.edit.segs[Number(e.dataset.g)]; e.classList.toggle('now', !!g && txt === g.t && g.at <= st.t); });
   }

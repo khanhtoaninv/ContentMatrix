@@ -1394,3 +1394,6 @@ Ráp popup mẫu "bản 5" vào app. Quyết định D167–D170.
 - **Giao diện**: `09c-videdit.js` (chip ✦ và cửa sổ `#vp-fxpop` đóng khi bấm ngoài, bấm lại chip, ✕ hoặc Esc; nhóm Hiệu ứng ở Cài đặt; dấu ◆ trên timeline; `fxPaint` chạy chuyển động và chuyển cảnh khi xem thử; thanh thời gian; Replay; đồng bộ Scene và Timeline; xác nhận khi xóa scene và khi Kịch bản gốc dùng `applyTemplate` với mẫu đang chọn), `style.css` (nền xám, scene nền trắng, scene chọn xanh nhạt, nhóm Cài đặt dạng section trắng).
 - **Kiểm thử**: logic 129 (thêm 10.79), UI 517 (thêm khối 10.79).
 - Chưa làm: xuất file video (hiệu ứng đã ghi trong lệnh dựng để bộ xuất dùng), mốc từng từ thật, TTS tiếng Việt có mốc từ.
+
+## 10.80. Short Vid: tinh chỉnh bố cục Biên tập (16/10/2026, bản 109)
+Phát/Replay chỉ icon, Vùng an toàn cùng hàng; vạch cảnh đậm và vạch ảnh mờ trên thanh thời gian; nút Upload/Gen AI in đậm; ô Nội dung bo 12px chữ 13px; ô chọn Cài đặt bo như nút Up nhạc; nền xám nhẹ cho cột Scene, Cài đặt và Timeline. Không đổi dữ liệu. Kiểm thử: logic 129, UI 517.
