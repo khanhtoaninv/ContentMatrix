@@ -318,10 +318,10 @@ function sceneListHtml(v) {
   if (!v.edit || !v.edit.scenes.length) return `<section class="panel stack" style="gap:8px;margin-bottom:12px"><h3>Phân cảnh</h3><p class="small muted">${v.script || (v.media || []).length ? 'Chưa chia cảnh. Bấm Chia cảnh: app chia kịch bản thành các cảnh có lời, mô tả hình và thời lượng; kịch bản được coi là đã duyệt.' : 'Cần kịch bản hoặc tệp nguồn để chia cảnh.'}</p><div class="row"><button class="btn sm primary" data-x="plan-scenes" data-testid="sp-plan" ${!v.ro && (v.script || (v.media || []).length) ? '' : 'disabled'}>Chia cảnh theo kịch bản</button></div></section>`;
   const tl = AC.editTimeline(v);
   return `<section class="panel stack" style="gap:6px;margin-bottom:12px"><h3>Phân cảnh <span class="small muted">${tl.items.length} cảnh · ${fmtS(tl.total)} giây</span></h3>
-    <div class="vp-phw"><table class="vp-phc"><thead><tr><th>STT</th><th>Timeline</th><th>Nội dung</th><th>Mô tả hình ảnh (cơ sở để Gen ảnh)</th></tr></thead><tbody>
+    <div class="vp-phw"><table class="vp-phc"><thead><tr><th>STT</th><th>Timeline</th><th>Nội dung</th><th>Mô tả hình ảnh hoặc video minh hoạ</th></tr></thead><tbody>
     ${tl.items.map((it, i) => { const s = it.scene; return `<tr data-testid="sp-scene-row"><td class="n">${i + 1}</td><td class="t">${fmtS(it.t0)}–${fmtS(it.t1)}s<br><span class="small muted">${s.items.length ? `${s.items.length} hình` : s.ph ? 'thẻ giữ chỗ' : 'chưa có hình'}</span></td>
       <td><label class="sr" for="sp-pt-${esc(s.id)}">Lời cảnh ${i + 1}</label><textarea id="sp-pt-${esc(s.id)}" class="vp-r2" rows="2" data-pt="${esc(s.id)}">${esc(s.text)}</textarea></td>
-      <td><label class="sr" for="sp-pp-${esc(s.id)}">Mô tả hình cảnh ${i + 1}</label><textarea id="sp-pp-${esc(s.id)}" class="vp-r2" rows="2" data-pp="${esc(s.id)}">${esc(s.prompt || '')}</textarea><div class="vp-gen"><button class="btn sm" data-x="gen" data-s="${esc(s.id)}" data-testid="sp-gen">✦ Gen ảnh</button><span class="small faint">ảnh tạo ra thêm vào cảnh ${i + 1}</span></div></td></tr>`; }).join('')}
+      <td><label class="sr" for="sp-pp-${esc(s.id)}">Mô tả hình cảnh ${i + 1}</label><textarea id="sp-pp-${esc(s.id)}" class="vp-r2" rows="2" data-pp="${esc(s.id)}">${esc(s.prompt || '')}</textarea></td></tr>`; }).join('')}
     </tbody></table></div></section>`;
 }
 export function openVid(id) {
@@ -434,7 +434,6 @@ export function openVid(id) {
       if (has && !(await confirmBox({ title: 'Chia lại cảnh?', body: '<p>Chia cảnh lại theo kịch bản mới: hình, VO cảnh và cue đã thêm sẽ bị xóa. VO toàn bài, kiểu caption, frame, nhạc giữ nguyên.</p>', ok: 'Chia lại cảnh' }))) return;
       if (!persist()) return; const r = AC.planEdit(S, id); if (!r.ok) return err(r.error); save(); render(); show(); toast(`Đã chia lại ${r.count} cảnh.`); return;
     }
-    if (k === 'gen') { if (!persist()) return; openGenImage(id, x.dataset.s, msg => { save(); show(); if (msg) toast(msg); }); return; }
     if (k === 'cell') { const [d, ch] = x.dataset.k.split('|'); if (sel[ch] === d) delete sel[ch]; else sel[ch] = d; show(); return; }
     if (k === 'export-cmd') { if (!v.edit || !v.edit.scenes.length) return; downloadBytes(`${AC.slugOf(v.insight.title) || 'video'}-lenh-dung.json`, new TextEncoder().encode(JSON.stringify(AC.editCommands(S, v), null, 2)), 'application/json'); return toast('Đã xuất lệnh dựng (JSON).'); }
     if (k === 'slot-go') {

@@ -1400,3 +1400,6 @@ Phát/Replay chỉ icon, Vùng an toàn cùng hàng; vạch cảnh đậm và v�
 
 ## 10.81. Short Vid: tab Cài đặt, caption và thư viện (16/10/2026, bản 110)
 Giãn khoảng cách Cài đặt. Quản lý caption: Enter tách tại con trỏ, Backspace ở đầu ô gộp lên trên. Frame: thư viện frame 9:16, 4 Yêu thích hiện ngoài. Nhạc nền: thư viện nhạc (tối đa 8 bài đã Up, nghe thử, dùng, xóa), chưa có nhạc có sẵn. Ô Giọng đủ chữ. Kiểm thử: logic 130, UI 521.
+
+## 10.82. Short Vid: chỉnh Phân cảnh và Biên tập (16/10/2026, bản 111)
+Bảng Phân cảnh: ô nội dung và mô tả hình rộng đủ ô, bỏ nút Gen ảnh (chỉ mô tả hình hoặc video minh hoạ). Thẻ scene: Upload / Gen AI cùng kiểu chữ với Gen AI của VO cảnh. Popup Cue: ô tìm rộng, bo góc. Timeline: hàng Cue không nền. Kiểm thử: logic 130, UI 521.

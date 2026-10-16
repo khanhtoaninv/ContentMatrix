@@ -1352,3 +1352,10 @@ details.vp-src summary { cursor: pointer; font-size: var(--fs-2); color: var(--i
 :root[data-theme="dark"] { --pane: #141a21; }
 .vp-tlw { background: var(--pane); }
 .vp-tlw .vp-tl, .vp-tlw .vp-wave, .vp-tlw .vp-ctrack { background: var(--surface); }
+
+/* bản 111 */
+.vp-phc td { padding: 4px; }
+.vp-phc td textarea { display: block; width: 100%; box-sizing: border-box; }
+.vp-plus { font-size: var(--fs-2); font-weight: 500; color: var(--ink); }
+.vp-pop input[data-cq], .vp-pop input[data-sq] { display: block; width: 100%; box-sizing: border-box; height: 30px; padding: 3px 10px; border-radius: var(--r-s); }
+.vp-ctrack, .vp-tlw .vp-ctrack { background: transparent; }
