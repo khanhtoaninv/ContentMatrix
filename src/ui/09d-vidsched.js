@@ -51,3 +51,40 @@ export function openSchedule(ids) {
   });
   return box;
 }
+
+// ---- Tab "Xếp Slot" trong popup thẻ Vid (bản 1, mục 10.76): lưới Thứ × Kênh như Chia bài ảnh, mỗi ô là một slot ----
+const posOfVid = (v2) => AC.vidsOf(S, v2.weekId, v2.topicId).findIndex(x => x.id === v2.id) + 1;
+export function slotPaneHtml(v, sel) {
+  const days = AC.weekDays(S, v.weekId); const chans = AC.vidChannels(S); const busy = AC.busyCells(S, v.weekId, v.id); const own = AC.vidSlotsOf(S, v.id);
+  const ownAt = {}; own.forEach(s => { ownAt[`${s.date}|${s.channelId}`] = s; });
+  const hasFile = !!v.file; const n = Object.keys(sel).length;
+  if (!chans.length) return '<p class="small muted">Chưa có kênh video ngắn (TikTok, Reels, Shorts) có Format kịch bản ngắn ở Setup.</p>';
+  const cell = (d, ch) => {
+    const k = `${d}|${ch.channel.id}`; const o = ownAt[k]; const b = busy[k]; const picked = sel[ch.channel.id] === d;
+    if (o) return `<button class="vp-slc on" disabled title="Đã xếp: ${esc(o.state === 'PUBLISHED' ? 'đã đăng' : 'chờ duyệt caption')}">Vid ${posOfVid(v)}</button>`;
+    if (b) { const bv = AC.byId(S.videos, b); return `<button class="vp-slc busy" disabled title="${esc(bv ? bv.insight.title : 'Video khác')}">Vid ${bv ? posOfVid(bv) : '?'}</button>`; }
+    return `<button class="vp-slc${picked ? ' pick' : ''}" data-x="cell" data-k="${esc(k)}" aria-pressed="${picked}" aria-label="${esc(dayLabel(d))}, ${esc(ch.channel.name)}">${picked ? 'Chọn' : '＋'}</button>`;
+  };
+  const grid = `<div class="vp-slwrap"><table class="vp-sl" data-testid="sp-slgrid"><thead><tr><th class="ch">Kênh</th>${days.map(d => `<th>${esc(dayLabel(d))}</th>`).join('')}</tr></thead><tbody>${chans.map(ch => `<tr><th class="ch">${esc(ch.channel.name)}</th>${days.map(d => `<td>${cell(d, ch)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+  const slots = own.length ? `<div class="stack" style="gap:4px;margin-top:8px">${own.map(sl => `<div class="row small" style="gap:6px"><b>${esc((AC.byId(S.channels, sl.channelId) || {}).name || sl.channelId)}</b><span class="mono">${esc(AC.dmy(sl.date))} ${esc(sl.time)}</span><span class="muted">${sl.state === 'PUBLISHED' ? 'Đã đăng' : sl.state === 'APPROVED' ? 'Đã duyệt' : 'Chờ duyệt caption'}</span></div>`).join('')}
+    <div class="row"><button class="btn sm ghost danger" data-x="unsched" ${own.every(sl => sl.state === 'PUBLISHED') ? 'disabled' : ''}>Bỏ khỏi lịch</button><span class="small faint">Caption từng kênh sửa và duyệt trong View ở Dashboard.</span></div></div>` : '';
+  const gate = hasFile ? '' : `<div class="vp-note warn" data-testid="sp-slgate"><b>Chưa có file video thành phẩm.</b> Biên tập trong app hiện lưu lệnh dựng; bộ xuất video (ffmpeg trên PC app hoặc máy chủ) chưa có. Có thể chọn ô trước, nhưng chỉ Đưa vào lịch được khi đã có video: tải lên ở Biên tập → Ngoài app, hoặc xuất lệnh dựng để dựng bằng công cụ khác.
+    <div class="row" style="margin-top:6px"><button class="btn sm" data-x="export-cmd" ${v.edit && v.edit.scenes.length ? '' : 'disabled'}>Xuất lệnh dựng (JSON)</button><button class="btn sm" data-nav="mode:out">Sang Ngoài app → Up video</button></div></div>`;
+  return `<div class="eyebrow">Chọn ngày và kênh đăng <span class="cnt small muted">Mỗi kênh một slot cho video này; giống Chia bài ảnh</span></div>${gate}${grid}
+    <div class="legend small muted"><span>＋ trống</span><span>Chọn = sẽ tạo slot</span><span>Vid n = đã có video</span></div>
+    <div class="row" style="gap:10px;margin-top:6px"><label class="small">Giờ đăng <input id="sp-sltime" type="time" value="19:00" style="width:110px"></label><span class="small muted" id="sp-slsum">${n ? `Đã chọn ${n} ô` : 'Chưa chọn ô nào'}</span>
+      <button class="btn primary" data-x="slot-go" data-testid="sp-slot-go" ${hasFile && n ? '' : 'disabled'}>Đưa vào lịch</button></div>${slots}
+    <p class="small faint">Caption từng kênh được viết từ kịch bản${AC.textApiOn(S) ? ' (AI)' : ' (mô phỏng)'}, sửa trong View ở Dashboard. Xếp nhiều video cùng lúc dùng nút Đưa video vào lịch ở màn Short Vid.</p>`;
+}
+// Tạo slot cho các ô đã chọn (có AI thì viết caption từng kênh trước)
+export async function scheduleSelected(id, sel, time, setBusy) {
+  const v = AC.byId(S.videos, id); if (!v) return { ok: false, error: 'Không thấy thẻ Vid.' };
+  if (!AC.isValidTime(time)) return { ok: false, error: 'Giờ không hợp lệ.' };
+  const chans = AC.vidChannels(S).filter(x => sel[x.channel.id]); let captions = null;
+  if (AC.textApiOn(S) && chans.length) {
+    setBusy(`AI đang viết caption cho "${v.insight.title.slice(0, 40)}"…`);
+    try { const p = AC.parseVidCaptions(await textCall(AC.vidCaptionsJob(S, v, chans), 3000), chans); if (p.ok) captions = p.captions; } catch (e) { toast(`AI không viết được caption, dùng bản mô phỏng: ${e.message}`, 'bad'); }
+    setBusy('');
+  }
+  return AC.scheduleCells(S, id, { cells: Object.entries(sel).map(([channelId, date]) => ({ channelId, date })), time, captions });
+}

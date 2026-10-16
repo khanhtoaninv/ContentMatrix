@@ -8,7 +8,7 @@ import { normalizeTopicMd } from './05h-topicframe.js';
 import { normCues, validateCues } from './05n-media.js';
 import { aiSystem, extractJson } from './05o-aitext.js';
 import { skillBlock, skillRefOf } from './05r-skill.js';
-import { freeMockScript, freeScriptJob } from './05t-videdit.js';
+import { freeMockScript, freeScriptJob, migrateEdit } from './05t-videdit.js';
 // Mỗi video tự đứng được, một ý (Insight). Kịch bản 140–200 chữ (≈ 60 giây ở 2,5 chữ/giây). Hai kiểu: Bản tin (người dẫn mở,
 // phần sau giọng máy đọc Prompt Audio) và Người nói hết. Kịch bản hủy không cần nộp video, không tính KPI.
 
@@ -46,6 +46,7 @@ export function ensureShortVid(S) {
   if (!Array.isArray(S.vidAnalyses)) S.vidAnalyses = [];
   if (!Array.isArray(S.vidHidden)) S.vidHidden = [];
   if (!S.vidSettings || typeof S.vidSettings !== 'object') S.vidSettings = defaultVidSettings();
+  S.videos.forEach(v => { if (v.edit) migrateEdit(v.edit); });   // mục 10.76: cảnh nhiều hình, VO toàn bài
   return S;
 }
 export function setVidSettings(S, patch) {

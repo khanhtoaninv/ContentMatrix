@@ -1100,37 +1100,123 @@ button.kchip { cursor: pointer; font: inherit; color: inherit; }
 .sv-origin:has(input:checked) { border-color: var(--accent); background: var(--surface-2); }
 @media (max-width: 560px) { .sv-origins { grid-template-columns: minmax(0, 1fr); } }
 .sv-mthumb { width: 64px; height: 64px; object-fit: cover; border-radius: var(--r-s); background: var(--surface-2); flex: none; }
-.ve-bar { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; padding: 8px 10px; margin: 10px 0; border: 1px solid var(--line); border-radius: var(--r-s); background: var(--surface-2); }
-.ve-bar select { width: auto; }
-.ve-main { display: grid; grid-template-columns: minmax(240px, 320px) minmax(0, 1fr); gap: 16px; align-items: start; }
-.ve-left { position: sticky; top: 0; }
-.ve-stage { position: relative; aspect-ratio: 9 / 16; width: 100%; border-radius: var(--r-m, 12px); overflow: hidden; background: #111; color: #fff; }
-.ve-media, .ve-fr { position: absolute; inset: 0; }
-.ve-media video, .ve-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.ve-kb { animation: veKb linear forwards; }
-@keyframes veKb { from { transform: scale(1); } to { transform: scale(1.08); } }
-.ve-ph { position: absolute; inset: 0; display: grid; align-content: center; gap: 6px; padding: 18px; text-align: center; background: repeating-linear-gradient(135deg, #222 0 14px, #2b2b2b 14px 28px); font-size: 13px; line-height: 1.4; }
-.ve-ph b { font-size: 14px; }
-.ve-ph span { color: #ddd; }
-.ve-ov { position: absolute; left: 8%; right: 8%; top: 16%; text-align: center; font-weight: 800; font-size: clamp(16px, 6.5cqw, 26px); text-shadow: 0 2px 6px rgba(0,0,0,.7); }
-.ve-stage { container-type: inline-size; }
-.ve-cap { position: absolute; left: 6%; right: 6%; text-align: center; font-weight: 700; font-size: clamp(13px, 5cqw, 20px); line-height: 1.3; }
-.ve-cap span, .ve-cap { text-shadow: 0 0 3px #000, 0 2px 6px rgba(0,0,0,.8); }
-.ve-cap.bottom { bottom: 14%; } .ve-cap.middle { top: 46%; } .ve-cap.top { top: 8%; }
-.ve-cap.key { color: #ffd43b; font-size: clamp(16px, 7cqw, 28px); font-weight: 800; }
-.ve-logo { position: absolute; top: 3%; left: 4.5%; padding: 4px 10px; border-radius: 999px; font-weight: 700; font-size: 12px; color: #fff; }
-.ve-band { position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 6% 14px; font-weight: 700; font-size: 13px; line-height: 1.3; }
-.ve-band span { display: block; width: 36px; height: 3px; margin-bottom: 6px; }
-.ve-fr img { width: 100%; height: 100%; }
-.ve-sc { padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--r-s); background: var(--surface); display: grid; gap: 6px; }
-.ve-sc.on { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 30%, transparent); }
-.ve-sc-grid { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 10px; }
-.ve-thumb { width: 64px; aspect-ratio: 9 / 16; border-radius: 6px; overflow: hidden; background: #222; color: #ddd; display: grid; place-items: center; text-align: center; }
-.ve-thumb img { width: 100%; height: 100%; object-fit: cover; }
-.ve-thumb.ph { background: repeating-linear-gradient(135deg, #2a2a2a 0 8px, #333 8px 16px); }
-.ve-sc textarea { min-height: 52px; }
-.ve-sc .btn.icon.sm { width: 28px; height: 28px; padding: 0; }
-@media (max-width: 760px) { .ve-main { grid-template-columns: minmax(0, 1fr); } .ve-left { position: static; max-width: 300px; margin: 0 auto; width: 100%; } }
+/* Popup thẻ Vid bản 1 (mục 10.76): tab Kịch bản / Biên tập / Xếp Slot, trình biên tập trong popup */
+.vp-tabs { margin-top: 10px; }
+.vp-tabs button { display: flex; gap: 7px; align-items: center; }
+.vp-tabs button:disabled { opacity: .45; cursor: not-allowed; }
+.vp-step { width: 20px; height: 20px; border-radius: 50%; background: var(--surface-2); font-size: 11px; display: grid; place-items: center; font-weight: 600; }
+.vp-bar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 7px 10px; margin-bottom: 12px; background: var(--surface-2); border-bottom: 1px solid var(--line); min-height: 44px; }
+.vp-bar > button:not(.btn) { border: 1px solid transparent; background: none; padding: 3px 12px; border-radius: 99px; cursor: pointer; color: var(--ink-2); font-size: var(--fs-2); min-height: 30px; }
+.vp-bar > button[aria-selected="true"] { background: var(--surface); border-color: var(--line-strong); color: var(--ink); font-weight: 600; }
+.vp-sp { margin-left: auto; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.vp-srow { display: grid; grid-template-columns: 28px 86px minmax(0, 1fr) minmax(0, 1fr); gap: 10px; padding: 8px 0; border-top: 1px solid var(--line); font-size: var(--fs-2); }
+.vp-srow > b { color: var(--accent); }
+.vp-tag { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 5px; background: var(--surface-2); color: var(--ink-2); margin-right: 4px; }
+.vp-drop { display: grid; place-items: center; text-align: center; border: 2px dashed var(--line-strong); border-radius: 16px; min-height: 300px; cursor: pointer; color: var(--ink-2); margin-top: 8px; padding: 16px; }
+.vp-drop.has { min-height: 120px; }
+.vp-drop:hover, .vp-drop:focus-within { border-color: var(--accent); }
+.vp-drop > span { display: grid; gap: 6px; justify-items: center; }
+.vp-drop b { font-size: 52px; line-height: 1; color: var(--accent); }
+.vp-drop.has b { font-size: 30px; }
+.vp-dt { font-weight: 600; color: var(--ink); }
+.vp-empty { text-align: center; padding: 40px 12px; display: grid; gap: 12px; justify-items: center; color: var(--ink-2); }
+.vp-note { background: var(--accent-soft); color: var(--ink); border-radius: var(--r-s); padding: 7px 10px; font-size: var(--fs-2); margin-bottom: 10px; }
+.vp-note.warn { background: var(--warn-soft); color: var(--warn); }
+.vp-warn { color: var(--warn); }
+.vp-ed { display: grid; grid-template-columns: minmax(0, 1fr) 250px; gap: 16px; align-items: start; }
+.vp-l { border: 1px solid var(--line); border-radius: var(--r-m, 10px); overflow: hidden; min-width: 0; }
+.vp-mini { display: flex; border-bottom: 1px solid var(--line); background: var(--surface-2); }
+.vp-mini button { flex: 1; border: 0; background: none; padding: 8px; cursor: pointer; font-weight: 600; color: var(--ink-2); border-bottom: 2px solid transparent; min-height: 40px; }
+.vp-mini button[aria-selected="true"] { background: var(--surface); color: var(--accent); border-color: var(--accent); }
+.vp-pane { padding: 10px; height: 440px; overflow: auto; }
+.vp-tools { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 5px; }
+.vp-tools select { width: auto; padding: 2px 4px; }
+.vp-tools input[type="range"] { width: 90px; }
+.vp-r { margin-left: auto; display: flex; gap: 2px; align-items: center; }
+.vp-sc { display: grid; grid-template-columns: 62px minmax(0, 1fr); gap: 10px; padding: 9px; border: 1px solid var(--line); border-radius: var(--r-s); margin-bottom: 8px; }
+.vp-sc[aria-current="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.vp-scb { display: grid; gap: 4px; min-width: 0; }
+.vp-scb textarea { min-height: 48px; }
+.vp-hd { display: flex; gap: 6px; align-items: center; }
+.vp-add { aspect-ratio: 9 / 12; border: 2px dashed var(--line-strong); border-radius: 6px; display: grid; place-items: center; color: var(--accent); background: var(--surface); cursor: pointer; overflow: hidden; position: relative; font-size: 11px; text-align: center; }
+.vp-add img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.vp-add.ph { border-style: solid; color: var(--ink-3); padding: 2px; }
+.vp-add svg { width: 20px; height: 20px; }
+.vp-cnt { position: absolute; right: 3px; bottom: 3px; background: rgb(0 0 0 / 65%); color: #fff; font-size: 11px; border-radius: 99px; padding: 0 6px; }
+.vp-thumbs { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.vp-th { position: relative; width: 34px; height: 44px; border-radius: 5px; overflow: hidden; background: var(--surface-2); display: grid; place-items: center; }
+.vp-th img { width: 100%; height: 100%; object-fit: cover; }
+.vp-th .btn.icon { position: absolute; top: 0; right: 0; width: 16px; height: 16px; min-height: 0; padding: 0; background: rgb(0 0 0 / 55%); color: #fff; border: 0; border-radius: 0 0 0 5px; }
+.vp-th .btn.icon svg { width: 10px; height: 10px; }
+.vp-grp { margin-bottom: 14px; }
+.vp-styles, .vp-frames { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.vp-cs { border: 2px solid var(--line); border-radius: 8px; padding: 6px 4px; background: #2a3446; cursor: pointer; text-align: center; font-size: 13px; font-weight: 700; color: #fff; }
+.vp-cs[aria-pressed="true"] { border-color: var(--accent); }
+.vp-cs small { display: block; font-weight: 400; color: #c3cfdd; font-size: 10px; }
+.vp-fr { border: 2px solid var(--line); border-radius: 8px; padding: 5px; background: var(--surface); cursor: pointer; font-size: 11px; color: var(--ink-2); text-align: center; }
+.vp-fr[aria-pressed="true"] { border-color: var(--accent); }
+.vp-fr i { display: block; aspect-ratio: 9 / 14; border-radius: 4px; background: #2a3446; position: relative; margin-bottom: 3px; overflow: hidden; }
+.vp-fr i img { width: 100%; height: 100%; object-fit: cover; }
+.vp-fm-logo { position: absolute; top: 6%; left: 8%; width: 40%; height: 9%; border-radius: 99px; background: var(--mark, #f3c24c); }
+.vp-fm-band { position: absolute; left: 0; right: 0; bottom: 0; height: 22%; background: var(--mark, #f3c24c); opacity: .85; }
+.vp-pv { position: sticky; top: 0; min-width: 0; }
+.vp-box { aspect-ratio: 9 / 16; background: linear-gradient(170deg, #243049, #0d1117); border-radius: 18px; border: 5px solid #2b3440; position: relative; overflow: hidden; color: #fff; container-type: inline-size; }
+.vp-media { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.vp-media.contain { object-fit: contain; }
+.vp-ph { position: absolute; inset: 0; display: grid; align-content: center; gap: 6px; padding: 18px; text-align: center; background: repeating-linear-gradient(135deg, #222 0 14px, #2b2b2b 14px 28px); font-size: 12px; line-height: 1.4; }
+.vp-ph span { color: #ddd; }
+.vp-ovl { position: absolute; left: 8%; right: 8%; top: 22%; text-align: center; font-weight: 800; font-size: clamp(16px, 7cqw, 26px); line-height: 1.2; text-shadow: 0 2px 8px #000; }
+.vp-cap { position: absolute; left: 6%; right: 6%; text-align: center; font-weight: 800; font-size: clamp(12px, 5.2cqw, 20px); line-height: 1.25; }
+.vp-cap.pos-bottom { bottom: 22%; } .vp-cap.pos-middle { top: 42%; } .vp-cap.pos-top { top: 16%; }
+.vp-cap.s0 { text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 2px 6px #000; }
+.vp-cap.s1 span { background: var(--mark, #f3c24c); color: #222; padding: 1px 7px; border-radius: 5px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+.vp-cap.s2 { text-shadow: 0 1px 5px #000; }
+.vp-cap.s2 em { color: var(--mark, #f3c24c); font-style: normal; }
+.vp-cap.s3 span { background: rgb(0 0 0 / 65%); padding: 3px 9px; border-radius: 8px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+.vp-fm { position: absolute; inset: 0; pointer-events: none; }
+.vp-fimg { width: 100%; height: 100%; }
+.vp-flogo { position: absolute; top: 3%; left: 4.5%; padding: 4px 10px; border-radius: 999px; font-weight: 700; font-size: 12px; color: #fff; }
+.vp-fband { position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 6% 14px; font-weight: 700; font-size: 13px; line-height: 1.3; color: #fff; }
+.vp-fband span { display: block; width: 36px; height: 3px; margin-bottom: 6px; }
+.vp-safe { position: absolute; inset: 0; pointer-events: none; border: 1px dashed rgb(255 80 80 / 70%); }
+.vp-safe::before { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 21%; background: rgb(255 80 80 / 22%); }
+.vp-safe::after { content: ""; position: absolute; right: 0; top: 35%; bottom: 21%; width: 15%; background: rgb(255 80 80 / 22%); }
+.vp-pvbar { display: flex; gap: 6px; justify-content: center; align-items: center; margin-top: 8px; flex-wrap: wrap; }
+.vp-tlw { margin-top: 14px; border: 1px solid var(--line); border-radius: var(--r-m, 10px); padding: 10px 12px; }
+.vp-tlh { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-size: var(--fs-1); color: var(--ink-3); margin-bottom: 6px; align-items: center; }
+.vp-badge { background: var(--warn-soft); color: var(--warn); border-radius: 99px; padding: 2px 9px; }
+.vp-tl { position: relative; height: 46px; display: flex; border-radius: 8px; overflow: hidden; background: var(--surface-2); user-select: none; touch-action: none; }
+.vp-blk { position: relative; border-right: 2px solid var(--surface); cursor: pointer; padding: 3px 8px; font-size: 11px; background: var(--accent-soft); color: var(--ink-2); overflow: hidden; white-space: nowrap; min-width: 0; }
+.vp-blk[aria-current="true"] { background: var(--accent); color: var(--accent-ink); }
+.vp-blk.empty { background: var(--warn-soft); color: var(--warn); }
+.vp-hdl { position: absolute; right: 0; top: 0; bottom: 0; width: 10px; cursor: ew-resize; background: rgb(0 0 0 / 14%); }
+.vp-hdl:focus-visible { outline: 2px solid var(--accent); background: rgb(0 0 0 / 35%); }
+.vp-vob { position: absolute; left: 0; bottom: 0; height: 5px; background: #e5484d; opacity: .8; }
+.vp-tick { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--ink-3); opacity: .6; }
+.vp-phl { position: absolute; top: 0; bottom: 0; width: 2px; background: #e5484d; pointer-events: none; }
+.vp-wave { position: relative; height: 34px; margin-top: 4px; background: var(--surface-2); border-radius: 6px; overflow: hidden; }
+.vp-wave.m { height: 20px; }
+.vp-wv { position: absolute; top: 2px; bottom: 2px; display: flex; align-items: center; gap: 1px; background: rgb(229 72 77 / 12%); border-radius: 4px; }
+.vp-wv i { flex: 1; min-width: 1px; background: #e5484d; border-radius: 1px; opacity: .85; }
+.vp-wv.m { background: var(--accent-soft); }
+.vp-wv.m i { background: var(--accent); }
+.vp-foot { display: flex; gap: 8px; justify-content: flex-end; align-items: center; padding: 10px 0 2px; flex-wrap: wrap; }
+.vp-foot > span { margin-right: auto; }
+.vp-seg { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; gap: 6px; align-items: center; padding: 5px 4px; border-top: 1px solid var(--line); border-radius: 4px; }
+.vp-seg.now { background: var(--accent-soft); }
+.vp-sat { width: 64px; }
+.vp-slwrap { overflow-x: auto; }
+.vp-sl { width: 100%; border-collapse: collapse; font-size: var(--fs-2); min-width: 560px; }
+.vp-sl th, .vp-sl td { border: 1px solid var(--line); padding: 0; text-align: center; }
+.vp-sl th { background: var(--surface-2); padding: 6px; font-size: var(--fs-1); color: var(--ink-2); }
+.vp-sl th.ch { text-align: left; padding-left: 10px; width: 130px; }
+.vp-slc { width: 100%; height: 44px; border: 0; background: var(--surface); cursor: pointer; color: var(--ink-3); font-size: 18px; }
+.vp-slc:hover:not(:disabled) { background: var(--accent-soft); }
+.vp-slc.pick, .vp-slc.on { background: var(--accent); color: var(--accent-ink); font-size: 12px; font-weight: 600; }
+.vp-slc.busy { background: var(--surface-2); color: var(--ink-2); font-size: 11px; cursor: not-allowed; }
+.legend { display: flex; gap: 14px; margin: 8px 0; }
+@media (max-width: 900px) { .vp-ed { grid-template-columns: minmax(0, 1fr); } .vp-pv { position: static; max-width: 280px; margin: 0 auto; width: 100%; } .vp-pane { height: auto; max-height: 460px; } }
+@media (max-width: 560px) { .vp-srow { grid-template-columns: 24px minmax(0, 1fr); } .vp-srow > :nth-child(n+3) { grid-column: 2; } .vp-styles, .vp-frames { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
 </style>
 <div class="app" id="app">
@@ -7285,14 +7371,30 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		logo: "Nhãn thương hiệu góc trên",
 		band: "Dải màu thương hiệu dưới"
 	};
+	var VID_CAPTION_STYLES = [
+		"Trắng viền đen",
+		"Nền vàng",
+		"Nhấn từ khóa",
+		"Hộp tối"
+	];
+	var VID_FIT = {
+		fill: "Lấp đầy khung",
+		fit: "Vừa khung"
+	};
+	var VID_SHORT = {
+		hold: "Giữ khung cuối",
+		loop: "Lặp lại",
+		slow: "Kéo chậm"
+	};
+	var SCENE_FLOOR = 1.5;
 	var MEDIA_RE = /^data:(video|audio|image)\//;
 	var short$1 = (s, n) => {
 		s = String(s || "").replace(/\s+/g, " ").trim();
 		return s.length > n ? s.slice(0, n - 1).replace(/\s+\S*$/, "") + "…" : s;
 	};
-	var r1 = (x) => Math.round(Number(x) * 10) / 10;
+	var r1$1 = (x) => Math.round(Number(x) * 10) / 10;
 	var plainMd = (t) => String(t || "").replace(/^\s*#{1,6}\s.*$/gm, "").replace(/^\s*([-*+]|\d+[.)])\s+/gm, "").replace(/\*\*|__|`/g, "").replace(/#[\p{L}\p{N}_]+/gu, "");
-	var vidGet$1 = (S, id) => byId(S.videos || [], id);
+	var vidGet$2 = (S, id) => byId(S.videos || [], id);
 	var freeTopicId = (weekId) => `${weekId}-FREE`;
 	function ensureFreeTopic(S, weekId) {
 		ensureShortVid(S);
@@ -7331,10 +7433,10 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 	}
 	function mockDescribe(m, i) {
 		const nm = mediaUnitName(m) || `clip ${i + 1}`;
-		return m.kind === "image" ? `Ảnh: ${nm}.` : `Cảnh ${nm}${m.dur ? `, dài ${r1(m.dur).toString().replace(".", ",")} giây` : ""}.`;
+		return m.kind === "image" ? `Ảnh: ${nm}.` : `Cảnh ${nm}${m.dur ? `, dài ${r1$1(m.dur).toString().replace(".", ",")} giây` : ""}.`;
 	}
 	function addVidMedia(S, id, m) {
-		const v = vidGet$1(S, id);
+		const v = vidGet$2(S, id);
 		if (!v) return {
 			ok: false,
 			error: "Không thấy thẻ Vid."
@@ -7361,7 +7463,7 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 			name: String(m.name || mt[1]).slice(0, 120),
 			src: m.src,
 			size: Number(m.size) || 0,
-			dur: Number(m.dur) > 0 ? r1(m.dur) : 0,
+			dur: Number(m.dur) > 0 ? r1$1(m.dur) : 0,
 			thumb: m.thumb || "",
 			desc: "",
 			descSim: true,
@@ -7377,7 +7479,7 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		};
 	}
 	function editVidMedia(S, id, mid, patch) {
-		const v = vidGet$1(S, id);
+		const v = vidGet$2(S, id);
 		const m = v && (v.media || []).find((x) => x.id === mid);
 		if (!m) return {
 			ok: false,
@@ -7400,22 +7502,25 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		return { ok: true };
 	}
 	function removeVidMedia(S, id, mid) {
-		const v = vidGet$1(S, id);
+		const v = vidGet$2(S, id);
 		if (!v || !(v.media || []).some((x) => x.id === mid)) return {
 			ok: false,
 			error: "Không thấy tệp nguồn."
 		};
 		v.media = v.media.filter((x) => x.id !== mid);
 		if (v.edit) {
+			migrateEdit(v.edit);
 			v.edit.scenes.forEach((sc) => {
-				if (sc.asset && sc.asset.mediaId === mid) sc.asset = null;
+				sc.items = sc.items.filter((it) => it.mediaId !== mid);
+				if (sc.vo && sc.vo.mediaId === mid) sc.vo = null;
 			});
+			if (v.edit.voAll && v.edit.voAll.mediaId === mid) v.edit.voAll = null;
 			if (v.edit.voice && v.edit.voice.mediaId === mid) v.edit.voice = { mode: "tts" };
 		}
 		return { ok: true };
 	}
 	function splitLongRoll(S, id, mid, segLen) {
-		const v = vidGet$1(S, id);
+		const v = vidGet$2(S, id);
 		const m = v && (v.media || []).find((x) => x.id === mid);
 		if (!m || m.kind !== "video") return {
 			ok: false,
@@ -7431,8 +7536,8 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		const nm = mediaUnitName(m) || "clip";
 		m.segs = Array.from({ length: n }, (_, i) => ({
 			id: `${m.id}s${i + 1}`,
-			from: r1(i * d),
-			to: r1(i === n - 1 ? m.dur : (i + 1) * d),
+			from: r1$1(i * d),
+			to: r1$1(i === n - 1 ? m.dur : (i + 1) * d),
 			desc: `Đoạn ${i + 1} của ${nm} (${fmtClock(i * d)}–${fmtClock(i === n - 1 ? m.dur : (i + 1) * d)}).`,
 			descSim: true
 		}));
@@ -7452,7 +7557,7 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 				mediaId: m.id,
 				from: g.from,
 				to: g.to,
-				dur: r1(g.to - g.from),
+				dur: r1$1(g.to - g.from),
 				desc: g.desc,
 				label: g.id,
 				kind: "video"
@@ -7470,7 +7575,7 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		return out;
 	}
 	function brollIdeas(S, id) {
-		const v = vidGet$1(S, id);
+		const v = vidGet$2(S, id);
 		if (!v) return [];
 		const u = brollUnits(v);
 		const n = u.length;
@@ -7493,7 +7598,7 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		];
 	}
 	function useBrollIdea(S, id, key) {
-		const v = vidGet$1(S, id);
+		const v = vidGet$2(S, id);
 		const it = brollIdeas(S, id).find((x) => x.key === key);
 		if (!v || !it) return {
 			ok: false,
@@ -7505,7 +7610,7 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		return { ok: true };
 	}
 	function setVidRequest(S, id, text) {
-		const v = vidGet$1(S, id);
+		const v = vidGet$2(S, id);
 		if (!v) return {
 			ok: false,
 			error: "Không thấy thẻ Vid."
@@ -7689,7 +7794,7 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		if (o === "post") body = `Rút bài dưới đây thành kịch bản nói 60 giây: [Hook] → [Nội dung] → [Ý chính] → [CTA]. Giữ đúng sự thật trong bài, không thêm số liệu.\n\n# Bài nguồn\n${v.source}`;
 		else {
 			const units = brollUnits(v);
-			body = `Viết lời dẫn cho các cảnh b-roll theo đúng thứ tự: [Hook], rồi mỗi cảnh một nhãn [Cảnh k], rồi [CTA]. Lời mỗi cảnh vừa thời lượng cảnh đó.\n${v.request ? `Yêu cầu của người dùng: ${v.request}\n` : ""}${v.insight.idea ? `Ý tưởng: ${v.insight.idea}\n` : ""}\n# Cảnh\n${units.map((u, i) => `- Cảnh ${i + 1} (${r1(u.dur || 3)} giây): ${u.desc}`).join("\n")}`;
+			body = `Viết lời dẫn cho các cảnh b-roll theo đúng thứ tự: [Hook], rồi mỗi cảnh một nhãn [Cảnh k], rồi [CTA]. Lời mỗi cảnh vừa thời lượng cảnh đó.\n${v.request ? `Yêu cầu của người dùng: ${v.request}\n` : ""}${v.insight.idea ? `Ý tưởng: ${v.insight.idea}\n` : ""}\n# Cảnh\n${units.map((u, i) => `- Cảnh ${i + 1} (${r1$1(u.dur || 3)} giây): ${u.desc}`).join("\n")}`;
 		}
 		const user = [
 			head,
@@ -7722,8 +7827,8 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 			if (!quiet && a >= 0) {
 				const from = a * step + (a ? O.pad : 0), to = i * step - (i < L.length ? O.pad : 0);
 				if (to - from >= O.minGap - 2 * O.pad && to > from) out.push({
-					from: r1(from),
-					to: r1(to),
+					from: r1$1(from),
+					to: r1$1(to),
 					on: true,
 					why: a === 0 ? "Lặng đầu clip" : i === L.length ? "Lặng cuối clip" : "Khoảng lặng"
 				});
@@ -7736,8 +7841,8 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		const D = Number(dur) || 0;
 		const out = [];
 		for (let t = 6; t < D - 2; t += 8) out.push({
-			from: r1(t),
-			to: r1(Math.min(D, t + .7)),
+			from: r1$1(t),
+			to: r1$1(Math.min(D, t + .7)),
 			on: true,
 			why: "Mô phỏng: chỗ có thể nói vấp"
 		});
@@ -7750,27 +7855,27 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		let t = 0;
 		cs.forEach(([a, b]) => {
 			if (a > t + .05) out.push({
-				from: r1(t),
-				to: r1(a)
+				from: r1$1(t),
+				to: r1$1(a)
 			});
 			t = Math.max(t, b);
 		});
 		if (D > t + .05) out.push({
-			from: r1(t),
-			to: r1(D)
+			from: r1$1(t),
+			to: r1$1(D)
 		});
 		return out;
 	}
 	function setVidCuts(S, id, cuts, simulated) {
-		const v = vidGet$1(S, id);
+		const v = vidGet$2(S, id);
 		if (!v) return {
 			ok: false,
 			error: "Không thấy thẻ Vid."
 		};
 		const ed = editOf(v);
 		ed.cuts = (cuts || []).map((c) => ({
-			from: r1(c.from),
-			to: r1(c.to),
+			from: r1$1(c.from),
+			to: r1$1(c.to),
 			on: c.on !== false,
 			why: String(c.why || "")
 		})).filter((c) => c.to > c.from);
@@ -7781,7 +7886,7 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		};
 	}
 	function toggleVidCut(S, id, i, on) {
-		const v = vidGet$1(S, id);
+		const v = vidGet$2(S, id);
 		const c = v && v.edit && v.edit.cuts[i];
 		if (!c) return {
 			ok: false,
@@ -7794,28 +7899,89 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		if (!v.edit) v.edit = {
 			scenes: [],
 			voice: { mode: "tts" },
+			voAll: null,
 			captions: {
 				mode: "full",
-				pos: "bottom"
+				pos: "bottom",
+				style: 0
 			},
+			segs: null,
+			capStale: false,
 			frame: "logo",
 			music: null,
 			cuts: [],
 			seq: 1,
-			plannedAt: null
+			plannedAt: null,
+			tpl: "script",
+			doneAt: null
 		};
-		return v.edit;
+		return migrateEdit(v.edit);
 	}
-	var newScene = (ed, p) => Object.assign({
-		id: `sc${ed.seq++}`,
-		label: "",
-		text: "",
-		dur: 3,
-		asset: null,
-		prompt: "",
-		overlay: "",
-		voice: ""
-	}, p);
+	var itemOf = (a, dur) => {
+		const d = a.kind === "image" ? 0 : r1$1(a.to > a.from ? a.to - (a.from || 0) : dur || 0);
+		return Object.assign({
+			kind: a.kind,
+			name: a.name || "",
+			from: r1$1(a.from || 0),
+			to: a.kind === "image" ? 0 : r1$1(a.to || 0),
+			dur: d,
+			short: "hold",
+			trim: 0
+		}, a.mediaId ? { mediaId: a.mediaId } : { src: a.src }, a.thumb ? { thumb: a.thumb } : {});
+	};
+	function migrateEdit(ed) {
+		if (!ed || ed.v === 2) return ed;
+		ed.voAll = ed.voAll || null;
+		ed.segs = ed.segs || null;
+		ed.capStale = !!ed.capStale;
+		ed.tpl = ed.tpl || "script";
+		ed.doneAt = ed.doneAt || null;
+		ed.captions = Object.assign({
+			mode: "full",
+			pos: "bottom",
+			style: 0
+		}, ed.captions || {});
+		if (ed.music && ed.music.duck == null) ed.music.duck = true;
+		(ed.scenes || []).forEach((sc) => {
+			if (!Array.isArray(sc.items)) sc.items = sc.asset ? [itemOf(sc.asset, sc.dur)] : [];
+			delete sc.asset;
+			delete sc.voice;
+			if (sc.defDur == null) sc.defDur = sc.dur;
+			if (sc.fit == null) sc.fit = "fill";
+			if (sc.vol == null) sc.vol = 100;
+			if (sc.vo === void 0) sc.vo = null;
+			sc.ph = !!sc.ph;
+		});
+		ed.v = 2;
+		return ed;
+	}
+	var newScene = (ed, p) => {
+		const sc = Object.assign({
+			id: `sc${ed.seq++}`,
+			label: "",
+			text: "",
+			dur: 3,
+			items: [],
+			prompt: "",
+			overlay: "",
+			fit: "fill",
+			vol: 100,
+			vo: null,
+			ph: false
+		}, p);
+		if (sc.defDur == null) sc.defDur = sc.dur;
+		return sc;
+	};
+	var itemFromUnit = (u, sc) => ({
+		kind: u.kind,
+		mediaId: u.mediaId,
+		name: "",
+		from: u.from,
+		to: u.kind === "image" ? 0 : r1$1(u.from + Math.min(u.dur || sc.dur, sc.dur)),
+		dur: u.kind === "image" ? 0 : r1$1(u.dur || 0),
+		short: "hold",
+		trim: 0
+	});
 	function scenePrompt(S, v, text) {
 		const c = vidSettingsOf(S);
 		return `Hình dọc ${c.ratio} minh hoạ: ${short$1(text, 140) || short$1(v.insight.title, 100)}${c.brand.visual ? ` ${c.brand.visual}` : ""}`;
@@ -7836,7 +8002,7 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		return out.length ? out : [String(text || "").trim()];
 	}
 	function planEdit(S, id) {
-		const v = vidGet$1(S, id);
+		const v = vidGet$2(S, id);
 		if (!v) return {
 			ok: false,
 			error: "Không thấy thẻ Vid."
@@ -7849,7 +8015,7 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		const o = vidOrigin(v);
 		const ed = editOf(v);
 		ed.seq = ed.seq || 1;
-		const dur = (t) => Math.max(1.5, r1(countWords(t) / c.wps));
+		const dur = (t) => Math.max(1.5, r1$1(countWords(t) / c.wps));
 		const scenes = [];
 		if (o === "talk") {
 			const m = (v.media || []).find((x) => x.kind === "video");
@@ -7866,13 +8032,17 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 				scenes.push(newScene(ed, {
 					label: `Đoạn giữ ${i + 1}`,
 					text: words.slice(wi, wi + n).join(" "),
-					dur: r1(k.to - k.from),
-					asset: {
+					dur: r1$1(k.to - k.from),
+					items: [{
 						kind: "video",
 						mediaId: m.id,
+						name: "",
 						from: k.from,
-						to: k.to
-					}
+						to: k.to,
+						dur: r1$1(k.to - k.from),
+						short: "hold",
+						trim: 0
+					}]
 				}));
 				wi += n;
 			});
@@ -7898,17 +8068,9 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 				const mk = /^Cảnh\s+(\d+)/i.exec(sc.label);
 				let u = null;
 				if (units.length) u = mk ? units[(Number(mk[1]) - 1) % units.length] : /^cta|chốt/i.test(sc.label) ? units[units.length - 1] : units[Math.min(i, units.length - 1)];
-				if (u) sc.asset = {
-					kind: u.kind,
-					mediaId: u.mediaId,
-					from: u.from,
-					to: u.kind === "image" ? 0 : r1(u.from + Math.min(u.dur || sc.dur, sc.dur))
-				};
+				if (u) sc.items = [itemFromUnit(u, sc)];
 				else sc.prompt = scenePrompt(S, v, sc.text);
-				if (v.kind === "bantin" && /dẫn/i.test(sc.label)) {
-					sc.voice = "self";
-					sc.prompt = "Người dẫn nói trước camera, khung dọc, nền thương hiệu.";
-				}
+				if (v.kind === "bantin" && /dẫn/i.test(sc.label)) sc.prompt = "Người dẫn nói trước camera, khung dọc, nền thương hiệu.";
 			});
 			const audio = (v.media || []).find((x) => x.kind === "audio");
 			if (o === "audio" && audio) {
@@ -7916,23 +8078,42 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 					mode: "file",
 					mediaId: audio.id
 				};
+				ed.voAll = {
+					kind: "up",
+					name: audio.name,
+					mediaId: audio.id,
+					dur: audio.dur || 0,
+					peaks: null
+				};
 				const sum = scenes.reduce((a, s) => a + s.dur, 0);
 				if (audio.dur > 0 && sum > 0) scenes.forEach((s) => {
-					s.dur = r1(s.dur * audio.dur / sum);
+					s.dur = r1$1(s.dur * audio.dur / sum);
+					s.defDur = s.dur;
 				});
-			} else if (!ed.voice || ed.voice.mode === "clip" || ed.voice.mode === "file") ed.voice = { mode: "tts" };
+			} else {
+				if (!ed.voice || ed.voice.mode === "clip" || ed.voice.mode === "file") ed.voice = { mode: "tts" };
+				if (ed.voAll && ed.voAll.mediaId && !(v.media || []).some((x) => x.id === ed.voAll.mediaId)) ed.voAll = null;
+			}
 		}
+		scenes.forEach((sc) => {
+			sc.defDur = sc.dur;
+		});
 		ed.scenes = scenes;
 		ed.plannedAt = S.settings.demoNow;
 		ed.simulated = true;
+		ed.tpl = "script";
+		ed.capStale = true;
+		ed.segs = null;
 		log(S, "vid-plan", "video", id, `${scenes.length} cảnh`);
 		return {
 			ok: true,
 			count: scenes.length
 		};
 	}
+	var fmtSecVi = (t) => `${r1$1(t).toString().replace(".", ",")} giây`;
+	var sceneMin = (ed, sc) => r1$1(Math.max(SCENE_FLOOR, (sc.items || []).length, ed && !ed.voAll && sc.vo ? Math.ceil(sc.vo.dur * 10) / 10 : 0));
 	var sceneGet = (S, id, sid) => {
-		const v = vidGet$1(S, id);
+		const v = vidGet$2(S, id);
 		return {
 			v,
 			sc: v && v.edit && v.edit.scenes.find((x) => x.id === sid)
@@ -7951,7 +8132,15 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 				ok: false,
 				error: "Thời lượng cảnh 0,5–120 giây."
 			};
-			sc.dur = r1(d);
+			const mn = sceneMin(vidGet$2(S, id).edit, sc);
+			if (r1$1(d) < mn) return {
+				ok: false,
+				error: `Cảnh không ngắn hơn ${fmtSecVi(mn)} (độ dài VO hoặc 1 giây mỗi hình).`
+			};
+			if (r1$1(d) !== sc.dur) {
+				sc.dur = r1$1(d);
+				vidGet$2(S, id).edit.capStale = true;
+			}
 		}
 		[
 			"text",
@@ -7959,9 +8148,15 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 			"overlay",
 			"label"
 		].forEach((k) => {
-			if (P[k] != null) sc[k] = String(P[k]).trim().slice(0, k === "text" ? 1200 : 400);
+			if (P[k] != null) {
+				const t = String(P[k]).trim().slice(0, k === "text" ? 1200 : 400);
+				if (k === "text" && t !== sc.text) vidGet$2(S, id).edit.capStale = true;
+				sc[k] = t;
+			}
 		});
-		if (P.voice != null) sc.voice = P.voice === "self" ? "self" : "";
+		if (P.fit != null && VID_FIT[P.fit]) sc.fit = P.fit;
+		if (P.vol != null) sc.vol = Math.max(0, Math.min(100, Math.round(Number(P.vol)) || 0));
+		if (P.ph != null) sc.ph = !!P.ph;
 		return { ok: true };
 	}
 	function setSceneAsset(S, id, sid, a) {
@@ -7971,9 +8166,16 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 			error: "Không thấy cảnh."
 		};
 		if (!a) {
-			sc.asset = null;
+			sc.items = [];
 			return { ok: true };
 		}
+		const r = makeItem(v, sc, a);
+		if (!r.ok) return r;
+		sc.items = [r.item];
+		sc.ph = false;
+		return { ok: true };
+	}
+	function makeItem(v, sc, a) {
 		if (a.mediaId) {
 			const m = (v.media || []).find((x) => x.id === a.mediaId);
 			if (!m || m.kind === "audio") return {
@@ -7982,31 +8184,95 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 			};
 			const from = Math.max(0, Number(a.from) || 0);
 			const to = m.kind === "image" ? 0 : Math.min(m.dur || from + sc.dur, a.to != null ? Number(a.to) : from + sc.dur);
-			sc.asset = {
-				kind: m.kind,
-				mediaId: m.id,
-				from: r1(from),
-				to: r1(to)
+			return {
+				ok: true,
+				item: {
+					kind: m.kind,
+					mediaId: m.id,
+					name: m.name,
+					from: r1$1(from),
+					to: r1$1(to),
+					dur: m.kind === "image" ? 0 : r1$1(to - from),
+					short: "hold",
+					trim: 0
+				}
 			};
-			return { ok: true };
 		}
 		const mt = /^data:(video|image)\//.exec(String(a.src || ""));
 		if (!mt) return {
 			ok: false,
 			error: "Tệp phải là ảnh hoặc video."
 		};
-		sc.asset = {
+		const dur = mt[1] === "video" ? r1$1(Number(a.dur) || sc.dur) : 0;
+		const item = {
 			kind: mt[1],
 			src: a.src,
 			name: String(a.name || "").slice(0, 120),
 			from: 0,
-			to: mt[1] === "video" ? r1(Number(a.dur) || sc.dur) : 0
+			to: dur,
+			dur,
+			short: "hold",
+			trim: 0
 		};
-		if (/^data:image\//.test(a.thumb || "")) sc.asset.thumb = a.thumb;
+		if (/^data:image\//.test(a.thumb || "")) item.thumb = a.thumb;
+		return {
+			ok: true,
+			item
+		};
+	}
+	function addSceneItems(S, id, sid, list) {
+		const { v, sc } = sceneGet(S, id, sid);
+		if (!sc) return {
+			ok: false,
+			error: "Không thấy cảnh."
+		};
+		const made = [];
+		for (const a of list || []) {
+			const r = makeItem(v, sc, a);
+			if (!r.ok) return r;
+			made.push(r.item);
+		}
+		if (!made.length) return {
+			ok: false,
+			error: "Chưa chọn tệp."
+		};
+		if (sc.items.length + made.length > 12) return {
+			ok: false,
+			error: "Tối đa 12 hình mỗi cảnh."
+		};
+		sc.items.push(...made);
+		sc.ph = false;
+		const mn = sceneMin(v.edit, sc);
+		if (sc.dur < mn) sc.dur = mn;
+		v.edit.capStale = true;
+		return {
+			ok: true,
+			count: made.length
+		};
+	}
+	function removeSceneItem(S, id, sid, k) {
+		const { v, sc } = sceneGet(S, id, sid);
+		if (!sc || !sc.items[k]) return {
+			ok: false,
+			error: "Không thấy hình."
+		};
+		sc.items.splice(k, 1);
+		v.edit.capStale = true;
+		return { ok: true };
+	}
+	function editSceneItem(S, id, sid, k, patch) {
+		const { sc } = sceneGet(S, id, sid);
+		const it = sc && sc.items[k];
+		if (!it) return {
+			ok: false,
+			error: "Không thấy hình."
+		};
+		if (patch.short != null && VID_SHORT[patch.short]) it.short = patch.short;
+		if (patch.trim != null) it.trim = Math.max(0, r1$1(Number(patch.trim) || 0));
 		return { ok: true };
 	}
 	function addScene(S, id, afterSid) {
-		const v = vidGet$1(S, id);
+		const v = vidGet$2(S, id);
 		if (!v) return {
 			ok: false,
 			error: "Không thấy thẻ Vid."
@@ -8015,25 +8281,32 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		const i = afterSid ? ed.scenes.findIndex((x) => x.id === afterSid) : ed.scenes.length - 1;
 		const sc = newScene(ed, {
 			label: "Cảnh mới",
-			dur: 3
+			dur: 3,
+			text: ""
 		});
 		ed.scenes.splice(i + 1, 0, sc);
+		ed.capStale = true;
 		return {
 			ok: true,
 			scene: sc
 		};
 	}
 	function removeScene(S, id, sid) {
-		const v = vidGet$1(S, id);
+		const v = vidGet$2(S, id);
 		if (!v || !v.edit) return {
 			ok: false,
 			error: "Không thấy cảnh."
 		};
+		if (v.edit.scenes.length < 2) return {
+			ok: false,
+			error: "Giữ ít nhất một cảnh."
+		};
 		v.edit.scenes = v.edit.scenes.filter((x) => x.id !== sid);
+		v.edit.capStale = true;
 		return { ok: true };
 	}
 	function moveScene(S, id, sid, dir) {
-		const v = vidGet$1(S, id);
+		const v = vidGet$2(S, id);
 		const a = v && v.edit && v.edit.scenes;
 		const i = a ? a.findIndex((x) => x.id === sid) : -1;
 		const j = i + (dir < 0 ? -1 : 1);
@@ -8042,10 +8315,11 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 			error: "Không đổi chỗ được."
 		};
 		[a[i], a[j]] = [a[j], a[i]];
+		v.edit.capStale = true;
 		return { ok: true };
 	}
 	function setEditOptions(S, id, patch) {
-		const v = vidGet$1(S, id);
+		const v = vidGet$2(S, id);
 		if (!v) return {
 			ok: false,
 			error: "Không thấy thẻ Vid."
@@ -8075,6 +8349,14 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		};
 		if (P.captions != null) ed.captions.mode = P.captions;
 		if (P.pos != null && VID_CAPTION_POS[P.pos]) ed.captions.pos = P.pos;
+		if (P.style != null) {
+			const k = Number(P.style);
+			if (!(k >= 0 && k < VID_CAPTION_STYLES.length)) return {
+				ok: false,
+				error: "Kiểu caption không hợp lệ."
+			};
+			ed.captions.style = k;
+		}
 		if (P.frame != null) ed.frame = VID_FRAMES[P.frame] || /^fr-/.test(P.frame) ? P.frame : "none";
 		if (P.music !== void 0) {
 			if (!P.music) ed.music = null;
@@ -8087,11 +8369,16 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 					src: P.music.src,
 					name: String(P.music.name || "nhạc nền").slice(0, 120),
 					vol: .25,
-					license: String(P.music.license || "")
+					license: String(P.music.license || ""),
+					duck: true,
+					peaks: P.music.peaks || null
 				};
 			}
 		}
 		if (P.musicVol != null && ed.music) ed.music.vol = Math.max(0, Math.min(1, Number(P.musicVol) || 0));
+		if (P.musicDuck != null && ed.music) ed.music.duck = !!P.musicDuck;
+		if (P.musicPeaks && ed.music) ed.music.peaks = P.musicPeaks;
+		if (P.musicLicense != null && ed.music) ed.music.license = String(P.musicLicense).trim().slice(0, 200);
 		return { ok: true };
 	}
 	function editTimeline(v) {
@@ -8101,13 +8388,13 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 			items: sc.map((s) => {
 				const it = {
 					scene: s,
-					t0: r1(t),
-					t1: r1(t + s.dur)
+					t0: r1$1(t),
+					t1: r1$1(t + s.dur)
 				};
 				t += s.dur;
 				return it;
 			}),
-			total: r1(t)
+			total: r1$1(t)
 		};
 	}
 	var STOP = new Set("và là của có cho với những các một này thì mà để khi trong được không rằng như từ bạn mình nhé ạ".split(" "));
@@ -8138,8 +8425,8 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		return chunks.map((c, i) => {
 			const d = D * c.weight / sum;
 			const o = {
-				t0: r1(t),
-				t1: i === chunks.length - 1 ? r1(D) : r1(t + d),
+				t0: r1$1(t),
+				t1: i === chunks.length - 1 ? r1$1(D) : r1$1(t + d),
 				text: c.text
 			};
 			t += d;
@@ -8153,9 +8440,10 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		const tl = editTimeline(v);
 		const c = vidSettingsOf(S);
 		if (tl.total > 90) out.push(`Video dài ${Math.round(tl.total)} giây; nên dưới 90 giây.`);
-		const noAsset = ed.scenes.filter((s) => !s.asset && s.voice !== "self").length;
+		const noAsset = ed.scenes.filter((s) => !s.items.length).length;
 		if (noAsset) out.push(`${noAsset} cảnh chưa có hình (đang dùng thẻ giữ chỗ kèm prompt).`);
 		const noText = ed.scenes.filter((s) => !s.text && ed.voice.mode !== "none" && ed.voice.mode !== "clip").length;
+		if (ed.capStale && ed.captions.mode !== "off") out.push("Caption chưa khớp timeline: bấm Gen caption.");
 		if (noText) out.push(`${noText} cảnh chưa có lời.`);
 		if (ed.voice.mode === "self") out.push("Giọng: tự thu sau. Xem trước không có tiếng.");
 		if (ed.music && !ed.music.license) out.push("Nhạc nền chưa ghi nguồn/giấy phép (TikTok tài khoản doanh nghiệp chỉ dùng nhạc thương mại).");
@@ -8164,17 +8452,39 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		return out;
 	}
 	function editCommands(S, v) {
-		const ed = v.edit || editOf(v);
+		const ed = editOf(v);
 		const tl = editTimeline(v);
 		const c = vidSettingsOf(S);
 		const mediaName = (id) => {
 			const m = (v.media || []).find((x) => x.id === id);
 			return m ? m.name : id;
 		};
+		const voInfo = (o) => o ? {
+			kind: o.kind,
+			file: o.mediaId ? mediaName(o.mediaId) : o.kind === "up" ? o.name : null,
+			duration: o.dur,
+			text: o.kind === "ai" ? "" : void 0
+		} : null;
+		const capsOf = (s, t0, t1) => {
+			if (ed.segs && ed.captions.mode !== "off") {
+				const mine = ed.segs.filter((g) => g.sc === s.id);
+				return mine.map((g, i) => ({
+					start: r1$1(g.at),
+					end: r1$1(i + 1 < mine.length ? mine[i + 1].at : t1),
+					text: g.t
+				}));
+			}
+			return captionChunks(s.text, s.dur, ed.captions.mode).map((x) => ({
+				start: r1$1(t0 + x.t0),
+				end: r1$1(t0 + x.t1),
+				text: x.text
+			}));
+		};
 		return {
 			app: "Content Matrix",
 			kind: "vid-edit-list",
-			version: 1,
+			version: 2,
+			popup: 1,
 			video: {
 				id: v.id,
 				title: v.insight.title,
@@ -8183,45 +8493,54 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 			ratio: c.ratio,
 			duration: tl.total,
 			voice: Object.assign({}, ed.voice, ed.voice.mediaId ? { file: mediaName(ed.voice.mediaId) } : {}),
-			captions: ed.captions,
+			voiceover: ed.voAll ? {
+				scope: "all",
+				...voInfo(ed.voAll)
+			} : null,
+			captions: Object.assign({}, ed.captions, { styleName: VID_CAPTION_STYLES[ed.captions.style] || "" }),
 			frame: ed.frame,
 			music: ed.music ? {
 				file: ed.music.name,
 				volume: ed.music.vol,
+				duck: ed.music.duck !== false,
 				license: ed.music.license || ""
 			} : null,
 			cuts: (ed.cuts || []).filter((x) => x.on !== false).map((x) => ({
 				from: x.from,
 				to: x.to
 			})),
-			scenes: tl.items.map(({ scene: s, t0, t1 }) => ({
-				id: s.id,
-				start: t0,
-				end: t1,
-				label: s.label,
-				text: s.text,
-				overlay: s.overlay || "",
-				voice: s.voice || ed.voice.mode,
-				source: s.asset ? s.asset.mediaId ? {
-					file: mediaName(s.asset.mediaId),
-					kind: s.asset.kind,
-					from: s.asset.from,
-					to: s.asset.to
-				} : {
-					file: s.asset.name || "tệp tải lên",
-					kind: s.asset.kind,
-					from: s.asset.from,
-					to: s.asset.to
-				} : {
-					placeholder: true,
-					prompt: s.prompt
-				},
-				captions: captionChunks(s.text, s.dur, ed.captions.mode).map((x) => ({
-					start: r1(t0 + x.t0),
-					end: r1(t0 + x.t1),
-					text: x.text
-				}))
-			})),
+			scenes: tl.items.map(({ scene: s, t0, t1 }) => {
+				const n = s.items.length, share = n ? s.dur / n : 0;
+				return {
+					id: s.id,
+					start: t0,
+					end: t1,
+					label: s.label,
+					text: s.text,
+					overlay: s.overlay || "",
+					fit: s.fit,
+					volume: s.vol / 100,
+					voiceover: ed.voAll ? null : s.vo ? {
+						scope: "scene",
+						...voInfo(s.vo),
+						start: t0
+					} : null,
+					sources: s.items.map((it, k) => ({
+						file: it.mediaId ? mediaName(it.mediaId) : it.name || "tệp tải lên",
+						kind: it.kind,
+						from: r1$1((it.from || 0) + (it.trim || 0)),
+						to: it.kind === "image" ? 0 : r1$1((it.from || 0) + (it.trim || 0) + Math.min(share, it.dur || share)),
+						start: r1$1(t0 + k * share),
+						end: r1$1(t0 + (k + 1) * share),
+						whenShort: it.short || "hold"
+					})),
+					...n ? {} : {
+						placeholder: true,
+						prompt: s.prompt
+					},
+					captions: capsOf(s, t0, t1)
+				};
+			}),
 			exportedAt: S.settings.demoNow
 		};
 	}
@@ -8305,7 +8624,7 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		};
 	}
 	function scheduleGate(S, vidId) {
-		const v = vidGet$1(S, vidId);
+		const v = vidGet$2(S, vidId);
 		if (!v) return {
 			ok: false,
 			error: "Không thấy thẻ Vid."
@@ -8532,6 +8851,9 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		if (!Array.isArray(S.vidAnalyses)) S.vidAnalyses = [];
 		if (!Array.isArray(S.vidHidden)) S.vidHidden = [];
 		if (!S.vidSettings || typeof S.vidSettings !== "object") S.vidSettings = defaultVidSettings();
+		S.videos.forEach((v) => {
+			if (v.edit) migrateEdit(v.edit);
+		});
 		return S;
 	}
 	function setVidSettings(S, patch) {
@@ -9080,9 +9402,9 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 			video: v
 		};
 	}
-	var vidGet = (S, id) => byId(S.videos || [], id);
+	var vidGet$1 = (S, id) => byId(S.videos || [], id);
 	function editInsight(S, id, patch) {
-		const v = vidGet(S, id);
+		const v = vidGet$1(S, id);
 		if (!v) return {
 			ok: false,
 			error: "Không thấy video."
@@ -9120,7 +9442,7 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		};
 	}
 	function dropIdea(S, id) {
-		const v = vidGet(S, id);
+		const v = vidGet$1(S, id);
 		if (!v) return {
 			ok: false,
 			error: "Không thấy video."
@@ -9133,7 +9455,7 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		return { ok: true };
 	}
 	function mergeIdeas(S, idA, idB) {
-		const a = vidGet(S, idA), b = vidGet(S, idB);
+		const a = vidGet$1(S, idA), b = vidGet$1(S, idB);
 		if (!a || !b || a === b) return {
 			ok: false,
 			error: "Chọn hai đề xuất khác nhau để gộp."
@@ -9257,7 +9579,7 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		return `Ảnh dọc ${c.ratio} minh hoạ "${short(v.insight.title.replace(/^[^:]{2,20}:\s*/, ""), 80)}" (Topic: ${short(iv.title, 60)}): ${short(src, 140)}${c.brand.visual ? ` ${c.brand.visual}` : ""}`;
 	}
 	function vidScriptJob(S, id) {
-		const v = vidGet(S, id);
+		const v = vidGet$1(S, id);
 		if (!v) return null;
 		if (v.origin && v.origin !== "topic") return freeScriptJob(S, v);
 		const c = vidSettingsOf(S);
@@ -9309,7 +9631,7 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		};
 	}
 	function writeVidScript(S, id, res, meta) {
-		const v = vidGet(S, id);
+		const v = vidGet$1(S, id);
 		if (!v) return {
 			ok: false,
 			error: "Không thấy video."
@@ -9362,7 +9684,7 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		};
 	}
 	function editVidScript(S, id, patch) {
-		const v = vidGet(S, id);
+		const v = vidGet$1(S, id);
 		if (!v) return {
 			ok: false,
 			error: "Không thấy video."
@@ -9401,7 +9723,7 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		};
 	}
 	function approveVidScript(S, id) {
-		const v = vidGet(S, id);
+		const v = vidGet$1(S, id);
 		if (!v) return {
 			ok: false,
 			error: "Không thấy video."
@@ -9419,7 +9741,7 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		return { ok: true };
 	}
 	function toggleVidCancel(S, id) {
-		const v = vidGet(S, id);
+		const v = vidGet$1(S, id);
 		if (!v) return {
 			ok: false,
 			error: "Không thấy video."
@@ -9436,7 +9758,7 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		};
 	}
 	function setVidFile(S, id, file) {
-		const v = vidGet(S, id);
+		const v = vidGet$1(S, id);
 		if (!v) return {
 			ok: false,
 			error: "Không thấy video."
@@ -9469,7 +9791,7 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		return { ok: true };
 	}
 	function setVidCover(S, id, cover) {
-		const v = vidGet(S, id);
+		const v = vidGet$1(S, id);
 		if (!v || !v.file) return {
 			ok: false,
 			error: "Chưa có video."
@@ -9491,7 +9813,7 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		return { ok: true };
 	}
 	function setVidSubs(S, id, cues, source) {
-		const v = vidGet(S, id);
+		const v = vidGet$1(S, id);
 		if (!v || !v.file) return {
 			ok: false,
 			error: "Chưa có video."
@@ -15797,12 +16119,603 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		return tpl.layers.map((l, i) => normTextLayer(Object.assign({}, l, texts && texts[i] != null && String(texts[i]).trim() ? { text: texts[i] } : {})));
 	}
 	//#endregion
+	//#region src/logic/05u-vidpop.js
+	var r1 = (x) => Math.round(Number(x) * 10) / 10;
+	var vidGet = (S, id) => byId(S.videos || [], id);
+	var AUDIO_RE = /^data:audio\//;
+	function voPeaks(seed, n) {
+		const a = [];
+		let x = (Number(seed) || 1) * 9301 + 49297;
+		for (let i = 0; i < n; i++) {
+			x = (x * 9301 + 49297) % 233280;
+			const r = x / 233280;
+			a.push(Math.round((.18 + .82 * Math.abs(Math.sin(i * .55 + seed) * .6 + r * .4)) * 100));
+		}
+		return a;
+	}
+	function resizeScene(S, id, sid, nd) {
+		const v = vidGet(S, id);
+		const ed = v && v.edit;
+		const i = ed ? ed.scenes.findIndex((x) => x.id === sid) : -1;
+		if (i < 0) return {
+			ok: false,
+			error: "Không thấy cảnh."
+		};
+		const a = ed.scenes[i], b = ed.scenes[i + 1];
+		const was = a.dur;
+		let d = Math.max(sceneMin(ed, a), Math.min(120, Number(nd) || 0));
+		if (ed.voAll) {
+			if (!b) return {
+				ok: false,
+				error: "Cảnh cuối không kéo được khi dùng VO toàn bài: kéo mép cảnh trước."
+			};
+			d = Math.min(d, a.dur + b.dur - sceneMin(ed, b));
+			const tot = a.dur + b.dur;
+			a.dur = r1(d);
+			b.dur = r1(tot - d);
+		} else a.dur = r1(d);
+		if (a.dur !== was) ed.capStale = true;
+		return {
+			ok: true,
+			dur: a.dur,
+			changed: a.dur !== was
+		};
+	}
+	function nudgeScene(S, id, sid, delta) {
+		const v = vidGet(S, id);
+		const sc = v && v.edit && v.edit.scenes.find((x) => x.id === sid);
+		if (!sc) return {
+			ok: false,
+			error: "Không thấy cảnh."
+		};
+		return resizeScene(S, id, sid, sc.dur + Number(delta));
+	}
+	function fitTotal(ed, target) {
+		const sum = ed.scenes.reduce((a, s) => a + s.dur, 0);
+		if (!(target > 0) || !(sum > 0)) return;
+		ed.scenes.forEach((s) => {
+			s.dur = r1(Math.max(sceneMin(ed, s), s.dur * target / sum));
+		});
+		const diff = r1(target - ed.scenes.reduce((a, s) => a + s.dur, 0));
+		if (diff > 0) ed.scenes[ed.scenes.length - 1].dur = r1(ed.scenes[ed.scenes.length - 1].dur + diff);
+		else if (diff < 0) for (let i = ed.scenes.length - 1, left = -diff; i >= 0 && left > 0; i--) {
+			const room = ed.scenes[i].dur - sceneMin(ed, ed.scenes[i]);
+			const cut = Math.min(room, left);
+			ed.scenes[i].dur = r1(ed.scenes[i].dur - cut);
+			left = r1(left - cut);
+		}
+		ed.scenes.forEach((s) => {
+			s.defDur = s.dur;
+		});
+	}
+	function resetDurations(S, id) {
+		const v = vidGet(S, id);
+		const ed = v && v.edit;
+		if (!ed || !ed.scenes.length) return {
+			ok: false,
+			error: "Chưa có cảnh."
+		};
+		ed.scenes.forEach((s) => {
+			s.dur = r1(Math.max(s.defDur || 1.5, sceneMin(ed, s)));
+		});
+		if (ed.voAll && ed.voAll.dur > 0) fitTotal(ed, ed.voAll.dur);
+		ed.capStale = true;
+		return { ok: true };
+	}
+	var voFrom = (v, p, fallbackDur, seed) => {
+		if (p.kind !== "up" && p.kind !== "ai") return {
+			ok: false,
+			error: "VO phải là Up hoặc Gen AI."
+		};
+		let src = "", mediaId = "";
+		if (p.kind === "up") {
+			if (p.mediaId) {
+				const m = (v.media || []).find((x) => x.id === p.mediaId && x.kind === "audio");
+				if (!m) return {
+					ok: false,
+					error: "Không thấy file giọng."
+				};
+				mediaId = m.id;
+			} else if (AUDIO_RE.test(p.src || "")) src = p.src;
+			else return {
+				ok: false,
+				error: "VO tải lên phải là tệp audio."
+			};
+		}
+		const dur = r1(Number(p.dur) > 0 ? p.dur : fallbackDur);
+		if (!(dur > 0)) return {
+			ok: false,
+			error: "Chưa đọc được độ dài VO."
+		};
+		const nm = String(p.name || (p.kind === "ai" ? "vo-ai.mp3" : "vo.mp3")).slice(0, 120);
+		return {
+			ok: true,
+			vo: Object.assign({
+				kind: p.kind,
+				name: nm,
+				dur,
+				peaks: Array.isArray(p.peaks) ? p.peaks.slice(0, 400) : p.kind === "ai" ? voPeaks(seed, 80) : null
+			}, mediaId ? { mediaId } : src ? { src } : { sim: true })
+		};
+	};
+	function setVoAll(S, id, p) {
+		const v = vidGet(S, id);
+		if (!v) return {
+			ok: false,
+			error: "Không thấy thẻ Vid."
+		};
+		const ed = editOf(v);
+		if (!ed.scenes.length) return {
+			ok: false,
+			error: "Chia cảnh trước."
+		};
+		const total = editTimeline(v).total;
+		const r = voFrom(v, p || {}, total, 7);
+		if (!r.ok) return r;
+		if (r.vo.kind === "ai") r.vo.dur = total;
+		ed.voAll = r.vo;
+		ed.voice = r.vo.kind === "up" ? r.vo.mediaId ? {
+			mode: "file",
+			mediaId: r.vo.mediaId
+		} : { mode: "file" } : { mode: "tts" };
+		if (r.vo.kind === "up") fitTotal(ed, r.vo.dur);
+		else ed.scenes.forEach((s) => {
+			s.defDur = s.dur;
+		});
+		ed.capStale = true;
+		return {
+			ok: true,
+			vo: ed.voAll
+		};
+	}
+	function clearVoAll(S, id) {
+		const v = vidGet(S, id);
+		if (!v || !v.edit || !v.edit.voAll) return {
+			ok: false,
+			error: "Chưa có VO toàn bài."
+		};
+		v.edit.voAll = null;
+		if (v.edit.voice.mode === "file") v.edit.voice = { mode: "tts" };
+		v.edit.capStale = true;
+		return { ok: true };
+	}
+	function setSceneVo(S, id, sid, p) {
+		const v = vidGet(S, id);
+		const ed = v && v.edit;
+		const sc = ed && ed.scenes.find((x) => x.id === sid);
+		if (!sc) return {
+			ok: false,
+			error: "Không thấy cảnh."
+		};
+		if (ed.voAll) return {
+			ok: false,
+			error: "Đang dùng VO toàn bài: gỡ VO toàn bài trước khi làm VO cảnh."
+		};
+		const i = ed.scenes.indexOf(sc);
+		const r = voFrom(v, p || {}, r1((sc.defDur || sc.dur) * .85), i + 1);
+		if (!r.ok) return r;
+		if (r.vo.peaks && r.vo.peaks.length > 120) r.vo.peaks = r.vo.peaks.slice(0, 120);
+		sc.vo = r.vo;
+		if (sc.dur < r.vo.dur) sc.dur = r1(Math.ceil(r.vo.dur * 10) / 10);
+		ed.capStale = true;
+		return {
+			ok: true,
+			vo: sc.vo
+		};
+	}
+	function clearSceneVo(S, id, sid) {
+		const v = vidGet(S, id);
+		const sc = v && v.edit && v.edit.scenes.find((x) => x.id === sid);
+		if (!sc || !sc.vo) return {
+			ok: false,
+			error: "Cảnh chưa có VO."
+		};
+		sc.vo = null;
+		v.edit.capStale = true;
+		return { ok: true };
+	}
+	function setVoPeaks(S, id, target, peaks) {
+		const v = vidGet(S, id);
+		const ed = v && v.edit;
+		if (!ed || !Array.isArray(peaks)) return {
+			ok: false,
+			error: "Không có dữ liệu sóng âm."
+		};
+		const o = target === "all" ? ed.voAll : (ed.scenes.find((x) => x.id === target) || {}).vo;
+		if (!o) return {
+			ok: false,
+			error: "Không thấy VO."
+		};
+		o.peaks = peaks.slice(0, 400).map((x) => Math.max(0, Math.min(100, Math.round(Number(x) || 0))));
+		return { ok: true };
+	}
+	var voLocked = (v) => !!(v && v.edit && v.edit.voAll);
+	function chunkWords(text) {
+		const w = String(text || "").split(/\s+/).filter(Boolean);
+		const out = [];
+		let c = [];
+		for (const x of w) {
+			c.push(x);
+			if (c.length >= 6 && /[.,?!…]$/.test(x) || c.length >= 8) {
+				out.push(c.join(" "));
+				c = [];
+			}
+		}
+		if (c.length) out.push(c.join(" "));
+		return out;
+	}
+	function genCaptions(S, id, opt) {
+		const v = vidGet(S, id);
+		const ed = v && v.edit;
+		if (!ed) return {
+			ok: false,
+			error: "Chưa có cảnh."
+		};
+		const full = !!(opt && opt.full);
+		const mode = ed.captions.mode;
+		const old = ed.segs || [];
+		if (mode === "off") {
+			ed.segs = [];
+			ed.capStale = false;
+			return {
+				ok: true,
+				count: 0
+			};
+		}
+		const res = [];
+		let st = 0;
+		ed.scenes.forEach((sc) => {
+			const mine = old.filter((g) => g.sc === sc.id);
+			const texts = !full && mine.some((g) => g.ed) ? mine.map((g) => ({
+				t: g.t,
+				ed: g.ed
+			})) : (mode === "key" ? captionChunks(sc.text, 1, "key").map((c) => c.text) : chunkWords(sc.text)).map((t) => ({ t }));
+			const span = ed.voAll ? sc.dur * .92 : sc.vo ? Math.min(sc.vo.dur, sc.dur) : sc.dur * .92;
+			const n = texts.reduce((a, g) => a + countWords(g.t), 0) || 1;
+			let acc = 0;
+			texts.forEach((g) => {
+				res.push({
+					t: g.t,
+					sc: sc.id,
+					at: r1(st + acc / n * span),
+					ed: g.ed ? 1 : 0
+				});
+				acc += countWords(g.t);
+			});
+			st += sc.dur;
+		});
+		ed.segs = res;
+		ed.capStale = false;
+		return {
+			ok: true,
+			count: res.length
+		};
+	}
+	function editSeg(S, id, i, patch) {
+		const v = vidGet(S, id);
+		const ed = v && v.edit;
+		const g = ed && ed.segs && ed.segs[i];
+		if (!g) return {
+			ok: false,
+			error: "Không thấy đoạn caption."
+		};
+		if (patch.t != null) {
+			const t = String(patch.t).trim().slice(0, 200);
+			if (!t) return {
+				ok: false,
+				error: "Đoạn caption không để trống (dùng Gộp để bỏ)."
+			};
+			g.t = t;
+			g.ed = 1;
+		}
+		if (patch.at != null) {
+			const tot = editTimeline(v).total;
+			const lo = i ? ed.segs[i - 1].at : 0, hi = i + 1 < ed.segs.length ? ed.segs[i + 1].at : tot;
+			g.at = r1(Math.max(lo, Math.min(hi, Number(String(patch.at).replace(",", ".")) || 0)));
+			g.ed = 1;
+		}
+		return { ok: true };
+	}
+	function splitSeg(S, id, i) {
+		const v = vidGet(S, id);
+		const ed = v && v.edit;
+		const g = ed && ed.segs && ed.segs[i];
+		if (!g) return {
+			ok: false,
+			error: "Không thấy đoạn caption."
+		};
+		const w = g.t.split(/\s+/);
+		if (w.length < 2) return {
+			ok: false,
+			error: "Đoạn chỉ có một chữ."
+		};
+		const h = Math.ceil(w.length / 2);
+		const nx = ed.segs[i + 1] ? ed.segs[i + 1].at : editTimeline(v).total;
+		ed.segs.splice(i, 1, {
+			t: w.slice(0, h).join(" "),
+			sc: g.sc,
+			at: g.at,
+			ed: 1
+		}, {
+			t: w.slice(h).join(" "),
+			sc: g.sc,
+			at: r1((g.at + nx) / 2),
+			ed: 1
+		});
+		return { ok: true };
+	}
+	function mergeSeg(S, id, i) {
+		const v = vidGet(S, id);
+		const ed = v && v.edit;
+		if (!ed || !ed.segs || i < 1 || !ed.segs[i]) return {
+			ok: false,
+			error: "Không gộp được."
+		};
+		ed.segs[i - 1].t += " " + ed.segs[i].t;
+		ed.segs[i - 1].ed = 1;
+		ed.segs.splice(i, 1);
+		return { ok: true };
+	}
+	function captionAt(v, t) {
+		const ed = v && v.edit;
+		if (!ed || !ed.scenes.length || ed.captions.mode === "off") return "";
+		if (ed.segs && ed.segs.length) {
+			let r = ed.segs[0];
+			for (const g of ed.segs) if (g.at <= t && g.at >= r.at) r = g;
+			return r.t;
+		}
+		const tl = editTimeline(v);
+		const it = tl.items.find((x) => t < x.t1) || tl.items[tl.items.length - 1];
+		const ch = captionChunks(it.scene.text, it.scene.dur, ed.captions.mode);
+		const c = ch.find((x) => t - it.t0 < x.t1) || ch[ch.length - 1];
+		return c ? c.text : "";
+	}
+	var keyOf = (t) => (captionChunks(t, 1, "key")[0] || {}).text || "";
+	var VID_TEMPLATES = {
+		script: {
+			name: "Theo kịch bản (tự chia)",
+			hint: "Mỗi phần có nhãn trong kịch bản thành một hay vài cảnh."
+		},
+		hoidap: {
+			name: "Hỏi đáp 3 bước",
+			w: [
+				2,
+				1,
+				2,
+				2
+			],
+			hints: [
+				"Người nói, cận mặt",
+				"B-roll minh họa vấn đề",
+				"Biểu đồ hoặc sơ đồ đơn giản",
+				"Người nói, chốt việc làm ngay"
+			],
+			overlays: () => [
+				"",
+				"Vấn đề",
+				"Giải đáp",
+				"Làm ngay"
+			]
+		},
+		chunhan: {
+			name: "Chữ nhấn ý",
+			w: [
+				2,
+				2,
+				1,
+				2
+			],
+			hints: [
+				"Nền đơn sắc, chữ lớn",
+				"Nền đơn sắc, chữ lớn",
+				"Nền đơn sắc, chữ lớn",
+				"Nền đơn sắc, chữ lớn"
+			],
+			overlays: (ts) => ts.map(keyOf)
+		},
+		nguoinoi: {
+			name: "Người nói + b-roll",
+			w: [
+				1,
+				2,
+				1,
+				2,
+				1
+			],
+			hints: [
+				"Người nói, cận mặt",
+				"B-roll minh họa ý đầu",
+				"Người nói, nhấn ý chính",
+				"B-roll minh họa cách làm",
+				"Người nói, chốt"
+			],
+			overlays: (ts) => [
+				"",
+				"",
+				keyOf(ts[2]),
+				"",
+				"Làm ngay"
+			]
+		}
+	};
+	function suggestTemplate(S, v) {
+		const f = (S.vidFormats || []).find((x) => x.id === v.formatId);
+		const k = f ? f.key || f.id : "";
+		return /giaithich|hoidap|ngoxnhan|ngonhan/.test(k) ? "hoidap" : /meo|thuthach/.test(k) ? "chunhan" : "nguoinoi";
+	}
+	function applyTemplate(S, id, key) {
+		const v = vidGet(S, id);
+		if (!v) return {
+			ok: false,
+			error: "Không thấy thẻ Vid."
+		};
+		const T = VID_TEMPLATES[key];
+		if (!T) return {
+			ok: false,
+			error: "Mẫu không hợp lệ."
+		};
+		if (key === "script") {
+			const keepAll = editOf(v).voAll;
+			const r = planEdit(S, id);
+			if (r.ok && keepAll && !v.edit.voAll) {}
+			return r.ok ? Object.assign(r, { template: key }) : r;
+		}
+		const ss = splitSentences(vidBody(v.script).replace(/\n+/g, " "));
+		if (ss.length < 3) return {
+			ok: false,
+			error: "Kịch bản quá ngắn để chia theo mẫu (cần ít nhất 3 câu)."
+		};
+		const ed = editOf(v);
+		const c = vidSettingsOf(S);
+		const k = Math.min(T.w.length, ss.length);
+		const W = T.w.slice(0, k);
+		const sum = W.reduce((a, x) => a + x, 0);
+		const cuts = [];
+		let acc = 0;
+		W.forEach((x, i) => {
+			acc += x;
+			cuts.push(i === k - 1 ? ss.length : Math.max((cuts[i - 1] || 0) + 1, Math.min(ss.length - (k - 1 - i), Math.round(ss.length * acc / sum))));
+		});
+		const texts = cuts.map((e, i) => ss.slice(i ? cuts[i - 1] : 0, e).join(" "));
+		const ov = T.overlays(texts);
+		ed.seq = ed.seq || 1;
+		ed.scenes = texts.map((t, i) => {
+			const d = Math.max(SCENE_FLOOR, r1(countWords(t) / c.wps));
+			return {
+				id: `sc${ed.seq++}`,
+				label: `Cảnh ${i + 1}`,
+				text: t,
+				dur: d,
+				defDur: d,
+				items: [],
+				prompt: T.hints[i] || scenePrompt(S, v, t),
+				overlay: ov[i] || "",
+				fit: "fill",
+				vol: 100,
+				vo: null,
+				ph: false
+			};
+		});
+		if (ed.voAll && ed.voAll.dur > 0 && ed.voAll.kind === "up") fitTotal(ed, ed.voAll.dur);
+		ed.tpl = key;
+		ed.segs = null;
+		ed.capStale = true;
+		ed.doneAt = null;
+		ed.plannedAt = S.settings.demoNow;
+		return {
+			ok: true,
+			count: ed.scenes.length,
+			template: key
+		};
+	}
+	function editBlockers(v) {
+		const ed = v && v.edit;
+		return ed ? ed.scenes.map((s, i) => ({
+			i,
+			id: s.id
+		})).filter((x) => !ed.scenes[x.i].items.length && !ed.scenes[x.i].ph) : [];
+	}
+	function completeEdit(S, id) {
+		const v = vidGet(S, id);
+		if (!v) return {
+			ok: false,
+			error: "Không thấy thẻ Vid."
+		};
+		if (v.cancelled) return {
+			ok: false,
+			error: "Thẻ đã hủy."
+		};
+		const ed = v.edit;
+		if (!ed || !ed.scenes.length) return {
+			ok: false,
+			error: "Chưa có cảnh để hoàn thành."
+		};
+		const bl = editBlockers(v);
+		if (bl.length) return {
+			ok: false,
+			error: `Cảnh ${bl.map((x) => x.i + 1).join(", ")} chưa có hình: Up hình hoặc chọn Dùng thẻ giữ chỗ.`
+		};
+		ed.doneAt = S.settings.demoNow;
+		return { ok: true };
+	}
+	var vidEditDone = (v) => !!(v && (v.file || v.edit && v.edit.doneAt));
+	function setEditMode(S, id, mode) {
+		const v = vidGet(S, id);
+		if (!v) return {
+			ok: false,
+			error: "Không thấy thẻ Vid."
+		};
+		if (mode !== "in" && mode !== "out") return {
+			ok: false,
+			error: "Chế độ biên tập không hợp lệ."
+		};
+		v.editMode = mode;
+		return { ok: true };
+	}
+	var editModeOf = (v) => v.editMode || (v.file && !(v.edit && v.edit.scenes.length) ? "out" : "in");
+	function weekDays(S, weekId) {
+		const w = weekOf(S, weekId);
+		return w ? Array.from({ length: 7 }, (_, i) => addDays(w.startDate, i)) : [];
+	}
+	function busyCells(S, weekId, vidId) {
+		const m = {};
+		(S.slots || []).filter((s) => s.weekId === weekId && s.videoId && s.videoId !== vidId).forEach((s) => {
+			m[`${s.date}|${s.channelId}`] = s.videoId;
+		});
+		return m;
+	}
+	function scheduleCells(S, vidId, p) {
+		const g = scheduleGate(S, vidId);
+		if (!g.ok) return g;
+		g.video;
+		const P = p || {};
+		const chIds = new Set(vidChannels(S).map((x) => x.channel.id));
+		const byDate = {};
+		const seenCh = /* @__PURE__ */ new Set();
+		for (const c of P.cells || []) {
+			if (!chIds.has(c.channelId)) return {
+				ok: false,
+				error: "Kênh không phải kênh video ngắn."
+			};
+			if (seenCh.has(c.channelId)) return {
+				ok: false,
+				error: "Mỗi kênh một ngày cho mỗi video."
+			};
+			seenCh.add(c.channelId);
+			(byDate[c.date] = byDate[c.date] || []).push(c.channelId);
+		}
+		if (!Object.keys(byDate).length) return {
+			ok: false,
+			error: "Chọn ít nhất một ô ngày × kênh."
+		};
+		const made = [], skipped = [];
+		for (const date of Object.keys(byDate).sort()) {
+			const r = scheduleVideo(S, vidId, {
+				date,
+				time: P.time,
+				channelIds: byDate[date],
+				captions: P.captions
+			});
+			if (!r.ok) {
+				made.forEach((s) => deleteSlot(S, s.id));
+				return r;
+			}
+			made.push(...r.slots);
+			skipped.push(...r.skipped);
+		}
+		return {
+			ok: true,
+			slots: made,
+			skipped
+		};
+	}
+	//#endregion
 	//#region src/logic/99-export.js
 	var AC = {
 		DATA_VERSION,
 		STORAGE_KEY,
 		RELEASE: "R4",
-		BUILD: 104,
+		BUILD: 105,
 		TEMPLATES,
 		STEP_NAMES,
 		STEP_COUNT,
@@ -16362,6 +17275,43 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		suggestVidDates,
 		scheduleVideo,
 		unscheduleVideo,
+		VID_CAPTION_STYLES,
+		VID_FIT,
+		VID_SHORT,
+		SCENE_FLOOR,
+		VID_POPUP_VER: 1,
+		migrateEdit,
+		editOf,
+		sceneMin,
+		addSceneItems,
+		removeSceneItem,
+		editSceneItem,
+		voPeaks,
+		resizeScene,
+		nudgeScene,
+		resetDurations,
+		setVoAll,
+		clearVoAll,
+		setSceneVo,
+		clearSceneVo,
+		setVoPeaks,
+		voLocked,
+		genCaptions,
+		editSeg,
+		splitSeg,
+		mergeSeg,
+		captionAt,
+		VID_TEMPLATES,
+		suggestTemplate,
+		applyTemplate,
+		editBlockers,
+		completeEdit,
+		vidEditDone,
+		setEditMode,
+		editModeOf,
+		weekDays,
+		busyCells,
+		scheduleCells,
 		demoGate,
 		demoRun,
 		demoRunAll,
@@ -25541,489 +26491,988 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 	//#endregion
 	//#region src/ui/09c-videdit.js
 	var fmt = (t) => AC.fmtClock(t).replace(/\.\d$/, "");
+	var f1 = (x) => String(Math.round(x * 10) / 10).replace(".", ",");
 	var vOf = (id) => AC.byId(S.videos, id);
-	var srcOf = (v, a) => !a ? "" : a.src || ((v.media || []).find((m) => m.id === a.mediaId) || {}).src || "";
-	var thumbOf = (v, a) => {
-		if (!a) return "";
-		if (a.kind === "image") return srcOf(v, a);
-		if (a.thumb) return a.thumb;
-		const m = (v.media || []).find((x) => x.id === a.mediaId);
-		return m ? m.thumb : "";
-	};
-	function unitOptions(v, sc) {
-		const units = AC.brollUnits(v);
-		const a = sc.asset;
-		const cur = a && a.mediaId ? `${a.mediaId}|${a.from}` : a ? "up" : "";
-		const opts = [`<option value="">Thẻ giữ chỗ (prompt hình)</option>`].concat(units.map((u, i) => {
-			const k = `${u.mediaId}|${u.from}`;
-			return `<option value="${esc(k)}" ${k === cur ? "selected" : ""}>${esc(`${u.label.includes("s") ? "Đoạn" : "Tệp"} ${i + 1}: ${u.desc}`.slice(0, 70))}</option>`;
-		}));
-		if (a && !a.mediaId) opts.push(`<option value="up" selected>Tệp tải lên: ${esc(a.name || "")}</option>`);
-		if (a && a.mediaId && !units.some((u) => `${u.mediaId}|${u.from}` === cur)) {
-			const m = (v.media || []).find((x) => x.id === a.mediaId);
-			opts.push(`<option value="${esc(cur)}" selected>${esc(m ? m.name : a.mediaId)} ${a.kind === "video" ? `${fmt(a.from)}–${fmt(a.to)}` : ""}</option>`);
-		}
-		return opts.join("");
-	}
-	function sceneHtml(v, it, i, n) {
-		const sc = it.scene;
-		const th = thumbOf(v, sc.asset);
-		return `<div class="ve-sc" data-sid="${esc(sc.id)}" data-testid="ve-scene">
-    <div class="row" style="justify-content:space-between;gap:6px"><button class="linkbtn small" data-e="seek" data-t="${it.t0}" title="Xem từ cảnh này"><b>${i + 1}. ${esc(sc.label || "Cảnh")}</b></button>
-      <span class="row" style="gap:2px"><span class="mono small faint">${fmt(it.t0)}–${fmt(it.t1)}</span><button class="btn icon sm ghost" data-e="up" ${i ? "" : "disabled"} aria-label="Lên">↑</button><button class="btn icon sm ghost" data-e="down" ${i < n - 1 ? "" : "disabled"} aria-label="Xuống">↓</button><button class="btn icon sm ghost danger" data-e="del" aria-label="Xóa cảnh">${icon("close")}</button></span></div>
-    <div class="ve-sc-grid">
-      <div class="ve-thumb${sc.asset ? "" : " ph"}">${th ? `<img src="${esc(th)}" alt="">` : sc.asset && sc.asset.kind === "video" ? "<span class=\"small\">Clip</span>" : sc.voice === "self" ? "<span class=\"small\">Người dẫn quay</span>" : "<span class=\"small\">Giữ chỗ</span>"}</div>
-      <div class="stack" style="gap:6px;min-width:0">
-        <label class="sr" for="ve-t-${esc(sc.id)}">Lời cảnh ${i + 1}</label><textarea id="ve-t-${esc(sc.id)}" data-f="text" rows="2" placeholder="Lời của cảnh">${esc(sc.text)}</textarea>
-        <div class="row" style="gap:6px"><label class="small">Giây <input data-f="dur" type="number" min="0.5" max="120" step="0.5" value="${sc.dur}" style="width:70px"></label>
-          <label class="small" style="flex:1;min-width:120px">Chữ phủ <input data-f="overlay" value="${esc(sc.overlay || "")}" placeholder="Chữ lớn trên hình"></label></div>
-        <div class="row" style="gap:6px"><label class="sr" for="ve-s-${esc(sc.id)}">Hình của cảnh</label><select id="ve-s-${esc(sc.id)}" data-f="src" style="flex:1;min-width:0">${unitOptions(v, sc)}</select>
-          <label class="btn sm" for="ve-up-${esc(sc.id)}">${icon("up")} Up</label><input id="ve-up-${esc(sc.id)}" data-up="${esc(sc.id)}" type="file" accept="image/*,video/*" class="sr"></div>
-        ${sc.asset ? "" : `<details><summary class="small">Prompt hình</summary><div class="stack" style="gap:4px;margin-top:4px"><textarea data-f="prompt" rows="2">${esc(sc.prompt || "")}</textarea><button class="btn sm" data-e="copy-prompt">Chép prompt</button></div></details>`}
-      </div></div></div>`;
-	}
+	var mediaOf = (v, o) => (v.media || []).find((m) => m.id === (o && o.mediaId));
+	var srcOf = (v, o) => !o ? "" : o.src || (mediaOf(v, o) || {}).src || "";
+	var thumbOf = (v, it) => it.kind === "image" ? srcOf(v, it) : it.thumb || (mediaOf(v, it) || {}).thumb || "";
+	var peaksOf = (o, seed) => o && o.peaks && o.peaks.length ? o.peaks : AC.voPeaks(seed, 80);
+	var bars = (p) => p.map((x) => `<i style="height:${x}%"></i>`).join("");
 	var opt = (o, cur) => Object.entries(o).map(([k, l]) => `<option value="${k}" ${k === cur ? "selected" : ""}>${esc(l)}</option>`).join("");
-	function frameOptions(cur) {
-		const fr = (S.frames || []).filter((f) => f.kind === "png" && f.ratio === "9:16");
-		return opt(AC.VID_FRAMES, cur) + fr.map((f) => `<option value="${esc(f.id)}" ${f.id === cur ? "selected" : ""}>Frame: ${esc(f.name)}</option>`).join("");
+	var ST = {};
+	var pool = [];
+	var poolIx = /* @__PURE__ */ new Map();
+	var refOf = (s) => {
+		let i = poolIx.get(s);
+		if (i == null) {
+			i = pool.length;
+			pool.push(s);
+			poolIx.set(s, i);
+		}
+		return "" + i;
+	};
+	var snapOf = (ed) => JSON.stringify(ed, (k, x) => typeof x === "string" && x.length > 300 ? refOf(x) : x);
+	var unsnap = (j) => JSON.parse(j, (k, x) => typeof x === "string" && x.charCodeAt(0) === 1 ? pool[Number(x.slice(1))] : x);
+	async function decodePeaks(src, n) {
+		const Ctx = window.AudioContext || window.webkitAudioContext;
+		if (!Ctx || !/^data:audio\//.test(src)) return null;
+		let ctx = null;
+		try {
+			ctx = new Ctx();
+			const b = AC.dataUrlBytes(src);
+			const ch = (await Promise.race([ctx.decodeAudioData(b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength)), new Promise((_, rej) => setTimeout(() => rej(/* @__PURE__ */ new Error("quá lâu")), 8e3))])).getChannelData(0), step = Math.max(1, Math.floor(ch.length / n));
+			const p = [];
+			let mx = .001;
+			for (let i = 0; i < n; i++) {
+				let m = 0;
+				for (let j = i * step; j < (i + 1) * step && j < ch.length; j += 7) m = Math.max(m, Math.abs(ch[j]));
+				p.push(m);
+				mx = Math.max(mx, m);
+			}
+			return p.map((x) => Math.max(12, Math.round(x / mx * 100)));
+		} catch (e) {
+			return null;
+		} finally {
+			try {
+				if (ctx) ctx.close();
+			} catch (e) {}
+		}
+	}
+	var audioDur = (src) => new Promise((res) => {
+		const a = new Audio();
+		a.onloadedmetadata = () => res(isFinite(a.duration) ? a.duration : 0);
+		a.onerror = () => res(0);
+		a.src = src;
+	});
+	function sceneCard(v, it, i, n) {
+		const sc = it.scene, ed = v.edit, k = sc.items.length, share = k ? sc.dur / k : 0, locked = !!ed.voAll, mn = AC.sceneMin(ed, sc), cur = ST[v.id].cur === i;
+		const first = sc.items[0];
+		const thumb = k ? (thumbOf(v, first) ? `<img src="${esc(thumbOf(v, first))}" alt="">` : "<span class=\"small\">Clip</span>") + (k > 1 ? `<span class="vp-cnt">${k}</span>` : "") : sc.ph ? "Thẻ giữ chỗ" : icon("plus");
+		const voRow = locked ? `<div class="vp-tools small muted">VO cảnh bị khóa vì đang dùng VO toàn bài${sc.vo ? " (dữ liệu giữ nguyên)" : ""}</div>` : sc.vo ? `<div class="vp-tools small">VO cảnh: <b>${esc(sc.vo.name)}</b> · ${f1(sc.vo.dur)} giây <span class="vp-tag">${sc.vo.kind === "ai" ? "AI" : "Up"}</span><button class="btn icon sm ghost" data-a="vox" data-i="${i}" aria-label="Gỡ VO cảnh">${icon("close")}</button></div>` : `<div class="vp-tools small">VO cảnh: <button class="btn sm" data-a="voup" data-i="${i}">${icon("up")} Up</button><button class="btn sm" data-a="voai" data-i="${i}" data-testid="ve-voai">Gen AI</button></div>`;
+		const shorts = sc.items.map((m, j) => {
+			if (m.kind !== "video" || !(m.dur > 0)) return "";
+			if (m.dur < share - .3) return `<div class="vp-tools small">Hình ${j + 1} (${f1(m.dur)} giây) ngắn hơn phần được chia (${f1(share)} giây): <select data-a="short" data-i="${i}" data-j="${j}" aria-label="Cách xử lý clip ngắn">${opt(AC.VID_SHORT, m.short || "hold")}</select></div>`;
+			if (m.dur > share + .5) return `<div class="vp-tools small">Hình ${j + 1} (${f1(m.dur)} giây): lấy ${f1(share)} giây từ giây <input type="range" min="0" max="${Math.max(0, Math.floor(m.dur - share))}" value="${m.trim || 0}" data-a="trim" data-i="${i}" data-j="${j}" aria-label="Điểm bắt đầu lấy clip"> <b>${m.trim || 0}</b></div>`;
+			return "";
+		}).join("");
+		const units = AC.brollUnits(v);
+		return `<div class="vp-sc" data-sid="${esc(sc.id)}" data-c="${i}" aria-current="${cur}" data-testid="ve-scene">
+    <div class="vp-add${sc.ph && !k ? " ph" : ""}" data-a="up" data-i="${i}" role="button" tabindex="0" aria-label="Up hình hoặc video cho cảnh ${i + 1}">${thumb}</div>
+    <div class="vp-scb">
+      <div class="vp-hd"><b>Cảnh ${i + 1}</b><span class="small muted">${fmt(it.t0)}–${fmt(it.t1)}</span>
+        <span><button class="btn icon sm ghost" data-a="dd" data-i="${i}" data-d="-0.5" title="Ngắn hơn 0,5 giây" aria-label="Ngắn hơn 0,5 giây">−</button><button class="btn icon sm ghost" data-a="dd" data-i="${i}" data-d="0.5" title="Dài hơn 0,5 giây" aria-label="Dài hơn 0,5 giây">+</button></span>
+        <span class="vp-r"><button class="btn icon sm ghost" data-a="mv" data-i="${i}" data-d="-1" ${i ? "" : "disabled"} aria-label="Lên">↑</button><button class="btn icon sm ghost" data-a="mv" data-i="${i}" data-d="1" ${i < n - 1 ? "" : "disabled"} aria-label="Xuống">↓</button><button class="btn icon sm ghost danger" data-a="del" data-i="${i}" ${n < 2 ? "disabled" : ""} aria-label="Xóa cảnh">${icon("close")}</button></span></div>
+      <label class="sr" for="vp-t-${esc(sc.id)}">Lời cảnh ${i + 1}</label><textarea id="vp-t-${esc(sc.id)}" data-sf="text" data-i="${i}" rows="2" placeholder="Lời của cảnh">${esc(sc.text)}</textarea>
+      <div class="vp-tools small"><label>Chữ phủ <input data-sf="overlay" data-i="${i}" value="${esc(sc.overlay || "")}" placeholder="Chữ lớn trên hình" style="width:170px"></label></div>
+      ${k ? `<div class="vp-thumbs">${sc.items.map((m, j) => `<span class="vp-th">${thumbOf(v, m) ? `<img src="${esc(thumbOf(v, m))}" alt="">` : "<span class=\"small\">Clip</span>"}<button class="btn icon sm" data-a="itx" data-i="${i}" data-j="${j}" aria-label="Bỏ hình ${j + 1}">${icon("close")}</button></span>`).join("")}<button class="btn sm" data-a="up" data-i="${i}">${icon("plus")} Up thêm</button></div>
+        <div class="vp-tools small"><label class="sr" for="vp-fit-${esc(sc.id)}">Cách đặt hình</label><select id="vp-fit-${esc(sc.id)}" data-a="fit" data-i="${i}">${opt(AC.VID_FIT, sc.fit)}</select><label>Âm lượng clip <input type="range" min="0" max="100" value="${sc.vol}" data-a="vol" data-i="${i}"></label></div>` : `<div class="vp-tools small"><button class="btn sm" data-a="up" data-i="${i}">${icon("up")} Up hình/video</button><button class="btn sm ${sc.ph ? "primary" : ""}" data-a="ph" data-i="${i}" aria-pressed="${!!sc.ph}">Dùng thẻ giữ chỗ</button>
+        ${units.length ? `<label class="sr" for="vp-u-${esc(sc.id)}">Chọn từ tệp nguồn</label><select id="vp-u-${esc(sc.id)}" data-a="unit" data-i="${i}"><option value="">Từ nguồn vào…</option>${units.map((u, x) => `<option value="${x}">${esc(`${u.label.includes("s") ? "Đoạn" : "Tệp"} ${x + 1}: ${u.desc}`.slice(0, 60))}</option>`).join("")}</select>` : ""}</div>
+        <details><summary class="small">Prompt hình</summary><div class="stack" style="gap:4px;margin-top:4px"><textarea data-sf="prompt" data-i="${i}" rows="2">${esc(sc.prompt || "")}</textarea><button class="btn sm" data-a="copyp" data-i="${i}">Chép prompt</button></div></details>`}
+      ${voRow}${shorts}
+      ${k > 1 ? `<div class="small muted">${k} hình chia đều ${f1(share)} giây mỗi hình. VO bám đầu hình 1. Cảnh tối thiểu ${f1(mn)} giây.</div>` : sc.vo && !locked ? `<div class="small muted">Cảnh tối thiểu ${f1(mn)} giây (độ dài VO).</div>` : ""}
+    </div></div>`;
 	}
 	function cutsHtml(v) {
 		const ed = v.edit;
 		if (AC.vidOrigin(v) !== "talk") return "";
 		const cs = ed.cuts || [];
 		const on = cs.filter((c) => c.on !== false);
-		return `<section class="panel stack" style="gap:6px" data-testid="ve-cuts"><h3>Cắt khoảng lặng</h3>
-    <p class="small muted">${cs.length ? `${cs.length} chỗ đề xuất cắt (${ed.cutsSim ? "mô phỏng: không đọc được tiếng của clip" : "đo âm lượng thật trong trình duyệt"}), bỏ ${on.reduce((a, c) => a + c.to - c.from, 0).toFixed(1).replace(".", ",")} giây. Bỏ tích chỗ muốn giữ; cảnh cập nhật ngay.` : "Không thấy khoảng lặng nào đáng cắt."}</p>
-    <div class="stack" style="gap:2px;max-height:160px;overflow:auto">${cs.map((c, i) => `<label class="small row" style="gap:6px"><input type="checkbox" data-cut="${i}" ${c.on !== false ? "checked" : ""}> <span class="mono">${fmt(c.from)}–${fmt(c.to)}</span> ${esc(c.why)}</label>`).join("")}</div>
-    <div class="row"><button class="btn sm" data-e="remeasure">Đo lại</button><span class="small faint">Gợi ý cắt câu vấp, câu thừa so với kịch bản cần API nhận giọng nói (Đợt sau).</span></div></section>`;
+		return `<section class="panel stack" style="gap:6px;margin-bottom:8px" data-testid="ve-cuts"><h3>Cắt khoảng lặng</h3>
+    <p class="small muted">${cs.length ? `${cs.length} chỗ đề xuất cắt (${ed.cutsSim ? "mô phỏng: không đọc được tiếng của clip" : "đo âm lượng thật trong trình duyệt"}), bỏ ${f1(on.reduce((a, c) => a + c.to - c.from, 0))} giây. Bỏ tích chỗ muốn giữ; cảnh chia lại ngay (chỉnh tay trên cảnh sẽ mất).` : "Không thấy khoảng lặng nào đáng cắt."}</p>
+    <div class="stack" style="gap:2px;max-height:140px;overflow:auto">${cs.map((c, i) => `<label class="small row" style="gap:6px"><input type="checkbox" data-a="cut" data-i="${i}" ${c.on !== false ? "checked" : ""}> <span class="mono">${fmt(c.from)}–${fmt(c.to)}</span> ${esc(c.why)}</label>`).join("")}</div>
+    <div class="row"><button class="btn sm" data-a="remeasure">Đo lại</button><span class="small faint">Gợi ý cắt câu vấp, câu thừa so với kịch bản cần API nhận giọng nói.</span></div></section>`;
+	}
+	function scenePane(v) {
+		const ed = v.edit, tl = AC.editTimeline(v), n = tl.items.length, vo = ed.voAll;
+		const sug = AC.suggestTemplate(S, v);
+		const voAll = vo ? `<b>${esc(vo.name)}</b> <span class="small muted">${f1(vo.dur)} giây · ${vo.kind === "ai" ? "AI" : "Up"}</span><button class="btn icon sm ghost" data-a="voallx" aria-label="Gỡ VO toàn bài">${icon("close")}</button>` : `<button class="btn sm" data-a="voallup">${icon("up")} Up</button><button class="btn sm" data-a="voallai" data-testid="ve-voallai">Gen AI</button>`;
+		return `<div class="vp-pane">${cutsHtml(v)}<div class="vp-tools" style="margin-bottom:8px"><label class="small">Mẫu <select data-a="tpl" aria-label="Mẫu dựng">${opt(Object.fromEntries(Object.entries(AC.VID_TEMPLATES).map(([k, t]) => [k, t.name + (k === sug ? " (gợi ý)" : "")])), ed.tpl)}</select></label>
+      <span class="small">VO toàn bài: ${voAll}</span><span class="small muted vp-r">Tổng ${f1(tl.total)} giây</span></div>
+    ${tl.items.map((it, i) => sceneCard(v, it, i, n)).join("")}
+    <button class="btn sm" data-a="add">${icon("plus")} Thêm cảnh</button></div>`;
+	}
+	var FRAME_TILE = {
+		none: "",
+		logo: "<span class=\"vp-fm-logo\"></span>",
+		band: "<span class=\"vp-fm-band\"></span>"
+	};
+	function settingsPane(v) {
+		const ed = v.edit, mus = ed.music;
+		const fr = [
+			["none", "Không frame"],
+			["logo", "Nhãn góc"],
+			["band", "Dải dưới"]
+		].concat((S.frames || []).filter((f) => f.kind === "png" && f.ratio === "9:16").map((f) => [f.id, f.name]));
+		return `<div class="vp-pane"><div class="vp-grp"><div class="eyebrow">Caption <button class="btn sm" data-a="capopen" data-testid="ve-capopen">Quản lý caption →</button></div>
+      <div class="vp-styles">${AC.VID_CAPTION_STYLES.map((n, i) => `<button class="vp-cs s${i}" data-a="cstyle" data-i="${i}" aria-pressed="${ed.captions.style === i}">Aa<small>${esc(n)}</small></button>`).join("")}</div>
+      <div class="vp-tools small"><label>Kiểu <select id="ve-cap">${opt(AC.VID_CAPTION_MODES, ed.captions.mode)}</select></label><label>Vị trí <select id="ve-pos">${opt(AC.VID_CAPTION_POS, ed.captions.pos)}</select></label></div></div>
+    <div class="vp-grp"><div class="eyebrow">Frame</div><div class="vp-frames">${fr.map(([k, n]) => {
+			const pf = (S.frames || []).find((f) => f.id === k);
+			return `<button class="vp-fr" data-a="frame" data-k="${esc(k)}" aria-pressed="${ed.frame === k}" title="${esc(n)}"><i>${pf ? `<img src="${esc(pf.src)}" alt="">` : FRAME_TILE[k] || ""}</i>${esc(n)}</button>`;
+		}).join("")}</div></div>
+    <div class="vp-grp"><div class="eyebrow">Nhạc nền</div>${mus ? `<b class="small">${esc(mus.name)}</b> <button class="btn icon sm ghost" data-a="musx" aria-label="Gỡ nhạc">${icon("close")}</button>` : `<button class="btn sm" data-a="musup">${icon("up")} Up nhạc</button>`}
+      ${mus ? `<div class="vp-tools small"><label>Âm lượng <input type="range" min="0" max="100" value="${Math.round(mus.vol * 100)}" data-a="musvol"></label><label><input type="checkbox" data-a="duck" ${mus.duck !== false ? "checked" : ""}> Tự hạ khi có giọng</label></div><div class="vp-tools"><input id="ve-lic" data-a="lic" placeholder="Nguồn / giấy phép (bắt buộc khi có nhạc)" value="${esc(mus.license || "")}"></div>` : "<p class=\"small muted\">Nhạc nền chưa chọn.</p>"}</div>
+    <div class="vp-grp"><div class="eyebrow">Giọng</div><label class="sr" for="ve-voice">Nguồn giọng</label><select id="ve-voice" ${ed.voAll ? "disabled" : ""}>${opt(AC.VID_VOICES, ed.voice.mode)}</select>
+      <p class="small muted">${ed.voAll ? "Đang dùng VO toàn bài." : "Giọng máy đọc lời bằng giọng có sẵn của trình duyệt khi xem thử."}</p></div></div>`;
+	}
+	function capPane(v) {
+		const ed = v.edit;
+		if (!ed.segs) AC.genCaptions(S, v.id, { full: true });
+		const segs = ed.segs || [];
+		return `<div class="vp-pane"><div class="eyebrow"><button class="btn sm" data-a="capback">← Cài đặt</button><span>Quản lý caption</span></div>
+    <div class="vp-note ${ed.capStale ? "warn" : ""}" id="vp-capnote">① ${ed.capStale ? "<b>Timeline đã đổi, caption chưa khớp.</b> " : ""}Bấm Gen caption để chia lại theo timeline mới nhất; chữ bạn đã sửa tay được giữ, chỉ tính lại giây. <button class="btn sm ${ed.capStale ? "primary" : ""}" data-a="gencap" data-testid="ve-gencap">Gen caption</button> <button class="btn sm" data-a="gencapall" title="Chia lại hết, bỏ cả chữ đã sửa">Chia lại hết</button></div>
+    ${ed.captions.mode === "off" ? "<p class=\"small muted\">Kiểu caption đang là Không caption: đổi ở Cài đặt để hiện chữ.</p>" : ""}
+    ${segs.map((g, i) => `<div class="vp-seg" data-g="${i}"><input class="vp-sat" type="number" step="0.1" min="0" value="${g.at}" data-a="segat" data-i="${i}" aria-label="Giây bắt đầu đoạn ${i + 1}"><input data-a="segt" data-i="${i}" value="${esc(g.t)}" aria-label="Chữ đoạn ${i + 1}"><span><button class="btn sm" data-a="seek" data-t="${g.at}" title="Xem thử đoạn này">▶</button> <button class="btn sm" data-a="split" data-i="${i}">Tách</button> <button class="btn sm" data-a="merge" data-i="${i}" ${i ? "" : "disabled"}>Gộp ↑</button></span></div>`).join("")}
+    <p class="small muted">② Số ở đầu mỗi dòng là giây bắt đầu đoạn; sửa được trong khoảng giữa hai đoạn kề nhau.</p></div>`;
+	}
+	function timelineHtml(v) {
+		const ed = v.edit, tl = AC.editTimeline(v), T = tl.total || 1, st = ST[v.id], roll = !!ed.voAll;
+		const blocks = tl.items.map((it, i) => {
+			const s = it.scene, k = s.items.length;
+			return `<div class="vp-blk${k || s.ph ? "" : " empty"}" data-i="${i}" style="width:${s.dur / T * 100}%" aria-current="${st.cur === i}"><span class="vp-bl">${i + 1}${k ? ` ✓ ${k} hình` : s.ph ? " ▢" : " ＋"} · ${f1(s.dur)}s</span>${k > 1 ? s.items.map((_, x) => x ? `<span class="vp-tick" style="left:${x / k * 100}%"></span>` : "").join("") : ""}${s.vo && !roll ? `<span class="vp-vob" style="width:${Math.min(100, s.vo.dur / s.dur * 100)}%"></span>` : ""}<span class="vp-hdl" data-h="${i}" tabindex="0" role="slider" aria-label="Độ dài cảnh ${i + 1}" aria-valuenow="${s.dur}" aria-valuemin="${AC.sceneMin(ed, s)}" ${roll && i === tl.items.length - 1 ? "hidden" : ""}></span></div>`;
+		}).join("");
+		return `<div class="vp-tlw"><div class="vp-tlh"><span>Timeline · ${roll ? "VO toàn bài cố định: kéo mép = dời ranh giới hai cảnh" : "kéo mép để đổi độ dài; cảnh không ngắn hơn VO của nó"}</span><span>${ed.capStale && ed.captions.mode !== "off" ? "<span class=\"vp-badge\" data-testid=\"ve-stale\">Caption chưa khớp timeline</span> " : ""}<button class="btn sm" data-a="reset" data-testid="ve-reset">Hoàn trả mặc định</button> <span class="mono" id="vp-tlt"></span></span></div>
+    <div class="vp-tl" id="vp-tl">${blocks}<div class="vp-phl" id="vp-phl"></div></div><div class="vp-wave" id="vp-wave">${waveHtml(v)}</div>
+    ${ed.music ? `<div class="vp-wave m" id="vp-wave2"><div class="vp-wv m" style="left:0;width:100%">${bars(peaksOf(ed.music, 3))}</div></div>` : ""}
+    <div class="small muted" style="margin-top:2px">Sóng âm của VO bắt đầu từ đầu hình đầu tiên của cảnh.</div></div>`;
+	}
+	function waveHtml(v) {
+		const ed = v.edit, tl = AC.editTimeline(v), T = tl.total || 1;
+		if (ed.voAll) return `<div class="vp-wv" style="left:0;width:100%">${bars(peaksOf(ed.voAll, 7))}</div>`;
+		return tl.items.map((it, i) => it.scene.vo ? `<div class="vp-wv" style="left:${it.t0 / T * 100}%;width:${Math.min(it.scene.vo.dur, it.scene.dur) / T * 100}%">${bars(peaksOf(it.scene.vo, i + 1))}</div>` : "").join("");
 	}
 	function bodyHtml(v) {
-		const ed = v.edit;
-		const tl = AC.editTimeline(v);
+		const ed = v.edit, st = ST[v.id];
+		const left = st.cap ? capPane(v) : st.sub === "scene" ? scenePane(v) : settingsPane(v);
+		const bl = AC.editBlockers(v);
 		const iss = AC.editIssues(S, v);
-		const mus = ed.music;
-		return `<div class="ve-bar" role="toolbar" aria-label="Công cụ bàn dựng">
-      <button class="btn sm" data-e="plan" title="Chia lại cảnh theo kịch bản, ghép clip, prompt hình">${icon("spark")} Lên kế hoạch lại</button>
-      <label class="small">Giọng <select id="ve-voice">${opt(AC.VID_VOICES, ed.voice.mode)}</select></label>
-      <label class="small">Caption <select id="ve-cap">${opt(AC.VID_CAPTION_MODES, ed.captions.mode)}</select></label>
-      <label class="small"><span class="sr">Vị trí caption</span><select id="ve-pos">${opt(AC.VID_CAPTION_POS, ed.captions.pos)}</select></label>
-      <label class="small">Frame <select id="ve-frame">${frameOptions(ed.frame)}</select></label>
-      <span class="row" style="gap:4px"><label class="btn sm" for="ve-music">${icon("up")} ${mus ? "Đổi nhạc" : "Nhạc nền"}</label><input id="ve-music" type="file" accept="audio/*" class="sr">
-        ${mus ? `<span class="small muted" title="${esc(mus.name)}">${esc(mus.name.slice(0, 18))}</span><label class="small"><span class="sr">Âm lượng nhạc</span><input id="ve-vol" type="range" min="0" max="1" step="0.05" value="${mus.vol}" style="width:70px"></label><input id="ve-lic" class="small" style="width:120px" placeholder="Nguồn/giấy phép" value="${esc(mus.license || "")}"><button class="btn sm ghost" data-e="music-del">Bỏ nhạc</button>` : ""}</span>
-      <button class="btn sm" data-e="export" data-testid="ve-export">Xuất lệnh dựng (JSON)</button>
-    </div>
-    <div class="ve-main">
-      <div class="stack ve-left" style="gap:8px">
-        <div class="ve-stage" id="ve-stage" data-testid="ve-stage"><div class="ve-media"></div><div class="ve-ov"></div><div class="ve-cap ${esc(ed.captions.pos)}"></div><div class="ve-fr"></div></div>
-        <div class="row" style="gap:6px"><button class="btn sm primary" data-e="play" data-testid="ve-play">▶ Phát</button><button class="btn sm" data-e="restart">Từ đầu</button><span class="mono small" id="ve-time">0:00 / ${fmt(tl.total)}</span></div>
-        <label class="sr" for="ve-seek">Tua</label><input id="ve-seek" type="range" min="0" max="${tl.total}" step="0.1" value="0">
-        <p class="small faint">Xem trước mô phỏng: giọng máy dùng giọng đọc có sẵn của trình duyệt (tiếng Việt tùy máy), chưa ghép thành file video. Xuất lệnh dựng để bộ xuất (PC app/web app) dựng thật.</p>
-        ${iss.length ? `<ul class="small sv-warn" id="ve-issues">${iss.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
-        ${cutsHtml(v)}
-      </div>
-      <div class="stack ve-right" style="gap:8px"><div class="row" style="justify-content:space-between"><h3>${ed.scenes.length} cảnh · ${fmt(tl.total)}</h3><button class="btn sm" data-e="add">${icon("plus")} Thêm cảnh</button></div>
-        <div class="stack" style="gap:8px" id="ve-scenes">${tl.items.map((it, i) => sceneHtml(v, it, i, tl.items.length)).join("")}</div></div>
-    </div>`;
+		return `<div class="vp-ed"><div class="vp-l"><div class="vp-mini" role="tablist" aria-label="Công cụ biên tập"><button role="tab" data-a="sub" data-k="scene" aria-selected="${st.sub === "scene" && !st.cap}" data-testid="ve-sub-scene">Scene</button><button role="tab" data-a="sub" data-k="set" aria-selected="${st.sub === "set" || st.cap}" data-testid="ve-sub-set">Cài đặt</button></div>${left}</div>
+    <div class="vp-pv"><div class="eyebrow"><span id="vp-pvt"></span></div><div class="vp-box" id="vp-box" data-testid="ve-stage"></div>
+      <div class="vp-pvbar"><button class="btn sm" data-a="prev" aria-label="Cảnh trước">⏮</button><button class="btn sm primary" data-a="play" id="vp-play" data-testid="ve-play">▶ Phát</button><button class="btn sm" data-a="next" aria-label="Cảnh sau">⏭</button><label class="small" style="margin-left:8px"><input type="checkbox" data-a="safe" ${st.safe ? "checked" : ""}> Vùng an toàn</label></div>
+      <p class="small faint">Xem thử mô phỏng, chưa ghép thành file video. Giọng AI dùng giọng đọc có sẵn của trình duyệt.</p></div></div>
+    ${timelineHtml(v)}
+    <div class="vp-foot"><span class="small ${bl.length ? "" : "muted"}" id="ve-issues">${bl.length ? bl.map((x) => `<a href="#" data-a="goto" data-i="${x.i}">Cảnh ${x.i + 1} chưa có hình</a>`).join(" · ") : ed.doneAt ? "Đã hoàn thành. Lệnh dựng đã lưu; file video có khi bộ xuất chạy." : "Đủ hình cho mọi cảnh"}${iss.filter((x) => !/chưa có hình/.test(x)).length ? `<br><span class="vp-warn">${iss.filter((x) => !/chưa có hình/.test(x)).map(esc).join(" · ")}</span>` : ""}</span>
+      <button class="btn" data-a="export" data-testid="ve-export">Xuất lệnh dựng (JSON)</button><button class="btn primary" data-a="done" data-testid="ve-done" ${bl.length ? "disabled" : ""}>${ed.doneAt ? "Đã hoàn thành ✓" : "Hoàn thành"}</button></div>
+    <input type="file" id="vp-file" accept="image/*,video/*" multiple class="sr" tabindex="-1"><input type="file" id="vp-fileA" accept="audio/*" class="sr" tabindex="-1"><input type="file" id="vp-fileM" accept="audio/*" class="sr" tabindex="-1">`;
 	}
-	function player(box, id) {
-		const st = {
+	function emptyHtml(v) {
+		const ok = !!(v.script || (v.media || []).length);
+		return `<div class="vp-empty"><p>${ok ? "Chưa chia cảnh. App chia kịch bản thành các cảnh có lời, gợi ý hình và thời lượng; sau đó bạn Up hình, thêm VO, chỉnh timeline." : "Chưa có kịch bản hoặc tệp nguồn để chia cảnh. Viết hoặc duyệt kịch bản ở tab Kịch bản trước."}</p><button class="btn primary" data-a="plan" data-testid="ve-plan" ${ok ? "" : "disabled"}>${icon("spark")} Chia cảnh theo kịch bản</button></div>`;
+	}
+	function mountEditor(host, id, hooks) {
+		const H = hooks || {};
+		const st = ST[id] = ST[id] && ST[id].keep ? Object.assign(ST[id], { play: false }) : {
+			cur: 0,
 			t: 0,
-			playing: false,
-			raf: 0,
-			last: 0,
-			cur: -1,
-			el: null,
-			voiceEl: null,
-			musicEl: null
+			play: false,
+			sub: "scene",
+			cap: false,
+			safe: false,
+			hist: [],
+			fut: [],
+			saved: "",
+			keep: true
 		};
-		const stage = box.querySelector("#ve-stage");
-		const q = (s) => stage.querySelector(s);
-		const speakOk = "speechSynthesis" in window;
-		const stopSpeech = () => {
-			try {
-				if (speakOk) window.speechSynthesis.cancel();
-			} catch (e) {}
+		let timer = 0;
+		let au = {
+			list: [],
+			music: null
 		};
-		function mount(v, it, i) {
-			st.cur = i;
-			const media = q(".ve-media");
-			media.innerHTML = "";
-			st.el = null;
-			stopSpeech();
-			box.querySelectorAll(".ve-sc").forEach((el) => el.classList.toggle("on", el.dataset.sid === (it && it.scene.id)));
-			if (!it) return;
-			const sc = it.scene, a = sc.asset, src = srcOf(v, a);
-			if (a && src && a.kind === "video") {
-				const vd = document.createElement("video");
-				vd.src = src;
-				vd.playsInline = true;
-				vd.muted = v.edit.voice.mode !== "clip";
-				vd.preload = "auto";
-				const seekIn = () => {
-					try {
-						vd.currentTime = (a.from || 0) + Math.max(0, st.t - it.t0);
-					} catch (e) {}
-				};
-				vd.addEventListener("loadedmetadata", seekIn, { once: true });
-				seekIn();
-				if (st.playing) vd.play().catch(() => {});
-				media.appendChild(vd);
-				st.el = vd;
-			} else if (a && src) {
-				const im = document.createElement("img");
-				im.src = src;
-				im.alt = "";
-				im.className = "ve-kb";
-				im.style.animationDuration = `${Math.max(1, sc.dur)}s`;
-				im.style.animationPlayState = st.playing ? "running" : "paused";
-				media.appendChild(im);
-				st.el = im;
-			} else {
-				const ph = document.createElement("div");
-				ph.className = "ve-ph";
-				ph.innerHTML = sc.voice === "self" ? "<b>Người dẫn nói trước camera</b><span>Cảnh tự quay</span>" : `<b>Thẻ giữ chỗ</b><span>${esc(sc.prompt || "Chưa có prompt hình")}</span>`;
-				media.appendChild(ph);
+		const dragging = { on: false };
+		const v = () => vOf(id);
+		const tot = () => AC.editTimeline(v()).total;
+		const starts = () => {
+			let a = 0;
+			return v().edit.scenes.map((s) => {
+				const r = a;
+				a += s.dur;
+				return r;
+			});
+		};
+		const snapNow = () => {
+			const vv = v();
+			if (vv && vv.edit) st.hist.push(snapOf(vv.edit));
+			if (st.hist.length > 40) st.hist.shift();
+			st.fut = [];
+		};
+		const stamp = () => {
+			const d = /* @__PURE__ */ new Date();
+			st.saved = `Đã tự lưu ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+			if (H.bar) H.bar();
+		};
+		const commit = () => {
+			snapNow();
+			save();
+			stamp();
+		};
+		const restore = (j) => {
+			const vv = v();
+			vv.edit = unsnap(j);
+			AC.migrateEdit(vv.edit);
+			st.cur = Math.min(st.cur, vv.edit.scenes.length - 1);
+			save();
+			stamp();
+			render();
+		};
+		const undo = () => {
+			if (st.hist.length > 1) {
+				st.fut.push(st.hist.pop());
+				restore(st.hist[st.hist.length - 1]);
 			}
-			const ov = q(".ve-ov");
-			ov.textContent = sc.overlay || "";
-			ov.style.display = sc.overlay ? "" : "none";
-			if (st.playing && v.edit.voice.mode === "tts" && sc.voice !== "self" && sc.text && speakOk) try {
-				const u = new SpeechSynthesisUtterance(sc.text);
-				u.lang = "vi-VN";
-				const vi = window.speechSynthesis.getVoices().find((x) => /^vi/i.test(x.lang));
-				if (vi) u.voice = vi;
-				u.rate = Math.max(.7, Math.min(1.6, AC.vidSettingsOf(S).wps / 2.5));
-				window.speechSynthesis.speak(u);
-			} catch (e) {}
-		}
-		function frame(v) {
-			const fr = q(".ve-fr");
-			const f = v.edit.frame;
-			const stl = AC.frameStyleOf(S);
-			if (f === "logo") fr.innerHTML = stl.logo ? `<span class="ve-logo" style="background:${esc(stl.color)}">${esc(stl.logo)}</span>` : "<span class=\"ve-logo\" style=\"background:var(--accent)\">Logo</span>";
-			else if (f === "band") fr.innerHTML = `<div class="ve-band" style="background:${esc(stl.color)}"><span style="background:${esc(stl.accent)}"></span>${esc(v.insight.title.replace(/^[^:]{2,30}:\s*/, "").slice(0, 70))}</div>`;
-			else {
-				const pf = (S.frames || []).find((x) => x.id === f);
-				fr.innerHTML = pf ? `<img src="${esc(pf.src)}" alt="">` : "";
+		};
+		const redo = () => {
+			if (st.fut.length) {
+				const j = st.fut.pop();
+				st.hist.push(j);
+				restore(j);
 			}
-		}
-		function draw() {
-			const v = vOf(id);
-			if (!v || !v.edit) return;
-			const T = AC.editTimeline(v);
-			if (st.t > T.total) st.t = T.total;
-			let i = T.items.findIndex((it) => st.t < it.t1);
-			if (i < 0) i = T.items.length - 1;
-			const it = T.items[i];
-			if (i !== st.cur) mount(v, it, i);
-			const cap = q(".ve-cap");
-			if (it) {
-				const loc = st.t - it.t0;
-				const ch = AC.captionChunks(it.scene.text, it.scene.dur, v.edit.captions.mode);
-				const c = ch.find((x) => loc < x.t1) || ch[ch.length - 1];
-				cap.textContent = c ? c.text : "";
-				cap.className = `ve-cap ${v.edit.captions.pos}${v.edit.captions.mode === "key" ? " key" : ""}`;
-				cap.style.display = c ? "" : "none";
+		};
+		const act = (r, msg) => {
+			if (r && r.ok === false) {
+				toast(r.error, "bad");
+				return false;
 			}
-			const tm = box.querySelector("#ve-time");
-			if (tm) tm.textContent = `${fmt(st.t)} / ${fmt(T.total)}`;
-			const sk = box.querySelector("#ve-seek");
-			if (sk && document.activeElement !== sk) {
-				sk.max = String(T.total);
-				sk.value = String(st.t);
-			}
-		}
-		function audioEls(v) {
-			const ed = v.edit;
-			if (ed.voice.mode === "file") {
-				const m = (v.media || []).find((x) => x.id === ed.voice.mediaId);
-				if (m) {
-					st.voiceEl = st.voiceEl || new Audio(m.src);
-					try {
-						st.voiceEl.currentTime = st.t;
-					} catch (e) {}
-					st.voiceEl.play().catch(() => {});
-				}
-			}
-			if (ed.music) {
-				st.musicEl = st.musicEl || new Audio(ed.music.src);
-				st.musicEl.loop = true;
-				st.musicEl.volume = ed.music.vol;
-				st.musicEl.play().catch(() => {});
-			}
-		}
-		function tick(now) {
-			if (!box.isConnected) {
-				pause();
-				return;
-			}
-			const dt = Math.min(.25, (now - st.last) / 1e3);
-			st.last = now;
-			st.t += dt;
-			const v = vOf(id);
-			const T = AC.editTimeline(v);
-			if (st.t >= T.total) {
-				st.t = T.total;
-				draw();
-				pause();
-				return;
-			}
-			draw();
-			st.raf = requestAnimationFrame(tick);
-		}
-		function play() {
-			const v = vOf(id);
-			if (!v || !v.edit || !v.edit.scenes.length) return;
-			if (st.t >= AC.editTimeline(v).total) st.t = 0;
-			st.playing = true;
-			st.last = performance.now();
-			st.cur = -1;
-			draw();
-			audioEls(v);
-			if (st.el && st.el.tagName === "VIDEO") st.el.play().catch(() => {});
-			st.raf = requestAnimationFrame(tick);
-			label();
-		}
-		function pause() {
-			st.playing = false;
-			cancelAnimationFrame(st.raf);
-			stopSpeech();
-			[
-				st.el && st.el.tagName === "VIDEO" ? st.el : null,
-				st.voiceEl,
-				st.musicEl
-			].forEach((m) => {
-				if (m) try {
-					m.pause();
+			commit();
+			render();
+			if (msg) toast(msg);
+			return true;
+		};
+		function stopAudio() {
+			au.list.forEach((a) => {
+				try {
+					a.pause();
 				} catch (e) {}
 			});
-			if (st.el && st.el.tagName === "IMG") st.el.style.animationPlayState = "paused";
-			label();
-		}
-		function label() {
-			const b = box.querySelector("[data-e=\"play\"]");
-			if (b) b.textContent = st.playing ? "❚❚ Dừng" : "▶ Phát";
-		}
-		function seek(t) {
-			const was = st.playing;
-			pause();
-			st.t = Math.max(0, Number(t) || 0);
-			st.cur = -1;
-			if (st.voiceEl) try {
-				st.voiceEl.currentTime = st.t;
+			au.list = [];
+			try {
+				if ("speechSynthesis" in window) window.speechSynthesis.cancel();
 			} catch (e) {}
-			draw();
-			if (was) play();
-		}
-		function reset() {
-			pause();
-			st.voiceEl = null;
-			st.musicEl = null;
-			st.cur = -1;
-			const v = vOf(id);
-			if (v) frame(v);
-			draw();
-		}
-		return {
-			play,
-			pause,
-			seek,
-			reset,
-			toggle: () => st.playing ? pause() : play(),
-			get t() {
-				return st.t;
-			},
-			get playing() {
-				return st.playing;
+			if (au.music) {
+				try {
+					au.music.pause();
+				} catch (e) {}
+				au.music = null;
 			}
-		};
-	}
-	function openEditor(id, onClose) {
-		const v0 = vOf(id);
-		if (!v0) return;
-		if (!v0.edit || !v0.edit.scenes.length) {
-			const r = AC.planEdit(S, id);
-			if (!r.ok) return toast(r.error, "bad");
-			save();
 		}
-		const v = vOf(id);
-		const box = openLayer(`<header class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><span class="eyebrow">Bàn dựng · Thẻ Vid ${AC.vidsOf(S, v.weekId, v.topicId).findIndex((x) => x.id === id) + 1} · ${esc(AC.VID_ORIGINS[AC.vidOrigin(v)].name)}</span><h2>${esc(v.insight.title)}</h2></div>
-      <button class="btn icon ghost" data-e="close" aria-label="Đóng">${icon("close")}</button></header>
-    <div id="ve-body"></div>
-    <div class="actions"><span class="small muted" id="ve-busy" aria-live="polite"></span><button class="btn" data-e="close">Đóng</button></div>`, "dialog");
-		box.classList.add("wide", "sv-dlg", "ve-dlg");
-		box.dataset.testid = "ve-dlg";
-		let P = null;
-		const paint = () => {
-			const t = P ? P.t : 0;
-			if (P) P.pause();
-			box.querySelector("#ve-body").innerHTML = bodyHtml(vOf(id));
-			P = player(box, id);
-			P.reset();
-			if (t) P.seek(t);
-		};
-		const done = () => {
-			save();
+		function startAudio() {
+			stopAudio();
+			if (!st.play) return;
+			const vv = v(), ed = vv.edit;
+			const sts = starts();
+			const sc = ed.scenes[st.cur];
+			if (!sc) return;
+			const loc = st.t - sts[st.cur];
+			let voice = false;
+			const speak = (text) => {
+				try {
+					if (!("speechSynthesis" in window) || !text) return false;
+					const u = new SpeechSynthesisUtterance(text);
+					u.lang = "vi-VN";
+					const vi = window.speechSynthesis.getVoices().find((x) => /^vi/i.test(x.lang));
+					if (vi) u.voice = vi;
+					u.rate = Math.max(.7, Math.min(1.6, AC.vidSettingsOf(S).wps / 2.5));
+					window.speechSynthesis.speak(u);
+					return true;
+				} catch (e) {
+					return false;
+				}
+			};
+			const play = (src, from) => {
+				const a = new Audio(src);
+				try {
+					a.currentTime = Math.max(0, from);
+				} catch (e) {}
+				a.play().catch(() => {});
+				au.list.push(a);
+			};
+			if (ed.voAll) {
+				const src = srcOf(vv, ed.voAll);
+				if (src) {
+					play(src, st.t);
+					voice = st.t < ed.voAll.dur;
+				} else if (loc < .6) voice = speak(sc.text);
+			} else if (sc.vo) {
+				const src = srcOf(vv, sc.vo);
+				if (src) {
+					play(src, loc);
+					voice = loc < sc.vo.dur;
+				} else if (loc < .6) voice = speak(sc.text);
+			} else if (ed.voice.mode === "tts" && sc.text && loc < .6) voice = speak(sc.text);
+			if (ed.music && ed.music.src) {
+				const a = new Audio(ed.music.src);
+				a.loop = true;
+				a.volume = ed.music.vol * (voice && ed.music.duck !== false ? .35 : 1);
+				a.play().catch(() => {});
+				au.music = a;
+			}
+		}
+		function vidTime(it, rel, share, el) {
+			const base = it.from || 0, d = it.dur || 0;
+			if (d > 0 && d < share - .3) {
+				const m = it.short || "hold";
+				if (m === "loop") {
+					el.playbackRate = 1;
+					return base + rel % d;
+				}
+				if (m === "slow") {
+					el.playbackRate = Math.max(.25, d / share);
+					return base + rel * d / share;
+				}
+				el.playbackRate = 1;
+				return base + Math.min(rel, Math.max(0, d - .05));
+			}
+			el.playbackRate = 1;
+			return base + (it.trim || 0) + rel;
+		}
+		function frameHtml(vv, ed) {
+			const f = ed.frame, stl = AC.frameStyleOf(S);
+			if (f === "logo") return `<span class="vp-flogo" style="background:${esc(stl.color || "var(--accent)")}">${esc(stl.logo || "Logo")}</span>`;
+			if (f === "band") return `<div class="vp-fband" style="background:${esc(stl.color || "#333")}"><span style="background:${esc(stl.accent || "#fff")}"></span>${esc(vv.insight.title.replace(/^[^:]{2,30}:\s*/, "").slice(0, 70))}</div>`;
+			const pf = (S.frames || []).find((x) => x.id === f);
+			return pf ? `<img src="${esc(pf.src)}" alt="" class="vp-fimg">` : "";
+		}
+		function paint() {
+			const box = host.querySelector("#vp-box");
+			const vv = v();
+			if (!box || !vv || !vv.edit || !vv.edit.scenes.length) return;
+			const ed = vv.edit;
+			const T = tot();
+			if (st.t > T) st.t = T;
+			const sts = starts();
+			st.cur = Math.min(st.cur, ed.scenes.length - 1);
+			const sc = ed.scenes[st.cur], t0 = sts[st.cur], k = sc.items.length, share = k ? sc.dur / k : 0, loc = Math.max(0, st.t - t0), ik = k ? Math.min(k - 1, Math.floor(loc / share)) : 0, it = k ? sc.items[ik] : null;
+			const txt = AC.captionAt(vv, Math.max(0, st.t)) || "";
+			const style = ed.captions.style || 0;
+			let ct = esc(txt);
+			if (style === 2 && txt) {
+				const w = txt.split(" ");
+				let li = 0;
+				w.forEach((x, i) => {
+					if (x.length > w[li].length) li = i;
+				});
+				ct = w.map((x, i) => i === li ? `<em>${esc(x)}</em>` : esc(x)).join(" ");
+			}
+			const src = it ? srcOf(vv, it) : "";
+			const key = [
+				st.cur,
+				ik,
+				sc.fit,
+				ed.frame,
+				style,
+				ed.captions.pos,
+				ed.captions.mode,
+				st.safe,
+				sc.overlay,
+				src.length,
+				src.slice(-24),
+				sc.prompt,
+				sc.ph
+			].join("|");
+			if (box.dataset.k !== key) {
+				box.dataset.k = key;
+				let h = "";
+				if (it && src) h += it.kind === "video" ? `<video class="vp-media${sc.fit === "fit" ? " contain" : ""}" src="${esc(src)}" playsinline preload="auto"></video>` : `<img class="vp-media${sc.fit === "fit" ? " contain" : ""}" src="${esc(src)}" alt="">`;
+				else h += `<div class="vp-ph"><b>Thẻ giữ chỗ</b><span>${esc(sc.prompt || "Chưa có prompt hình")}</span></div>`;
+				h += `${sc.overlay ? `<div class="vp-ovl">${esc(sc.overlay)}</div>` : ""}<div class="vp-cap pos-${esc(ed.captions.pos)} s${style}" ${ed.captions.mode === "off" ? "hidden" : ""}><span></span></div><div class="vp-fm">${frameHtml(vv, ed)}</div>${st.safe ? "<div class=\"vp-safe\"></div>" : ""}`;
+				box.innerHTML = h;
+			}
+			const el = box.querySelector("video");
+			if (el) {
+				el.muted = ed.voice.mode !== "clip";
+				el.volume = Math.max(0, Math.min(1, sc.vol / 100));
+				try {
+					const tt = vidTime(it, loc - ik * share, share, el);
+					if (!st.play || Math.abs(el.currentTime - tt) > .5) el.currentTime = tt;
+					if (st.play && el.paused) el.play().catch(() => {});
+					if (!st.play) el.pause();
+				} catch (e) {}
+			}
+			const cs = box.querySelector(".vp-cap span");
+			if (cs) cs.innerHTML = ct;
+			const pt = host.querySelector("#vp-pvt");
+			if (pt) pt.textContent = `Xem thử · cảnh ${st.cur + 1}`;
+			const pl = host.querySelector("#vp-play");
+			if (pl) pl.textContent = st.play ? "⏸ Dừng" : "▶ Phát";
+			const ph = host.querySelector("#vp-phl");
+			if (ph) ph.style.left = `${st.t / (T || 1) * 100}%`;
+			const tt = host.querySelector("#vp-tlt");
+			if (tt) tt.textContent = `${st.t.toFixed(1)}s / ${f1(T)}s`;
+			host.querySelectorAll(".vp-seg").forEach((e) => {
+				const g = vv.edit.segs && vv.edit.segs[Number(e.dataset.g)];
+				e.classList.toggle("now", !!g && txt === g.t && g.at <= st.t);
+			});
+		}
+		function mark() {
+			host.querySelectorAll(".vp-sc").forEach((e) => e.setAttribute("aria-current", String(Number(e.dataset.c) === st.cur)));
+			host.querySelectorAll(".vp-blk").forEach((e) => e.setAttribute("aria-current", String(Number(e.dataset.i) === st.cur)));
+		}
+		function seekScene(i) {
+			st.cur = i;
+			st.t = starts()[i] || 0;
+			if (st.play) startAudio();
+			mark();
 			paint();
-		};
-		paint();
-		const close = () => {
-			if (P) P.pause();
-			closeAllLayers();
-			if (onClose) onClose();
-		};
-		box.addEventListener("change", async (e) => {
-			const el = e.target;
-			const card = el.closest(".ve-sc");
-			const sid = card && card.dataset.sid;
-			if (el.dataset.f && sid) {
-				const f = el.dataset.f;
-				if (f === "src") {
-					if (el.value === "up") return;
-					const [mid, from] = el.value.split("|");
-					const r = el.value ? AC.setSceneAsset(S, id, sid, {
-						mediaId: mid,
-						from: Number(from),
-						to: (AC.brollUnits(vOf(id)).find((u) => u.mediaId === mid && String(u.from) === from) || {}).to
-					}) : AC.setSceneAsset(S, id, sid, null);
-					if (!r.ok) return toast(r.error, "bad");
-					return done();
-				}
-				const r = AC.editScene(S, id, sid, { [f]: el.value });
-				if (!r.ok) {
-					toast(r.error, "bad");
-					return done();
-				}
-				save();
-				if (f === "dur" || f === "text") paint();
+		}
+		function tick() {
+			if (!host.isConnected) {
+				clearInterval(timer);
+				stopAudio();
 				return;
 			}
-			if (el.dataset.up) {
-				const file = el.files && el.files[0];
-				if (!file) return;
-				try {
-					const m = await readMedia(file);
-					const r = AC.setSceneAsset(S, id, el.dataset.up, {
+			if (!st.play) return;
+			st.t = Math.round((st.t + .1) * 10) / 10;
+			const T = tot();
+			if (st.t >= T) {
+				st.t = 0;
+				st.cur = 0;
+				st.play = false;
+				stopAudio();
+				mark();
+				paint();
+				return;
+			}
+			const sts = starts();
+			let c = 0;
+			sts.forEach((x, i) => {
+				if (st.t >= x) c = i;
+			});
+			if (c !== st.cur) {
+				st.cur = c;
+				mark();
+				startAudio();
+			}
+			paint();
+		}
+		function render() {
+			const vv = v();
+			if (!vv) return;
+			const keepScroll = host.querySelector(".vp-pane");
+			const sy = keepScroll ? keepScroll.scrollTop : 0;
+			if (!st.play) stopAudio();
+			if (!vv.edit || !vv.edit.scenes.length) {
+				host.innerHTML = emptyHtml(vv);
+				return;
+			}
+			if (!st.hist.length) st.hist.push(snapOf(vv.edit));
+			host.innerHTML = bodyHtml(vv);
+			const p = host.querySelector(".vp-pane");
+			if (p) p.scrollTop = sy;
+			host.querySelectorAll(".vp-hdl").forEach((h) => {
+				h.onpointerdown = (e) => dragStart(e, Number(h.dataset.h));
+				h.onkeydown = (e) => keyNudge(e, Number(h.dataset.h));
+			});
+			paint();
+		}
+		function dragStart(e, i) {
+			e.preventDefault();
+			e.stopPropagation();
+			const ed = v().edit;
+			const W = host.querySelector("#vp-tl").getBoundingClientRect().width || 1, T0 = tot(), x0 = e.clientX;
+			const base = ed.scenes.map((s) => s.dur);
+			const sid = ed.scenes[i].id;
+			dragging.on = true;
+			const was = ed.capStale;
+			const mv = (ev) => {
+				ed.scenes.forEach((s, j) => {
+					s.dur = base[j];
+				});
+				AC.resizeScene(S, id, sid, base[i] + Math.round((ev.clientX - x0) / W * T0));
+				const T = tot();
+				host.querySelectorAll(".vp-blk").forEach((b, j) => {
+					b.style.width = `${ed.scenes[j].dur / T * 100}%`;
+					const l = b.querySelector(".vp-bl");
+					if (l) l.textContent = l.textContent.replace(/·.*$/, `· ${f1(ed.scenes[j].dur)}s`);
+				});
+				const w = host.querySelector("#vp-wave");
+				if (w) w.innerHTML = waveHtml(v());
+				paint();
+			};
+			const up = () => {
+				removeEventListener("pointermove", mv);
+				removeEventListener("pointerup", up);
+				dragging.on = false;
+				if (ed.scenes.some((s, j) => s.dur !== base[j])) commit();
+				else ed.capStale = was;
+				render();
+			};
+			addEventListener("pointermove", mv);
+			addEventListener("pointerup", up);
+		}
+		function keyNudge(e, i) {
+			if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+			e.preventDefault();
+			const sc = v().edit.scenes[i];
+			const r = AC.nudgeScene(S, id, sc.id, (e.key === "ArrowRight" ? 1 : -1) * (e.shiftKey ? 2 : .5));
+			if (r.ok && r.changed) {
+				commit();
+				render();
+			} else if (!r.ok) toast(r.error, "bad");
+			const n = host.querySelector(`.vp-hdl[data-h="${i}"]`);
+			if (n) n.focus();
+		}
+		let upTarget = null;
+		const pick = (sel, target) => {
+			upTarget = target;
+			const f = host.querySelector(sel);
+			if (f) f.click();
+		};
+		async function onFiles(e) {
+			const el = e.target;
+			const files = [...el.files || []];
+			el.value = "";
+			if (!files.length) return;
+			try {
+				if (el.id === "vp-file") {
+					const sid = v().edit.scenes[upTarget].id;
+					const ms = await readMediaList(files);
+					act(AC.addSceneItems(S, id, sid, ms.map((m) => ({
 						src: m.src,
 						name: m.name,
 						dur: m.dur,
 						thumb: m.thumb
-					});
-					if (!r.ok) return toast(r.error, "bad");
-					done();
-				} catch (er) {
-					toast(er.message, "bad");
+					}))), `Đã thêm ${ms.length} hình vào cảnh ${upTarget + 1}.`);
+					return;
 				}
-				return;
-			}
-			if (el.dataset.cut != null) {
-				AC.toggleVidCut(S, id, Number(el.dataset.cut), el.checked);
-				AC.planEdit(S, id);
-				return done();
-			}
-			if (el.id === "ve-voice") {
-				const r = AC.setEditOptions(S, id, { voice: el.value });
-				if (!r.ok) toast(r.error, "bad");
-				return done();
-			}
-			if (el.id === "ve-cap" || el.id === "ve-pos" || el.id === "ve-frame") {
-				AC.setEditOptions(S, id, {
-					captions: box.querySelector("#ve-cap").value,
-					pos: box.querySelector("#ve-pos").value,
-					frame: box.querySelector("#ve-frame").value
-				});
-				return done();
-			}
-			if (el.id === "ve-vol") {
-				AC.setEditOptions(S, id, { musicVol: el.value });
-				save();
-				return;
-			}
-			if (el.id === "ve-lic") {
-				const ed = vOf(id).edit;
-				if (ed.music) ed.music.license = el.value.trim().slice(0, 200);
-				return done();
-			}
-			if (el.id === "ve-music") {
-				const file = el.files && el.files[0];
-				if (!file) return;
-				try {
-					const m = await readMedia(file);
-					const r = AC.setEditOptions(S, id, { music: {
+				if (el.id === "vp-fileM") {
+					const m = await readMedia(files[0]);
+					if (!act(AC.setEditOptions(S, id, { music: {
 						src: m.src,
 						name: m.name
-					} });
-					if (!r.ok) return toast(r.error, "bad");
-					done();
-					toast("Đã thêm nhạc nền. Ghi nguồn/giấy phép bên cạnh.");
-				} catch (er) {
-					toast(er.message, "bad");
+					} }), "Đã thêm nhạc nền. Ghi nguồn/giấy phép bên dưới.")) return;
+					const p = await decodePeaks(m.src, 200);
+					if (p) {
+						AC.setEditOptions(S, id, { musicPeaks: p });
+						save();
+						render();
+					}
+					return;
 				}
+				if (el.id === "vp-fileA") {
+					const m = await readMedia(files[0]);
+					const dur = m.dur || await audioDur(m.src);
+					const tgt = upTarget;
+					const all = tgt === "all";
+					const r = all ? AC.setVoAll(S, id, {
+						kind: "up",
+						name: m.name,
+						src: m.src,
+						dur
+					}) : AC.setSceneVo(S, id, v().edit.scenes[tgt].id, {
+						kind: "up",
+						name: m.name,
+						src: m.src,
+						dur
+					});
+					if (!act(r)) return;
+					const p = await decodePeaks(m.src, all ? 200 : 60);
+					if (p) {
+						AC.setVoPeaks(S, id, all ? "all" : v().edit.scenes[tgt].id, p);
+						save();
+						render();
+					}
+				}
+			} catch (er) {
+				toast(er.message, "bad");
+			}
+		}
+		host.addEventListener("change", (e) => {
+			if (e.target.type === "file") {
+				onFiles(e);
+				return;
+			}
+			const el = e.target;
+			const a = el.dataset.a;
+			const i = Number(el.dataset.i);
+			const ed = v().edit;
+			const sc = ed && ed.scenes[i];
+			if (el.dataset.sf && sc) {
+				const r = AC.editScene(S, id, sc.id, { [el.dataset.sf]: el.value });
+				if (r.ok) {
+					commit();
+					if (el.dataset.sf === "text") render();
+					else paint();
+				} else {
+					toast(r.error, "bad");
+					render();
+				}
+				return;
+			}
+			if (a === "safe") {
+				st.safe = el.checked;
+				paint();
+				return;
+			}
+			if (a === "tpl") {
+				applyTpl(el.value);
+				return;
+			}
+			if (a === "fit") {
+				AC.editScene(S, id, sc.id, { fit: el.value });
+				commit();
+				paint();
+				return;
+			}
+			if (a === "vol") {
+				AC.editScene(S, id, sc.id, { vol: el.value });
+				commit();
+				return;
+			}
+			if (a === "short") {
+				AC.editSceneItem(S, id, sc.id, Number(el.dataset.j), { short: el.value });
+				commit();
+				paint();
+				return;
+			}
+			if (a === "trim") {
+				AC.editSceneItem(S, id, sc.id, Number(el.dataset.j), { trim: el.value });
+				commit();
+				render();
+				return;
+			}
+			if (a === "unit") {
+				if (el.value === "") return;
+				const u = AC.brollUnits(v())[Number(el.value)];
+				if (u) act(AC.addSceneItems(S, id, sc.id, [{
+					mediaId: u.mediaId,
+					from: u.from,
+					to: u.kind === "image" ? 0 : u.to
+				}]));
+				return;
+			}
+			if (a === "cut") {
+				AC.toggleVidCut(S, id, i, el.checked);
+				AC.planEdit(S, id);
+				st.cur = 0;
+				act({ ok: true }, "Đã chia lại cảnh theo đoạn giữ.");
+				return;
+			}
+			if (a === "musvol") {
+				AC.setEditOptions(S, id, { musicVol: Number(el.value) / 100 });
+				commit();
+				return;
+			}
+			if (a === "duck") {
+				AC.setEditOptions(S, id, { musicDuck: el.checked });
+				commit();
+				return;
+			}
+			if (a === "lic") {
+				AC.setEditOptions(S, id, { musicLicense: el.value });
+				commit();
+				render();
+				return;
+			}
+			if (a === "segt") {
+				const r = AC.editSeg(S, id, i, { t: el.value });
+				if (r.ok) {
+					commit();
+					paint();
+				} else {
+					toast(r.error, "bad");
+					render();
+				}
+				return;
+			}
+			if (a === "segat") {
+				AC.editSeg(S, id, i, { at: el.value });
+				commit();
+				render();
+				return;
+			}
+			if (el.id === "ve-voice") {
+				act(AC.setEditOptions(S, id, { voice: el.value }));
+				return;
+			}
+			if (el.id === "ve-cap") {
+				AC.setEditOptions(S, id, { captions: el.value });
+				const e2 = v().edit;
+				e2.capStale = true;
+				act({ ok: true });
+				return;
+			}
+			if (el.id === "ve-pos") {
+				AC.setEditOptions(S, id, { pos: el.value });
+				commit();
+				paint();
+				return;
 			}
 		});
-		box.addEventListener("input", (e) => {
-			if (e.target.id === "ve-seek" && P) P.seek(e.target.value);
+		host.addEventListener("input", (e) => {
+			const el = e.target;
+			if (el.dataset.a === "musvol") {
+				const ed = v().edit;
+				if (ed.music) ed.music.vol = Number(el.value) / 100;
+				if (au.music) au.music.volume = ed.music.vol;
+			}
+			if (el.dataset.a === "trim") {
+				const sc = v().edit.scenes[Number(el.dataset.i)];
+				sc.items[Number(el.dataset.j)].trim = Number(el.value);
+				if (el.nextElementSibling) el.nextElementSibling.textContent = el.value;
+				st.cur = Number(el.dataset.i);
+				paint();
+			}
 		});
-		box.addEventListener("click", async (e) => {
-			const b = e.target.closest("[data-e]");
-			if (!b || b.disabled) return;
-			const k = b.dataset.e;
-			const card = b.closest(".ve-sc");
-			const sid = card && card.dataset.sid;
-			if (k === "close") return close();
-			if (k === "play") return P.toggle();
-			if (k === "restart") return P.seek(0);
-			if (k === "seek") return P.seek(b.dataset.t);
-			if (k === "up" || k === "down") {
-				AC.moveScene(S, id, sid, k === "up" ? -1 : 1);
-				return done();
+		async function applyTpl(key) {
+			if (v().edit.scenes.some((s) => s.items.length || s.vo) && !await confirmBox({
+				title: "Đổi mẫu?",
+				body: "<p>Chia lại cảnh theo mẫu mới: hình và VO cảnh đã thêm sẽ bị xóa. VO toàn bài, caption kiểu, frame, nhạc giữ nguyên.</p>",
+				ok: "Đổi mẫu"
+			})) {
+				render();
+				return;
 			}
-			if (k === "del") {
-				AC.removeScene(S, id, sid);
-				return done();
+			st.cur = 0;
+			st.t = 0;
+			act(AC.applyTemplate(S, id, key), "Đã chia cảnh theo mẫu.");
+		}
+		host.addEventListener("keydown", (e) => {
+			if ((e.key === "Enter" || e.key === " ") && e.target.matches(".vp-add")) {
+				e.preventDefault();
+				e.target.click();
 			}
-			if (k === "add") {
-				AC.addScene(S, id, null);
-				return done();
+		});
+		host.addEventListener("click", async (e) => {
+			const b = e.target.closest("[data-a]");
+			if (!b || b.disabled || b.tagName === "SELECT" || b.tagName === "INPUT" && b.type !== "button") {
+				const c = e.target.closest(".vp-sc");
+				if (c && !e.target.closest("button,select,input,textarea,.vp-add,summary,a")) seekScene(Number(c.dataset.c));
+				const blk = e.target.closest(".vp-blk");
+				if (blk && !e.target.closest(".vp-hdl")) seekScene(Number(blk.dataset.i));
+				return;
 			}
-			if (k === "copy-prompt") {
-				const sc = vOf(id).edit.scenes.find((x) => x.id === sid);
-				return copyText(sc ? sc.prompt : "");
-			}
-			if (k === "plan") {
-				if (!await confirmBox({
-					title: "Lên kế hoạch lại?",
-					body: "<p>Chia lại cảnh theo kịch bản hiện tại, ghép lại clip và prompt hình. Chỉnh tay trên các cảnh sẽ mất; caption, frame, nhạc giữ nguyên.</p>",
-					ok: "Lên kế hoạch lại"
-				})) return;
+			const a = b.dataset.a;
+			const i = Number(b.dataset.i);
+			const vv = v();
+			const ed = vv.edit;
+			const sc = ed && ed.scenes[i];
+			if (a === "plan") {
 				const r = AC.planEdit(S, id);
 				if (!r.ok) return toast(r.error, "bad");
-				done();
+				st.hist = [];
+				st.cur = 0;
+				st.t = 0;
+				commit();
+				render();
 				return toast(`Đã chia ${r.count} cảnh.`);
 			}
-			if (k === "remeasure") {
-				box.querySelector("#ve-busy").textContent = "Đang đo âm lượng…";
-				const r = await findCuts(id);
-				box.querySelector("#ve-busy").textContent = "";
-				if (!r.ok) return toast(r.error, "bad");
-				AC.planEdit(S, id);
-				done();
-				return toast(`${r.count} chỗ đề xuất cắt${r.simulated ? " (mô phỏng)" : ""}.`);
+			if (a === "sub") {
+				st.sub = b.dataset.k;
+				st.cap = false;
+				render();
+				return;
 			}
-			if (k === "music-del") {
+			if (a === "capopen") {
+				st.sub = "set";
+				st.cap = true;
+				render();
+				return;
+			}
+			if (a === "capback") {
+				st.cap = false;
+				render();
+				return;
+			}
+			if (a === "play") {
+				st.play = !st.play;
+				if (st.play) startAudio();
+				else stopAudio();
+				paint();
+				return;
+			}
+			if (a === "prev") return seekScene(Math.max(0, st.cur - 1));
+			if (a === "next") return seekScene(Math.min(ed.scenes.length - 1, st.cur + 1));
+			if (a === "up") {
+				pick("#vp-file", i);
+				return;
+			}
+			if (a === "ph") {
+				act(AC.editScene(S, id, sc.id, { ph: !sc.ph }));
+				return;
+			}
+			if (a === "itx") {
+				act(AC.removeSceneItem(S, id, sc.id, Number(b.dataset.j)));
+				return;
+			}
+			if (a === "mv") {
+				const d = Number(b.dataset.d);
+				if (act(AC.moveScene(S, id, sc.id, d))) {
+					st.cur = i + d;
+					mark();
+					paint();
+				}
+				return;
+			}
+			if (a === "del") {
+				if (act(AC.removeScene(S, id, sc.id))) {
+					st.cur = 0;
+					st.t = 0;
+					render();
+				}
+				return;
+			}
+			if (a === "add") {
+				const r = AC.addScene(S, id, ed.scenes[st.cur].id);
+				if (act(r)) {
+					st.cur = Math.min(ed.scenes.length - 1, st.cur + 1);
+					render();
+				}
+				return;
+			}
+			if (a === "dd") {
+				const r = AC.nudgeScene(S, id, sc.id, Number(b.dataset.d));
+				if (r.ok && !r.changed) return toast("Đã đến mức tối thiểu của cảnh.");
+				act(r);
+				return;
+			}
+			if (a === "copyp") return copyText(sc.prompt || "");
+			if (a === "reset") {
+				act(AC.resetDurations(S, id), "Đã hoàn trả timeline mặc định. Caption cần Gen lại.");
+				return;
+			}
+			if (a === "voallup") {
+				pick("#vp-fileA", "all");
+				return;
+			}
+			if (a === "voallai") {
+				act(AC.setVoAll(S, id, {
+					kind: "ai",
+					name: "vo-ai-toan-bai.mp3"
+				}), "VO toàn bài AI (mô phỏng): xem thử bằng giọng trình duyệt. VO cảnh đã khóa.");
+				return;
+			}
+			if (a === "voallx") {
+				act(AC.clearVoAll(S, id), "Đã gỡ VO toàn bài. VO cảnh dùng lại được.");
+				return;
+			}
+			if (a === "voup") {
+				pick("#vp-fileA", i);
+				return;
+			}
+			if (a === "voai") {
+				act(AC.setSceneVo(S, id, sc.id, {
+					kind: "ai",
+					name: `vo-canh-${i + 1}-ai.mp3`
+				}), "VO cảnh AI (mô phỏng).");
+				return;
+			}
+			if (a === "vox") {
+				act(AC.clearSceneVo(S, id, sc.id));
+				return;
+			}
+			if (a === "cstyle") {
+				AC.setEditOptions(S, id, { style: i });
+				commit();
+				render();
+				return;
+			}
+			if (a === "frame") {
+				AC.setEditOptions(S, id, { frame: b.dataset.k });
+				commit();
+				render();
+				return;
+			}
+			if (a === "musup") {
+				pick("#vp-fileM", null);
+				return;
+			}
+			if (a === "musx") {
 				AC.setEditOptions(S, id, { music: null });
-				return done();
+				if (st.play) startAudio();
+				act({ ok: true });
+				return;
 			}
-			if (k === "export") {
-				const vv = vOf(id);
+			if (a === "gencap" || a === "gencapall") {
+				const r = AC.genCaptions(S, id, { full: a === "gencapall" });
+				act(r, `Đã chia ${r.count} đoạn caption theo timeline mới nhất.`);
+				return;
+			}
+			if (a === "split") {
+				act(AC.splitSeg(S, id, i));
+				return;
+			}
+			if (a === "merge") {
+				act(AC.mergeSeg(S, id, i));
+				return;
+			}
+			if (a === "seek") {
+				st.t = Number(b.dataset.t);
+				const sts = starts();
+				let c = 0;
+				sts.forEach((x, j) => {
+					if (st.t >= x) c = j;
+				});
+				st.cur = c;
+				mark();
+				if (st.play) startAudio();
+				paint();
+				return;
+			}
+			if (a === "goto") {
+				e.preventDefault();
+				st.sub = "scene";
+				st.cap = false;
+				st.cur = i;
+				render();
+				const el = host.querySelectorAll(".vp-sc")[i];
+				if (el) el.scrollIntoView({ block: "center" });
+				return;
+			}
+			if (a === "remeasure") {
+				b.disabled = true;
+				const r = await findCuts(id);
+				if (!r.ok) {
+					toast(r.error, "bad");
+					return render();
+				}
+				AC.planEdit(S, id);
+				st.cur = 0;
+				act({ ok: true }, `${r.count} chỗ đề xuất cắt${r.simulated ? " (mô phỏng)" : ""}.`);
+				return;
+			}
+			if (a === "export") {
 				const cmd = AC.editCommands(S, vv);
-				vv.edit.exportedAt = S.settings.demoNow;
+				ed.exportedAt = S.settings.demoNow;
 				save();
 				downloadBytes(`${AC.slugOf(vv.insight.title) || "video"}-lenh-dung.json`, new TextEncoder().encode(JSON.stringify(cmd, null, 2)), "application/json");
 				return toast("Đã xuất lệnh dựng (JSON). Bộ xuất của PC app/web app sẽ đọc tệp này để dựng video.");
 			}
+			if (a === "done") {
+				const r = AC.completeEdit(S, id);
+				if (!r.ok) return toast(r.error, "bad");
+				commit();
+				render();
+				if (H.done) H.done();
+				return;
+			}
 		});
-		return box;
+		{
+			const vv = v();
+			if (vv && !(vv.edit && vv.edit.scenes.length) && (vv.script || (vv.media || []).length) && !vv.cancelled) {
+				if (AC.planEdit(S, id).ok) save();
+			}
+		}
+		timer = setInterval(tick, 100);
+		render();
+		return {
+			undo,
+			redo,
+			render,
+			pause: () => {
+				st.play = false;
+				stopAudio();
+			},
+			stop: () => {
+				st.play = false;
+				stopAudio();
+				clearInterval(timer);
+			},
+			state: () => ({
+				canUndo: st.hist.length > 1,
+				canRedo: st.fut.length > 0,
+				saved: st.saved,
+				active: !!(vOf(id) && vOf(id).edit && vOf(id).edit.scenes.length)
+			})
+		};
 	}
 	//#endregion
 	//#region src/ui/09d-vidsched.js
@@ -26117,6 +27566,72 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			});
 		});
 		return box;
+	}
+	var posOfVid = (v2) => AC.vidsOf(S, v2.weekId, v2.topicId).findIndex((x) => x.id === v2.id) + 1;
+	function slotPaneHtml(v, sel) {
+		const days = AC.weekDays(S, v.weekId);
+		const chans = AC.vidChannels(S);
+		const busy = AC.busyCells(S, v.weekId, v.id);
+		const own = AC.vidSlotsOf(S, v.id);
+		const ownAt = {};
+		own.forEach((s) => {
+			ownAt[`${s.date}|${s.channelId}`] = s;
+		});
+		const hasFile = !!v.file;
+		const n = Object.keys(sel).length;
+		if (!chans.length) return "<p class=\"small muted\">Chưa có kênh video ngắn (TikTok, Reels, Shorts) có Format kịch bản ngắn ở Setup.</p>";
+		const cell = (d, ch) => {
+			const k = `${d}|${ch.channel.id}`;
+			const o = ownAt[k];
+			const b = busy[k];
+			const picked = sel[ch.channel.id] === d;
+			if (o) return `<button class="vp-slc on" disabled title="Đã xếp: ${esc(o.state === "PUBLISHED" ? "đã đăng" : "chờ duyệt caption")}">Vid ${posOfVid(v)}</button>`;
+			if (b) {
+				const bv = AC.byId(S.videos, b);
+				return `<button class="vp-slc busy" disabled title="${esc(bv ? bv.insight.title : "Video khác")}">Vid ${bv ? posOfVid(bv) : "?"}</button>`;
+			}
+			return `<button class="vp-slc${picked ? " pick" : ""}" data-x="cell" data-k="${esc(k)}" aria-pressed="${picked}" aria-label="${esc(dayLabel(d))}, ${esc(ch.channel.name)}">${picked ? "Chọn" : "＋"}</button>`;
+		};
+		const grid = `<div class="vp-slwrap"><table class="vp-sl" data-testid="sp-slgrid"><thead><tr><th class="ch">Kênh</th>${days.map((d) => `<th>${esc(dayLabel(d))}</th>`).join("")}</tr></thead><tbody>${chans.map((ch) => `<tr><th class="ch">${esc(ch.channel.name)}</th>${days.map((d) => `<td>${cell(d, ch)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+		const slots = own.length ? `<div class="stack" style="gap:4px;margin-top:8px">${own.map((sl) => `<div class="row small" style="gap:6px"><b>${esc((AC.byId(S.channels, sl.channelId) || {}).name || sl.channelId)}</b><span class="mono">${esc(AC.dmy(sl.date))} ${esc(sl.time)}</span><span class="muted">${sl.state === "PUBLISHED" ? "Đã đăng" : sl.state === "APPROVED" ? "Đã duyệt" : "Chờ duyệt caption"}</span></div>`).join("")}
+    <div class="row"><button class="btn sm ghost danger" data-x="unsched" ${own.every((sl) => sl.state === "PUBLISHED") ? "disabled" : ""}>Bỏ khỏi lịch</button><span class="small faint">Caption từng kênh sửa và duyệt trong View ở Dashboard.</span></div></div>` : "";
+		return `<div class="eyebrow">Chọn ngày và kênh đăng <span class="cnt small muted">Mỗi kênh một slot cho video này; giống Chia bài ảnh</span></div>${hasFile ? "" : `<div class="vp-note warn" data-testid="sp-slgate"><b>Chưa có file video thành phẩm.</b> Biên tập trong app hiện lưu lệnh dựng; bộ xuất video (ffmpeg trên PC app hoặc máy chủ) chưa có. Có thể chọn ô trước, nhưng chỉ Đưa vào lịch được khi đã có video: tải lên ở Biên tập → Ngoài app, hoặc xuất lệnh dựng để dựng bằng công cụ khác.
+    <div class="row" style="margin-top:6px"><button class="btn sm" data-x="export-cmd" ${v.edit && v.edit.scenes.length ? "" : "disabled"}>Xuất lệnh dựng (JSON)</button><button class="btn sm" data-nav="mode:out">Sang Ngoài app → Up video</button></div></div>`}${grid}
+    <div class="legend small muted"><span>＋ trống</span><span>Chọn = sẽ tạo slot</span><span>Vid n = đã có video</span></div>
+    <div class="row" style="gap:10px;margin-top:6px"><label class="small">Giờ đăng <input id="sp-sltime" type="time" value="19:00" style="width:110px"></label><span class="small muted" id="sp-slsum">${n ? `Đã chọn ${n} ô` : "Chưa chọn ô nào"}</span>
+      <button class="btn primary" data-x="slot-go" data-testid="sp-slot-go" ${hasFile && n ? "" : "disabled"}>Đưa vào lịch</button></div>${slots}
+    <p class="small faint">Caption từng kênh được viết từ kịch bản${AC.textApiOn(S) ? " (AI)" : " (mô phỏng)"}, sửa trong View ở Dashboard. Xếp nhiều video cùng lúc dùng nút Đưa video vào lịch ở màn Short Vid.</p>`;
+	}
+	async function scheduleSelected(id, sel, time, setBusy) {
+		const v = AC.byId(S.videos, id);
+		if (!v) return {
+			ok: false,
+			error: "Không thấy thẻ Vid."
+		};
+		if (!AC.isValidTime(time)) return {
+			ok: false,
+			error: "Giờ không hợp lệ."
+		};
+		const chans = AC.vidChannels(S).filter((x) => sel[x.channel.id]);
+		let captions = null;
+		if (AC.textApiOn(S) && chans.length) {
+			setBusy(`AI đang viết caption cho "${v.insight.title.slice(0, 40)}"…`);
+			try {
+				const p = AC.parseVidCaptions(await textCall(AC.vidCaptionsJob(S, v, chans), 3e3), chans);
+				if (p.ok) captions = p.captions;
+			} catch (e) {
+				toast(`AI không viết được caption, dùng bản mô phỏng: ${e.message}`, "bad");
+			}
+			setBusy("");
+		}
+		return AC.scheduleCells(S, id, {
+			cells: Object.entries(sel).map(([channelId, date]) => ({
+				channelId,
+				date
+			})),
+			time,
+			captions
+		});
 	}
 	//#endregion
 	//#region src/ui/09-shortvid.js
@@ -26451,8 +27966,6 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		const free = o !== "topic";
 		const media = v.media || [];
 		const slots = AC.vidSlotsOf(S, v.id);
-		const canEdit = !idea && !off && (!!v.script || media.length > 0);
-		const writeBtn = o === "script" ? "" : o === "audio" || o === "talk" ? `<button class="btn sm ${v.script ? "" : "primary"}" data-x="stt" ${off || !sttOk() ? "disabled" : ""} title="${sttOk() ? "Gửi tệp tới API nhận giọng nói để chép lời" : "Cần chọn OpenAI ở Setup → AI ảnh & video; hoặc dán lời vào ô Lời nói"}">Chép lời (API)</button>` : `<button class="btn sm ${v.script ? "" : "primary"}" data-x="write" ${off ? "disabled" : ""} data-testid="sp-write">${v.script ? "Tạo lại" : o === "broll" || o === "longroll" ? "Viết lời dẫn" : "Viết kịch bản"}</button>`;
 		const mediaHtml = !free || o === "script" || o === "post" ? "" : `<section class="panel stack" style="gap:8px" data-testid="sp-media"><h3>Nguồn vào · ${esc(originName(v))}</h3>
     ${media.length ? media.map((m) => `<div class="citem stack" style="gap:6px"><div class="row" style="gap:8px;align-items:flex-start;flex-wrap:nowrap">
         ${m.kind === "audio" ? `<audio src="${esc(m.src)}" controls preload="none" style="max-width:100%"></audio>` : `<img class="sv-mthumb" src="${esc(m.thumb || "")}" alt="" ${m.thumb ? "" : "style=\"visibility:hidden\""}>`}
@@ -26466,58 +27979,88 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
   </section>`;
 		const ideasHtml = o === "broll" || o === "longroll" ? `<div class="stack" style="gap:6px"><div class="field"><label for="sp-request">Yêu cầu cho lời dẫn</label><textarea id="sp-request" rows="2" ${off ? "readonly" : ""} placeholder="Ví dụ: lời dẫn vui, xưng mình">${esc(v.request || "")}</textarea></div>
       <span class="small muted">Ý tưởng kịch bản (mô phỏng):</span><div class="row" style="gap:6px">${AC.brollIdeas(S, v.id).map((it) => `<button class="btn sm ${v.ideaKey === it.key ? "primary" : ""}" data-x="idea" data-k="${it.key}" title="${esc(it.idea)}" ${off ? "disabled" : ""}>${esc(it.title)}</button>`).join("")}</div></div>` : "";
-		const schedHtml = idea || !f && !slots.length ? "" : `<section class="panel stack" style="gap:6px" data-testid="sp-sched"><h3>Lịch đăng</h3>
-    ${slots.length ? `${slots.map((sl) => `<div class="row small" style="gap:6px"><b>${esc((AC.byId(S.channels, sl.channelId) || {}).name || sl.channelId)}</b><span class="mono">${esc(AC.dmy(sl.date))} ${esc(sl.time)}</span><span class="muted">${sl.state === "PUBLISHED" ? "Đã đăng" : sl.state === "APPROVED" ? "Đã duyệt" : "Chờ duyệt caption"}</span></div>`).join("")}
-      <div class="row"><button class="btn sm ghost danger" data-x="unsched" ${slots.every((sl) => sl.state === "PUBLISHED") ? "disabled" : ""}>Bỏ khỏi lịch</button><span class="small faint">Caption từng kênh sửa và duyệt trong View ở Dashboard.</span></div>` : off ? "" : "<div class=\"row\"><button class=\"btn sm primary\" data-x=\"sched\" data-testid=\"sp-sched-btn\">Đưa vào lịch</button><span class=\"small faint\">Mỗi kênh video một slot, caption viết từ kịch bản.</span></div>"}</section>`;
 		const videoCell = off ? "<p class=\"small muted\">Đã hủy: không cần nộp video.</p>" : idea ? "<p class=\"small muted\">Duyệt Insight rồi mới tải video.</p>" : f ? `<div class="sv-video"><video src="${esc(f.src)}#t=0.1" ${f.cover ? `poster="${esc(f.cover.src)}"` : ""} controls playsinline preload="metadata"></video>
         <div class="stack" style="gap:4px;min-width:0"><span class="small"><b>${esc(f.name)}</b> · ${fmtMb(f.size || AC.dataUrlBytes(f.src).length)}</span>
         <span class="small faint">${[f.cover ? "có ảnh bìa" : "chưa có ảnh bìa", f.subs ? `phụ đề ${f.subs.cues.length} dòng` : "chưa có phụ đề"].join(" · ")}</span></div></div>` : `<p class="small muted">Chưa có video. MP4, WebM, MOV; tối đa ${vidMax() / 1048576} MB vì lưu trong trình duyệt.</p>`;
 		const hint = v.simulated ? "Bản mô phỏng (chưa bật AI viết bài)." : v.ai ? `AI viết${v.ai.skill ? ` · Skill "${esc(v.ai.skill.name)}" v${v.ai.skill.version}` : ""}${v.edited ? " · đã sửa tay" : ""}.` : "";
-		return `<header class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><span class="eyebrow">Thẻ Vid ${posOf(v)} · ${esc(tv ? tv.title : "?")}</span><h2>${esc(v.insight.title)}</h2>
-      <div class="row" style="gap:8px">${stateChip(v)}<span class="small muted">${esc(vfName(v.formatId))} · ${esc(kindName(v.kind))}</span><span class="small mono" id="sp-count" title="Số chữ lời nói, thời lượng ước tính">${v.script ? `${words} chữ · ≈ ${fmtSec(AC.vidDuration(S, words))}` : ""}</span><span class="small muted sv-busy" aria-live="polite">${view.svBusy ? esc(view.svBusy) : ""}</span></div></div>
-      <button class="btn icon ghost" data-act="close-layer" aria-label="Đóng">${icon("close")}</button></header>
-    <div class="sv-tools" role="toolbar" aria-label="Công cụ của thẻ Vid">
-      <div class="sv-tg"><span class="eyebrow">${idea ? "Insight" : "Kịch bản"}</span><div class="row" style="gap:6px">
-        ${idea ? `<button class="btn sm primary" data-x="approve-idea">Duyệt Insight</button><button class="btn sm ghost danger" data-x="drop-idea">Bỏ đề xuất</button>` : `${writeBtn}
-        <button class="btn sm ${v.script && v.status !== "APPROVED" && !off ? "primary" : ""}" data-x="approve" data-testid="sp-approve" ${off || !v.script ? "disabled" : ""}>Duyệt kịch bản</button>
-        <button class="btn sm ${off ? "primary" : "ghost"}" data-x="cancel" data-testid="sp-cancel" aria-pressed="${off}">${off ? "Khôi phục" : "Hủy thẻ"}</button>`}</div></div>
-      <div class="sv-tg"><span class="eyebrow">Biên tập video</span><div class="row" style="gap:6px">
-        <label class="btn sm ${v.status === "APPROVED" && !f ? "primary" : ""}" for="sp-up" style="${upOff ? "opacity:.5;pointer-events:none" : ""}">${icon("up")} ${f ? "Tải bản khác" : "Up video"}</label><input id="sp-up" type="file" accept="video/*" class="sr" ${upOff ? "disabled" : ""}>
-        <button class="btn sm" data-x="cover" ${f && !off ? "" : "disabled"}>Bìa</button><button class="btn sm" data-x="subs" data-testid="sp-subs" ${f && !off ? "" : "disabled"}>Phụ đề</button>
-        <button class="btn sm ghost danger" data-x="file-del" ${f && !off ? "" : "disabled"}>Bỏ video</button></div>
-        <div class="row" style="gap:6px"><button class="btn sm ${canEdit && !f ? "primary" : ""}" data-x="edit" data-testid="sp-edit" ${canEdit ? "" : "disabled"} title="Chia cảnh, gán hình/clip, giọng đọc, caption, frame, nhạc nền; xem trước (mô phỏng)">${icon("film")} Bàn dựng${v.edit && v.edit.scenes.length ? ` · ${v.edit.scenes.length} cảnh` : ""}</button></div></div>
-      <div class="sv-tg"><span class="eyebrow">Tài nguyên</span><div class="row" style="gap:6px">
-        <button class="btn sm" data-x="copy-audio" ${v.prompts.audio ? "" : "disabled"}>Chép Prompt Audio</button><button class="btn sm" data-x="copy-image" ${v.prompts.image ? "" : "disabled"}>Chép Prompt Hình ảnh</button>
-        <button class="btn sm" data-x="dl-script" ${v.script ? "" : "disabled"}>Tải kịch bản</button>${f ? "<button class=\"btn sm\" data-x=\"dl-video\">Tải video</button>" : ""}</div>
-        <span class="small faint">Kho B-roll dùng chung, SFX: chưa có.</span></div>
-    </div>
-    <div class="sv-pop${off ? " sv-off-pop" : ""}">
-      <div class="stack" style="gap:12px;min-width:0">
-        <section class="panel stack" style="gap:8px"><h3>Insight</h3>
+		const nav = navOf(v.id);
+		const done = AC.vidEditDone(v);
+		const tab = (k, n, label, dis, title) => `<button role="tab" data-nav="tab:${k}" aria-selected="${nav.tab === k}" ${dis ? "disabled" : ""} ${title ? `title="${esc(title)}"` : ""} data-testid="sp-tab-${k}"><span class="vp-step">${n}</span>${label}</button>`;
+		const insightPane = `<section class="panel stack" style="gap:8px"><h3>Insight</h3>
           <div class="field"><label for="sp-title">Tiêu đề</label><input id="sp-title" value="${esc(v.insight.title)}" maxlength="160" ${off ? "readonly" : ""}></div>
           <div class="field"><label for="sp-idea">Ý chính</label><textarea id="sp-idea" rows="2" ${off ? "readonly" : ""}>${esc(v.insight.idea)}</textarea></div>
           <div class="field"><label for="sp-reason">Lý do làm video này</label><textarea id="sp-reason" rows="2" ${off ? "readonly" : ""}>${esc(v.insight.reason)}</textarea></div>
           <div class="row"><div class="field"><label for="sp-format">Format</label><select id="sp-format" ${off ? "disabled" : ""}>${fs.map((x) => `<option value="${esc(x.id)}" ${x.id === v.formatId ? "selected" : ""}>${esc(x.name)}${x.active === false ? " (đang tắt)" : ""}</option>`).join("")}</select></div>
             <div class="field"><label for="sp-kind">Kiểu</label><select id="sp-kind" ${off ? "disabled" : ""}>${kopt}</select></div></div>
           <details ${idea ? "open" : ""}><summary class="small">${free ? "Nội dung nguồn" : "Đoạn căn cứ trong Topic"}</summary><div class="field" style="margin-top:6px"><label class="sr" for="sp-source">Đoạn căn cứ</label><textarea id="sp-source" rows="4" ${off ? "readonly" : ""}>${esc(v.source)}</textarea></div></details>
-          ${others.length ? `<div class="row" style="gap:6px"><label class="sr" for="sp-merge">Gộp với</label><select id="sp-merge">${others.map((o) => `<option value="${esc(o.id)}">${esc(clamp(o.insight.title, 50))}</option>`).join("")}</select><button class="btn sm" data-x="merge">Gộp vào thẻ này</button></div>` : ""}
-        </section>
-        <section class="panel stack" style="gap:8px"><h3>Kịch bản</h3>
+          ${others.length ? `<div class="row" style="gap:6px"><label class="sr" for="sp-merge">Gộp với</label><select id="sp-merge">${others.map((o2) => `<option value="${esc(o2.id)}">${esc(clamp(o2.insight.title, 50))}</option>`).join("")}</select><button class="btn sm" data-x="merge">Gộp vào thẻ này</button></div>` : ""}
+        </section>`;
+		const scriptPane = `<section class="panel stack" style="gap:8px"><h3>Script</h3>
           ${idea ? "<p class=\"small muted\">Duyệt Insight để viết kịch bản.</p>" : `${ideasHtml}
           ${issues.length ? `<ul class="small sv-warn" id="sp-warn">${issues.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
           <div class="field"><label for="sp-script">Lời nói (mỗi phần mở bằng nhãn trong ngoặc vuông, ví dụ [Hook])</label><textarea id="sp-script" style="min-height:260px" ${off ? "readonly" : ""}>${esc(v.script)}</textarea><span class="hint">Nên ${c.wordMin}–${c.wordMax} chữ (nhắm ${c.wordTarget}). ${hint}</span></div>
           <div class="field"><label for="sp-audio">Prompt Audio (lời cho giọng máy)</label><textarea id="sp-audio" rows="3" ${off ? "readonly" : ""}>${esc(v.prompts.audio)}</textarea></div>
-          <div class="field"><label for="sp-image">Prompt Hình ảnh</label><textarea id="sp-image" rows="2" ${off ? "readonly" : ""}>${esc(v.prompts.image)}</textarea></div>`}
+          <div class="field"><label for="sp-image">Prompt Hình ảnh</label><textarea id="sp-image" rows="2" ${off ? "readonly" : ""}>${esc(v.prompts.image)}</textarea></div>
+          <div class="row" style="gap:6px"><span class="small muted">Tài nguyên:</span><button class="btn sm" data-x="copy-audio" ${v.prompts.audio ? "" : "disabled"}>Chép Prompt Audio</button><button class="btn sm" data-x="copy-image" ${v.prompts.image ? "" : "disabled"}>Chép Prompt Hình ảnh</button>
+            <button class="btn sm" data-x="dl-script" ${v.script ? "" : "disabled"}>Tải kịch bản</button><span class="small faint">Kho B-roll dùng chung, SFX: chưa có.</span></div>`}
         </section>
+        ${(v.history || []).length ? `<section class="panel stack" style="gap:6px"><h3>Bản kịch bản trước (${v.history.length})</h3>${v.history.map((h, i) => `<div class="citem stack" style="gap:4px"><span class="small muted">${esc(h.at || "")}${h.ai ? " · AI" : ""} · ${AC.vidWords(h.script)} chữ</span><p class="small" style="white-space:pre-wrap;max-height:120px;overflow:auto">${esc(h.script)}</p><button class="btn sm" data-x="use-hist" data-h="${i}" ${off ? "disabled" : ""}>Dùng bản này</button></div>`).join("")}</section>` : ""}`;
+		const outPane = off ? "<p class=\"small muted\">Đã hủy: không cần nộp video.</p>" : idea ? "<p class=\"small muted\">Duyệt Insight rồi mới tải video.</p>" : `${f ? videoCell : ""}
+        <label class="vp-drop${f ? " has" : ""}" for="sp-up" data-testid="sp-drop"><span><b>＋</b><span class="vp-dt">${f ? "Up lại để thay video" : "Up video của bạn lên đây"}</span><span class="small muted">Dọc 9:16, MP4/WebM/MOV, tối đa ${vidMax() / 1048576} MB vì lưu trong trình duyệt. Up lại bất cứ lúc nào.</span></span></label>
+        <div class="row" style="gap:6px;margin-top:8px"><button class="btn sm" data-x="cover" ${f ? "" : "disabled"}>Bìa</button><button class="btn sm" data-x="subs" data-testid="sp-subs" ${f ? "" : "disabled"}>Phụ đề</button>${f ? "<button class=\"btn sm\" data-x=\"dl-video\">Tải video</button>" : ""}<button class="btn sm ghost danger" data-x="file-del" ${f ? "" : "disabled"}>Bỏ video</button></div>
+        `;
+		return `<header class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><span class="eyebrow">Thẻ Vid ${posOf(v)} · ${esc(tv ? tv.title : "?")}</span><h2>${esc(v.insight.title)}</h2>
+      <div class="row" style="gap:8px">${stateChip(v)}<span class="small muted">${esc(vfName(v.formatId))} · ${esc(kindName(v.kind))}</span><span class="small mono" id="sp-count" title="Số chữ lời nói, thời lượng ước tính">${v.script ? `${words} chữ · ≈ ${fmtSec(AC.vidDuration(S, words))}` : ""}</span><span class="small muted sv-busy" aria-live="polite">${view.svBusy ? esc(view.svBusy) : ""}</span></div></div>
+      <div class="row" style="gap:6px;flex-wrap:nowrap"><button class="btn sm ${off ? "primary" : "ghost"}" data-x="cancel" data-testid="sp-cancel" aria-pressed="${off}">${off ? "Khôi phục" : "Hủy thẻ"}</button><button class="btn icon ghost" data-act="close-layer" aria-label="Đóng">${icon("close")}</button></div></header>
+    <div class="vp-tabs tabs" role="tablist" aria-label="Các bước của thẻ Vid">${tab("ks", v.script && v.status !== "DRAFT" && v.status !== "TODO" && !idea ? "✓" : "1", "Kịch bản", false)}${tab("bt", done ? "✓" : "2", "Biên tập", idea || off, idea ? "Duyệt Insight trước" : "")}${tab("sl", slots.length ? "✓" : "3", "Xếp Slot", !done || off || idea, done ? "" : "Cần video thành phẩm hoặc hoàn thành biên tập trước")}</div>
+    <div class="vp-bar" id="sp-bar">${barHtml(v, null)}</div>
+    <div class="sv-pop${off ? " sv-off-pop" : ""}" style="display:block">
+      <div data-pane="ks" hidden>
+        <div data-sub="insight" hidden>${insightPane}</div>
+        <div data-sub="script" hidden>${scriptPane}</div>
+        <div data-sub="scene" hidden id="sp-scenes"></div>
+        ${mediaHtml ? `<div data-sub="nguon" hidden>${mediaHtml}</div>` : ""}
       </div>
-      <div class="stack" style="gap:12px;min-width:0">
-        <section class="panel stack" style="gap:8px"><h3>Ô Video</h3>${videoCell}</section>
-        ${schedHtml}${mediaHtml}
-        ${(v.history || []).length ? `<section class="panel stack" style="gap:6px"><h3>Bản kịch bản trước (${v.history.length})</h3>${v.history.map((h, i) => `<div class="citem stack" style="gap:4px"><span class="small muted">${esc(h.at || "")}${h.ai ? " · AI" : ""} · ${AC.vidWords(h.script)} chữ</span><p class="small" style="white-space:pre-wrap;max-height:120px;overflow:auto">${esc(h.script)}</p><button class="btn sm" data-x="use-hist" data-h="${i}" ${off ? "disabled" : ""}>Dùng bản này</button></div>`).join("")}</section>` : ""}
+      <div data-pane="bt" hidden>
+        <div data-bm="in" hidden><div id="sp-ed"></div></div>
+        <div data-bm="out" hidden><input id="sp-up" type="file" accept="video/*" class="sr" ${upOff ? "disabled" : ""}>${outPane}</div>
       </div>
+      <div data-pane="sl" hidden id="sp-sl"></div>
     </div>
     <span class="err" id="sp-err" role="alert"></span>
     <div class="actions"><button class="btn ghost" data-act="close-layer">Đóng</button><button class="btn primary" data-x="save" data-testid="sp-save" ${off ? "disabled" : ""}>Lưu</button></div>`;
+	}
+	function barHtml(v, es) {
+		const nav = navOf(v.id);
+		const idea = v.status === "IDEA";
+		const off = v.cancelled;
+		const o = AC.vidOrigin(v);
+		const media = !(!(o !== "topic") || o === "script" || o === "post");
+		const b = (k, l, cur) => `<button data-nav="${k}" aria-selected="${cur === k.split(":")[1]}">${l}</button>`;
+		if (nav.tab === "bt") {
+			const m = AC.editModeOf(v);
+			return `${b("mode:in", "Biên tập trong app", m)}${b("mode:out", "Biên tập ngoài app", m)}<span class="small muted">${m === "in" ? "Làm theo từng cảnh" : "Tự dựng ở phần mềm khác rồi Up thành phẩm"}</span>
+      ${m === "in" && es && es.active ? `<span class="vp-sp"><span class="small muted" id="sp-saved">${esc(es.saved || "")}</span><button class="btn sm" data-x="undo" ${es.canUndo ? "" : "disabled"} data-testid="ve-undo">↶ Hoàn tác</button><button class="btn sm" data-x="redo" ${es.canRedo ? "" : "disabled"}>↷ Làm lại</button></span>` : ""}`;
+		}
+		if (nav.tab === "sl") return "<span class=\"small muted\">Lưới Thứ × Kênh: mỗi ô là một slot của video này</span>";
+		const writeBtn = o === "script" ? "" : o === "audio" || o === "talk" ? `<button class="btn sm ${v.script ? "" : "primary"}" data-x="stt" ${off || !sttOk() ? "disabled" : ""} title="${sttOk() ? "Gửi tệp tới API nhận giọng nói để chép lời" : "Cần chọn OpenAI ở Setup → AI ảnh & video; hoặc dán lời vào ô Lời nói"}">Chép lời (API)</button>` : `<button class="btn sm ${v.script ? "" : "primary"}" data-x="write" ${off ? "disabled" : ""} data-testid="sp-write">${v.script ? "Tạo lại" : o === "broll" || o === "longroll" ? "Viết lời dẫn" : "Viết kịch bản"}</button>`;
+		return `${[
+			["insight", "Insight"],
+			["script", "Script"],
+			["scene", "Scene"]
+		].concat(media ? [["nguon", "Nguồn vào"]] : []).map(([k, l]) => b(`ks:${k}`, l, nav.ks)).join("")}<span class="vp-sp">${idea ? `<button class="btn sm primary" data-x="approve-idea">Duyệt Insight</button><button class="btn sm ghost danger" data-x="drop-idea">Bỏ đề xuất</button>` : `${writeBtn}<button class="btn sm ${v.script && v.status !== "APPROVED" && !off ? "primary" : ""}" data-x="approve" data-testid="sp-approve" ${off || !v.script ? "disabled" : ""}>Duyệt kịch bản</button>`}</span>`;
+	}
+	var NAV = {};
+	var navOf = (id) => NAV[id] || (NAV[id] = {
+		tab: "ks",
+		ks: "insight"
+	});
+	function sceneListHtml(v) {
+		if (!v.edit || !v.edit.scenes.length) return `<section class="panel stack" style="gap:8px"><h3>Scene</h3><p class="small muted">${v.script || (v.media || []).length ? "Chưa chia cảnh. App chia kịch bản thành các cảnh có lời, hình/âm cần có và thời lượng; chỉnh tiếp ở Biên tập." : "Cần kịch bản hoặc tệp nguồn để chia cảnh."}</p><div class="row"><button class="btn sm primary" data-x="plan-scenes" data-testid="sp-plan" ${v.script || (v.media || []).length ? "" : "disabled"}>Chia cảnh theo kịch bản</button></div></section>`;
+		const tl = AC.editTimeline(v);
+		return `<section class="panel stack" style="gap:6px"><h3>Scene · phân cảnh theo timeline <span class="small muted">${tl.items.length} cảnh · ${tl.total.toFixed(1).replace(".", ",")} giây</span></h3>
+    ${tl.items.map((it, i) => `<div class="vp-srow" data-testid="sp-scene-row"><b>${i + 1}</b><span class="mono small muted">${it.t0.toFixed(1)}–${it.t1.toFixed(1)}s</span><span>${esc(it.scene.text || "(chưa có lời)")}</span><span class="small"><span class="vp-tag">Hình/Âm</span>${esc(it.scene.items.length ? `${it.scene.items.length} hình đã up` : it.scene.prompt || "Chưa có mô tả")}${it.scene.overlay ? ` · chữ phủ “${esc(it.scene.overlay)}”` : ""}</span></div>`).join("")}
+    <p class="small faint">Mô tả hình và âm là đầu vào của tab Biên tập: chỉnh cảnh, Up hình, thêm VO ở đó.</p></section>`;
 	}
 	function openVid(id) {
 		const v0 = AC.byId(S.videos, id);
@@ -26528,12 +28071,61 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		const err = (m) => {
 			g("err").textContent = m || "";
 		};
+		let ED = null;
+		const sel = {};
 		const reopen = (msg) => {
+			if (ED) ED.stop();
 			closeAllLayers();
 			save();
 			render();
 			openVid(id);
 			if (msg) toast(msg);
+		};
+		const bar = () => {
+			const vv = AC.byId(S.videos, id);
+			const el = g("bar");
+			if (vv && el) el.innerHTML = barHtml(vv, ED ? ED.state() : null);
+		};
+		const show = () => {
+			const vv = AC.byId(S.videos, id);
+			if (!vv) return;
+			const n = navOf(id);
+			const m = AC.editModeOf(vv);
+			if (n.tab === "ks" && n.ks === "nguon" && !box.querySelector("[data-sub=\"nguon\"]")) n.ks = "insight";
+			const done = AC.vidEditDone(vv);
+			box.querySelectorAll(".vp-tabs [data-nav]").forEach((b) => {
+				const k = b.dataset.nav.split(":")[1];
+				b.setAttribute("aria-selected", String(n.tab === k));
+				if (k === "sl") {
+					b.disabled = !done || vv.cancelled || vv.status === "IDEA";
+					b.querySelector(".vp-step").textContent = AC.vidSlotsOf(S, id).length ? "✓" : "3";
+				}
+				if (k === "bt") b.querySelector(".vp-step").textContent = done ? "✓" : "2";
+			});
+			box.querySelectorAll("[data-pane]").forEach((e) => {
+				e.hidden = e.dataset.pane !== n.tab;
+			});
+			box.querySelectorAll("[data-sub]").forEach((e) => {
+				e.hidden = e.dataset.sub !== n.ks;
+			});
+			box.querySelectorAll("[data-bm]").forEach((e) => {
+				e.hidden = e.dataset.bm !== m;
+			});
+			if (n.tab !== "bt" && ED) ED.pause();
+			if (n.tab === "ks" && n.ks === "scene") g("scenes").innerHTML = sceneListHtml(vv);
+			if (n.tab === "sl") g("sl").innerHTML = slotPaneHtml(vv, sel);
+			if (n.tab === "bt" && m === "in" && !vv.cancelled && vv.status !== "IDEA") {
+				if (!ED) ED = mountEditor(g("ed"), id, {
+					bar,
+					done: () => {
+						n.tab = "sl";
+						show();
+						toast("Đã hoàn thành biên tập. Chọn ngày và kênh ở Xếp Slot.");
+					}
+				});
+				else ED.render();
+			}
+			bar();
 		};
 		const persist = () => {
 			const v = AC.byId(S.videos, id);
@@ -26648,6 +28240,23 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			if (o === "talk") await findCuts(id);
 			reopen(`Đã thêm ${files.length} tệp.`);
 		});
+		box.addEventListener("click", (e) => {
+			const nb = e.target.closest("[data-nav]");
+			if (!nb || nb.disabled) return;
+			const [kind, val] = nb.dataset.nav.split(":");
+			const n = navOf(id);
+			if (!persist()) return;
+			if (kind === "tab") n.tab = val;
+			else if (kind === "ks") {
+				n.tab = "ks";
+				n.ks = val;
+			} else if (kind === "mode") {
+				AC.setEditMode(S, id, val);
+				save();
+				n.tab = "bt";
+			}
+			show();
+		});
 		box.addEventListener("click", async (e) => {
 			const x = e.target.closest("[data-x]");
 			if (!x || x.disabled) return;
@@ -26732,13 +28341,46 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				g("script").dispatchEvent(new Event("input"));
 				return;
 			}
-			if (k === "edit") {
+			if (k === "undo") {
+				if (ED) ED.undo();
+				return;
+			}
+			if (k === "redo") {
+				if (ED) ED.redo();
+				return;
+			}
+			if (k === "plan-scenes") {
 				if (!persist()) return;
+				const r = AC.planEdit(S, id);
+				if (!r.ok) return err(r.error);
 				save();
+				show();
+				toast(`Đã chia ${r.count} cảnh. Chỉnh tiếp ở Biên tập.`);
+				return;
+			}
+			if (k === "cell") {
+				const [d, ch] = x.dataset.k.split("|");
+				if (sel[ch] === d) delete sel[ch];
+				else sel[ch] = d;
+				show();
+				return;
+			}
+			if (k === "export-cmd") {
+				if (!v.edit || !v.edit.scenes.length) return;
+				downloadBytes(`${AC.slugOf(v.insight.title) || "video"}-lenh-dung.json`, new TextEncoder().encode(JSON.stringify(AC.editCommands(S, v), null, 2)), "application/json");
+				return toast("Đã xuất lệnh dựng (JSON).");
+			}
+			if (k === "slot-go") {
+				if (!persist()) return;
+				x.disabled = true;
+				const r = await scheduleSelected(id, sel, g("sltime").value, setBusy);
+				x.disabled = false;
+				if (!r.ok) return err(r.error);
 				closeAllLayers();
-				openEditor(id, () => {
-					render();
-					openVid(id);
+				commit(`Đã đưa video vào lịch (${r.slots.length} slot${r.skipped.length ? `, bỏ qua ${r.skipped.join(", ")}: đã có slot` : ""}).`);
+				toast("Xem và duyệt caption ở Dashboard.", "", {
+					label: "Mở Dashboard",
+					fn: () => go({ screen: "week" })
 				});
 				return;
 			}
@@ -26831,6 +28473,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				else subsDialog(Object.assign(T, { save: (c, src) => AC.setVidSubs(S, id, c, src) }));
 			}
 		});
+		show();
 		return box;
 	}
 	ACTIONS["sv-open"] = (el) => openVid(el.dataset.id);
