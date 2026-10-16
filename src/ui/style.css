@@ -1359,3 +1359,6 @@ details.vp-src summary { cursor: pointer; font-size: var(--fs-2); color: var(--i
 .vp-plus { font-size: var(--fs-2); font-weight: 500; color: var(--ink); }
 .vp-pop input[data-cq], .vp-pop input[data-sq] { display: block; width: 100%; box-sizing: border-box; height: 30px; padding: 3px 10px; border-radius: var(--r-s); }
 .vp-ctrack, .vp-tlw .vp-ctrack { background: transparent; }
+
+/* bản 112 */
+.vp-miss { text-align: center; }

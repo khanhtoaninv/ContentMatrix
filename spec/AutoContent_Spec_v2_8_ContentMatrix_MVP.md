@@ -1403,3 +1403,6 @@ Giãn khoảng cách Cài đặt. Quản lý caption: Enter tách tại con tr�
 
 ## 10.82. Short Vid: chỉnh Phân cảnh và Biên tập (16/10/2026, bản 111)
 Bảng Phân cảnh: ô nội dung và mô tả hình rộng đủ ô, bỏ nút Gen ảnh (chỉ mô tả hình hoặc video minh hoạ). Thẻ scene: Upload / Gen AI cùng kiểu chữ với Gen AI của VO cảnh. Popup Cue: ô tìm rộng, bo góc. Timeline: hàng Cue không nền. Kiểm thử: logic 130, UI 521.
+
+## 10.83. Short Vid: Dựng tự động, bản mô phỏng (16/10/2026, bản 112)
+Hai cách: dựng cả video (điền scene trống) và gợi ý hình theo từng scene. Khớp theo chữ giữa mô tả hình/lời scene và mô tả đoạn b-roll trong Nguồn vào; clip dài tự cắt khoảng giữa đúng độ dài scene; không đè hình đã có; scene không khớp đánh dấu. Chạy mô phỏng, chưa dùng AI xem hình. Hướng tiếp theo: hồ sơ mô tả `.json` do agent ngoài tạo, đồng bộ qua thư mục Drive, tìm trong kho asset chung. Kiểm thử: logic 131, UI 523.

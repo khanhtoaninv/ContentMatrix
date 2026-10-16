@@ -2372,3 +2372,22 @@ test('10.80 · Tách caption tại con trỏ, frame Yêu thích, kho nhạc nề
   for (let k = 0; k < 10; k++) AC.vidMusicAdd(S, { name: 'm' + k, src: AUD + k }); assert.equal(AC.vidLibOf(S).music.length, 8);
   assert.ok(AC.setEditOptions(S, id, { music: AC.vidLibOf(S).music[0] }).ok); assert.ok(AC.vidMusicDel(S, AC.vidLibOf(S).music[0].id).ok); assert.equal(AC.vidLibOf(S).music.length, 7);
 });
+
+test('10.83 · Dựng tự động (mô phỏng): gợi ý b-roll theo mô tả hình, cắt clip dài vừa cảnh, không đè hình đã có', () => {
+  const S = seed();
+  const v = AC.addFreeVideo(S, T2, { origin: 'script', script: '[Hook]\nBạn nghĩ học tám tiếng mỗi ngày thì sẽ giỏi hơn? Chưa chắc.\n\n[Cơ chế]\nNhiều người ngồi cả ngày nhưng đầu óc đã tắt từ giờ thứ ba.\n\n[CTA]\nHãy thử học ngắn hơn và nghỉ đúng lúc.' }).video; const id = v.id;
+  assert.ok(AC.planEdit(S, id).ok); const ed = v.edit; assert.ok(ed.scenes.length >= 3);
+  assert.equal(AC.autoBuild(S, id).ok, false);   // chưa có b-roll
+  assert.ok(AC.addVidMedia(S, id, { src: VID, name: 'ban-hoc.mp4', dur: 60, desc: 'Người ngồi ở bàn học, đồng hồ chỉ 11 giờ đêm' }).ok);
+  assert.ok(AC.addVidMedia(S, id, { src: VID, name: 'san-bong.mp4', dur: 3, desc: 'Sân bóng đá buổi chiều, nhiều người chạy' }).ok);
+  ed.scenes[0].prompt = 'Người ngồi bàn học khuya, đồng hồ chỉ 11 giờ'; ed.scenes[1].prompt = 'Học sinh chơi ở sân bóng buổi chiều'; ed.scenes[ed.scenes.length - 1].prompt = 'Biển xanh và máy bay';
+  const sug = AC.suggestBroll(S, id, ed.scenes[0].id, { limit: 3 }); assert.equal(sug[0].mediaId, 'm1'); assert.ok(sug[0].score > AC.BROLL_MIN_SCORE);
+  assert.ok(sug[0].cut); assert.equal(Math.round((sug[0].to - sug[0].from) * 10) / 10, Math.round(ed.scenes[0].dur * 10) / 10); assert.ok(sug[0].from > 0 && sug[0].to < 60);
+  // scene 2 đã có hình của người dùng: không bị đè
+  const last = ed.scenes[ed.scenes.length - 1], mid = ed.scenes[1]; assert.ok(AC.addSceneItems(S, id, mid.id, [{ src: 'data:image/jpeg;base64,AAAA', name: 'tay.jpg' }]).ok);
+  const r = AC.autoBuild(S, id); assert.ok(r.ok); assert.equal(r.skipped, 1);
+  assert.equal(ed.scenes[0].items[0].mediaId, 'm1'); assert.ok(ed.scenes[0].items[0].auto); assert.equal(mid.items.length, 1); assert.ok(!mid.items[0].auto);
+  assert.equal(last.items.length, 0); assert.equal(last.autoMiss, true);   // 'Biển xanh và máy bay' không khớp clip nào
+  assert.ok(AC.addSceneItems(S, id, last.id, [{ src: 'data:image/jpeg;base64,AAAA', name: 'x.jpg' }]).ok); assert.equal(last.autoMiss, false);
+  assert.equal(AC.brollScore('Sân bóng', 'san bong da'), AC.brollScore('san bong', 'Sân bóng đá'));
+});

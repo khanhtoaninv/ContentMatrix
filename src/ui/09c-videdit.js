@@ -158,8 +158,8 @@ function sceneCard(v, it, i, n, st) {
   const units = AC.brollUnits(v);
   return `<div class="vp-sc" data-sid="${esc(sc.id)}" data-c="${i}" aria-current="${cur}" data-testid="ve-scene">
     <div class="vp-mcol"><div class="vp-add${k ? ' has' : sc.ph ? ' ph' : ''}" data-a="up" data-i="${i}" role="button" tabindex="0" aria-label="${k ? `Up thêm hình cho scene ${i + 1}` : `Up hình hoặc video cho scene ${i + 1}`}">${main}</div>
-      ${k ? `<div class="vp-thumbs">${sc.items.map((m, j) => `<span class="vp-th" data-a="pick" data-i="${i}" data-j="${j}" aria-current="${cur && j === ik}" title="Ảnh ${j + 1}: ${f1(m.d)} giây">${thumbHtml(v, m)}<span class="vp-d">${f1(m.d)}s</span><button class="vp-x" data-a="itx" data-i="${i}" data-j="${j}" aria-label="Bỏ ảnh ${j + 1}">✕</button></span>`).join('')}</div>` : ''}
-      <button class="vp-plus" data-a="up" data-i="${i}" title="Upload ${k ? 'thêm ' : ''}hình hoặc video">Upload</button><button class="vp-plus" data-a="gen" data-i="${i}" data-testid="ve-gen" title="Tạo ảnh bằng AI từ mô tả hình">Gen AI</button></div>
+      ${k ? `<div class="vp-thumbs">${sc.items.map((m, j) => `<span class="vp-th" data-a="pick" data-i="${i}" data-j="${j}" aria-current="${cur && j === ik}" title="Ảnh ${j + 1}: ${f1(m.d)} giây${m.auto ? ' (tự chọn)' : ''}">${thumbHtml(v, m)}<span class="vp-d">${f1(m.d)}s</span><button class="vp-x" data-a="itx" data-i="${i}" data-j="${j}" aria-label="Bỏ ảnh ${j + 1}">✕</button></span>`).join('')}</div>` : ''}
+      <button class="vp-plus" data-a="up" data-i="${i}" title="Upload ${k ? 'thêm ' : ''}hình hoặc video">Upload</button><button class="vp-plus" data-a="gen" data-i="${i}" data-testid="ve-gen" title="Tạo ảnh bằng AI từ mô tả hình">Gen AI</button><button class="vp-plus" data-a="sug" data-i="${i}" data-testid="ve-sug" title="Gợi ý hình hoặc video từ Nguồn vào theo mô tả hình của scene">Gợi ý hình</button>${!k && sc.autoMiss ? '<span class="small muted vp-miss" data-testid="ve-miss">Chưa khớp</span>' : ''}</div>
     <div class="vp-scb">
       <div class="vp-hd"><b>Scene ${i + 1}</b><span class="small muted">${fmt(it.t0)}–${fmt(it.t1)}</span>
         <span><button class="btn icon sm ghost" data-a="dd" data-i="${i}" data-d="-0.5" title="Ngắn hơn 0,5 giây" aria-label="Ngắn hơn 0,5 giây">−</button><button class="btn icon sm ghost" data-a="dd" data-i="${i}" data-d="0.5" title="Dài hơn 0,5 giây" aria-label="Dài hơn 0,5 giây">+</button></span>
@@ -186,7 +186,7 @@ function scenePane(v, st) {
   const voAll = vo ? `<b class="vp-nm">${esc(vo.name)}</b> <span class="small muted">${f1(vo.dur)}s · ${vo.kind === 'ai' ? 'AI' : 'Up'}</span><button class="btn icon sm ghost" data-a="voallx" aria-label="Gỡ VO toàn bài">${icon('close')}</button>`
     : `<button class="btn sm" data-a="voallup">Up</button><button class="btn sm" data-a="voallai" data-testid="ve-voallai">Gen AI</button>`;
   return `<div class="vp-pane">${cutsHtml(v)}<div class="vp-ctl"><label class="vp-lb2" for="ve-tpl">Mẫu dựng</label><select id="ve-tpl" data-a="tpl">${opt(Object.fromEntries(Object.entries(AC.VID_TEMPLATES).map(([k, t]) => [k, t.name + (k === sug ? ' (gợi ý)' : '')])), ed.tpl)}</select>
-      <span class="vp-lb2">VO toàn bài</span><div class="vp-vo1">${voAll}</div><button class="btn sm" data-a="origscr" data-testid="ve-orig" title="Chia lại scene theo kịch bản gốc và mẫu dựng đang chọn">↺ Kịch bản gốc</button><span class="small muted vp-tot">Tổng <b>${f1(tl.total)}s</b></span></div>
+      <span class="vp-lb2">VO toàn bài</span><div class="vp-vo1">${voAll}</div><button class="btn sm" data-a="autobuild" data-testid="ve-auto" title="Tự chọn hình hoặc video từ Nguồn vào cho các scene còn trống, theo mô tả hình (bản mô phỏng, khớp theo chữ)">Dựng tự động</button><button class="btn sm" data-a="origscr" data-testid="ve-orig" title="Chia lại scene theo kịch bản gốc và mẫu dựng đang chọn">↺ Kịch bản gốc</button><span class="small muted vp-tot">Tổng <b>${f1(tl.total)}s</b></span></div>
     ${tl.items.map((it, i) => sceneCard(v, it, i, n, st)).join('')}
     <button class="btn sm" data-a="add">${icon('plus')} Thêm cảnh</button></div>`;
 }
@@ -379,6 +379,12 @@ export function mountEditor(host, id, hooks) {
   }
   function flashBlk(i) { const b = host.querySelector(`.vp-blk[data-i="${i}"]`); if (!b) return; b.classList.remove('flash'); void b.offsetWidth; b.classList.add('flash'); const r = b.getBoundingClientRect(); if (r.top > innerHeight || r.bottom < 0) b.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
   // ---- Thư viện frame và thư viện nhạc nền (hộp thoại) ----
+  function openSuggest(i) {
+    const sc = v().edit.scenes[i]; if (!sc) return; const list = AC.suggestBroll(S, id, sc.id, { limit: 5 });
+    const rows = list.length ? list.map((u, q) => `<div class="vp-mu" data-sug="${q}"><b class="small">${esc(u.desc || u.label)}</b><span class="small muted">${u.kind === 'image' ? 'Ảnh' : `Video ${f1(u.srcDur)}s${u.cut ? `, lấy giây ${f1(u.from)}–${f1(u.to)} cho vừa scene` : ''}`} · khớp ${Math.round(Math.min(1, u.score) * 100)}%${u.used ? ' · đã dùng ở scene khác' : ''}</span><span class="vp-mub"><button class="btn sm primary" data-su="${q}">Dùng</button></span></div>`).join('') : '<p class="muted">Chưa có b-roll trong Nguồn vào. Nạp clip hoặc ảnh ở mục Nguồn vào trước.</p>';
+    const box = openLayer(`<h2>Gợi ý hình · Scene ${i + 1}</h2><p class="small muted">${sc.prompt ? `Theo mô tả hình: “${esc(sc.prompt)}”` : 'Scene chưa có mô tả hình, đang khớp theo lời của scene.'} Bản mô phỏng, khớp theo chữ, chưa dùng AI xem hình.</p><div class="vp-mulist">${rows}</div><div class="actions"><button class="btn" data-x="no">Đóng</button></div>`, 'dialog');
+    box.addEventListener('click', e => { if (e.target.closest('[data-x]')) { closeLayer(); return; } const b = e.target.closest('[data-su]'); if (!b) return; const r = AC.useBroll(S, id, sc.id, list[Number(b.dataset.su)]); if (!r.ok) { toast(r.error, 'bad'); return; } closeLayer(); commit(); render(); });
+  }
   function openFrameLib() {
     const all = (S.frames || []).filter(f => f.kind === 'png' && f.ratio === '9:16');
     const box = openLayer(`<h2>Thư viện frame</h2>${all.length ? `<div class="vp-frames vp-libgrid">${all.map(f => `<button class="vp-fr" data-fl="${esc(f.id)}" aria-pressed="${v().edit.frame === f.id}" title="${esc(f.name)}"><i><img src="${esc(f.src)}" alt=""></i>${esc(f.name)}</button>`).join('')}</div><p class="small muted">Chọn một frame để dùng ngay; frame vừa chọn lên hàng Yêu thích (tối đa 4).</p>` : '<p class="muted">Chưa có frame PNG 9:16. Thêm frame ở mục Frame của app, rồi quay lại đây.</p>'}<div class="actions"><button class="btn" data-x="no">Đóng</button></div>`, 'dialog');
@@ -653,6 +659,8 @@ export function mountEditor(host, id, hooks) {
     if (a === 'cstyle') { AC.setEditOptions(S, id, { style: i }); commit(); render(); return; }
     if (a === 'frame') { AC.setEditOptions(S, id, { frame: b.dataset.k }); commit(); render(); return; }
     if (a === 'musup') { pick('#vp-fileM', null); return; }
+    if (a === 'autobuild') { const r = AC.autoBuild(S, id); if (!r.ok) { toast(r.error, 'bad'); return; } commit(); render(); toast(r.filled || r.miss ? `Dựng tự động (mô phỏng, khớp theo chữ): điền ${r.filled} scene${r.miss ? `, ${r.miss} scene chưa khớp` : ''}${r.skipped ? `, giữ nguyên ${r.skipped} scene đã có hình` : ''}.` : 'Mọi scene đã có hình, không có gì để điền.'); return; }
+    if (a === 'sug') { openSuggest(i); return; }
     if (a === 'frlib') { openFrameLib(); return; }
     if (a === 'mulib') { openMusicLib(); return; }
     if (a === 'musx') { AC.setEditOptions(S, id, { music: null }); if (st.play) startAudio(); act({ ok: true }); return; }

@@ -453,7 +453,7 @@ export function addSceneItems(S, id, sid, list) {
   if (!made.length) return { ok: false, error: 'Chưa chọn tệp.' };
   if (sc.items.length + made.length > 12) return { ok: false, error: 'Tối đa 12 hình mỗi cảnh.' };
   // Thêm hình: chia đều lại độ dài cảnh cho các hình (không dưới 1 giây mỗi hình, không dưới VO)
-  sc.items.push(...made); sc.ph = false; evenSplit(sc, Math.max(sc.dur, sceneMin(v.edit, sc))); v.edit.capStale = true;
+  sc.items.push(...made); sc.ph = false; sc.autoMiss = false; evenSplit(sc, Math.max(sc.dur, sceneMin(v.edit, sc))); v.edit.capStale = true;
   return { ok: true, count: made.length };
 }
 export function removeSceneItem(S, id, sid, k) {
@@ -648,4 +648,47 @@ export function unscheduleVideo(S, vidId) {
   list.forEach(s => { if (s.state === 'PUBLISHED') { kept++; return; } const r = deleteSlot(S, s.id); if (r && r.ok === false) kept++; else n++; });
   if (n) log(S, 'vid-unschedule', 'video', vidId, `${n} slot`);
   return { ok: true, removed: n, kept };
+}
+
+// ---- Dựng tự động (bản mô phỏng): khớp mô tả hình/lời của cảnh với mô tả từng đoạn b-roll trong Nguồn vào ----
+// Chưa dùng AI xem hình; sau này đổi nguồn mô tả bằng hồ sơ mô tả thật, phần chọn đoạn và cắt giữ nguyên.
+const BR_STOP = new Set('la va cua cho cac mot nhung nay do khi thi de voi trong tren duoi cung nhu den tu co khong duoc se da dang the nao sao bi ra vao len xuong'.split(' '));
+const brNorm = s => String(s || '').toLowerCase().replace(/đ/g, 'd').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(w => w.length > 1 && !BR_STOP.has(w));
+export const BROLL_MIN_SCORE = 0.05;
+export function brollScore(query, text) {
+  const q = new Set(brNorm(query)), t = new Set(brNorm(text)); if (!q.size || !t.size) return 0;
+  let n = 0; q.forEach(w => { if (t.has(w)) n++; }); return n / Math.sqrt(q.size * t.size);
+}
+function brollUsed(ed, sid) {
+  const out = []; ed.scenes.forEach(s => { if (s.id !== sid) s.items.forEach(m => { if (m.mediaId) out.push(m); }); }); return out;
+}
+// Đề xuất b-roll cho một cảnh: xếp theo mức khớp, đoạn đã dùng ở cảnh khác bị trừ điểm; clip dài hơn cảnh được cắt lấy khoảng giữa đúng độ dài cảnh
+export function suggestBroll(S, id, sid, opt) {
+  const { v, sc } = sceneGet(S, id, sid); if (!sc) return [];
+  const lim = (opt && opt.limit) || 5, target = Math.max(1, r1(sc.dur)), used = brollUsed(v.edit, sid);
+  const q = [sc.prompt, sc.text].filter(Boolean).join(' ');
+  const rows = brollUnits(v).map(u => {
+    const m = (v.media || []).find(x => x.id === u.mediaId); const raw = brollScore(q, [u.desc, m ? mediaUnitName(m) : ''].join(' '));
+    const isUsed = used.some(w => w.mediaId === u.mediaId && (u.kind === 'image' || (w.from < u.to && w.to > u.from)));
+    let from = u.from, to = u.to, cut = false;
+    if (u.kind === 'video' && u.dur > target + 0.05) { from = r1(u.from + (u.dur - target) / 2); to = r1(from + target); cut = true; }
+    return { mediaId: u.mediaId, kind: u.kind, label: u.label, desc: u.desc, from, to, dur: u.kind === 'image' ? 0 : r1(to - from), srcDur: u.dur, cut, used: isUsed, score: Math.round((isUsed ? raw * 0.5 : raw) * 1000) / 1000, raw };
+  });
+  return rows.sort((a, b) => b.score - a.score || (a.used - b.used)).slice(0, lim);
+}
+export function useBroll(S, id, sid, sug) {
+  const r = addSceneItems(S, id, sid, [{ mediaId: sug.mediaId, from: sug.from, to: sug.kind === 'image' ? 0 : sug.to }]); if (!r.ok) return r;
+  const { sc } = sceneGet(S, id, sid); const m = sc.items[sc.items.length - 1]; m.auto = 1; sc.autoMiss = false; return { ok: true };
+}
+// Dựng tự động cả video: chỉ điền cảnh còn trống; cảnh đã có hình giữ nguyên; cảnh không khớp thì đánh dấu "chưa khớp"
+export function autoBuild(S, id) {
+  const v = vidGet(S, id); const ed = v && v.edit; if (!ed || !ed.scenes.length) return { ok: false, error: 'Chưa có scene. Chia cảnh trước.' };
+  if (!brollUnits(v).length) return { ok: false, error: 'Chưa có b-roll trong Nguồn vào để chọn.' };
+  let filled = 0, miss = 0, skipped = 0;
+  for (const sc of ed.scenes) {
+    if (sc.items.length) { skipped++; continue; }
+    const top = suggestBroll(S, id, sc.id, { limit: 1 })[0];
+    if (top && top.score >= BROLL_MIN_SCORE && useBroll(S, id, sc.id, top).ok) { filled++; sc.autoMiss = false; } else { miss++; sc.autoMiss = true; }
+  }
+  return { ok: true, filled, miss, skipped, total: ed.scenes.length };
 }
