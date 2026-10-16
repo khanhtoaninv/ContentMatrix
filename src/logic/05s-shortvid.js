@@ -11,6 +11,7 @@ import { skillBlock, skillRefOf } from './05r-skill.js';
 // Mỗi video tự đứng được, một ý (Insight). Kịch bản 140–200 chữ (≈ 60 giây ở 2,5 chữ/giây). Hai kiểu: Bản tin (người dẫn mở,
 // phần sau giọng máy đọc Prompt Audio) và Người nói hết. Kịch bản hủy không cần nộp video, không tính KPI.
 
+export const VID_MAX_PER_TOPIC = 7; // ma trận Short Vid: tối đa 7 thẻ Vid mỗi Topic
 export const VID_KINDS = { bantin: 'Bản tin', noihet: 'Người nói hết' };
 export const VID_STATES = {
   IDEA: ['Đề xuất', 'st-need'], TODO: ['Chờ viết', 'st-need'], DRAFT: ['Có kịch bản', 'st-need'],
@@ -42,6 +43,7 @@ export function ensureShortVid(S) {
   if (!Array.isArray(S.videos)) S.videos = [];
   if (!Array.isArray(S.vidTopics)) S.vidTopics = [];
   if (!Array.isArray(S.vidAnalyses)) S.vidAnalyses = [];
+  if (!Array.isArray(S.vidHidden)) S.vidHidden = [];
   if (!S.vidSettings || typeof S.vidSettings !== 'object') S.vidSettings = defaultVidSettings();
   return S;
 }
@@ -105,9 +107,22 @@ export function resetVidFormats(S) { S.vidFormats = defaultVidFormats(); return 
 // ---- Topic cho video: dùng chung kho Topic của tuần (Matrix) + chủ đề chỉ cho video ----
 export function vidTopicRow(S, id) { return byId(S.topics, id) || byId(S.vidTopics || [], id) || null; }
 export function vidTopicsOf(S, weekId) {
+  const hid = new Set(S.vidHidden || []);
   const a = topicsOf(S, weekId).map(r => ({ row: r, v: topicCurrent(r), videoOnly: false }));
   const b = (S.vidTopics || []).filter(r => r.weekId === weekId).sort((x, y) => x.order - y.order).map(r => ({ row: r, v: topicCurrent(r), videoOnly: true }));
-  return a.concat(b).filter(x => x.v);
+  return a.concat(b).filter(x => x.v && !hid.has(x.row.id));
+}
+// Ẩn Topic của Matrix khỏi Short Vid ("bớt"); Topic đã có thẻ Vid đã duyệt thì không ẩn được
+export const vidHiddenOf = (S, weekId) => topicsOf(S, weekId).filter(r => (S.vidHidden || []).includes(r.id));
+export function hideVidTopic(S, id) {
+  ensureShortVid(S); const row = byId(S.topics, id); if (!row) return { ok: false, error: 'Chủ đề nạp riêng cho video thì dùng Xóa.' };
+  if (S.videos.some(v => v.topicId === id && v.status !== 'IDEA')) return { ok: false, error: 'Topic đã có thẻ Vid đã duyệt. Hủy từng thẻ nếu không dùng.' };
+  S.videos = S.videos.filter(v => v.topicId !== id); S.vidAnalyses = S.vidAnalyses.filter(a => a.topicId !== id);
+  if (!S.vidHidden.includes(id)) S.vidHidden.push(id); log(S, 'vid-topic', 'topic', id, 'ẩn khỏi Short Vid');
+  return { ok: true };
+}
+export function showVidTopics(S, weekId) {
+  const ids = vidHiddenOf(S, weekId).map(r => r.id); S.vidHidden = (S.vidHidden || []).filter(x => !ids.includes(x)); return ids.length;
 }
 export function addVidTopics(S, startDate, md) {
   ensureShortVid(S);
@@ -201,14 +216,14 @@ export function mockInsights(S, weekId, topicId) {
     const ss = M.sentences.filter(s => countWords(s) >= 6);
     for (let k = 0; k < ss.length && out.length < 3; k += 4) add('giaithich', `Ý ${out.length + 1}: ${short(ss[k], 70)}`, short(ss.slice(k, k + 4).join(' '), 240), ss.slice(k, k + 4).join(' '), 'Topic chưa có mục chuẩn (Ngộ nhận, Cách làm…); tách theo đoạn.');
   }
-  const cap = Math.max(1, Math.min(8, Math.round((iv.words || countWords(iv.text)) / 250)));
+  const cap = Math.max(1, Math.min(VID_MAX_PER_TOPIC, Math.round((iv.words || countWords(iv.text)) / 250)));
   const items = out.slice(0, Math.max(cap, Math.min(out.length, 2)));
   // Cân đối kiểu theo tỉ lệ tuần (Bản tin / Người nói): đổi các ý hợp dạng tin (Ngộ nhận, Giải thích) sang Bản tin cho đủ phần
   const mix = vidSettingsOf(S).mix; const want = mix.bantin + mix.noihet ? Math.round(items.length * mix.bantin / (mix.bantin + mix.noihet)) : 0;
   let have = items.filter(i => i.kind === 'bantin').length; let switched = 0;
   ['ngonhan', 'giaithich'].forEach(key => items.forEach(i => { if (have < want && i.kind !== 'bantin' && (byId(S.vidFormats, i.formatId) || {}).key === key) { i.kind = 'bantin'; have++; switched++; } }));
   const byFmt = {}; items.forEach(i => { const f = byId(S.vidFormats, i.formatId); byFmt[f.name] = (byFmt[f.name] || 0) + 1; });
-  const reason = `Topic ${iv.words || countWords(iv.text)} chữ, tách được ${out.length} ý độc lập; đề xuất ${items.length} video (${Object.entries(byFmt).map(([k, n]) => `${n} ${k}`).join(', ')}), mỗi video một ý, không dùng chung đoạn căn cứ.${out.length > items.length ? ` Bỏ ${out.length - items.length} ý vì Topic ngắn (khoảng 250 chữ Topic cho một video).` : ''}${switched ? ` Chuyển ${switched} ý sang kiểu Bản tin theo tỉ lệ ${mix.bantin}/${mix.noihet}.` : ''} (Mô phỏng)`;
+  const reason = `Topic ${iv.words || countWords(iv.text)} chữ, tách được ${out.length} ý độc lập; đề xuất ${items.length} video (${Object.entries(byFmt).map(([k, n]) => `${n} ${k}`).join(', ')}), mỗi video một ý, không dùng chung đoạn căn cứ.${out.length > items.length ? ` Bỏ ${out.length - items.length} ý vì Topic ngắn (khoảng 250 chữ Topic cho một video; tối đa ${VID_MAX_PER_TOPIC} video mỗi Topic).` : ''}${switched ? ` Chuyển ${switched} ý sang kiểu Bản tin theo tỉ lệ ${mix.bantin}/${mix.noihet}.` : ''} (Mô phỏng)`;
   return { ok: true, total: items.length, reason, items, simulated: true };
 }
 // Lời nhắn AI: phân tích Topic → danh sách Insight (JSON)
@@ -219,7 +234,7 @@ export function vidAnalyzeJob(S, weekId, topicId) {
   const others = vidsOf(S, weekId).filter(v => v.topicId !== topicId && !v.cancelled).map(v => `- ${v.insight.title}`).join('\n');
   const user = [
     '# Việc: phân tích Topic để lên danh sách video ngắn (mỗi video 60 giây, một ý, tự đứng được)',
-    `Đề xuất số video phù hợp với lượng ý thật sự có trong Topic, không cố định số lượng; nêu lý do. Mỗi video một Insight khác nhau, có đoạn căn cứ trích nguyên văn từ Topic, không hai video dùng chung đoạn căn cứ. Kịch bản sau này dài ${c.wordMin}–${c.wordMax} chữ, nên mỗi Insight phải đủ chất liệu cho chừng ấy.`,
+    `Đề xuất số video phù hợp với lượng ý thật sự có trong Topic, không cố định số lượng nhưng tối đa ${VID_MAX_PER_TOPIC}; nêu lý do. Mỗi video một Insight khác nhau, có đoạn căn cứ trích nguyên văn từ Topic, không hai video dùng chung đoạn căn cứ. Kịch bản sau này dài ${c.wordMin}–${c.wordMax} chữ, nên mỗi Insight phải đủ chất liệu cho chừng ấy.`,
     `Mục tiêu tuần: ${c.weekTarget} video (${c.mix.bantin} Bản tin, ${c.mix.noihet} Người nói hết); đây là gợi ý cân đối kiểu, không ép số lượng.`,
     `# Format video được dùng\n${fl}`,
     `# Topic: ${iv.title}\n${topicDirection(iv) ? topicDirection(iv) + '\n\n' : ''}${iv.text}`,
@@ -244,9 +259,11 @@ export function analyzeTopic(S, weekId, topicId, res) {
   ensureShortVid(S);
   if (!weekOf(S, weekId)) return { ok: false, error: 'Không tìm thấy tuần.' };
   const r = res && res.ok ? res : mockInsights(S, weekId, topicId); if (!r.ok) return r;
+  const room = VID_MAX_PER_TOPIC - vidsOf(S, weekId, topicId).filter(v => v.status !== 'IDEA').length;
+  if (room <= 0) return { ok: false, error: `Topic đã đủ ${VID_MAX_PER_TOPIC} thẻ Vid. Bỏ hoặc hủy bớt rồi phân tích lại.` };
   const dropped = S.videos.filter(v => v.weekId === weekId && v.topicId === topicId && v.status === 'IDEA').length;
   S.videos = S.videos.filter(v => !(v.weekId === weekId && v.topicId === topicId && v.status === 'IDEA'));
-  const vids = r.items.map(it => { const v = newVideo(S, weekId, topicId, Object.assign({ simulated: r.simulated }, it)); S.videos.push(v); return v; });
+  const vids = r.items.slice(0, room).map(it => { const v = newVideo(S, weekId, topicId, Object.assign({ simulated: r.simulated }, it)); S.videos.push(v); return v; });
   S.vidAnalyses = S.vidAnalyses.filter(a => !(a.weekId === weekId && a.topicId === topicId));
   S.vidAnalyses.push({ weekId, topicId, total: vids.length, reason: r.reason, at: S.settings.demoNow, simulated: !!r.simulated });
   log(S, 'vid-analyze', 'topic', topicId, `${vids.length} đề xuất${r.simulated ? ' (mô phỏng)' : ''}`);
@@ -256,6 +273,7 @@ export const vidAnalysisOf = (S, weekId, topicId) => (S.vidAnalyses || []).find(
 export function addVideo(S, weekId, topicId, p) {
   ensureShortVid(S);
   if (!weekOf(S, weekId) || !vidTopicRow(S, topicId)) return { ok: false, error: 'Không thấy tuần hoặc Topic.' };
+  if (vidsOf(S, weekId, topicId).length >= VID_MAX_PER_TOPIC) return { ok: false, error: `Topic đã đủ ${VID_MAX_PER_TOPIC} thẻ Vid.` };
   const P = p || {}; const f = byId(S.vidFormats, P.formatId) || vidFormatsOf(S)[0];
   if (!String(P.title || '').trim()) return { ok: false, error: 'Insight cần có tiêu đề.' };
   const v = newVideo(S, weekId, topicId, Object.assign({ kind: f.kind, status: 'TODO' }, P, { formatId: f.id })); S.videos.push(v);
@@ -287,8 +305,8 @@ export function mergeIdeas(S, idA, idB) {
   a.source = [a.source, b.source].filter(Boolean).join('\n');
   S.videos = S.videos.filter(x => x.id !== idB); return { ok: true, video: a };
 }
-export function approveIdeas(S, weekId, topicId, ids) {
-  const list = vidsOf(S, weekId, topicId).filter(v => v.status === 'IDEA' && (!ids || ids.includes(v.id)));
+export function approveIdeas(S, weekId, topicId, ids) { // topicId rỗng: cả tuần
+  const list = vidsOf(S, weekId, topicId || null).filter(v => v.status === 'IDEA' && (!ids || ids.includes(v.id)));
   if (!list.length) return { ok: false, error: 'Không có đề xuất nào để duyệt.' };
   list.forEach(v => { v.status = 'TODO'; });
   log(S, 'vid-approve-ideas', 'topic', topicId, `${list.length} Insight`);

@@ -2073,3 +2073,17 @@ test('10.72 · Chủ đề chỉ cho video không vào Matrix; cài đặt và F
   assert.ok(p.ok && p.items[0].kind === 'bantin');
   assert.ok(AC.parseVidScript('{"script":"[Hook]\\nXin chào","audio":"","image":"ảnh"}').ok);
 });
+
+test('10.74 · Short Vid: tối đa 7 thẻ Vid mỗi Topic, ẩn/hiện Topic của Matrix', () => {
+  const S = seed(); const tid = AC.vidTopicsOf(S, T2)[0].row.id;
+  const r = AC.analyzeTopic(S, T2, tid); assert.ok(r.count <= 7);
+  AC.approveIdeas(S, T2, tid);
+  while (AC.vidsOf(S, T2, tid).length < 7) assert.ok(AC.addVideo(S, T2, tid, { title: `Insight ${AC.vidsOf(S, T2, tid).length}` }).ok);
+  assert.equal(AC.addVideo(S, T2, tid, { title: 'Thừa' }).ok, false);
+  assert.equal(AC.analyzeTopic(S, T2, tid).ok, false, 'đủ 7 thẻ đã duyệt thì không phân tích thêm');
+  assert.equal(AC.hideVidTopic(S, tid).ok, false, 'Topic có thẻ đã duyệt không ẩn được');
+  const t2 = AC.vidTopicsOf(S, T2)[1].row.id; assert.ok(AC.hideVidTopic(S, t2).ok);
+  assert.equal(AC.vidTopicsOf(S, T2).length, 2); assert.equal(AC.vidHiddenOf(S, T2).length, 1);
+  assert.equal(AC.showVidTopics(S, T2), 1); assert.equal(AC.vidTopicsOf(S, T2).length, 3);
+  assert.equal(AC.approveIdeas(S, T2, null).ok, false, 'không còn đề xuất');
+});

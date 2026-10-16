@@ -116,7 +116,7 @@ export function emptyState() {
     voice: { md: '', parsed: parseVoice('').parsed, issues: [], updatedAt: null },
     channels: [], columns: [], formats: [], weekTemplates: [],
     weeks: [], topicFiles: [], topics: [], cells: [], slots: [], audit: [], blogPosts: [],
-    vidFormats: defaultVidFormats(), vidSettings: defaultVidSettings(), vidTopics: [], videos: [], vidAnalyses: [],
+    vidFormats: defaultVidFormats(), vidSettings: defaultVidSettings(), vidTopics: [], videos: [], vidAnalyses: [], vidHidden: [],
     settings: { demoNow: '2026-10-12T09:00', reviewThreshold: 70, hypeWords: [...DEFAULT_HYPE] },
     archive: {}, ui: { weekStart: null },
   };

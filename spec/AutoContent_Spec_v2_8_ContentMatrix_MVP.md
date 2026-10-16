@@ -1338,3 +1338,10 @@ Theo góp ý người dùng: nhất quán UI/UX với phần còn lại của ap
 - Thẻ kịch bản và ô Video giữ dạng thẻ. Điện thoại: bảng thành thẻ có nhãn cột, ẩn Topic và số thứ tự.
 - Sửa lỗi: thanh tab dưới điện thoại 5 cột nhưng có 6 mục.
 
+## 10.74. Short Vid dạng ma trận Topic × 7 thẻ Vid, popup từng thẻ (16/10/2026, bản 103)
+Theo yêu cầu người dùng, thay bố cục bảng ở 10.73.
+- Hàng là Topic (dùng chung với Matrix, thêm chủ đề riêng cho video, hoặc ẩn Topic của Matrix khỏi Short Vid); cột là 7 thẻ Vid, tối đa 7 video mỗi Topic. AI chỉ đề xuất tới 7.
+- Thẻ Vid hiện trạng thái, số chữ, tiêu đề Insight, Format, kiểu, cảnh báo, "Có video". Viền cam là cần xử lý; mờ là đã hủy.
+- Bấm thẻ mở popup giữa màn: đầu popup là công cụ (Kịch bản, Biên tập video, Tài nguyên), thân là Insight, Kịch bản, Prompt, Ô Video, lịch sử kịch bản. Công cụ cắt/crop/frame/nhạc nền (Đợt 3) và kho B-roll/SFX/giọng đọc (Đợt 4) có chỗ sẵn, chưa bật.
+- Thanh công cụ tuần: phân tích hàng loạt, duyệt đề xuất hàng loạt, viết kịch bản hàng loạt.
+
