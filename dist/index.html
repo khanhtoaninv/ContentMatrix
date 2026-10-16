@@ -1062,11 +1062,6 @@ body.drag-slot .cal .day { transition: background .12s, box-shadow .12s; }
 @media (max-width: 640px) { .shcal { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 
 /* ---- Short Vid (mục 10.72) ---- */
-.sv-layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 16px; align-items: start; }
-.sv-topics { position: sticky; top: 72px; gap: 8px; }
-.sv-topic { display: grid; gap: 2px; text-align: left; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-s); background: var(--surface); cursor: pointer; }
-.sv-topic:hover { border-color: var(--line-strong); }
-.sv-topic[aria-current="true"] { border-color: var(--accent, var(--line-strong)); box-shadow: inset 3px 0 0 var(--accent, var(--line-strong)); }
 .sv-card h3 { margin: 2px 0 0; font-size: var(--fs-4); }
 .sv-off { opacity: .55; }
 .sv-off .sv-cell, .sv-off .sv-script { filter: grayscale(1); }
@@ -1079,11 +1074,23 @@ body.drag-slot .cal .day { transition: background .12s, box-shadow .12s; }
 .sv-video video { width: 100%; max-height: 320px; border-radius: var(--r-s); background: #000; }
 .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 14px; }
 button.kchip { cursor: pointer; font: inherit; color: inherit; }
+.rtbl .inp { max-width: 190px; }
+.rtbl .linkbtn { text-align: left; }
+#sv-counts .st { font-size: var(--fs-1); padding: 1px 8px; }
 @media (max-width: 760px) {
-  .sv-layout { grid-template-columns: 1fr; }
-  .sv-topics { position: static; }
+  .tabbar { grid-template-columns: repeat(6, minmax(0, 1fr)); }
   .grid-3 { grid-template-columns: 1fr 1fr; }
   .sv-video { grid-template-columns: 1fr; }
+  .rtbl-wrap { border: 0; background: none; }
+  .rtbl thead { display: none; }
+  .rtbl, .rtbl tbody { display: grid; gap: 10px; }
+  .rtbl tr { display: grid; gap: 6px; padding: 10px; border: 1px solid var(--line); border-radius: var(--r-m); background: var(--surface); }
+  .rtbl td { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 8px; padding: 0; border: 0; align-items: start; }
+  .rtbl td::before { content: attr(data-l); font-size: var(--fs-1); color: var(--ink-2); font-weight: 600; }
+  .rtbl .hide-m { display: none; }
+  .rtbl td > .st { justify-self: start; }
+  .rtbl .inp { max-width: none; }
+  .rtbl .ellip { max-width: none; white-space: normal; }
 }
 
 </style>
@@ -14515,7 +14522,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		DATA_VERSION,
 		STORAGE_KEY,
 		RELEASE: "R4",
-		BUILD: 101,
+		BUILD: 102,
 		TEMPLATES,
 		STEP_NAMES,
 		STEP_COUNT,
@@ -24003,30 +24010,71 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
     ${k.ideas ? chip(k.ideas, "đề xuất chờ duyệt", "Insight AI đề xuất, chưa duyệt") : ""}
     ${k.cancelled ? chip(k.cancelled, "đã hủy", "Kịch bản đã hủy, không tính KPI") : ""}</div>`;
 	}
+	var CLAMP = (t, n) => {
+		t = String(t || "").replace(/\s+/g, " ").trim();
+		return t.length > n ? t.slice(0, n - 1).replace(/\s+\S*$/, "") + "…" : t;
+	};
+	function overviewHtml(w, tps) {
+		const rows = AC.vidsOf(S, w.id);
+		if (!rows.length) return "";
+		const k = AC.vidKpi(S, w.id);
+		const tname = (id) => {
+			const t = tps.find((x) => x.row.id === id);
+			return t ? t.v.title : "?";
+		};
+		const cell = (v) => {
+			const words = AC.vidWords(v.script);
+			return {
+				v,
+				title: v.insight.title,
+				topic: tname(v.topicId),
+				fmt: vfName(v.formatId),
+				kind: kindName(v.kind),
+				words: v.script ? `${words} chữ · ≈ ${fmtSec(AC.vidDuration(S, words))}` : "—",
+				st: stateChip(v),
+				has: v.cancelled ? "—" : v.file ? "Đã có" : v.status === "IDEA" ? "—" : "Chưa up"
+			};
+		};
+		const list = rows.map(cell);
+		const counts = `<span>${k.planned} video:</span><span class="st st-done">${k.ready} sẵn sàng</span><span class="st st-ok">${rows.filter((v) => v.status === "APPROVED" && !v.cancelled && !v.file).length} đã duyệt kịch bản</span><span class="st st-need">${rows.filter((v) => !v.cancelled && (v.status === "TODO" || v.status === "DRAFT") && !v.file).length} chưa duyệt</span><span class="st st-need">${k.ideas} đề xuất</span><span class="st st-off">${k.cancelled} đã hủy</span>`;
+		const link = (c) => `<button class="linkbtn" data-act="sv-goto" data-id="${esc(c.v.id)}">${esc(CLAMP(c.title, 70))}</button>`;
+		return `<section class="work stack" aria-label="Tổng quan video của tuần"><div class="work-bar"><div class="row small muted" id="sv-counts">${counts}</div></div>${`<div class="tbl-wrap rtbl-wrap"><table class="tbl rtbl" data-testid="sv-overview"><thead><tr><th class="hide-m">#</th><th>Insight</th><th class="hide-m">Topic</th><th>Format</th><th>Kiểu</th><th>Lời nói</th><th>Trạng thái</th><th>Video</th></tr></thead><tbody>
+    ${list.map((c) => `<tr class="${c.v.cancelled ? "sv-off" : ""}"><td data-l="#" class="hide-m">${c.v.order}</td><td data-l="Insight">${link(c)}</td><td data-l="Topic" class="hide-m"><span class="ellip">${esc(c.topic)}</span></td><td data-l="Format">${esc(c.fmt)}</td><td data-l="Kiểu">${esc(c.kind)}</td><td data-l="Lời nói" class="mono small">${esc(c.words)}</td><td data-l="Trạng thái">${c.st}</td><td data-l="Video">${esc(c.has)}</td></tr>`).join("")}</tbody></table></div>`}</section>`;
+	}
+	function topicBarHtml(tps) {
+		return `<div class="filters" role="group" aria-label="Chọn Topic"><span class="small muted">Topic:</span>
+    ${tps.map((t) => `<button class="fchip sv-topic" data-act="sv-topic" data-id="${esc(t.row.id)}" aria-pressed="${t.row.id === view.svTopic}" title="${esc(t.v.title)} · ${t.v.words.toLocaleString("vi-VN")} chữ${t.videoOnly ? " · chủ đề riêng cho video" : ""}">${t.videoOnly ? "<span class=\"small muted\">Riêng cho video ·</span> " : `${t.row.order}. `}${esc(CLAMP(t.v.title, 32))} <span class="small muted">(${AC.vidsOf(S, t.row.weekId, t.row.id).filter((v) => !v.cancelled && v.status !== "IDEA").length})</span></button>`).join("")}
+    <button class="btn sm" data-act="sv-import">${icon("plus")} Nạp chủ đề cho video</button></div>`;
+	}
 	RENDERERS.shortvid = () => {
 		AC.ensureShortVid(S);
 		const start = curStart();
 		const w = curWeek();
 		const head = `<div class="page-head"><div><span class="eyebrow">Short Vid · ${esc(AC.weekLabelOf(start).range)}</span><h1>Video ngắn</h1>
-      <p class="sub">Từ Topic của tuần (dùng chung với Matrix) hoặc chủ đề nạp riêng cho video: phân tích ra các Insight, mỗi Insight một video 60 giây; viết kịch bản, rồi tải video thành phẩm vào ô Video.</p></div>
+      <p class="sub">Short Vid đi theo tuần đang chọn ở Dashboard. Từ Topic (dùng chung với Matrix) hoặc chủ đề nạp riêng, phân tích ra các Insight, mỗi Insight một video 60 giây; viết kịch bản rồi tải video thành phẩm vào ô Video.</p></div>
       ${w ? kpiBarHtml(w) : ""}</div>`;
 		const tps = w ? AC.vidTopicsOf(S, w.id) : [];
-		const importBtn = `<button class="btn ${tps.length ? "" : "primary"}" data-act="sv-import">${icon("plus")} Nạp chủ đề cho video</button>`;
-		if (!tps.length) return `${head}<div class="empty" data-testid="sv-empty"><p>Tuần này chưa có Topic. Topic nạp ở Matrix sẽ hiện ở đây; hoặc nạp chủ đề chỉ dùng cho video (không tạo ô trong Matrix).</p><div class="row">${importBtn}</div></div>`;
+		if (!tps.length) return `${head}<div class="empty" data-testid="sv-empty"><p>Tuần này chưa có Topic. Topic nạp ở Matrix sẽ hiện ở đây; hoặc nạp chủ đề chỉ dùng cho video (không tạo ô trong Matrix).</p><div class="row"><button class="btn primary" data-act="sv-import">${icon("plus")} Nạp chủ đề cho video</button></div></div>`;
 		if (!tps.some((t) => t.row.id === view.svTopic)) view.svTopic = tps[0].row.id;
 		const cur = tps.find((t) => t.row.id === view.svTopic);
-		const list = tps.map((t) => {
-			const vs = AC.vidsOf(S, w.id, t.row.id);
-			const live = vs.filter((v) => !v.cancelled && v.status !== "IDEA");
-			return `<button class="sv-topic" data-act="sv-topic" data-id="${esc(t.row.id)}" ${t.row.id === view.svTopic ? "aria-current=\"true\"" : ""}>
-      <b>${esc(t.v.title)}</b><span class="small muted">${t.videoOnly ? "Chỉ cho video · " : `Topic ${t.row.order} · `}${t.v.words.toLocaleString("vi-VN")} chữ</span>
-      <span class="small">${vs.length ? `${live.length} video · ${live.filter((v) => v.file).length} sẵn sàng${vs.some((v) => v.status === "IDEA") ? " · có đề xuất" : ""}` : "<span class=\"faint\">Chưa phân tích</span>"}</span></button>`;
-		}).join("");
-		return `${head}
-    <div class="sv-layout">
-      <nav class="sv-topics stack" aria-label="Topic của tuần"><span class="eyebrow">Topic (${tps.length})</span>${list}${importBtn}</nav>
-      <section class="stack" style="min-width:0" aria-label="Video của Topic" id="sv-main">${topicPanelHtml(w, cur)}</section>
-    </div>`;
+		return `${head}${overviewHtml(w, tps)}
+    <section class="stack" aria-label="Video của Topic" id="sv-main">${topicBarHtml(tps)}${topicPanelHtml(w, cur)}</section>`;
+	};
+	ACTIONS["sv-goto"] = (el) => {
+		const v = AC.byId(S.videos, el.dataset.id);
+		if (!v) return;
+		view.svTopic = v.topicId;
+		render();
+		requestAnimationFrame(() => {
+			const t = document.querySelector(`[data-id="${v.id}"]:is(.sv-card,.sv-idea)`) || document.getElementById("sv-main");
+			if (t) {
+				t.scrollIntoView({ block: "start" });
+				if (t.focus) {
+					t.setAttribute("tabindex", "-1");
+					t.focus({ preventScroll: true });
+				}
+			}
+		});
 	};
 	function topicPanelHtml(w, t) {
 		const vs = AC.vidsOf(S, w.id, t.row.id);
@@ -24058,17 +24106,14 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		const picked = (view.svPick || []).filter((id) => ideas.some((v) => v.id === id));
 		return `<section class="panel stack" data-testid="sv-ideas"><header><div><span class="eyebrow">Đề xuất chờ duyệt</span><h2>${ideas.length} Insight</h2></div>
       <div class="row"><button class="btn" data-act="sv-merge" ${picked.length === 2 ? "" : "disabled"} title="Tích đúng 2 Insight để gộp">Gộp 2 mục đã chọn</button><button class="btn primary" data-act="sv-approve-ideas" data-testid="sv-approve-ideas">Duyệt danh sách (${ideas.length})</button></div></header>
-    <div class="stack" style="gap:8px">${ideas.map((v, i) => `<div class="citem sv-idea" data-id="${esc(v.id)}">
-      <div class="row" style="align-items:flex-start;flex-wrap:nowrap;gap:10px">
-        <label class="check" style="margin-top:2px"><input type="checkbox" data-change="sv-pick" data-id="${esc(v.id)}" ${picked.includes(v.id) ? "checked" : ""}><span class="sr">Chọn để gộp</span></label>
-        <div class="stack" style="gap:4px;min-width:0;flex:1"><b>${i + 1}. ${esc(v.insight.title)}</b>
-          ${v.insight.idea ? `<span class="small">${esc(v.insight.idea)}</span>` : ""}
-          ${v.insight.reason ? `<span class="small muted">Lý do: ${esc(v.insight.reason)}</span>` : ""}
-          ${v.source ? `<details><summary class="small">Đoạn căn cứ trong Topic</summary><p class="small" style="white-space:pre-wrap">${esc(v.source)}</p></details>` : ""}
-          <div class="row" style="gap:8px"><label class="sr" for="sv-f-${esc(v.id)}">Format</label><select id="sv-f-${esc(v.id)}" data-change="sv-idea-format" data-id="${esc(v.id)}">${fopts(v.formatId)}</select>
-            <label class="sr" for="sv-k-${esc(v.id)}">Kiểu</label><select id="sv-k-${esc(v.id)}" data-change="sv-idea-kind" data-id="${esc(v.id)}">${kopts(v.kind)}</select>
-            <button class="btn sm" data-act="sv-idea-edit" data-id="${esc(v.id)}">Sửa</button><button class="btn sm ghost danger" data-act="sv-idea-drop" data-id="${esc(v.id)}">Bỏ</button></div>
-        </div></div></div>`).join("")}</div></section>`;
+    <div class="tbl-wrap rtbl-wrap"><table class="tbl rtbl"><thead><tr><th><span class="sr">Chọn</span></th><th>Insight</th><th>Format</th><th>Kiểu</th><th>Lý do</th><th>Thao tác</th></tr></thead><tbody>
+    ${ideas.map((v, i) => `<tr class="sv-idea" data-id="${esc(v.id)}">
+      <td data-l="Chọn"><label class="check"><input type="checkbox" data-change="sv-pick" data-id="${esc(v.id)}" ${picked.includes(v.id) ? "checked" : ""}><span class="sr">Chọn để gộp</span></label></td>
+      <td data-l="Insight"><b>${i + 1}. ${esc(v.insight.title)}</b>${v.insight.idea ? `<br><span class="small">${esc(v.insight.idea)}</span>` : ""}${v.source ? `<details><summary class="small">Đoạn căn cứ trong Topic</summary><p class="small" style="white-space:pre-wrap">${esc(v.source)}</p></details>` : ""}</td>
+      <td data-l="Format"><label class="sr" for="sv-f-${esc(v.id)}">Format</label><select id="sv-f-${esc(v.id)}" class="inp" data-change="sv-idea-format" data-id="${esc(v.id)}">${fopts(v.formatId)}</select></td>
+      <td data-l="Kiểu"><label class="sr" for="sv-k-${esc(v.id)}">Kiểu</label><select id="sv-k-${esc(v.id)}" class="inp" data-change="sv-idea-kind" data-id="${esc(v.id)}">${kopts(v.kind)}</select></td>
+      <td data-l="Lý do"><span class="small muted">${esc(v.insight.reason)}</span></td>
+      <td data-l="Thao tác"><div class="row" style="gap:6px"><button class="btn sm" data-act="sv-idea-edit" data-id="${esc(v.id)}">Sửa</button><button class="btn sm ghost danger" data-act="sv-idea-drop" data-id="${esc(v.id)}">Bỏ</button></div></td></tr>`).join("")}</tbody></table></div></section>`;
 	}
 	function scriptHtml(text) {
 		return AC.vidSections(text).map((s) => `<div class="sv-sec">${s.label ? `<span class="chip-col">${esc(s.label)}</span>` : ""}<p>${esc(s.text)}</p></div>`).join("");

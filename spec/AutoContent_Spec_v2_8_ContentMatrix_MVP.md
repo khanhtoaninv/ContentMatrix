@@ -1330,3 +1330,11 @@ Kế hoạch: `notes/ke-hoach-short-vid.md` (Đợt 1). Quyết định D152–D
 - Chưa làm (Đợt 2+): slot `shortvid`, Đưa vào lịch, caption theo kênh, Report/Export theo video, công cụ dựng.
 - Test: 121 logic, 416 UI.
 
+## 10.73. Short Vid trình bày theo bảng (16/10/2026, bản 102)
+Theo góp ý người dùng: nhất quán UI/UX với phần còn lại của app. Cách chọn: nội dung ngắn, cần so sánh theo cột thì dùng bảng; nội dung dài, nhiều nút thì dùng thẻ.
+- Đầu màn: bảng tổng quan video của tuần (như Matrix: khung `.work`, dải đếm trạng thái, bảng). Bấm Insight thì nhảy tới thẻ chi tiết.
+- Insight đề xuất dạng bảng: Chọn, Insight (ý chính, đoạn căn cứ thu gọn), Format, Kiểu, Lý do, Sửa/Bỏ.
+- Chọn Topic bằng hàng chip (như lọc kênh ở Dashboard); chủ đề nạp riêng ghi "Riêng cho video".
+- Thẻ kịch bản và ô Video giữ dạng thẻ. Điện thoại: bảng thành thẻ có nhãn cột, ẩn Topic và số thứ tự.
+- Sửa lỗi: thanh tab dưới điện thoại 5 cột nhưng có 6 mục.
+

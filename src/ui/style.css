@@ -1057,11 +1057,6 @@ body.drag-slot .cal .day { transition: background .12s, box-shadow .12s; }
 @media (max-width: 640px) { .shcal { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 
 /* ---- Short Vid (mục 10.72) ---- */
-.sv-layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 16px; align-items: start; }
-.sv-topics { position: sticky; top: 72px; gap: 8px; }
-.sv-topic { display: grid; gap: 2px; text-align: left; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-s); background: var(--surface); cursor: pointer; }
-.sv-topic:hover { border-color: var(--line-strong); }
-.sv-topic[aria-current="true"] { border-color: var(--accent, var(--line-strong)); box-shadow: inset 3px 0 0 var(--accent, var(--line-strong)); }
 .sv-card h3 { margin: 2px 0 0; font-size: var(--fs-4); }
 .sv-off { opacity: .55; }
 .sv-off .sv-cell, .sv-off .sv-script { filter: grayscale(1); }
@@ -1074,9 +1069,21 @@ body.drag-slot .cal .day { transition: background .12s, box-shadow .12s; }
 .sv-video video { width: 100%; max-height: 320px; border-radius: var(--r-s); background: #000; }
 .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 14px; }
 button.kchip { cursor: pointer; font: inherit; color: inherit; }
+.rtbl .inp { max-width: 190px; }
+.rtbl .linkbtn { text-align: left; }
+#sv-counts .st { font-size: var(--fs-1); padding: 1px 8px; }
 @media (max-width: 760px) {
-  .sv-layout { grid-template-columns: 1fr; }
-  .sv-topics { position: static; }
+  .tabbar { grid-template-columns: repeat(6, minmax(0, 1fr)); }
   .grid-3 { grid-template-columns: 1fr 1fr; }
   .sv-video { grid-template-columns: 1fr; }
+  .rtbl-wrap { border: 0; background: none; }
+  .rtbl thead { display: none; }
+  .rtbl, .rtbl tbody { display: grid; gap: 10px; }
+  .rtbl tr { display: grid; gap: 6px; padding: 10px; border: 1px solid var(--line); border-radius: var(--r-m); background: var(--surface); }
+  .rtbl td { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 8px; padding: 0; border: 0; align-items: start; }
+  .rtbl td::before { content: attr(data-l); font-size: var(--fs-1); color: var(--ink-2); font-weight: 600; }
+  .rtbl .hide-m { display: none; }
+  .rtbl td > .st { justify-self: start; }
+  .rtbl .inp { max-width: none; }
+  .rtbl .ellip { max-width: none; white-space: normal; }
 }
