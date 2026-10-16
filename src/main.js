@@ -22,5 +22,7 @@ import './ui/05-matrix.js';
 import './ui/06-export.js';
 import './ui/07-setup.js';
 import './ui/07b-skill.js';
+import './ui/07c-shortvid.js';
 import './ui/08-report.js';
+import './ui/09-shortvid.js';
 import './ui/99-boot.js';

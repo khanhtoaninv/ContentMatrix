@@ -24,6 +24,7 @@ export function dashHeaderHtml(start, w, file) {
     k.tracking ? chip(fmtNum(k.reach), 'tiếp cận/xem', 'Tổng Reach hoặc lượt xem của các bài đã đăng trong tuần (mô phỏng)') : '',
     k.tracking ? chip(fmtNum(k.eng), 'tương tác', 'Cảm xúc/thích + bình luận + chia sẻ + lưu (mô phỏng)') : '',
     k.late.length ? `<span class="kchip late" title="Slot đã quá giờ mà chưa đăng được"><b>${k.late.length}</b> đăng lỗi</span>` : '',
+    w ? (() => { const v = AC.vidKpi(S, w.id); return `<button class="kchip${v.planned < v.min ? ' late' : ''}" data-act="nav" data-screen="shortvid" data-testid="dash-vid-kpi" title="Video ngắn có thành phẩm / kịch bản không hủy (mục tiêu ${v.target}, tối thiểu ${v.min}). Bấm để mở Short Vid."><b>${v.ready}/${v.planned}</b> video ngắn</button>`; })() : '',
   ].join('');
   const sub = sc.total ? `${sc.total} slot · ${sc.EMPTY} chưa có bài · ${sc.APPROVED + sc.PUBLISHED} sẵn sàng${sc.needsUpdate ? ` · ${sc.needsUpdate} cần cập nhật` : ''}` : 'Tuần chưa có slot. Bấm "Lập tuần" để chọn Tuần mẫu.';
   return `<div class="page-head dash-head"><div><span class="eyebrow">Dashboard · Tuần ${esc(l.iso.split('-W')[1])} · ${esc(l.range)}</span><h1>${file && file.theme ? esc(file.theme) : esc(l.short)}</h1>

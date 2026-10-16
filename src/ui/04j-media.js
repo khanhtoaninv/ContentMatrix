@@ -131,13 +131,18 @@ export function videoMetaLine(v) {
   if (!v || v.kind !== 'video' || !(v.cover || v.subs)) return '';
   return `<span class="small faint">Video: ${[v.cover ? `có ảnh bìa${v.cover.t != null ? ` (khung ${AC.fmtClock(v.cover.t)})` : ''}` : '', v.subs ? `phụ đề ${v.subs.cues.length} dòng${v.subs.source === 'script' ? ' (thời gian ước lượng)' : v.subs.source === 'api' ? ' (nhận giọng nói)' : ''}` : ''].filter(Boolean).join(' · ')}</span>`;
 }
-const videoReady = vd => new Promise(res => { if (vd.readyState >= 1) return res(); vd.addEventListener('loadedmetadata', () => res(), { once: true }); vd.addEventListener('error', () => res(), { once: true }); });
+const videoReady = vd => new Promise(res => { if (vd.readyState >= 1 || vd.error) return res(); vd.addEventListener('loadedmetadata', () => res(), { once: true }); vd.addEventListener('error', () => res(), { once: true }); });
 const seekTo = (vd, t) => new Promise(res => { if (Math.abs(vd.currentTime - t) < 0.01 && vd.readyState >= 2) return res(); const done = () => res(); vd.addEventListener('seeked', done, { once: true }); vd.currentTime = t; setTimeout(done, 1500); });
 
 export function openCoverDialog(s, i) {
   const a = s.assets[i], v = curVersion(a);
+  return coverDialog({ v, name: a.name, ver: `bản v${v.n}`, save: c => AC.setVideoCover(S, s.id, i, c), done: msg => afterImageDialog(s, msg) });
+}
+// Hộp chọn ảnh bìa dùng chung cho slot và Short Vid: T = {v, name, ver, save(cover|null), done(msg)}
+export function coverDialog(T) {
+  const v = T.v, a = { name: T.name };
   const st = { t: v.cover && v.cover.t != null ? v.cover.t : 0, src: v.cover ? v.cover.src : '', at: v.cover ? v.cover.t : null, dirty: false };
-  const box = openLayer(`<header class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:nowrap"><div><span class="eyebrow">Ảnh bìa video · ${esc(a.name)} · bản v${v.n}</span><h2>Chọn ảnh bìa</h2><p class="small muted">Kéo thanh thời gian tới khung đẹp rồi bấm Lấy khung này, hoặc tải ảnh của bạn. Ảnh bìa đi kèm video khi xuất ZIP; kênh nào cho đặt ảnh bìa thì dùng ảnh này khi đăng.</p></div><button class="btn icon ghost" data-act="close-layer" aria-label="Đóng">${icon('close')}</button></header>
+  const box = openLayer(`<header class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:nowrap"><div><span class="eyebrow">Ảnh bìa video · ${esc(a.name)} · ${esc(T.ver || '')}</span><h2>Chọn ảnh bìa</h2><p class="small muted">Kéo thanh thời gian tới khung đẹp rồi bấm Lấy khung này, hoặc tải ảnh của bạn. Ảnh bìa đi kèm video khi xuất ZIP; kênh nào cho đặt ảnh bìa thì dùng ảnh này khi đăng.</p></div><button class="btn icon ghost" data-act="close-layer" aria-label="Đóng">${icon('close')}</button></header>
     <div class="cv-dlg">
       <div class="stack" style="gap:8px;min-width:0"><video id="cv-video" src="${esc(v.src)}" muted playsinline preload="auto"></video>
         <div class="field"><label for="cv-t">Thời điểm: <b id="cv-tv">${AC.fmtClock(st.t)}</b></label><input id="cv-t" type="range" min="0" max="1" step="0.1" value="${st.t}"></div>
@@ -169,15 +174,20 @@ export function openCoverDialog(s, i) {
   });
   box.querySelector('#cv-dl').addEventListener('click', () => { if (st.src) downloadBytes(`${AC.slugOf(a.name)}-bia.jpg`, AC.dataUrlBytes(st.src), 'image/jpeg'); });
   const del = box.querySelector('#cv-del');
-  if (del) del.addEventListener('click', () => { const r = AC.setVideoCover(S, s.id, i, null); if (!r.ok) return toast(r.error, 'bad'); afterImageDialog(s, 'Đã bỏ ảnh bìa.'); });
-  ok.addEventListener('click', () => { const r = AC.setVideoCover(S, s.id, i, { src: st.src, t: st.at }); if (!r.ok) return toast(r.error, 'bad'); afterImageDialog(s, 'Đã lưu ảnh bìa video.'); });
+  if (del) del.addEventListener('click', () => { const r = T.save(null); if (!r.ok) return toast(r.error, 'bad'); T.done('Đã bỏ ảnh bìa.'); });
+  ok.addEventListener('click', () => { const r = T.save({ src: st.src, t: st.at }); if (!r.ok) return toast(r.error, 'bad'); T.done('Đã lưu ảnh bìa video.'); });
 }
 
 export function openSubsDialog(s, i) {
   const a = s.assets[i], v = curVersion(a);
+  return subsDialog({ v, name: a.name, ver: `bản v${v.n}`, text: s.text, save: (c, src) => AC.setVideoSubs(S, s.id, i, c, src), done: msg => afterImageDialog(s, msg) });
+}
+// Hộp phụ đề dùng chung: T = {v, name, ver, text (bài/kịch bản để chia câu), save(cues|null, source), done(msg)}
+export function subsDialog(T) {
+  const v = T.v, a = { name: T.name }, s = { text: T.text };
   const cfg = AC.imageApiOf(S), sttOk = !!(AC.IMAGE_PROVIDERS[cfg.provider] || {}).stt;
   const st = { cues: v.subs ? v.subs.cues.map(c => Object.assign({}, c)) : [], source: v.subs ? v.subs.source : 'manual', dur: 0, busy: false };
-  const box = openLayer(`<header class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:nowrap"><div><span class="eyebrow">Phụ đề video · ${esc(a.name)} · bản v${v.n}</span><h2>Phụ đề</h2><p class="small muted">Tạo từ bài viết (thời gian ước lượng theo độ dài câu, mô phỏng), nhận giọng nói qua API, hoặc nhập tệp .srt/.vtt. Giờ ghi dạng phút:giây (1:05.5). Phụ đề hiện trên video để xem thử; khi xuất ZIP có kèm tệp .srt.</p></div><button class="btn icon ghost" data-act="close-layer" aria-label="Đóng">${icon('close')}</button></header>
+  const box = openLayer(`<header class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:nowrap"><div><span class="eyebrow">Phụ đề video · ${esc(a.name)} · ${esc(T.ver || '')}</span><h2>Phụ đề</h2><p class="small muted">Tạo từ bài viết (thời gian ước lượng theo độ dài câu, mô phỏng), nhận giọng nói qua API, hoặc nhập tệp .srt/.vtt. Giờ ghi dạng phút:giây (1:05.5). Phụ đề hiện trên video để xem thử; khi xuất ZIP có kèm tệp .srt.</p></div><button class="btn icon ghost" data-act="close-layer" aria-label="Đóng">${icon('close')}</button></header>
     <div class="sb-dlg">
       <div class="stack" style="gap:6px;min-width:0"><video id="sb-video" src="${esc(v.src)}" controls playsinline preload="auto"></video><span class="small muted" id="sb-dur"></span></div>
       <div class="stack" style="gap:8px;min-width:0">
@@ -251,10 +261,10 @@ export function openSubsDialog(s, i) {
   box.querySelector('#sb-srt').addEventListener('click', () => dl('srt'));
   box.querySelector('#sb-vtt').addEventListener('click', () => dl('vtt'));
   const del = box.querySelector('#sb-del');
-  if (del) del.addEventListener('click', () => { const r = AC.setVideoSubs(S, s.id, i, null); if (!r.ok) return toast(r.error, 'bad'); afterImageDialog(s, 'Đã bỏ phụ đề.'); });
+  if (del) del.addEventListener('click', () => { const r = T.save(null); if (!r.ok) return toast(r.error, 'bad'); T.done('Đã bỏ phụ đề.'); });
   box.querySelector('#sb-ok').addEventListener('click', () => {
-    const r = AC.setVideoSubs(S, s.id, i, sorted(), st.source); if (!r.ok) return toast(r.error, 'bad');
+    const r = T.save(sorted(), st.source); if (!r.ok) return toast(r.error, 'bad');
     if (trackUrl) URL.revokeObjectURL(trackUrl);
-    afterImageDialog(s, `Đã lưu phụ đề ${r.count} dòng.`);
+    T.done(`Đã lưu phụ đề ${r.count} dòng.`);
   });
 }

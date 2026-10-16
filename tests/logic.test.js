@@ -2007,3 +2007,69 @@ test('10.70 · Chia sẻ ảnh giữa slot: dùng chung một mảng phiên bả
   assert.ok(AC.setAssetRatio(S, B.id, 0, '4:5').ok); assert.equal(b.shareId, undefined); assert.equal(a.shareId, undefined);
   void C;
 });
+
+// ---------- Short Vid (mục 10.72) ----------
+test('10.72 · Short Vid: 7 Format mặc định, migrate dữ liệu cũ thêm mảng rỗng', () => {
+  const S = seed();
+  assert.equal(S.vidFormats.length, 7); assert.equal(AC.vidSettingsOf(S).weekTarget, 7);
+  const old = AC.clone(S); delete old.vidFormats; delete old.videos; delete old.vidTopics; delete old.vidSettings; delete old.vidAnalyses;
+  AC.migrateState(old);
+  assert.equal(old.vidFormats.length, 7); assert.deepEqual(old.videos, []); assert.deepEqual(old.vidTopics, []);
+  assert.ok(AC.emptyState().vidFormats.length === 7);
+});
+test('10.72 · Phân tích Topic → Insight có lý do, gộp, bỏ, duyệt, viết kịch bản 140–200 chữ', () => {
+  const S = seed(); const tid = AC.vidTopicsOf(S, T2)[0].row.id;
+  const r = AC.analyzeTopic(S, T2, tid);
+  assert.ok(r.ok && r.simulated && r.count >= 3 && /đề xuất/.test(r.reason));
+  const ideas = AC.vidsOf(S, T2, tid); assert.ok(ideas.every(v => v.status === 'IDEA' && v.insight.reason && v.source));
+  assert.ok(ideas.some(v => v.kind === 'bantin'), 'cân đối kiểu theo tỉ lệ Bản tin');
+  assert.ok(AC.mergeIdeas(S, ideas[0].id, ideas[1].id).ok);
+  assert.ok(AC.dropIdea(S, ideas[2].id).ok);
+  assert.equal(AC.vidsOf(S, T2, tid).length, ideas.length - 2);
+  assert.equal(AC.writeVidScript(S, ideas[0].id).ok, false, 'chưa duyệt Insight thì chưa viết');
+  assert.ok(AC.approveIdeas(S, T2, tid).ok);
+  const vs = AC.vidsOf(S, T2, tid);
+  vs.forEach(v => assert.ok(AC.writeVidScript(S, v.id).ok));
+  const words = vs.map(v => AC.vidWords(v.script));
+  assert.ok(words.filter(w => w >= 140 && w <= 200).length >= words.length - 1, String(words));
+  vs.filter(v => v.kind === 'bantin').forEach(v => { assert.ok(v.prompts.audio.length > 50); assert.equal(AC.vidSections(v.script)[0].label, 'Người dẫn'); });
+  assert.equal(AC.vidDuration(S, 150), 60);
+  // phân tích lại chỉ thay đề xuất, giữ kịch bản đã duyệt
+  const n = vs.length; AC.analyzeTopic(S, T2, tid);
+  assert.equal(AC.vidsOf(S, T2, tid).filter(v => v.status !== 'IDEA').length, n);
+});
+test('10.72 · Hủy/Khôi phục, KPI, Up video, kiểm trùng', () => {
+  const S = seed(); const tid = AC.vidTopicsOf(S, T2)[0].row.id;
+  AC.analyzeTopic(S, T2, tid); AC.approveIdeas(S, T2, tid);
+  const vs = AC.vidsOf(S, T2, tid); vs.forEach(v => AC.writeVidScript(S, v.id));
+  const k0 = AC.vidKpi(S, T2); assert.equal(k0.planned, vs.length); assert.equal(k0.ready, 0);
+  assert.ok(AC.toggleVidCancel(S, vs[0].id).cancelled);
+  assert.equal(AC.vidKpi(S, T2).planned, vs.length - 1);
+  assert.equal(AC.setVidFile(S, vs[0].id, { src: 'data:video/mp4;base64,AAAA', name: 'a.mp4' }).ok, false, 'đã hủy thì không nộp video');
+  assert.equal(AC.toggleVidCancel(S, vs[0].id).cancelled, false);
+  assert.equal(AC.setVidFile(S, vs[1].id, { src: 'data:image/png;base64,AA' }).ok, false);
+  assert.ok(AC.setVidFile(S, vs[1].id, { src: 'data:video/mp4;base64,AAAA', name: 'a.mp4', size: 3 }).ok);
+  assert.equal(AC.vidState(vs[1]), 'READY'); assert.equal(AC.vidKpi(S, T2).ready, 1);
+  assert.ok(AC.setVidSubs(S, vs[1].id, [{ start: 0, end: 2, text: 'Xin chào' }], 'script').ok);
+  assert.deepEqual(AC.vidDupes(S, T2), {}, 'bản mô phỏng không trùng đoạn căn cứ, câu mở, câu chốt');
+  AC.editVidScript(S, vs[2].id, { script: vs[3].script });
+  const d = AC.vidDupes(S, T2); assert.ok((d[vs[2].id] || []).some(x => /Câu mở/.test(x)));
+  assert.equal(vs[2].status, 'DRAFT'); assert.ok(AC.approveVidScript(S, vs[2].id).ok);
+});
+test('10.72 · Chủ đề chỉ cho video không vào Matrix; cài đặt và Format kiểm hợp lệ', () => {
+  const S = seed(); const before = S.topics.length;
+  const md = '## Chủ đề video\n\n' + 'Người học thường nghĩ phải thuộc thật nhiều từ mới dám nói, nhưng nói câu ngắn mỗi ngày giúp tự tin hơn. '.repeat(12);
+  const r = AC.addVidTopics(S, '2026-10-12', md); assert.ok(r.ok, JSON.stringify(r.errors));
+  assert.equal(S.topics.length, before); assert.equal(AC.vidTopicsOf(S, T2).length, 4);
+  assert.ok(AC.analyzeTopic(S, T2, r.added[0].id).count >= 1);
+  assert.ok(AC.removeVidTopic(S, r.added[0].id).ok); assert.equal(AC.vidsOf(S, T2).length, 0);
+  assert.equal(AC.setVidSettings(S, { wordMin: 300 }).ok, false);
+  assert.ok(AC.setVidSettings(S, { brand: { opener: 'Một phút tiếng Anh.' } }).ok);
+  assert.equal(AC.saveVidFormat(S, null, { name: 'Giải thích nhanh', kind: 'noihet', structure: ['A', 'B'] }).ok, false);
+  assert.ok(AC.saveVidFormat(S, null, { name: 'Phỏng vấn nhanh', kind: 'noihet', structure: ['Hỏi', 'Đáp'] }).ok);
+  assert.equal(AC.vidFormatsOf(S).length, 8);
+  const job = AC.vidAnalyzeJob(S, T2, AC.vidTopicsOf(S, T2)[0].row.id); assert.ok(/insights/.test(job.user) && /Phỏng vấn nhanh/.test(job.user));
+  const p = AC.parseVidInsights(S, '```json\n{"total":1,"reason":"x","insights":[{"title":"A","idea":"b","source":"c","formatId":"vf-bantin","kind":"bantin","reason":"d"}]}\n```');
+  assert.ok(p.ok && p.items[0].kind === 'bantin');
+  assert.ok(AC.parseVidScript('{"script":"[Hook]\\nXin chào","audio":"","image":"ảnh"}').ok);
+});

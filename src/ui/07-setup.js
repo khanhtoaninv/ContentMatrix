@@ -14,9 +14,10 @@ import { imgStdTab } from './04m-imgtools.js';
 import { copyText } from './05-matrix.js';
 import { downloadBytes } from './06-export.js';
 import { skillButtonHtml, writingRulesSection } from './07b-skill.js';
+import { shortVidTab } from './07c-shortvid.js';
 export const SETUP_TABS = [
   ['brand', 'Thương hiệu'], ['voice', 'Giọng văn'], ['channels', 'Kênh'], ['matrix', 'Matrix'], ['columns', 'Cột'], ['topicframe', 'Khung Topic'],
-  ['formats', 'Format'], ['imgstd', 'Chuẩn ảnh'], ['frames', 'Frame ảnh'], ['snippets', 'Hashtag & CTA'], ['library', 'Kho tài sản'], ['blog', 'Chuẩn Blog'], ['imageapi', 'Kết nối AI'], ['templates', 'Tuần mẫu'], ['rules', 'Quy tắc & tiêu chí'], ['backup', 'Sao lưu & demo'],
+  ['formats', 'Format'], ['shortvid', 'Short Vid'], ['imgstd', 'Chuẩn ảnh'], ['frames', 'Frame ảnh'], ['snippets', 'Hashtag & CTA'], ['library', 'Kho tài sản'], ['blog', 'Chuẩn Blog'], ['imageapi', 'Kết nối AI'], ['templates', 'Tuần mẫu'], ['rules', 'Quy tắc & tiêu chí'], ['backup', 'Sao lưu & demo'],
 ];
 function setupTabOk(id) {
   const st = AC.setupStatus(S);
@@ -26,7 +27,7 @@ function setupTabOk(id) {
 RENDERERS.setup = () => {
   const st = AC.setupStatus(S);
   const tab = view.setupTab;
-  const body = { brand: () => mdTab('brand'), voice: () => mdTab('voice') + writingRulesSection(), channels: channelsTab, matrix: matrixTab, columns: columnsTab, topicframe: topicFrameTab, formats: formatsTab, imgstd: imgStdTab, frames: framesTab, snippets: snippetsTab, library: libraryTab, blog: blogSetupTab, imageapi: aiConnectTab, templates: templatesTab, rules: rulesTab, backup: backupTab }[tab]();
+  const body = { brand: () => mdTab('brand'), voice: () => mdTab('voice') + writingRulesSection(), channels: channelsTab, matrix: matrixTab, columns: columnsTab, topicframe: topicFrameTab, formats: formatsTab, shortvid: shortVidTab, imgstd: imgStdTab, frames: framesTab, snippets: snippetsTab, library: libraryTab, blog: blogSetupTab, imageapi: aiConnectTab, templates: templatesTab, rules: rulesTab, backup: backupTab }[tab]();
   return `<div class="page-head"><div><span class="eyebrow">Thiết lập</span><h1>${esc(SETUP_TABS.find(t => t[0] === tab)[1])}</h1></div>
       <span class="st ${st.ok ? 'st-done' : 'st-need'}">${st.ok ? 'Thiết lập đủ' : `Chưa đủ: ${st.missing.length} mục`}</span></div>
     ${st.ok ? '' : `<div class="note warn"><b>Chưa lập được tuần.</b> ${st.missing.map(m => esc(m.text)).join(' · ')}. Nút "Nạp dữ liệu demo" luôn dùng được.</div>`}

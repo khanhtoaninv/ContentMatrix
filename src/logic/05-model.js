@@ -11,6 +11,7 @@ import { aiSlotText } from './05o-aitext.js';
 import { blogMediaAssets, blogPlain, blogRefreshAuto, isBlogSlot, keepBlogMedia, seoWeave, slotSeoOf, suggestKeyword } from './05p-blogseo.js';
 import { assetRatioOf, imageIssues, stampRatios } from './05q-imgspec.js';
 import { skillTag } from './05r-skill.js';
+import { defaultVidFormats, defaultVidSettings } from './05s-shortvid.js';
 export const DEFAULT_CELL_CRITERIA = [
   { id: 'c1', name: 'Bám Topic', weight: 25 }, { id: 'c2', name: 'Đúng giọng thương hiệu', weight: 20 },
   { id: 'c3', name: 'Hook, mở đầu thu hút', weight: 20 }, { id: 'c4', name: 'Rõ lợi ích với người đọc', weight: 20 },
@@ -115,6 +116,7 @@ export function emptyState() {
     voice: { md: '', parsed: parseVoice('').parsed, issues: [], updatedAt: null },
     channels: [], columns: [], formats: [], weekTemplates: [],
     weeks: [], topicFiles: [], topics: [], cells: [], slots: [], audit: [], blogPosts: [],
+    vidFormats: defaultVidFormats(), vidSettings: defaultVidSettings(), vidTopics: [], videos: [], vidAnalyses: [],
     settings: { demoNow: '2026-10-12T09:00', reviewThreshold: 70, hypeWords: [...DEFAULT_HYPE] },
     archive: {}, ui: { weekStart: null },
   };

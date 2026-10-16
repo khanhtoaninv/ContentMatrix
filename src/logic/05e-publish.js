@@ -2,6 +2,7 @@
 import { fold, hash32, isValidTime, isValidUrl, isValidYMD, minutesOf, mondayOf, parseYMD } from './01-util.js';
 import { byId, log, relinkShares, slotColumnId, slotWarnings, weekOf, weekSlots } from './05-model.js';
 import { stampRatios } from './05q-imgspec.js';
+import { ensureShortVid } from './05s-shortvid.js';
 // Đăng và số liệu ở R4 là mô phỏng xác định; dữ liệu đã đúng dạng để R6–R7 nối API/Metricool/Postiz thật.
 
 // ---- Thời điểm dạng 'YYYY-MM-DDTHH:MM' ----
@@ -326,6 +327,7 @@ export function isOnTime(s) { return !!(s.pub && isValidTs(s.pub.at)) && tsToMs(
 // ---- Di trú dữ liệu trước R4 (cùng DATA_VERSION) ----
 export function migrateState(S) {
   if (!Array.isArray(S.blogPosts)) S.blogPosts = [];
+  ensureShortVid(S); // Short Vid (10.72): dữ liệu cũ chưa có thì thêm 7 Format mặc định và mảng rỗng
   (S.slots || []).forEach(s => stampRatios(S, s)); // chuẩn ảnh theo nền tảng (mục 10.42)
   relinkShares(S); // ảnh dùng chung giữa các slot (10.70): nối lại cùng một mảng phiên bản
   (S.channels || []).forEach(ch => {

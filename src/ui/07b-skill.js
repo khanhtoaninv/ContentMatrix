@@ -5,7 +5,7 @@ import { $, closeLayer, confirmBox, esc, icon, openLayer, save, toast } from './
 import { render } from './02-shell.js';
 import { downloadBytes } from './06-export.js';
 // Soạn trong Setup; lưu trong chính Cột/Format (đi theo Sao lưu). Tại thời điểm gen chỉ dùng đúng 1 Skill đang chọn.
-const skillOwner = (kind, id) => AC.byId(kind === 'fmt' ? S.formats : S.columns, id);
+const skillOwner = (kind, id) => AC.byId(kind === 'fmt' ? S.formats : kind === 'vf' ? (S.vidFormats || []) : S.columns, id);
 export function skillButtonHtml(kind, o) {
   const a = AC.activeSkill(o), n = AC.skillsOf(o).length;
   return `<div class="field"><label>Skill (bộ chỉ dẫn cho AI)</label><div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn" data-act="skill-open" data-kind="${kind}" data-id="${esc(o.id)}">Quản lý Skill (${n})</button><span class="small muted">${a ? `Đang dùng: ${esc(a.name)} v${a.version}` : 'Chưa chọn Skill: AI dùng Hướng dẫn viết'}</span></div><span class="hint">Mỗi lần gen chỉ dùng đúng 1 Skill; chọn Skill khác thì gen lần sau dùng Skill đó. Skill thay cho "Hướng dẫn" ở trên. Quy tắc cứng (độ dài, CTA, từ cấm) luôn thắng Skill.</span></div>`;
@@ -13,7 +13,7 @@ export function skillButtonHtml(kind, o) {
 function skillSystemText() { return AC.aiSystem(S).split('\n\nTrả lời bằng')[0]; }
 function openSkillLayer(kind, id, editId) {
   const o = skillOwner(kind, id); if (!o) return;
-  const what = kind === 'fmt' ? 'Format' : 'Cột';
+  const what = kind === 'fmt' ? 'Format' : kind === 'vf' ? 'Format video' : 'Cột';
   const list = AC.skillsOf(o), a = AC.activeSkill(o);
   const edit = editId === 'new' ? { id: '', name: '', body: '', note: '', version: 0, history: [] } : list.find(s => s.id === editId);
   const reopen = e => { closeLayer(); openSkillLayer(kind, id, e); };
@@ -94,7 +94,8 @@ ACTIONS['skill-open'] = el => openSkillLayer(el.dataset.kind, el.dataset.id, nul
 // Gom bài AI của Cột/Format, trộn bài có Skill và không Skill, xuất tệp chấm mù kèm đáp án ở cuối
 function skillBlindExport(kind, o) {
   const items = [];
-  if (kind === 'fmt') S.slots.filter(s => s.formatId === o.id).forEach(s => (s.history || []).forEach(h => { if (h.ai && h.text) items.push({ text: h.text, ref: h.ai.skill || null, where: `${s.date} ${s.time}` }); }));
+  if (kind === 'vf') (S.videos || []).filter(v => v.formatId === o.id).forEach(v => [{ script: v.script, ai: v.ai }].concat(v.history || []).forEach(h => { if (h.ai && h.script) items.push({ text: h.script, ref: h.ai.skill || null, where: v.insight.title }); }));
+  else if (kind === 'fmt') S.slots.filter(s => s.formatId === o.id).forEach(s => (s.history || []).forEach(h => { if (h.ai && h.text) items.push({ text: h.text, ref: h.ai.skill || null, where: `${s.date} ${s.time}` }); }));
   else S.cells.filter(c => c.columnId === o.id).forEach(c => c.gens.forEach(g => { if (g.ai && g.text) items.push({ text: g.text, ref: g.ai.skill || null, where: c.id }); }));
   const withS = items.filter(i => i.ref).slice(-6), without = items.filter(i => !i.ref).slice(-6);
   if (!withS.length || !without.length) return toast('Cần có cả bài AI viết có Skill và không Skill. Hãy gen vài lần với Skill, rồi tắt Skill gen vài lần nữa.', 'bad');

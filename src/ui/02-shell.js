@@ -19,6 +19,7 @@ document.addEventListener('keydown', e => {
 const SCREENS = [
   { id: 'week', label: 'Dashboard', icon: 'week' },
   { id: 'matrix', label: 'Matrix', icon: 'matrix' },
+  { id: 'shortvid', label: 'Short Vid', icon: 'film' },
   { id: 'report', label: 'Report', icon: 'chart' },
   { id: 'export', label: 'Export', icon: 'export' },
   { id: 'setup', label: 'Setup', icon: 'setup' },
