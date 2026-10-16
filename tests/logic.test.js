@@ -2087,3 +2087,102 @@ test('10.74 · Short Vid: tối đa 7 thẻ Vid mỗi Topic, ẩn/hiện Topic c
   assert.equal(AC.showVidTopics(S, T2), 1); assert.equal(AC.vidTopicsOf(S, T2).length, 3);
   assert.equal(AC.approveIdeas(S, T2, null).ok, false, 'không còn đề xuất');
 });
+
+// ---------- Short Vid: Vid tự do, bàn dựng, Đưa vào lịch (mục 10.75) ----------
+const VID = 'data:video/webm;base64,AAAA', AUD = 'data:audio/mpeg;base64,AAAA', IMG = 'data:image/jpeg;base64,AAAA';
+test('10.75 · Vid tự do: 6 cách nạp, hàng Video tự do tối đa 7 thẻ', () => {
+  const S = seed();
+  assert.equal(AC.addFreeVideo(S, T2, { origin: 'topic' }).ok, false);
+  assert.equal(AC.addFreeVideo(S, T2, { origin: 'script' }).ok, false, 'chưa dán kịch bản');
+  const a = AC.addFreeVideo(S, T2, { origin: 'script', script: 'Bạn có biết vì sao nói chậm lại giúp người nghe hiểu hơn?\n\nVì não cần thời gian ghép âm thành nghĩa. Nói chậm cho người nghe kịp theo.\n\nTheo dõi kênh nhé.' });
+  assert.ok(a.ok); const v = a.video;
+  assert.equal(v.origin, 'script'); assert.equal(v.status, 'DRAFT'); assert.equal(AC.vidSections(v.script)[0].label, 'Hook'); assert.equal(AC.vidSections(v.script).slice(-1)[0].label, 'CTA');
+  assert.ok(AC.isFreeTopic(S, v.topicId)); assert.equal(AC.vidTopicsOf(S, T2).slice(-1)[0].row.id, AC.freeTopicId(T2));
+  assert.equal(AC.writeVidScript(S, v.id).ok, false, 'kịch bản nạp sẵn không tạo lại');
+  assert.equal(AC.analyzeTopic(S, T2, v.topicId).ok, false, 'hàng tự do không phân tích');
+  assert.equal(AC.addFreeVideo(S, T2, { origin: 'audio' }).ok, false);
+  const au = AC.addFreeVideo(S, T2, { origin: 'audio', media: [{ src: AUD, name: 'giong-doc.mp3', dur: 42 }] }); assert.ok(au.ok); assert.equal(au.video.status, 'TODO');
+  assert.equal(AC.writeVidScript(S, au.video.id).ok, false, 'giọng nói: dán lời hoặc chép lời');
+  assert.ok(AC.editVidScript(S, au.video.id, { script: 'Xin chào các bạn. Hôm nay mình nói về cách luyện nghe mỗi ngày.' }).ok); assert.equal(au.video.status, 'DRAFT');
+  const ch = AC.postChoices(S, T2); assert.ok(ch.length > 0);
+  const po = AC.addFreeVideo(S, T2, { origin: 'post', cellId: ch[0].id }); assert.ok(po.ok);
+  const w = AC.vidWords(po.video.script); assert.ok(w >= 60 && w <= 200, String(w)); assert.ok(/^Từ bài:/.test(po.video.insight.title));
+  const br = AC.addFreeVideo(S, T2, { origin: 'broll', media: [{ src: VID, name: 'quay-ban-tay.webm', dur: 4 }, { src: IMG, name: 'bang-tu-vung.jpg' }], request: 'Lời dẫn vui, nói về cách ghi chú từ mới' });
+  assert.ok(br.ok); assert.equal(br.video.media.length, 2); assert.ok(br.video.media[0].descSim && /quay ban tay/.test(br.video.media[0].desc));
+  assert.ok(AC.writeVidScript(S, br.video.id).ok); const secs = AC.vidSections(br.video.script).map(s => s.label);
+  assert.deepEqual(secs, ['Hook', 'Cảnh 1', 'Cảnh 2', 'CTA']); assert.ok(/ghi chú từ mới/.test(br.video.script));
+  const job = AC.vidScriptJob(S, br.video.id); assert.ok(/Cảnh 1 \(4 giây\)/.test(job.user) && /Lời dẫn vui/.test(job.user));
+  const lr = AC.addFreeVideo(S, T2, { origin: 'longroll', media: [{ src: VID, name: 'buoi-hoc.webm', dur: 31 }], segLen: 5 });
+  assert.ok(lr.ok); assert.equal(lr.video.media[0].segs.length, 6); assert.equal(AC.brollUnits(lr.video).length, 6);
+  assert.equal(AC.brollIdeas(S, lr.video.id).length, 3); assert.ok(AC.useBrollIdea(S, lr.video.id, 'tungbuoc').ok); assert.ok(/^Từng bước/.test(lr.video.insight.title));
+  assert.ok(AC.splitLongRoll(S, lr.video.id, 'm1', 10).ok); assert.equal(lr.video.media[0].segs.length, 3);
+  const tk = AC.addFreeVideo(S, T2, { origin: 'talk', media: [{ src: VID, name: 'quay-tho.webm', dur: 20 }] }); assert.ok(tk.ok);
+  assert.ok(AC.addFreeVideo(S, T2, { origin: 'script', script: 'Một câu.' }).ok);
+  assert.equal(AC.addFreeVideo(S, T2, { origin: 'script', script: 'Câu thứ tám.' }).ok, false, 'đủ 7 thẻ');
+  assert.equal(AC.removeVidMedia(S, br.video.id, 'm2').ok, true); assert.equal(br.video.media.length, 1);
+});
+test('10.75 · Bàn dựng: chia cảnh, gán b-roll, cắt khoảng lặng, caption, lệnh dựng', () => {
+  const S = seed();
+  const s1 = AC.addFreeVideo(S, T2, { origin: 'script', script: '[Hook]\nVì sao nói chậm lại giúp người nghe hiểu hơn?\n\n[Cơ chế]\n' + 'Não cần thời gian ghép âm thành nghĩa, nên mỗi câu cần một nhịp nghỉ ngắn. '.repeat(4) + '\n\n[CTA]\nTheo dõi kênh nhé.' }).video;
+  const p = AC.planEdit(S, s1.id); assert.ok(p.ok && p.count >= 4, String(p.count));
+  const ed = s1.edit; assert.equal(ed.voice.mode, 'tts'); assert.ok(ed.scenes.every(s => !s.asset && /Hình dọc 9:16/.test(s.prompt)));
+  assert.ok(ed.scenes.every(s => AC.countWords(s.text) <= 30), 'đoạn dài chia thành nhiều cảnh');
+  const tl = AC.editTimeline(s1); assert.equal(tl.items[1].t0, tl.items[0].t1); assert.ok(tl.total > 20);
+  assert.ok(AC.editIssues(S, s1).some(x => /chưa có hình/.test(x)));
+  assert.equal(AC.editScene(S, s1.id, ed.scenes[0].id, { dur: 0 }).ok, false); assert.ok(AC.editScene(S, s1.id, ed.scenes[0].id, { dur: '2,5', overlay: 'Nói chậm' }).ok); assert.equal(ed.scenes[0].dur, 2.5);
+  assert.ok(AC.setSceneAsset(S, s1.id, ed.scenes[0].id, { src: IMG, name: 'a.jpg' }).ok); assert.equal(ed.scenes[0].asset.kind, 'image');
+  const n = ed.scenes.length; assert.ok(AC.addScene(S, s1.id, ed.scenes[0].id).ok); assert.equal(ed.scenes.length, n + 1); assert.equal(ed.scenes[1].label, 'Cảnh mới');
+  assert.ok(AC.moveScene(S, s1.id, ed.scenes[1].id, -1).ok); assert.equal(ed.scenes[0].label, 'Cảnh mới'); assert.ok(AC.removeScene(S, s1.id, ed.scenes[0].id).ok);
+  assert.equal(AC.setEditOptions(S, s1.id, { voice: 'file' }).ok, false, 'chưa có file giọng');
+  assert.ok(AC.setEditOptions(S, s1.id, { captions: 'key', pos: 'middle', frame: 'band' }).ok); assert.deepEqual([ed.captions.mode, ed.captions.pos, ed.frame], ['key', 'middle', 'band']);
+  assert.ok(AC.setEditOptions(S, s1.id, { music: { src: AUD, name: 'nhac.mp3' } }).ok); assert.ok(AC.editIssues(S, s1).some(x => /giấy phép/.test(x)));
+  const cmd = AC.editCommands(S, s1); assert.equal(cmd.kind, 'vid-edit-list'); assert.equal(cmd.scenes.length, ed.scenes.length); assert.ok(cmd.scenes[0].captions.length >= 1);
+  assert.ok(cmd.scenes[1].source.placeholder && cmd.scenes[1].source.prompt); assert.ok(!JSON.stringify(cmd).includes('base64'), 'lệnh dựng không nhúng tệp');
+  // caption
+  const full = AC.captionChunks('Một hai ba bốn năm sáu bảy tám chín mười. Xin chào.', 6, 'full');
+  assert.ok(full.length >= 3 && full.every(c => c.text.split(' ').length <= 7)); assert.equal(full.slice(-1)[0].t1, 6);
+  const key = AC.captionChunks('Bạn nên luyện nghe mỗi ngày với podcast ngắn.', 4, 'key'); assert.equal(key.length, 1); assert.equal(key[0].text, key[0].text.toUpperCase());
+  assert.deepEqual(AC.captionChunks('Xin chào.', 3, 'off'), []);
+  // b-roll: cảnh k nhận clip k
+  const br = AC.addFreeVideo(S, T2, { origin: 'broll', media: [{ src: VID, name: 'a.webm', dur: 4 }, { src: VID, name: 'b.webm', dur: 6 }] }).video;
+  AC.writeVidScript(S, br.id); assert.ok(AC.planEdit(S, br.id).ok);
+  const c1 = br.edit.scenes.find(s => s.label === 'Cảnh 1'), c2 = br.edit.scenes.find(s => s.label === 'Cảnh 2');
+  assert.equal(c1.asset.mediaId, 'm1'); assert.equal(c2.asset.mediaId, 'm2'); assert.ok(c1.asset.to <= 4);
+  // giọng đọc: cảnh co giãn theo độ dài file
+  const au = AC.addFreeVideo(S, T2, { origin: 'audio', media: [{ src: AUD, name: 'g.mp3', dur: 30 }], script: 'Xin chào các bạn. Hôm nay mình nói về cách luyện nghe. Mỗi ngày mười phút là đủ.' }).video;
+  assert.ok(AC.planEdit(S, au.id).ok); assert.equal(au.edit.voice.mode, 'file'); assert.ok(Math.abs(AC.editTimeline(au).total - 30) < 0.6);
+  // quay người nói: khoảng lặng → đoạn giữ
+  const lv = [0, 0, 0.5, 0.6, 0.5, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.6, 0.7, 0.5, 0.5, 0, 0];
+  const cuts = AC.silenceCuts(lv, 0.25); assert.equal(cuts.length, 3, JSON.stringify(cuts)); assert.equal(cuts[0].why, 'Lặng đầu clip');
+  assert.ok(cuts[1].from > 1.25 && cuts[1].to < 2.75);
+  assert.deepEqual(AC.keptRanges(10, [{ from: 2, to: 3 }, { from: 6, to: 7, on: false }]), [{ from: 0, to: 2 }, { from: 3, to: 10 }]);
+  assert.ok(AC.mockCuts(30).length >= 3);
+  const tk = AC.addFreeVideo(S, T2, { origin: 'talk', media: [{ src: VID, name: 't.webm', dur: 10 }] }).video;
+  AC.editVidScript(S, tk.id, { script: 'một hai ba bốn năm sáu bảy tám chín mười' });
+  assert.ok(AC.setVidCuts(S, tk.id, [{ from: 2, to: 3 }, { from: 6, to: 7 }]).ok); assert.ok(AC.toggleVidCut(S, tk.id, 1, false).ok);
+  assert.ok(AC.planEdit(S, tk.id).ok); assert.equal(tk.edit.scenes.length, 2); assert.equal(tk.edit.voice.mode, 'clip');
+  assert.deepEqual(tk.edit.scenes.map(s => [s.asset.from, s.asset.to]), [[0, 2], [3, 10]]);
+  assert.equal(tk.edit.scenes.map(s => s.text).join(' '), 'một hai ba bốn năm sáu bảy tám chín mười');
+});
+test('10.75 · Đưa vào lịch: slot tự do có video trên các kênh video, caption từng kênh, bỏ khỏi lịch', () => {
+  const S = seed();
+  const chans = AC.vidChannels(S); assert.deepEqual(chans.map(x => x.channel.id).sort(), ['ch-fb', 'ch-ig', 'ch-tt', 'ch-yt']);
+  const v = AC.addFreeVideo(S, T2, { origin: 'script', script: 'Vì sao nói chậm giúp người nghe hiểu hơn?\n\nNão cần thời gian ghép âm thành nghĩa.\n\nTheo dõi kênh nhé.' }).video;
+  assert.equal(AC.scheduleGate(S, v.id).ok, false, 'chưa có video');
+  AC.setVidFile(S, v.id, { src: VID, name: 'thanh-pham.webm', size: 3 }); AC.setVidSubs(S, v.id, [{ start: 0, end: 2, text: 'Xin chào' }], 'script');
+  const d = AC.suggestVidDates(S, T2, 2); assert.equal(d[0], '2026-10-12'); assert.equal(d[1], '2026-10-13');
+  const n0 = S.slots.length; const deal0 = AC.dealPlan(S, T2).length;
+  const r = AC.scheduleVideo(S, v.id, { date: '2026-10-14', time: '19:00', channelIds: chans.map(x => x.channel.id) });
+  assert.ok(r.ok, r.error); assert.equal(r.slots.length, 4); assert.equal(S.slots.length, n0 + 4);
+  r.slots.forEach(s => { assert.ok(s.free && s.videoId === v.id && s.text && s.state === 'DRAFT'); const ver = s.assets[0].versions[0]; assert.equal(ver.kind, 'video'); assert.equal(ver.src, VID); assert.ok(ver.subs); });
+  const tt = r.slots.find(s => s.channelId === 'ch-tt'), yt = r.slots.find(s => s.channelId === 'ch-yt');
+  assert.ok(/#shorts/.test(yt.text) && /#xuhuong/.test(tt.text)); assert.notEqual(tt.text, yt.text);
+  assert.equal(AC.vidState(v, S), 'SCHEDULED'); assert.equal(AC.vidState(v), 'READY');
+  assert.equal(AC.dealPlan(S, T2).length, deal0, 'Viết slot bỏ qua slot video');
+  assert.equal(AC.suggestVidDates(S, T2, 1)[0], '2026-10-12');
+  const again = AC.scheduleVideo(S, v.id, { date: '2026-10-15', time: '19:00', channelIds: ['ch-tt'] }); assert.ok(again.ok); assert.deepEqual(again.skipped, ['TikTok']);
+  const job = AC.vidCaptionsJob(S, v, chans); assert.ok(/ch-yt/.test(job.user));
+  const pc = AC.parseVidCaptions('{"captions":{"ch-tt":"Xin chào #a"}}', chans); assert.ok(pc.ok && pc.captions['ch-tt']);
+  const u = AC.unscheduleVideo(S, v.id); assert.equal(u.removed, 4); assert.equal(S.slots.length, n0); assert.equal(AC.vidState(v, S), 'READY');
+  assert.equal(AC.scheduleVideo(S, v.id, { date: '2026-10-14', time: '19:00', channelIds: [] }).ok, false);
+});

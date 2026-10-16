@@ -8,6 +8,7 @@ import { normalizeTopicMd } from './05h-topicframe.js';
 import { normCues, validateCues } from './05n-media.js';
 import { aiSystem, extractJson } from './05o-aitext.js';
 import { skillBlock, skillRefOf } from './05r-skill.js';
+import { freeMockScript, freeScriptJob } from './05t-videdit.js';
 // Mỗi video tự đứng được, một ý (Insight). Kịch bản 140–200 chữ (≈ 60 giây ở 2,5 chữ/giây). Hai kiểu: Bản tin (người dẫn mở,
 // phần sau giọng máy đọc Prompt Audio) và Người nói hết. Kịch bản hủy không cần nộp video, không tính KPI.
 
@@ -15,7 +16,7 @@ export const VID_MAX_PER_TOPIC = 7; // ma trận Short Vid: tối đa 7 thẻ Vi
 export const VID_KINDS = { bantin: 'Bản tin', noihet: 'Người nói hết' };
 export const VID_STATES = {
   IDEA: ['Đề xuất', 'st-need'], TODO: ['Chờ viết', 'st-need'], DRAFT: ['Có kịch bản', 'st-need'],
-  APPROVED: ['Đã duyệt kịch bản', 'st-ok'], READY: ['Sẵn sàng', 'st-done'], CANCELLED: ['Đã hủy', 'st-off'],
+  APPROVED: ['Đã duyệt kịch bản', 'st-ok'], READY: ['Sẵn sàng', 'st-done'], SCHEDULED: ['Đã lên lịch', 'st-done'], POSTED: ['Đã đăng', 'st-done'], CANCELLED: ['Đã hủy', 'st-off'],
 };
 export const VID_NEEDS = { '': 'Không', case: 'Topic có trường hợp thật', question: 'Topic có câu hỏi người xem' };
 const BANTIN_LAYOUT = ['Người dẫn', 'Giọng máy', 'Chốt'];
@@ -155,7 +156,14 @@ export function removeVidTopic(S, id) {
 export function vidsOf(S, weekId, topicId) {
   return (S.videos || []).filter(v => v.weekId === weekId && (!topicId || v.topicId === topicId)).sort((a, b) => a.order - b.order);
 }
-export const vidState = v => v.cancelled ? 'CANCELLED' : v.file ? 'READY' : v.status;
+// Có S thì xét cả lịch: slot video còn trong lịch → Đã lên lịch; có slot đã đăng → Đã đăng
+export function vidState(v, S) {
+  if (v.cancelled) return 'CANCELLED';
+  const sl = S ? (S.slots || []).filter(s => s.videoId === v.id) : [];
+  if (sl.some(s => s.state === 'PUBLISHED')) return 'POSTED';
+  if (sl.length) return 'SCHEDULED';
+  return v.file ? 'READY' : v.status;
+}
 export const vidBody = t => String(t || '').split('\n').filter(l => !/^\s*\[[^\]]+\]\s*$/.test(l)).join('\n').replace(/^\s*\[[^\]]+\]\s*/gm, '');
 export const vidWords = t => countWords(vidBody(t));
 export function vidDuration(S, words) { return Math.round(words / vidSettingsOf(S).wps); }
@@ -182,7 +190,7 @@ export function vidIssues(S, v) {
   }
   return out;
 }
-function newVideo(S, weekId, topicId, p) {
+export function newVideo(S, weekId, topicId, p) {
   const order = S.videos.filter(v => v.weekId === weekId).reduce((m, v) => Math.max(m, v.order), 0) + 1;
   return {
     id: `vid-${S.seq++}`, weekId, topicId, order, status: p.status || 'IDEA', cancelled: false,
@@ -258,6 +266,7 @@ export function parseVidInsights(S, raw) {
 export function analyzeTopic(S, weekId, topicId, res) {
   ensureShortVid(S);
   if (!weekOf(S, weekId)) return { ok: false, error: 'Không tìm thấy tuần.' };
+  { const row = vidTopicRow(S, topicId); if (row && row.free) return { ok: false, error: 'Hàng Video tự do không đi từ Topic: tạo từng thẻ bằng Tạo Vid tự do.' }; }
   const r = res && res.ok ? res : mockInsights(S, weekId, topicId); if (!r.ok) return r;
   const room = VID_MAX_PER_TOPIC - vidsOf(S, weekId, topicId).filter(v => v.status !== 'IDEA').length;
   if (room <= 0) return { ok: false, error: `Topic đã đủ ${VID_MAX_PER_TOPIC} thẻ Vid. Bỏ hoặc hủy bớt rồi phân tích lại.` };
@@ -324,6 +333,7 @@ function pickFill(pool, used, target, max, start) {
   return { out, words: w };
 }
 function mockScript(S, v) {
+  if (v.origin && v.origin !== 'topic') return freeMockScript(S, v);
   const c = vidSettingsOf(S); const f = byId(S.vidFormats, v.formatId) || vidFormatsOf(S)[0];
   const row = vidTopicRow(S, v.topicId); const iv = row && topicCurrent(row); if (!iv) return null;
   const M = topicMaterial(iv);
@@ -363,6 +373,7 @@ function imagePromptOf(S, v, iv) {
 }
 export function vidScriptJob(S, id) {
   const v = vidGet(S, id); if (!v) return null;
+  if (v.origin && v.origin !== 'topic') return freeScriptJob(S, v);
   const c = vidSettingsOf(S); const f = byId(S.vidFormats, v.formatId) || vidFormatsOf(S)[0];
   const row = vidTopicRow(S, v.topicId); const iv = row && topicCurrent(row); if (!iv) return null;
   const sk = skillBlock(f, `Chỉ dẫn viết cho Format video "${f.name}"`);
@@ -396,7 +407,7 @@ export function writeVidScript(S, id, res, meta) {
   if (v.cancelled) return { ok: false, error: 'Kịch bản đã hủy. Bấm Khôi phục trước.' };
   if (v.status === 'IDEA') return { ok: false, error: 'Duyệt danh sách Insight trước khi viết kịch bản.' };
   let r = res && res.ok ? res : null;
-  if (!r) { const m = mockScript(S, v); if (!m) return { ok: false, error: 'Không thấy Topic của video.' }; r = Object.assign({ simulated: true }, m); }
+  if (!r) { const m = mockScript(S, v); if (!m) return { ok: false, error: 'Không thấy Topic của video.' }; if (m.error) return { ok: false, error: m.error }; r = Object.assign({ simulated: true }, m); }
   const f = byId(S.vidFormats, v.formatId);
   if (v.script) v.history = [{ script: v.script, prompts: clone(v.prompts), at: v.writtenAt || '', ai: v.ai || null }].concat(v.history || []).slice(0, 5);
   v.script = r.script; v.prompts = { audio: r.audio || (v.kind === 'bantin' ? ((vidSections(r.script).find(s => /máy/i.test(s.label)) || {}).text || '') : ''), image: r.image || '' };

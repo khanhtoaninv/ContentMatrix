@@ -1,4 +1,4 @@
-# Kế hoạch thực hiện mục Short Vid (16/10/2026; Đợt 1 đã làm ở bản 101, mục 10.72)
+# Kế hoạch thực hiện mục Short Vid (16/10/2026; Đợt 1 đã làm ở bản 101, mục 10.72; Vid tự do, Bàn dựng mô phỏng, b-roll và Đưa vào lịch đã làm ở bản 104, mục 10.75)
 
 Nguồn: thảo luận trong thread "Mở thread mới để thảo luận ý tưởng" (15–16/10/2026). Format và căn cứ chi tiết: `notes/short-vid-format-va-cong-cu.md`. Chưa có mã. Bản hiện tại là 100; Short Vid bắt đầu từ bản 101, quyết định mới đánh số từ D152, ghi chú dựng từ mục 10.72.
 
