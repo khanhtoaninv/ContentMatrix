@@ -2357,3 +2357,18 @@ test('10.79 · Popup bản 5: hiệu ứng tự động, chuyển động chỉ 
   // mẫu Hỏi đáp: sang phần mới tự Mờ dần
   assert.ok(AC.setEditOptions(S, id, { fxTr: 'auto' }).ok); assert.ok(AC.applyTemplate(S, id, 'hoidap').ok); assert.deepEqual(ed.scenes.map(s => s.sec), [false, true, true, true]); assert.deepEqual(ed.scenes.map((_, i) => AC.transOf(ed, i)), ['cut', 'fade', 'fade', 'fade']);
 });
+
+test('10.80 · Tách caption tại con trỏ, frame Yêu thích, kho nhạc nền', () => {
+  const S = seed();
+  const v = AC.addFreeVideo(S, T2, { origin: 'script', script: '[Hook]\nBạn nghĩ học tám tiếng mỗi ngày thì sẽ giỏi hơn? Chưa chắc.\n\n[Cơ chế]\nNhiều người ngồi cả ngày nhưng đầu óc đã tắt từ giờ thứ ba.' }).video; const id = v.id;
+  assert.ok(AC.planEdit(S, id).ok); AC.genCaptions(S, id, { full: true }); const ed = v.edit; ed.segs[0].t = 'Hai nửa câu chia đôi'; const n = ed.segs.length;
+  assert.equal(AC.splitSegAt(S, id, 0, 0, ed.segs[0].t).ok, false); assert.equal(AC.splitSegAt(S, id, 0, 99, ed.segs[0].t).ok, false);
+  assert.ok(AC.splitSegAt(S, id, 0, 7, 'Hai nửa câu chia đôi').ok); assert.equal(ed.segs.length, n + 1); assert.deepEqual([ed.segs[0].t, ed.segs[1].t], ['Hai nửa', 'câu chia đôi']); assert.ok(ed.segs[1].at > ed.segs[0].at);
+  assert.ok(AC.mergeSeg(S, id, 1).ok); assert.equal(ed.segs[0].t, 'Hai nửa câu chia đôi');
+  const P9 = { kind: 'png', ratio: '9:16', src: 'data:image/png;base64,AAAA', photo: { x: 0, y: 0, w: 1, h: 1 } }; const ids = [1, 2, 3, 4, 5, 6].map(k => AC.saveFrame(S, Object.assign({ name: 'F' + k }, P9)).frame.id);
+  assert.equal(AC.vidFavFrames(S).length, 4); assert.ok(AC.vidPinFrame(S, ids[5]).ok); assert.equal(AC.vidFavFrames(S)[0].id, ids[5]); assert.equal(AC.vidFavFrames(S).length, 4);
+  assert.equal(AC.vidMusicAdd(S, { name: 'x', src: 'khong-phai-audio' }).ok, false); const a = AC.vidMusicAdd(S, { name: 'a.mp3', src: AUD }); assert.ok(a.ok); assert.equal(AC.vidMusicAdd(S, { name: 'a.mp3', src: AUD, license: 'CC0' }).track.id, a.track.id);
+  assert.equal(AC.vidLibOf(S).music.length, 1); assert.equal(AC.vidLibOf(S).music[0].license, 'CC0');
+  for (let k = 0; k < 10; k++) AC.vidMusicAdd(S, { name: 'm' + k, src: AUD + k }); assert.equal(AC.vidLibOf(S).music.length, 8);
+  assert.ok(AC.setEditOptions(S, id, { music: AC.vidLibOf(S).music[0] }).ok); assert.ok(AC.vidMusicDel(S, AC.vidLibOf(S).music[0].id).ok); assert.equal(AC.vidLibOf(S).music.length, 7);
+});

@@ -1397,3 +1397,6 @@ Ráp popup mẫu "bản 5" vào app. Quyết định D167–D170.
 
 ## 10.80. Short Vid: tinh chỉnh bố cục Biên tập (16/10/2026, bản 109)
 Phát/Replay chỉ icon, Vùng an toàn cùng hàng; vạch cảnh đậm và vạch ảnh mờ trên thanh thời gian; nút Upload/Gen AI in đậm; ô Nội dung bo 12px chữ 13px; ô chọn Cài đặt bo như nút Up nhạc; nền xám nhẹ cho cột Scene, Cài đặt và Timeline. Không đổi dữ liệu. Kiểm thử: logic 129, UI 517.
+
+## 10.81. Short Vid: tab Cài đặt, caption và thư viện (16/10/2026, bản 110)
+Giãn khoảng cách Cài đặt. Quản lý caption: Enter tách tại con trỏ, Backspace ở đầu ô gộp lên trên. Frame: thư viện frame 9:16, 4 Yêu thích hiện ngoài. Nhạc nền: thư viện nhạc (tối đa 8 bài đã Up, nghe thử, dùng, xóa), chưa có nhạc có sẵn. Ô Giọng đủ chữ. Kiểm thử: logic 130, UI 521.

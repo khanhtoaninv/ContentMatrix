@@ -1333,6 +1333,19 @@ details.vp-src summary { cursor: pointer; font-size: var(--fs-2); color: var(--i
 .vp-blk.flash { animation: vpblkflash .9s ease-out; }
 @media (prefers-reduced-motion: reduce) { .vp-sc.flash, .vp-blk.flash { animation: none; } }
 
+/* bản 110: Cài đặt thoáng hơn, thư viện frame/nhạc, ô Giọng đủ chữ */
+.vp-grp { padding: 16px 16px 18px; margin-bottom: 14px; }
+.vp-grp .eyebrow { margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.vp-grp .vp-tools { margin-top: 12px; gap: 10px 14px; }
+.vp-grp .vp-styles, .vp-grp .vp-frames { gap: 10px; }
+.vp-grp .vp-fxg { row-gap: 12px; }
+.vp-grp p.small { margin: 10px 0 0; line-height: 1.5; }
+.vp-grp select#ve-voice { width: 100%; min-height: 40px; height: auto; padding: 8px 12px; font-size: 14px; line-height: 1.4; white-space: normal; }
+.vp-libgrid { max-height: 52vh; overflow: auto; }
+.vp-mu { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
+.vp-mu > b { overflow-wrap: anywhere; }
+.vp-mu .vp-mub { grid-row: span 2; grid-column: 2; display: flex; gap: 6px; }
+.vp-mulist { max-height: 52vh; overflow: auto; }
 /* bản 109: nền xám nhẹ cho vùng Scene và Timeline để các section trắng nổi lên */
 :root { --pane: #e3e7ed; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --pane: #141a21; } }

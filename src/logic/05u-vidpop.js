@@ -133,6 +133,29 @@ export function splitSeg(S, id, i) {
   const h = Math.ceil(w.length / 2); const nx = ed.segs[i + 1] ? ed.segs[i + 1].at : editTimeline(v).total;
   ed.segs.splice(i, 1, { t: w.slice(0, h).join(' '), sc: g.sc, at: g.at, ed: 1 }, { t: w.slice(h).join(' '), sc: g.sc, at: r1((g.at + nx) / 2), ed: 1 }); return { ok: true };
 }
+// Tách tại vị trí con trỏ (Enter trong ô chữ caption); text là chữ đang gõ (có thể chưa lưu)
+export function splitSegAt(S, id, i, pos, text) {
+  const v = vidGet(S, id); const ed = v && v.edit; const g = ed && ed.segs && ed.segs[i]; if (!g) return { ok: false, error: 'Không thấy đoạn caption.' };
+  const t = String(text != null ? text : g.t); const p = Math.max(0, Math.min(t.length, Number(pos) || 0));
+  const a = t.slice(0, p).trim(), b = t.slice(p).trim(); if (!a || !b) return { ok: false, error: 'Đặt con trỏ giữa câu rồi bấm Enter để tách.' };
+  const nx = ed.segs[i + 1] ? ed.segs[i + 1].at : editTimeline(v).total;
+  ed.segs.splice(i, 1, { t: a.slice(0, 200), sc: g.sc, at: g.at, ed: 1 }, { t: b.slice(0, 200), sc: g.sc, at: r1((g.at + nx) / 2), ed: 1 }); return { ok: true };
+}
+// Frame Yêu thích (hiện ngoài Cài đặt, tối đa 4) và kho nhạc nền đã Up (tối đa 8), dùng chung mọi video
+export function vidFavFrames(S) {
+  const lib = vidLibOf(S); const ok = f => f.kind === 'png' && f.ratio === '9:16'; const all = (S.frames || []).filter(ok);
+  if (!Array.isArray(lib.favF)) return all.slice(0, 4);
+  return lib.favF.map(id => all.find(f => f.id === id)).filter(Boolean).slice(0, 4);
+}
+export function vidPinFrame(S, id) { const lib = vidLibOf(S); lib.favF = [id].concat(vidFavFrames(S).map(f => f.id).filter(x => x !== id)).slice(0, 4); return { ok: true }; }
+export function vidMusicAdd(S, m) {
+  if (!/^data:audio\//.test((m && m.src) || '')) return { ok: false, error: 'Nhạc nền phải là tệp audio.' };
+  const lib = vidLibOf(S); lib.music = lib.music || []; let t = lib.music.find(x => x.src === m.src);
+  if (!t) { t = { id: 'mu' + (lib.musicSeq = (lib.musicSeq || 0) + 1), name: String(m.name || 'nhạc nền').slice(0, 120), src: m.src, license: String(m.license || ''), peaks: m.peaks || null }; lib.music.unshift(t); lib.music = lib.music.slice(0, 8); }
+  else { if (m.license) t.license = String(m.license); if (m.peaks) t.peaks = m.peaks; }
+  return { ok: true, track: t };
+}
+export function vidMusicDel(S, id) { const lib = vidLibOf(S); const n = (lib.music || []).length; lib.music = (lib.music || []).filter(x => x.id !== id); return n === lib.music.length ? { ok: false, error: 'Không thấy bài nhạc.' } : { ok: true }; }
 export function mergeSeg(S, id, i) {
   const v = vidGet(S, id); const ed = v && v.edit; if (!ed || !ed.segs || i < 1 || !ed.segs[i]) return { ok: false, error: 'Không gộp được.' };
   ed.segs[i - 1].t += ' ' + ed.segs[i].t; ed.segs[i - 1].ed = 1; ed.segs.splice(i, 1); return { ok: true };

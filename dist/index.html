@@ -1338,6 +1338,19 @@ details.vp-src summary { cursor: pointer; font-size: var(--fs-2); color: var(--i
 .vp-blk.flash { animation: vpblkflash .9s ease-out; }
 @media (prefers-reduced-motion: reduce) { .vp-sc.flash, .vp-blk.flash { animation: none; } }
 
+/* bản 110: Cài đặt thoáng hơn, thư viện frame/nhạc, ô Giọng đủ chữ */
+.vp-grp { padding: 16px 16px 18px; margin-bottom: 14px; }
+.vp-grp .eyebrow { margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.vp-grp .vp-tools { margin-top: 12px; gap: 10px 14px; }
+.vp-grp .vp-styles, .vp-grp .vp-frames { gap: 10px; }
+.vp-grp .vp-fxg { row-gap: 12px; }
+.vp-grp p.small { margin: 10px 0 0; line-height: 1.5; }
+.vp-grp select#ve-voice { width: 100%; min-height: 40px; height: auto; padding: 8px 12px; font-size: 14px; line-height: 1.4; white-space: normal; }
+.vp-libgrid { max-height: 52vh; overflow: auto; }
+.vp-mu { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
+.vp-mu > b { overflow-wrap: anywhere; }
+.vp-mu .vp-mub { grid-row: span 2; grid-column: 2; display: flex; gap: 6px; }
+.vp-mulist { max-height: 52vh; overflow: auto; }
 /* bản 109: nền xám nhẹ cho vùng Scene và Timeline để các section trắng nổi lên */
 :root { --pane: #e3e7ed; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --pane: #141a21; } }
@@ -17001,6 +17014,83 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		});
 		return { ok: true };
 	}
+	function splitSegAt(S, id, i, pos, text) {
+		const v = vidGet(S, id);
+		const ed = v && v.edit;
+		const g = ed && ed.segs && ed.segs[i];
+		if (!g) return {
+			ok: false,
+			error: "Không thấy đoạn caption."
+		};
+		const t = String(text != null ? text : g.t);
+		const p = Math.max(0, Math.min(t.length, Number(pos) || 0));
+		const a = t.slice(0, p).trim(), b = t.slice(p).trim();
+		if (!a || !b) return {
+			ok: false,
+			error: "Đặt con trỏ giữa câu rồi bấm Enter để tách."
+		};
+		const nx = ed.segs[i + 1] ? ed.segs[i + 1].at : editTimeline(v).total;
+		ed.segs.splice(i, 1, {
+			t: a.slice(0, 200),
+			sc: g.sc,
+			at: g.at,
+			ed: 1
+		}, {
+			t: b.slice(0, 200),
+			sc: g.sc,
+			at: r1$1((g.at + nx) / 2),
+			ed: 1
+		});
+		return { ok: true };
+	}
+	function vidFavFrames(S) {
+		const lib = vidLibOf(S);
+		const ok = (f) => f.kind === "png" && f.ratio === "9:16";
+		const all = (S.frames || []).filter(ok);
+		if (!Array.isArray(lib.favF)) return all.slice(0, 4);
+		return lib.favF.map((id) => all.find((f) => f.id === id)).filter(Boolean).slice(0, 4);
+	}
+	function vidPinFrame(S, id) {
+		const lib = vidLibOf(S);
+		lib.favF = [id].concat(vidFavFrames(S).map((f) => f.id).filter((x) => x !== id)).slice(0, 4);
+		return { ok: true };
+	}
+	function vidMusicAdd(S, m) {
+		if (!/^data:audio\//.test(m && m.src || "")) return {
+			ok: false,
+			error: "Nhạc nền phải là tệp audio."
+		};
+		const lib = vidLibOf(S);
+		lib.music = lib.music || [];
+		let t = lib.music.find((x) => x.src === m.src);
+		if (!t) {
+			t = {
+				id: "mu" + (lib.musicSeq = (lib.musicSeq || 0) + 1),
+				name: String(m.name || "nhạc nền").slice(0, 120),
+				src: m.src,
+				license: String(m.license || ""),
+				peaks: m.peaks || null
+			};
+			lib.music.unshift(t);
+			lib.music = lib.music.slice(0, 8);
+		} else {
+			if (m.license) t.license = String(m.license);
+			if (m.peaks) t.peaks = m.peaks;
+		}
+		return {
+			ok: true,
+			track: t
+		};
+	}
+	function vidMusicDel(S, id) {
+		const lib = vidLibOf(S);
+		const n = (lib.music || []).length;
+		lib.music = (lib.music || []).filter((x) => x.id !== id);
+		return n === lib.music.length ? {
+			ok: false,
+			error: "Không thấy bài nhạc."
+		} : { ok: true };
+	}
 	function mergeSeg(S, id, i) {
 		const v = vidGet(S, id);
 		const ed = v && v.edit;
@@ -17853,7 +17943,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		DATA_VERSION,
 		STORAGE_KEY,
 		RELEASE: "R4",
-		BUILD: 109,
+		BUILD: 110,
 		TEMPLATES,
 		STEP_NAMES,
 		STEP_COUNT,
@@ -18437,7 +18527,12 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		genCaptions,
 		editSeg,
 		splitSeg,
+		splitSegAt,
 		mergeSeg,
+		vidFavFrames,
+		vidPinFrame,
+		vidMusicAdd,
+		vidMusicDel,
 		captionAt,
 		VID_TEMPLATES,
 		suggestTemplate,
@@ -28108,7 +28203,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			["none", "Không frame"],
 			["logo", "Nhãn góc"],
 			["band", "Dải dưới"]
-		].concat((S.frames || []).filter((f) => f.kind === "png" && f.ratio === "9:16").map((f) => [f.id, f.name]));
+		].concat(AC.vidFavFrames(S).filter((f) => f.kind === "png" && f.ratio === "9:16").map((f) => [f.id, f.name]));
 		return `<div class="vp-pane"><div class="vp-grp"><div class="eyebrow">Caption <button class="btn sm" data-a="capopen" data-testid="ve-capopen">Quản lý caption →</button></div>
       <div class="vp-styles">${AC.VID_CAPTION_STYLES.map((n, i) => `<button class="vp-cs s${i}" data-a="cstyle" data-i="${i}" aria-pressed="${ed.captions.style === i}">Aa<small>${esc(n)}</small></button>`).join("")}</div>
       <div class="vp-tools small"><label>Kiểu <select id="ve-cap">${opt(AC.VID_CAPTION_MODES, ed.captions.mode)}</select></label><label>Vị trí <select id="ve-pos">${opt(AC.VID_CAPTION_POS, ed.captions.pos)}</select></label></div></div>
@@ -28120,11 +28215,11 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			const own = ed.scenes.filter((x) => x.mo || x.tr).length;
 			return own ? `<span class="muted">${own} scene đang chỉnh riêng, giữ lựa chọn của scene đó.</span><button class="btn sm" data-a="fxclr">Đưa mọi scene về tự động</button>` : "<span class=\"muted\">Chuyển động chỉ áp dụng cho ảnh; video giữ nguyên chuyển động gốc. Chỉnh riêng từng scene bằng chip ✦ ở đầu scene.</span>";
 		})()}</div></div>
-    <div class="vp-grp"><div class="eyebrow">Frame</div><div class="vp-frames">${fr.map(([k, n]) => {
+    <div class="vp-grp"><div class="eyebrow">Frame <button class="btn sm" data-a="frlib" data-testid="ve-frlib">Thư viện frame →</button></div><div class="vp-frames">${fr.map(([k, n]) => {
 			const pf = (S.frames || []).find((f) => f.id === k);
 			return `<button class="vp-fr" data-a="frame" data-k="${esc(k)}" aria-pressed="${ed.frame === k}" title="${esc(n)}"><i>${pf ? `<img src="${esc(pf.src)}" alt="">` : FRAME_TILE[k] || ""}</i>${esc(n)}</button>`;
 		}).join("")}</div></div>
-    <div class="vp-grp"><div class="eyebrow">Nhạc nền</div>${mus ? `<b class="small">${esc(mus.name)}</b> <button class="btn icon sm ghost" data-a="musx" aria-label="Gỡ nhạc">${icon("close")}</button>` : `<button class="btn sm" data-a="musup">${icon("up")} Up nhạc</button>`}
+    <div class="vp-grp"><div class="eyebrow">Nhạc nền <button class="btn sm" data-a="mulib" data-testid="ve-mulib">Thư viện nhạc →</button></div>${mus ? `<b class="small">${esc(mus.name)}</b> <button class="btn icon sm ghost" data-a="musx" aria-label="Gỡ nhạc">${icon("close")}</button>` : `<button class="btn sm" data-a="musup">${icon("up")} Up nhạc</button>`}
       ${mus ? `<div class="vp-tools small"><label>Âm lượng <input type="range" min="0" max="100" value="${Math.round(mus.vol * 100)}" data-a="musvol"></label><label><input type="checkbox" data-a="duck" ${mus.duck !== false ? "checked" : ""}> Tự hạ khi có giọng</label></div><div class="vp-tools"><input id="ve-lic" data-a="lic" placeholder="Nguồn / giấy phép (bắt buộc khi có nhạc)" value="${esc(mus.license || "")}"></div>` : "<p class=\"small muted\">Nhạc nền chưa chọn.</p>"}</div>
     <div class="vp-grp"><div class="eyebrow">Giọng</div><label class="sr" for="ve-voice">Nguồn giọng</label><select id="ve-voice" ${ed.voAll ? "disabled" : ""}>${opt(AC.VID_VOICES, ed.voice.mode)}</select>
       <p class="small muted">${ed.voAll ? "Đang dùng VO toàn bài." : "Giọng máy đọc lời bằng giọng có sẵn của trình duyệt khi xem thử."}</p></div></div>`;
@@ -28584,6 +28679,84 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			if (r.top > innerHeight || r.bottom < 0) b.scrollIntoView({
 				block: "nearest",
 				behavior: "smooth"
+			});
+		}
+		function openFrameLib() {
+			const all = (S.frames || []).filter((f) => f.kind === "png" && f.ratio === "9:16");
+			openLayer(`<h2>Thư viện frame</h2>${all.length ? `<div class="vp-frames vp-libgrid">${all.map((f) => `<button class="vp-fr" data-fl="${esc(f.id)}" aria-pressed="${v().edit.frame === f.id}" title="${esc(f.name)}"><i><img src="${esc(f.src)}" alt=""></i>${esc(f.name)}</button>`).join("")}</div><p class="small muted">Chọn một frame để dùng ngay; frame vừa chọn lên hàng Yêu thích (tối đa 4).</p>` : "<p class=\"muted\">Chưa có frame PNG 9:16. Thêm frame ở mục Frame của app, rồi quay lại đây.</p>"}<div class="actions"><button class="btn" data-x="no">Đóng</button></div>`, "dialog").addEventListener("click", (e) => {
+				const b = e.target.closest("[data-fl]");
+				if (e.target.closest("[data-x]")) {
+					closeLayer();
+					return;
+				}
+				if (!b) return;
+				AC.vidPinFrame(S, b.dataset.fl);
+				AC.setEditOptions(S, id, { frame: b.dataset.fl });
+				closeLayer();
+				commit();
+				render();
+			});
+		}
+		function openMusicLib() {
+			const list = AC.vidLibOf(S).music || [];
+			let prev = null;
+			const stop = () => {
+				if (prev) {
+					try {
+						prev.pause();
+					} catch (e) {}
+					prev = null;
+				}
+			};
+			const body = () => list.length ? list.map((t) => `<div class="vp-mu" data-mu="${esc(t.id)}"><b class="small">${esc(t.name)}</b><span class="small muted">${esc(t.license || "chưa ghi giấy phép")}</span><span class="vp-mub"><button class="btn sm" data-mp="${esc(t.id)}" aria-label="Nghe thử ${esc(t.name)}">▶</button><button class="btn sm primary" data-mu-use="${esc(t.id)}">Dùng</button><button class="btn sm ghost" data-mu-del="${esc(t.id)}" aria-label="Xóa ${esc(t.name)} khỏi thư viện">✕</button></span></div>`).join("") : "<p class=\"muted\">Thư viện trống. Bấm Up nhạc để thêm bài đầu tiên; bài đã Up tự vào đây (lưu tối đa 8 bài).</p>";
+			const box = openLayer(`<h2>Thư viện nhạc nền</h2><div class="vp-mulist">${body()}</div><div class="actions"><button class="btn" data-x="no">Đóng</button></div>`, "dialog");
+			box.addEventListener("click", (e) => {
+				const x = e.target.closest("[data-x]"), u = e.target.closest("[data-mu-use]"), d = e.target.closest("[data-mu-del]"), p = e.target.closest("[data-mp]");
+				if (x) {
+					stop();
+					closeLayer();
+					return;
+				}
+				if (p) {
+					const t = list.find((q) => q.id === p.dataset.mp);
+					const was = prev && prev.dataset && prev.dataset.id === t.id;
+					stop();
+					if (t && !was) {
+						prev = new Audio(t.src);
+						prev.dataset = { id: t.id };
+						prev.volume = .6;
+						prev.play().catch(() => {});
+					}
+					return;
+				}
+				if (u) {
+					const t = list.find((q) => q.id === u.dataset.muUse);
+					if (!t) return;
+					stop();
+					const r = AC.setEditOptions(S, id, { music: {
+						src: t.src,
+						name: t.name,
+						license: t.license,
+						peaks: t.peaks
+					} });
+					if (r.ok === false) {
+						toast(r.error, "bad");
+						return;
+					}
+					closeLayer();
+					if (st.play) startAudio();
+					commit();
+					render();
+					toast("Đã dùng nhạc nền từ thư viện.");
+					return;
+				}
+				if (d) {
+					AC.vidMusicDel(S, d.dataset.muDel);
+					const i = list.findIndex((q) => q.id === d.dataset.muDel);
+					if (i >= 0) list.splice(i, 1);
+					save();
+					box.querySelector(".vp-mulist").innerHTML = body();
+				}
 			});
 		}
 		const fxEl = () => document.getElementById("vp-fxpop");
@@ -29147,11 +29320,14 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 						name: m.name
 					} }), "Đã thêm nhạc nền. Ghi nguồn/giấy phép bên dưới.")) return;
 					const p = await decodePeaks(m.src, 200);
-					if (p) {
-						AC.setEditOptions(S, id, { musicPeaks: p });
-						save();
-						render();
-					}
+					if (p) AC.setEditOptions(S, id, { musicPeaks: p });
+					AC.vidMusicAdd(S, {
+						name: m.name,
+						src: m.src,
+						peaks: p || null
+					});
+					save();
+					render();
 					return;
 				}
 				if (el.id === "vp-fileA") {
@@ -29369,6 +29545,33 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				mark();
 				paint();
 				flashBlk(i);
+			}
+		});
+		host.addEventListener("keydown", (e) => {
+			const el = e.target;
+			if (!el.matches || !el.matches("input[data-a=\"segt\"]") || e.isComposing) return;
+			const i = Number(el.dataset.i), segs = v().edit.segs || [];
+			const back = (j, caret) => {
+				const n = host.querySelector(`input[data-a="segt"][data-i="${j}"]`);
+				if (n) {
+					n.focus();
+					n.setSelectionRange(caret, caret);
+					n.scrollIntoView({ block: "nearest" });
+				}
+			};
+			if (e.key === "Enter") {
+				e.preventDefault();
+				el.dataset.a = "segx";
+				if (act(AC.splitSegAt(S, id, i, el.selectionStart, el.value))) back(i + 1, 0);
+				return;
+			}
+			if (e.key === "Backspace" && i > 0 && el.selectionStart === 0 && el.selectionEnd === 0) {
+				e.preventDefault();
+				const g = segs[i];
+				if (g) g.t = el.value.trim() || g.t;
+				el.dataset.a = "segx";
+				const len = segs[i - 1].t.length + 1;
+				if (act(AC.mergeSeg(S, id, i))) back(i - 1, len);
 			}
 		});
 		host.addEventListener("keydown", (e) => {
@@ -29643,6 +29846,14 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			}
 			if (a === "musup") {
 				pick("#vp-fileM", null);
+				return;
+			}
+			if (a === "frlib") {
+				openFrameLib();
+				return;
+			}
+			if (a === "mulib") {
+				openMusicLib();
 				return;
 			}
 			if (a === "musx") {
