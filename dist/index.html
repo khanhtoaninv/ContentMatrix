@@ -1101,7 +1101,13 @@ button.kchip { cursor: pointer; font: inherit; color: inherit; }
 @media (max-width: 560px) { .sv-origins { grid-template-columns: minmax(0, 1fr); } }
 .sv-mthumb { width: 64px; height: 64px; object-fit: cover; border-radius: var(--r-s); background: var(--surface-2); flex: none; }
 /* Popup thẻ Vid bản 1 (mục 10.76): tab Kịch bản / Biên tập / Xếp Slot, trình biên tập trong popup */
-.vp-tabs { margin-top: 10px; }
+.vp-h1 { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 10px; border-bottom: 1px solid var(--line); }
+.vp-h1 .vp-tabs { border-bottom: 0; flex: 1 1 auto; min-width: 0; }
+.vp-ver { margin-left: auto; display: flex; gap: 6px; align-items: center; padding: 4px 0; }
+.vp-vn { min-width: 76px; text-align: center; color: var(--ink-2); }
+.vp-old { background: var(--warn-soft); color: var(--warn); padding: 7px 10px; font-size: var(--fs-2); display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.vp-old .btn { margin-left: auto; }
+.vp-fs { border: 0; padding: 0; margin: 0; min-width: 0; }
 .vp-tabs button { display: flex; gap: 7px; align-items: center; }
 .vp-tabs button:disabled { opacity: .45; cursor: not-allowed; }
 .vp-step { width: 20px; height: 20px; border-radius: 50%; background: var(--surface-2); font-size: 11px; display: grid; place-items: center; font-weight: 600; }
@@ -1109,8 +1115,6 @@ button.kchip { cursor: pointer; font: inherit; color: inherit; }
 .vp-bar > button:not(.btn) { border: 1px solid transparent; background: none; padding: 3px 12px; border-radius: 99px; cursor: pointer; color: var(--ink-2); font-size: var(--fs-2); min-height: 30px; }
 .vp-bar > button[aria-selected="true"] { background: var(--surface); border-color: var(--line-strong); color: var(--ink); font-weight: 600; }
 .vp-sp { margin-left: auto; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
-.vp-srow { display: grid; grid-template-columns: 28px 86px minmax(0, 1fr) minmax(0, 1fr); gap: 10px; padding: 8px 0; border-top: 1px solid var(--line); font-size: var(--fs-2); }
-.vp-srow > b { color: var(--accent); }
 .vp-tag { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 5px; background: var(--surface-2); color: var(--ink-2); margin-right: 4px; }
 .vp-drop { display: grid; place-items: center; text-align: center; border: 2px dashed var(--line-strong); border-radius: 16px; min-height: 300px; cursor: pointer; color: var(--ink-2); margin-top: 8px; padding: 16px; }
 .vp-drop.has { min-height: 120px; }
@@ -1133,21 +1137,58 @@ button.kchip { cursor: pointer; font: inherit; color: inherit; }
 .vp-tools select { width: auto; padding: 2px 4px; }
 .vp-tools input[type="range"] { width: 90px; }
 .vp-r { margin-left: auto; display: flex; gap: 2px; align-items: center; }
-.vp-sc { display: grid; grid-template-columns: 62px minmax(0, 1fr); gap: 10px; padding: 9px; border: 1px solid var(--line); border-radius: var(--r-s); margin-bottom: 8px; }
+.vp-sc { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 10px; padding: 9px; border: 1px solid var(--line); border-radius: var(--r-s); margin-bottom: 8px; }
 .vp-sc[aria-current="true"] { border-color: var(--accent); background: var(--accent-soft); }
 .vp-scb { display: grid; gap: 4px; min-width: 0; }
-.vp-scb textarea { min-height: 48px; }
+textarea.vp-r2, .vp-scb textarea.vp-r2 { height: calc(2 * 1.45em + 14px); min-height: 0; line-height: 1.45; resize: vertical; }
+.vp-f { display: block; font-size: var(--fs-1); color: var(--ink-3); margin-bottom: 2px; }
+.vp-stale { background: var(--warn-soft); color: var(--warn); border-radius: var(--r-s); padding: 7px 10px; font-size: var(--fs-2); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.vp-stale[hidden] { display: none; }
+.vp-stale .btn { margin-left: auto; }
+details.vp-src summary { cursor: pointer; font-size: var(--fs-2); color: var(--ink-2); font-weight: 600; }
+.vp-phw { overflow-x: auto; }
+.vp-phc { width: 100%; border-collapse: collapse; font-size: var(--fs-2); min-width: 560px; }
+.vp-phc th { background: var(--surface-2); font-size: var(--fs-1); color: var(--ink-2); text-align: left; padding: 6px 8px; border: 1px solid var(--line); }
+.vp-phc td { border: 1px solid var(--line); padding: 6px 8px; vertical-align: top; }
+.vp-phc td.n { width: 40px; font-weight: 700; color: var(--accent); text-align: center; }
+.vp-phc td.t { width: 96px; color: var(--ink-3); font-size: var(--fs-1); white-space: nowrap; }
+.vp-phc td textarea { border-color: transparent; background: transparent; padding: 2px 4px; }
+.vp-phc td textarea:focus { border-color: var(--line-strong); background: var(--surface); }
+.vp-gen { margin-top: 4px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
 .vp-hd { display: flex; gap: 6px; align-items: center; }
 .vp-add { aspect-ratio: 9 / 12; border: 2px dashed var(--line-strong); border-radius: 6px; display: grid; place-items: center; color: var(--accent); background: var(--surface); cursor: pointer; overflow: hidden; position: relative; font-size: 11px; text-align: center; }
 .vp-add img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .vp-add.ph { border-style: solid; color: var(--ink-3); padding: 2px; }
 .vp-add svg { width: 20px; height: 20px; }
-.vp-cnt { position: absolute; right: 3px; bottom: 3px; background: rgb(0 0 0 / 65%); color: #fff; font-size: 11px; border-radius: 99px; padding: 0 6px; }
 .vp-thumbs { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
-.vp-th { position: relative; width: 34px; height: 44px; border-radius: 5px; overflow: hidden; background: var(--surface-2); display: grid; place-items: center; }
+.vp-mcol { display: flex; flex-direction: column; gap: 5px; align-items: stretch; min-width: 0; }
+.vp-add.has { border-style: solid; border-color: var(--line); }
+.vp-mcol .vp-thumbs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 3px; }
+.vp-th { position: relative; aspect-ratio: 3 / 4; border-radius: 4px; overflow: hidden; background: var(--surface-2); display: grid; place-items: center; cursor: pointer; border: 2px solid transparent; }
+.vp-th[aria-current="true"] { border-color: var(--accent); }
 .vp-th img { width: 100%; height: 100%; object-fit: cover; }
-.vp-th .btn.icon { position: absolute; top: 0; right: 0; width: 16px; height: 16px; min-height: 0; padding: 0; background: rgb(0 0 0 / 55%); color: #fff; border: 0; border-radius: 0 0 0 5px; }
-.vp-th .btn.icon svg { width: 10px; height: 10px; }
+.vp-th .vp-d { position: absolute; left: 0; right: 0; bottom: 0; background: rgb(0 0 0 / 55%); color: #fff; font-size: 9px; text-align: center; line-height: 12px; }
+.vp-x { position: absolute; top: 0; right: 0; background: rgb(0 0 0 / 60%); color: #fff; font-size: 9px; padding: 0 3px; line-height: 13px; border: 0; cursor: pointer; border-radius: 0 0 0 4px; }
+.vp-plus { border: 1px dashed var(--line-strong); background: var(--surface); border-radius: 5px; cursor: pointer; color: var(--accent); font-size: 12px; padding: 3px 0; min-height: 26px; }
+.vp-plus:disabled { opacity: .45; cursor: not-allowed; }
+.vp-ctl { display: grid; grid-template-columns: minmax(150px, 210px) minmax(0, 1fr) auto; gap: 10px; align-items: end; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+.vp-vo1 { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; min-height: 31px; }
+.vp-nm { overflow: hidden; text-overflow: ellipsis; min-width: 0; white-space: nowrap; }
+.vp-voline { display: flex; gap: 6px; align-items: center; flex-wrap: nowrap; font-size: 12px; margin-top: 4px; padding: 4px 8px; background: var(--surface-2); border-radius: var(--r-s); white-space: nowrap; overflow: hidden; min-height: 32px; }
+.vp-cuerow { display: flex; flex-wrap: wrap; gap: 2px; align-items: center; font-size: 12px; margin-top: 4px; padding: 4px 6px; border: 1px dashed var(--line-strong); border-radius: 6px; }
+.vp-cuerow.off { opacity: .7; border-style: dotted; }
+.vp-cuenote { margin-left: auto; }
+.vp-cw { position: relative; border: 0; background: none; padding: 0 3px; border-radius: 4px; cursor: pointer; color: var(--ink); font-size: 12px; line-height: 22px; min-height: 22px; }
+.vp-cw:hover { background: var(--accent-soft); }
+.vp-cw.on { background: var(--mark, #f3c24c); color: #222; font-weight: 600; }
+.vp-cw.lost { color: var(--bad); border: 1px solid var(--bad); }
+.vp-cx { position: absolute; top: -7px; right: -7px; width: 15px; height: 15px; border-radius: 50%; background: var(--bad); color: #fff; font-size: 9px; line-height: 15px; text-align: center; display: none; cursor: pointer; z-index: 3; font-weight: 700; }
+.vp-cw.on:hover .vp-cx, .vp-cb:hover .vp-cx, .vp-cw.on:focus-visible .vp-cx, .vp-cb:focus-visible .vp-cx { display: block; }
+@media (hover: none) { .vp-cw.on .vp-cx, .vp-cb .vp-cx { display: block; } }
+.vp-ctrack { position: relative; height: 26px; margin-bottom: 4px; background: var(--surface-2); border-radius: 6px; }
+.vp-chint { position: absolute; left: 8px; top: 4px; }
+.vp-cb { position: absolute; top: 3px; transform: translateX(-50%); height: 20px; min-width: 20px; border-radius: 10px; border: 1px solid var(--accent); background: var(--surface); color: var(--ink); font-size: 11px; padding: 0 5px; cursor: pointer; line-height: 18px; white-space: nowrap; z-index: 2; }
+.vp-cb[aria-current="true"] { background: var(--accent); color: var(--accent-ink); }
 .vp-grp { margin-bottom: 14px; }
 .vp-styles, .vp-frames { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
 .vp-cs { border: 2px solid var(--line); border-radius: 8px; padding: 6px 4px; background: #2a3446; cursor: pointer; text-align: center; font-size: 13px; font-weight: 700; color: #fff; }
@@ -1165,7 +1206,47 @@ button.kchip { cursor: pointer; font: inherit; color: inherit; }
 .vp-media.contain { object-fit: contain; }
 .vp-ph { position: absolute; inset: 0; display: grid; align-content: center; gap: 6px; padding: 18px; text-align: center; background: repeating-linear-gradient(135deg, #222 0 14px, #2b2b2b 14px 28px); font-size: 12px; line-height: 1.4; }
 .vp-ph span { color: #ddd; }
-.vp-ovl { position: absolute; left: 8%; right: 8%; top: 22%; text-align: center; font-weight: 800; font-size: clamp(16px, 7cqw, 26px); line-height: 1.2; text-shadow: 0 2px 8px #000; }
+.vp-ovk { position: absolute; right: 8px; top: 10px; font-size: 11px; opacity: .85; text-shadow: 0 1px 3px #000; }
+.vp-lys { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
+.vp-ly { position: absolute; transform: translate(-50%, -50%); cursor: move; user-select: none; touch-action: none; line-height: 1.15; text-align: center; pointer-events: auto; white-space: nowrap; }
+.vp-ly.sel { outline: 1px dashed #fff; outline-offset: 3px; }
+.vp-rz { position: absolute; right: -8px; bottom: -8px; width: 11px; height: 11px; background: #fff; border: 1px solid #333; border-radius: 3px; cursor: nwse-resize; }
+.vp-ly.lt0 { font-weight: 800; color: #fff; text-shadow: 0 2px 8px #000, 0 0 2px #000; }
+.vp-ly.lt1 { background: var(--mark, #f3c24c); color: #222; font-weight: 800; padding: 2px 8px; border-radius: 6px; }
+.vp-ly.lt2 { background: #e5484d; color: #fff; font-weight: 800; padding: 2px 9px; border-radius: 99px; }
+@keyframes vpfxpop { 0% { transform: translate(-50%, -50%) scale(.3); } 70% { transform: translate(-50%, -50%) scale(1.15); } 100% { transform: translate(-50%, -50%) scale(1); } }
+@keyframes vpfxfade { from { opacity: 0; } to { opacity: 1; } }
+.vp-ly.fx1 { animation: vpfxpop .35s ease-out; }
+.vp-ly.fx2 { animation: vpfxfade .45s ease-out; }
+@media (prefers-reduced-motion: reduce) { .vp-ly.fx1, .vp-ly.fx2 { animation: none; } }
+.vp-pop { position: fixed; z-index: 90; width: 340px; max-width: calc(100vw - 16px); max-height: 80vh; overflow: auto; background: var(--surface); color: var(--ink); border: 1px solid var(--line-strong); border-radius: 10px; box-shadow: var(--shadow); padding: 10px 12px; font-size: var(--fs-2); pointer-events: auto; }
+.vp-pop .eyebrow { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.vp-pop input:not([type]), .vp-pop input[type="number"] { padding: 3px 7px; }
+.vp-csec { border-top: 1px solid var(--line); padding-top: 6px; margin-top: 6px; }
+.vp-shd { display: flex; gap: 6px; align-items: center; cursor: pointer; padding: 2px 0; min-height: 30px; }
+.vp-sum { color: var(--ink-3); font-size: 12px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vp-chev { color: var(--ink-3); }
+.vp-subt { display: flex; gap: 4px; margin: 6px 0 4px; }
+.vp-subt button { border: 1px solid var(--line); background: none; border-radius: 99px; padding: 0 9px; font-size: 12px; cursor: pointer; color: var(--ink-2); line-height: 22px; }
+.vp-subt button[aria-selected="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.vp-lib { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 3px; max-height: 108px; overflow: auto; }
+.vp-lib button { font-size: 18px; border: 1px solid var(--line); background: var(--surface); border-radius: 6px; cursor: pointer; aspect-ratio: 1; padding: 0; }
+.vp-lib button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.vp-sfxl { display: grid; grid-template-columns: minmax(0, 1fr); gap: 3px; max-height: 150px; overflow: auto; margin-top: 4px; }
+.vp-sfi { display: flex; gap: 2px; align-items: center; border: 1px solid var(--line); border-radius: 6px; font-size: 12px; }
+.vp-sfi[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.vp-ic { border: 1px solid transparent; background: none; border-radius: 5px; cursor: pointer; padding: 0 6px; color: var(--ink-2); line-height: 24px; min-height: 26px; }
+.vp-ic:hover { background: var(--surface-2); }
+.vp-sfn { flex: 1; text-align: left; color: var(--ink); }
+.vp-ln { color: var(--ink-3); font-size: 11px; padding: 0 2px; }
+.vp-star.on { color: #d99a00; }
+.vp-curr { display: flex; gap: 6px; align-items: center; background: var(--surface-2); border-radius: 6px; padding: 3px 6px; margin: 4px 0; font-size: 12px; }
+.vp-tip { position: fixed; z-index: 95; background: var(--ink); color: var(--surface); font-size: 12px; border-radius: 8px; padding: 6px 9px; pointer-events: none; max-width: 280px; box-shadow: var(--shadow); line-height: 1.5; }
+.vp-tip[hidden] { display: none; }
+.vp-tip div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vp-gopts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.vp-gopts img { width: 100%; border-radius: 6px; border: 3px solid transparent; cursor: pointer; display: block; }
+.vp-gopts img[aria-pressed="true"] { border-color: var(--accent); }
 .vp-cap { position: absolute; left: 6%; right: 6%; text-align: center; font-weight: 800; font-size: clamp(12px, 5.2cqw, 20px); line-height: 1.25; }
 .vp-cap.pos-bottom { bottom: 22%; } .vp-cap.pos-middle { top: 42%; } .vp-cap.pos-top { top: 16%; }
 .vp-cap.s0 { text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 2px 6px #000; }
@@ -1185,14 +1266,19 @@ button.kchip { cursor: pointer; font: inherit; color: inherit; }
 .vp-tlw { margin-top: 14px; border: 1px solid var(--line); border-radius: var(--r-m, 10px); padding: 10px 12px; }
 .vp-tlh { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-size: var(--fs-1); color: var(--ink-3); margin-bottom: 6px; align-items: center; }
 .vp-badge { background: var(--warn-soft); color: var(--warn); border-radius: 99px; padding: 2px 9px; }
-.vp-tl { position: relative; height: 46px; display: flex; border-radius: 8px; overflow: hidden; background: var(--surface-2); user-select: none; touch-action: none; }
-.vp-blk { position: relative; border-right: 2px solid var(--surface); cursor: pointer; padding: 3px 8px; font-size: 11px; background: var(--accent-soft); color: var(--ink-2); overflow: hidden; white-space: nowrap; min-width: 0; }
+.vp-tl { position: relative; height: 52px; display: flex; border-radius: 8px; overflow: hidden; background: var(--surface-2); user-select: none; touch-action: none; }
+.vp-blk { position: relative; border-right: 3px solid var(--surface); cursor: pointer; padding: 0; font-size: 11px; background: var(--accent-soft); color: var(--ink-2); overflow: hidden; white-space: nowrap; min-width: 0; }
 .vp-blk[aria-current="true"] { background: var(--accent); color: var(--accent-ink); }
 .vp-blk.empty { background: var(--warn-soft); color: var(--warn); }
-.vp-hdl { position: absolute; right: 0; top: 0; bottom: 0; width: 10px; cursor: ew-resize; background: rgb(0 0 0 / 14%); }
+.vp-hdl { position: absolute; right: 0; top: 0; bottom: 0; width: 10px; cursor: ew-resize; background: rgb(0 0 0 / 14%); z-index: 2; }
+.vp-bl { position: absolute; left: 6px; top: 3px; right: 12px; overflow: hidden; text-overflow: ellipsis; }
+.vp-seg2 { position: absolute; top: 22px; bottom: 6px; border-left: 1px solid rgb(0 0 0 / 25%); font-size: 9px; padding-left: 2px; opacity: .85; overflow: hidden; }
+.vp-seg2:first-of-type { border-left: 0; }
+.vp-ih { position: absolute; top: 20px; bottom: 4px; width: 9px; margin-left: -4px; cursor: ew-resize; z-index: 2; }
+.vp-ih::after { content: ""; position: absolute; left: 3px; top: 0; bottom: 0; width: 3px; border-radius: 2px; background: rgb(0 0 0 / 30%); }
+.vp-ih:focus-visible { outline: 2px solid var(--accent); }
 .vp-hdl:focus-visible { outline: 2px solid var(--accent); background: rgb(0 0 0 / 35%); }
 .vp-vob { position: absolute; left: 0; bottom: 0; height: 5px; background: #e5484d; opacity: .8; }
-.vp-tick { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--ink-3); opacity: .6; }
 .vp-phl { position: absolute; top: 0; bottom: 0; width: 2px; background: #e5484d; pointer-events: none; }
 .vp-wave { position: relative; height: 34px; margin-top: 4px; background: var(--surface-2); border-radius: 6px; overflow: hidden; }
 .vp-wave.m { height: 20px; }
@@ -1215,8 +1301,8 @@ button.kchip { cursor: pointer; font: inherit; color: inherit; }
 .vp-slc.pick, .vp-slc.on { background: var(--accent); color: var(--accent-ink); font-size: 12px; font-weight: 600; }
 .vp-slc.busy { background: var(--surface-2); color: var(--ink-2); font-size: 11px; cursor: not-allowed; }
 .legend { display: flex; gap: 14px; margin: 8px 0; }
-@media (max-width: 900px) { .vp-ed { grid-template-columns: minmax(0, 1fr); } .vp-pv { position: static; max-width: 280px; margin: 0 auto; width: 100%; } .vp-pane { height: auto; max-height: 460px; } }
-@media (max-width: 560px) { .vp-srow { grid-template-columns: 24px minmax(0, 1fr); } .vp-srow > :nth-child(n+3) { grid-column: 2; } .vp-styles, .vp-frames { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 900px) { .vp-ctl { grid-template-columns: minmax(0, 1fr); } .vp-ver { margin-left: 0; } .vp-ed { grid-template-columns: minmax(0, 1fr); } .vp-pv { position: static; max-width: 280px; margin: 0 auto; width: 100%; } .vp-pane { height: auto; max-height: 460px; } }
+@media (max-width: 560px) { .vp-gopts { grid-template-columns: repeat(2, minmax(0, 1fr)); } .vp-styles, .vp-frames { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
 </style>
 <div class="app" id="app">
@@ -1240,7 +1326,7 @@ button.kchip { cursor: pointer; font: inherit; color: inherit; }
 	//#region src/logic/01-util.js
 	var DATA_VERSION = "ac-edu-r4-0";
 	var STORAGE_KEY = "autocontent.state";
-	function clone(o) {
+	function clone$1(o) {
 		return JSON.parse(JSON.stringify(o));
 	}
 	function hash32(str) {
@@ -2545,7 +2631,7 @@ Câu hỏi: … Đáp án: …
 			ratio: f.ratio,
 			kind: "png",
 			src: f.src,
-			photo: clone(f.photo),
+			photo: clone$1(f.photo),
 			title: Object.assign({
 				x: .06,
 				y: .8,
@@ -2623,12 +2709,12 @@ Câu hỏi: … Đáp án: …
 			kind: "image",
 			ext: data.ext || "jpg"
 		};
-		if (data.frame) v.frame = clone(data.frame);
-		if (data.i2i) v.i2i = clone(data.i2i);
-		if (data.crop) v.crop = clone(data.crop);
-		if (data.tpl) v.tpl = clone(data.tpl);
-		if (data.lib) v.lib = clone(data.lib);
-		if (data.ai) v.ai = clone(data.ai);
+		if (data.frame) v.frame = clone$1(data.frame);
+		if (data.i2i) v.i2i = clone$1(data.i2i);
+		if (data.crop) v.crop = clone$1(data.crop);
+		if (data.tpl) v.tpl = clone$1(data.tpl);
+		if (data.lib) v.lib = clone$1(data.lib);
+		if (data.ai) v.ai = clone$1(data.ai);
 		if (data.text) {
 			const e = validateTextLayers(data.text.layers);
 			if (e) return {
@@ -4958,7 +5044,7 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		return S.snippets || (S.isDemo ? DEFAULT_SNIPPETS : []);
 	}
 	function ownSnippets(S) {
-		if (!S.snippets) S.snippets = clone(snippetsOf(S));
+		if (!S.snippets) S.snippets = clone$1(snippetsOf(S));
 		return S.snippets;
 	}
 	function snippetsFor(S, ctx, kind, q) {
@@ -5272,7 +5358,7 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		};
 		const a0 = src.assets.find((a) => a.versions.some((v) => v.n === a.current && v.kind !== "video"));
 		if (a0) {
-			const v = clone(a0.versions.find((x) => x.n === a0.current));
+			const v = clone$1(a0.versions.find((x) => x.n === a0.current));
 			if (!s.assets.length) s.assets.push(Object.assign(newAsset({
 				name: "Ảnh 1",
 				prompt: ""
@@ -7034,7 +7120,7 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		AI_TEXT.clear();
 	}
 	function aiPlan(S, run) {
-		const C = clone(S);
+		const C = clone$1(S);
 		AI_REC = [];
 		try {
 			run(C);
@@ -7392,7 +7478,7 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		s = String(s || "").replace(/\s+/g, " ").trim();
 		return s.length > n ? s.slice(0, n - 1).replace(/\s+\S*$/, "") + "…" : s;
 	};
-	var r1$1 = (x) => Math.round(Number(x) * 10) / 10;
+	var r1$2 = (x) => Math.round(Number(x) * 10) / 10;
 	var plainMd = (t) => String(t || "").replace(/^\s*#{1,6}\s.*$/gm, "").replace(/^\s*([-*+]|\d+[.)])\s+/gm, "").replace(/\*\*|__|`/g, "").replace(/#[\p{L}\p{N}_]+/gu, "");
 	var vidGet$2 = (S, id) => byId(S.videos || [], id);
 	var freeTopicId = (weekId) => `${weekId}-FREE`;
@@ -7433,7 +7519,7 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 	}
 	function mockDescribe(m, i) {
 		const nm = mediaUnitName(m) || `clip ${i + 1}`;
-		return m.kind === "image" ? `Ảnh: ${nm}.` : `Cảnh ${nm}${m.dur ? `, dài ${r1$1(m.dur).toString().replace(".", ",")} giây` : ""}.`;
+		return m.kind === "image" ? `Ảnh: ${nm}.` : `Cảnh ${nm}${m.dur ? `, dài ${r1$2(m.dur).toString().replace(".", ",")} giây` : ""}.`;
 	}
 	function addVidMedia(S, id, m) {
 		const v = vidGet$2(S, id);
@@ -7463,7 +7549,7 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 			name: String(m.name || mt[1]).slice(0, 120),
 			src: m.src,
 			size: Number(m.size) || 0,
-			dur: Number(m.dur) > 0 ? r1$1(m.dur) : 0,
+			dur: Number(m.dur) > 0 ? r1$2(m.dur) : 0,
 			thumb: m.thumb || "",
 			desc: "",
 			descSim: true,
@@ -7536,8 +7622,8 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		const nm = mediaUnitName(m) || "clip";
 		m.segs = Array.from({ length: n }, (_, i) => ({
 			id: `${m.id}s${i + 1}`,
-			from: r1$1(i * d),
-			to: r1$1(i === n - 1 ? m.dur : (i + 1) * d),
+			from: r1$2(i * d),
+			to: r1$2(i === n - 1 ? m.dur : (i + 1) * d),
 			desc: `Đoạn ${i + 1} của ${nm} (${fmtClock(i * d)}–${fmtClock(i === n - 1 ? m.dur : (i + 1) * d)}).`,
 			descSim: true
 		}));
@@ -7557,7 +7643,7 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 				mediaId: m.id,
 				from: g.from,
 				to: g.to,
-				dur: r1$1(g.to - g.from),
+				dur: r1$2(g.to - g.from),
 				desc: g.desc,
 				label: g.id,
 				kind: "video"
@@ -7794,7 +7880,7 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		if (o === "post") body = `Rút bài dưới đây thành kịch bản nói 60 giây: [Hook] → [Nội dung] → [Ý chính] → [CTA]. Giữ đúng sự thật trong bài, không thêm số liệu.\n\n# Bài nguồn\n${v.source}`;
 		else {
 			const units = brollUnits(v);
-			body = `Viết lời dẫn cho các cảnh b-roll theo đúng thứ tự: [Hook], rồi mỗi cảnh một nhãn [Cảnh k], rồi [CTA]. Lời mỗi cảnh vừa thời lượng cảnh đó.\n${v.request ? `Yêu cầu của người dùng: ${v.request}\n` : ""}${v.insight.idea ? `Ý tưởng: ${v.insight.idea}\n` : ""}\n# Cảnh\n${units.map((u, i) => `- Cảnh ${i + 1} (${r1$1(u.dur || 3)} giây): ${u.desc}`).join("\n")}`;
+			body = `Viết lời dẫn cho các cảnh b-roll theo đúng thứ tự: [Hook], rồi mỗi cảnh một nhãn [Cảnh k], rồi [CTA]. Lời mỗi cảnh vừa thời lượng cảnh đó.\n${v.request ? `Yêu cầu của người dùng: ${v.request}\n` : ""}${v.insight.idea ? `Ý tưởng: ${v.insight.idea}\n` : ""}\n# Cảnh\n${units.map((u, i) => `- Cảnh ${i + 1} (${r1$2(u.dur || 3)} giây): ${u.desc}`).join("\n")}`;
 		}
 		const user = [
 			head,
@@ -7827,8 +7913,8 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 			if (!quiet && a >= 0) {
 				const from = a * step + (a ? O.pad : 0), to = i * step - (i < L.length ? O.pad : 0);
 				if (to - from >= O.minGap - 2 * O.pad && to > from) out.push({
-					from: r1$1(from),
-					to: r1$1(to),
+					from: r1$2(from),
+					to: r1$2(to),
 					on: true,
 					why: a === 0 ? "Lặng đầu clip" : i === L.length ? "Lặng cuối clip" : "Khoảng lặng"
 				});
@@ -7841,8 +7927,8 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		const D = Number(dur) || 0;
 		const out = [];
 		for (let t = 6; t < D - 2; t += 8) out.push({
-			from: r1$1(t),
-			to: r1$1(Math.min(D, t + .7)),
+			from: r1$2(t),
+			to: r1$2(Math.min(D, t + .7)),
 			on: true,
 			why: "Mô phỏng: chỗ có thể nói vấp"
 		});
@@ -7855,14 +7941,14 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		let t = 0;
 		cs.forEach(([a, b]) => {
 			if (a > t + .05) out.push({
-				from: r1$1(t),
-				to: r1$1(a)
+				from: r1$2(t),
+				to: r1$2(a)
 			});
 			t = Math.max(t, b);
 		});
 		if (D > t + .05) out.push({
-			from: r1$1(t),
-			to: r1$1(D)
+			from: r1$2(t),
+			to: r1$2(D)
 		});
 		return out;
 	}
@@ -7874,8 +7960,8 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		};
 		const ed = editOf(v);
 		ed.cuts = (cuts || []).map((c) => ({
-			from: r1$1(c.from),
-			to: r1$1(c.to),
+			from: r1$2(c.from),
+			to: r1$2(c.to),
 			on: c.on !== false,
 			why: String(c.why || "")
 		})).filter((c) => c.to > c.from);
@@ -7918,19 +8004,19 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		return migrateEdit(v.edit);
 	}
 	var itemOf = (a, dur) => {
-		const d = a.kind === "image" ? 0 : r1$1(a.to > a.from ? a.to - (a.from || 0) : dur || 0);
+		const d = a.kind === "image" ? 0 : r1$2(a.to > a.from ? a.to - (a.from || 0) : dur || 0);
 		return Object.assign({
 			kind: a.kind,
 			name: a.name || "",
-			from: r1$1(a.from || 0),
-			to: a.kind === "image" ? 0 : r1$1(a.to || 0),
+			from: r1$2(a.from || 0),
+			to: a.kind === "image" ? 0 : r1$2(a.to || 0),
 			dur: d,
 			short: "hold",
 			trim: 0
 		}, a.mediaId ? { mediaId: a.mediaId } : { src: a.src }, a.thumb ? { thumb: a.thumb } : {});
 	};
 	function migrateEdit(ed) {
-		if (!ed || ed.v === 2) return ed;
+		if (!ed || ed.v === 3) return ed;
 		ed.voAll = ed.voAll || null;
 		ed.segs = ed.segs || null;
 		ed.capStale = !!ed.capStale;
@@ -7952,8 +8038,130 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 			if (sc.vo === void 0) sc.vo = null;
 			sc.ph = !!sc.ph;
 		});
-		ed.v = 2;
+		ed.cues = Array.isArray(ed.cues) ? ed.cues : [];
+		ed.cueSeq = ed.cueSeq || 1;
+		(ed.scenes || []).forEach((sc) => {
+			if (sc.items.length && sc.items.some((it) => !(it.d > 0))) evenSplit(sc, sc.dur);
+			const ov = String(sc.overlay || "").trim();
+			if (ov && sceneWords(sc.text).length) ed.cues.push({
+				id: `cu${ed.cueSeq++}`,
+				sc: sc.id,
+				wi: 0,
+				w: sceneWords(sc.text)[0],
+				dt: 0,
+				icon: null,
+				text: {
+					t: ov.slice(0, 80),
+					st: 0,
+					x: 50,
+					y: 24,
+					sz: 26,
+					dur: Math.min(3, sc.dur),
+					fx: 0
+				},
+				sfx: null,
+				lost: false
+			});
+			delete sc.overlay;
+		});
+		ed.v = 3;
 		return ed;
+	}
+	var sumItems = (sc) => r1$2((sc.items || []).reduce((a, it) => a + (it.d || 0), 0));
+	function evenSplit(sc, tot) {
+		const n = sc.items.length;
+		if (!n) {
+			sc.dur = r1$2(tot);
+			return;
+		}
+		const each = Math.max(1, Math.floor(tot / n * 10) / 10);
+		sc.items.forEach((it) => {
+			it.d = each;
+		});
+		sc.items[n - 1].d = r1$2(Math.max(1, tot - each * (n - 1)));
+		sc.dur = sumItems(sc);
+	}
+	function setSceneDur(ed, sc, nd) {
+		nd = r1$2(Math.max(sceneMin(ed, sc), Math.min(120, Number(nd) || 0)));
+		if (!sc.items.length) {
+			sc.dur = nd;
+			return sc.dur;
+		}
+		const s = sumItems(sc) || 1;
+		sc.items.forEach((it) => {
+			it.d = Math.max(1, Math.floor((it.d || 0) * nd / s * 10) / 10);
+		});
+		let diff = r1$2(nd - sumItems(sc));
+		for (let k = sc.items.length - 1; k >= 0 && Math.abs(diff) > .01; k--) {
+			const it = sc.items[k];
+			const d2 = Math.max(1, r1$2(it.d + diff));
+			diff = r1$2(diff - (d2 - it.d));
+			it.d = d2;
+		}
+		sc.dur = sumItems(sc);
+		return sc.dur;
+	}
+	var itemOffsets = (sc) => {
+		let a = 0;
+		return sc.items.map((it) => {
+			const r = r1$2(a);
+			a += it.d || 0;
+			return r;
+		});
+	};
+	var sceneWords = (t) => String(t || "").split(/\s+/).filter(Boolean);
+	var normWord = (w) => fold(String(w)).replace(/[^a-z0-9]/g, "");
+	function alignWords(text, dur, off) {
+		const ws = sceneWords(text);
+		const pz = (w) => /[.?!…]$/.test(w) ? 4 : /[,;:]$/.test(w) ? 2 : 0;
+		const wt = ws.map((w) => normWord(w).length + 1 + pz(w));
+		const sum = wt.reduce((a, b) => a + b, 0) || 1;
+		const span = Math.max(.2, dur - .2);
+		let acc = .1;
+		return ws.map((w, k) => {
+			const s = acc, len = (wt[k] - pz(w)) / sum * span;
+			acc += wt[k] / sum * span;
+			return {
+				w,
+				s: Math.round((off + s) * 1e3) / 1e3,
+				e: Math.round((off + s + len) * 1e3) / 1e3
+			};
+		});
+	}
+	function sceneWordTimes(ed, i) {
+		const sc = ed && ed.scenes[i];
+		if (!sc) return null;
+		if (ed.voAll && ed.voAll.dur > 0) {
+			const A = alignWords(ed.scenes.map((x) => x.text).join(" "), ed.voAll.dur, 0);
+			let k0 = 0;
+			for (let j = 0; j < i; j++) k0 += sceneWords(ed.scenes[j].text).length;
+			return A.slice(k0, k0 + sceneWords(sc.text).length);
+		}
+		if (!sc.vo) return null;
+		let t0 = 0;
+		for (let j = 0; j < i; j++) t0 += ed.scenes[j].dur;
+		return alignWords(sc.text, sc.vo.dur, t0);
+	}
+	function cueTime(ed, c) {
+		if (!ed || !c || c.lost) return null;
+		const i = ed.scenes.findIndex((s) => s.id === c.sc);
+		if (i < 0) return null;
+		const t = sceneWordTimes(ed, i);
+		if (!t || !t[c.wi]) return null;
+		return Math.max(0, Math.round((t[c.wi].s + (c.dt || 0)) * 1e3) / 1e3);
+	}
+	function rematchCues(ed, sc, text) {
+		const nw = sceneWords(text).map(normWord);
+		(ed.cues || []).filter((c) => c.sc === sc.id && !c.lost).forEach((c) => {
+			const tg = normWord(c.w);
+			if (nw[c.wi] === tg) return;
+			let best = -1;
+			nw.forEach((x, j) => {
+				if (x === tg && (best < 0 || Math.abs(j - c.wi) < Math.abs(best - c.wi))) best = j;
+			});
+			if (best >= 0) c.wi = best;
+			else c.lost = true;
+		});
 	}
 	var newScene = (ed, p) => {
 		const sc = Object.assign({
@@ -7963,7 +8171,6 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 			dur: 3,
 			items: [],
 			prompt: "",
-			overlay: "",
 			fit: "fill",
 			vol: 100,
 			vo: null,
@@ -7977,10 +8184,11 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		mediaId: u.mediaId,
 		name: "",
 		from: u.from,
-		to: u.kind === "image" ? 0 : r1$1(u.from + Math.min(u.dur || sc.dur, sc.dur)),
-		dur: u.kind === "image" ? 0 : r1$1(u.dur || 0),
+		to: u.kind === "image" ? 0 : r1$2(u.from + Math.min(u.dur || sc.dur, sc.dur)),
+		dur: u.kind === "image" ? 0 : r1$2(u.dur || 0),
 		short: "hold",
-		trim: 0
+		trim: 0,
+		d: sc.dur
 	});
 	function scenePrompt(S, v, text) {
 		const c = vidSettingsOf(S);
@@ -8015,7 +8223,7 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		const o = vidOrigin(v);
 		const ed = editOf(v);
 		ed.seq = ed.seq || 1;
-		const dur = (t) => Math.max(1.5, r1$1(countWords(t) / c.wps));
+		const dur = (t) => Math.max(1.5, r1$2(countWords(t) / c.wps));
 		const scenes = [];
 		if (o === "talk") {
 			const m = (v.media || []).find((x) => x.kind === "video");
@@ -8032,16 +8240,17 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 				scenes.push(newScene(ed, {
 					label: `Đoạn giữ ${i + 1}`,
 					text: words.slice(wi, wi + n).join(" "),
-					dur: r1$1(k.to - k.from),
+					dur: r1$2(k.to - k.from),
 					items: [{
 						kind: "video",
 						mediaId: m.id,
 						name: "",
 						from: k.from,
 						to: k.to,
-						dur: r1$1(k.to - k.from),
+						dur: r1$2(k.to - k.from),
 						short: "hold",
-						trim: 0
+						trim: 0,
+						d: r1$2(k.to - k.from)
 					}]
 				}));
 				wi += n;
@@ -8087,7 +8296,8 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 				};
 				const sum = scenes.reduce((a, s) => a + s.dur, 0);
 				if (audio.dur > 0 && sum > 0) scenes.forEach((s) => {
-					s.dur = r1$1(s.dur * audio.dur / sum);
+					s.dur = r1$2(s.dur * audio.dur / sum);
+					if (s.items.length) evenSplit(s, s.dur);
 					s.defDur = s.dur;
 				});
 			} else {
@@ -8096,6 +8306,7 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 			}
 		}
 		scenes.forEach((sc) => {
+			if (sc.items.length) evenSplit(sc, sc.dur);
 			sc.defDur = sc.dur;
 		});
 		ed.scenes = scenes;
@@ -8104,14 +8315,17 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		ed.tpl = "script";
 		ed.capStale = true;
 		ed.segs = null;
+		ed.cues = [];
+		ed.splitFrom = v.script || "";
+		if (v.script && (v.status === "DRAFT" || v.status === "TODO")) v.status = "APPROVED";
 		log(S, "vid-plan", "video", id, `${scenes.length} cảnh`);
 		return {
 			ok: true,
 			count: scenes.length
 		};
 	}
-	var fmtSecVi = (t) => `${r1$1(t).toString().replace(".", ",")} giây`;
-	var sceneMin = (ed, sc) => r1$1(Math.max(SCENE_FLOOR, (sc.items || []).length, ed && !ed.voAll && sc.vo ? Math.ceil(sc.vo.dur * 10) / 10 : 0));
+	var fmtSecVi = (t) => `${r1$2(t).toString().replace(".", ",")} giây`;
+	var sceneMin = (ed, sc) => r1$2(Math.max(SCENE_FLOOR, (sc.items || []).length, ed && !ed.voAll && sc.vo ? Math.ceil(sc.vo.dur * 10) / 10 : 0));
 	var sceneGet = (S, id, sid) => {
 		const v = vidGet$2(S, id);
 		return {
@@ -8132,25 +8346,29 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 				ok: false,
 				error: "Thời lượng cảnh 0,5–120 giây."
 			};
-			const mn = sceneMin(vidGet$2(S, id).edit, sc);
-			if (r1$1(d) < mn) return {
+			const ed = vidGet$2(S, id).edit;
+			const mn = sceneMin(ed, sc);
+			if (r1$2(d) < mn) return {
 				ok: false,
 				error: `Cảnh không ngắn hơn ${fmtSecVi(mn)} (độ dài VO hoặc 1 giây mỗi hình).`
 			};
-			if (r1$1(d) !== sc.dur) {
-				sc.dur = r1$1(d);
-				vidGet$2(S, id).edit.capStale = true;
+			if (r1$2(d) !== sc.dur) {
+				setSceneDur(ed, sc, d);
+				ed.capStale = true;
 			}
 		}
 		[
 			"text",
 			"prompt",
-			"overlay",
 			"label"
 		].forEach((k) => {
 			if (P[k] != null) {
 				const t = String(P[k]).trim().slice(0, k === "text" ? 1200 : 400);
-				if (k === "text" && t !== sc.text) vidGet$2(S, id).edit.capStale = true;
+				if (k === "text" && t !== sc.text) {
+					const ed = vidGet$2(S, id).edit;
+					ed.capStale = true;
+					rematchCues(ed, sc, t);
+				}
 				sc[k] = t;
 			}
 		});
@@ -8173,6 +8391,7 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		if (!r.ok) return r;
 		sc.items = [r.item];
 		sc.ph = false;
+		evenSplit(sc, Math.max(sc.dur, sceneMin(v.edit, sc)));
 		return { ok: true };
 	}
 	function makeItem(v, sc, a) {
@@ -8190,11 +8409,12 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 					kind: m.kind,
 					mediaId: m.id,
 					name: m.name,
-					from: r1$1(from),
-					to: r1$1(to),
-					dur: m.kind === "image" ? 0 : r1$1(to - from),
+					from: r1$2(from),
+					to: r1$2(to),
+					dur: m.kind === "image" ? 0 : r1$2(to - from),
 					short: "hold",
-					trim: 0
+					trim: 0,
+					d: 0
 				}
 			};
 		}
@@ -8203,7 +8423,7 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 			ok: false,
 			error: "Tệp phải là ảnh hoặc video."
 		};
-		const dur = mt[1] === "video" ? r1$1(Number(a.dur) || sc.dur) : 0;
+		const dur = mt[1] === "video" ? r1$2(Number(a.dur) || sc.dur) : 0;
 		const item = {
 			kind: mt[1],
 			src: a.src,
@@ -8212,9 +8432,11 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 			to: dur,
 			dur,
 			short: "hold",
-			trim: 0
+			trim: 0,
+			d: 0
 		};
 		if (/^data:image\//.test(a.thumb || "")) item.thumb = a.thumb;
+		if (a.gen) item.gen = true;
 		return {
 			ok: true,
 			item
@@ -8242,8 +8464,7 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		};
 		sc.items.push(...made);
 		sc.ph = false;
-		const mn = sceneMin(v.edit, sc);
-		if (sc.dur < mn) sc.dur = mn;
+		evenSplit(sc, Math.max(sc.dur, sceneMin(v.edit, sc)));
 		v.edit.capStale = true;
 		return {
 			ok: true,
@@ -8257,6 +8478,7 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 			error: "Không thấy hình."
 		};
 		sc.items.splice(k, 1);
+		evenSplit(sc, Math.max(sc.dur, sceneMin(v.edit, sc)));
 		v.edit.capStale = true;
 		return { ok: true };
 	}
@@ -8268,7 +8490,7 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 			error: "Không thấy hình."
 		};
 		if (patch.short != null && VID_SHORT[patch.short]) it.short = patch.short;
-		if (patch.trim != null) it.trim = Math.max(0, r1$1(Number(patch.trim) || 0));
+		if (patch.trim != null) it.trim = Math.max(0, r1$2(Number(patch.trim) || 0));
 		return { ok: true };
 	}
 	function addScene(S, id, afterSid) {
@@ -8302,6 +8524,7 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 			error: "Giữ ít nhất một cảnh."
 		};
 		v.edit.scenes = v.edit.scenes.filter((x) => x.id !== sid);
+		v.edit.cues = (v.edit.cues || []).filter((c) => c.sc !== sid);
 		v.edit.capStale = true;
 		return { ok: true };
 	}
@@ -8388,13 +8611,13 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 			items: sc.map((s) => {
 				const it = {
 					scene: s,
-					t0: r1$1(t),
-					t1: r1$1(t + s.dur)
+					t0: r1$2(t),
+					t1: r1$2(t + s.dur)
 				};
 				t += s.dur;
 				return it;
 			}),
-			total: r1$1(t)
+			total: r1$2(t)
 		};
 	}
 	var STOP = new Set("và là của có cho với những các một này thì mà để khi trong được không rằng như từ bạn mình nhé ạ".split(" "));
@@ -8425,8 +8648,8 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		return chunks.map((c, i) => {
 			const d = D * c.weight / sum;
 			const o = {
-				t0: r1$1(t),
-				t1: i === chunks.length - 1 ? r1$1(D) : r1$1(t + d),
+				t0: r1$2(t),
+				t1: i === chunks.length - 1 ? r1$2(D) : r1$2(t + d),
 				text: c.text
 			};
 			t += d;
@@ -8469,22 +8692,22 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 			if (ed.segs && ed.captions.mode !== "off") {
 				const mine = ed.segs.filter((g) => g.sc === s.id);
 				return mine.map((g, i) => ({
-					start: r1$1(g.at),
-					end: r1$1(i + 1 < mine.length ? mine[i + 1].at : t1),
+					start: r1$2(g.at),
+					end: r1$2(i + 1 < mine.length ? mine[i + 1].at : t1),
 					text: g.t
 				}));
 			}
 			return captionChunks(s.text, s.dur, ed.captions.mode).map((x) => ({
-				start: r1$1(t0 + x.t0),
-				end: r1$1(t0 + x.t1),
+				start: r1$2(t0 + x.t0),
+				end: r1$2(t0 + x.t1),
 				text: x.text
 			}));
 		};
 		return {
 			app: "Content Matrix",
 			kind: "vid-edit-list",
-			version: 2,
-			popup: 1,
+			version: 3,
+			popup: 4,
 			video: {
 				id: v.id,
 				title: v.insight.title,
@@ -8509,15 +8732,43 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 				from: x.from,
 				to: x.to
 			})),
+			cues: (ed.cues || []).map((c) => ({
+				c,
+				t: cueTime(ed, c)
+			})).filter((x) => x.t != null).sort((a, b) => a.t - b.t).map(({ c, t }) => ({
+				id: c.id,
+				at: t,
+				word: c.w,
+				icon: c.icon ? {
+					glyph: c.icon.g,
+					x: c.icon.x,
+					y: c.icon.y,
+					size: c.icon.sz,
+					duration: c.icon.dur,
+					effect: c.icon.fx || 0
+				} : null,
+				text: c.text ? {
+					text: c.text.t,
+					style: c.text.st,
+					x: c.text.x,
+					y: c.text.y,
+					size: c.text.sz,
+					duration: c.text.dur,
+					effect: c.text.fx || 0
+				} : null,
+				sfx: c.sfx ? {
+					key: c.sfx.k,
+					volume: c.sfx.vol / 100
+				} : null
+			})),
 			scenes: tl.items.map(({ scene: s, t0, t1 }) => {
-				const n = s.items.length, share = n ? s.dur / n : 0;
+				const offs = itemOffsets(s);
 				return {
 					id: s.id,
 					start: t0,
 					end: t1,
 					label: s.label,
 					text: s.text,
-					overlay: s.overlay || "",
 					fit: s.fit,
 					volume: s.vol / 100,
 					voiceover: ed.voAll ? null : s.vo ? {
@@ -8528,13 +8779,13 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 					sources: s.items.map((it, k) => ({
 						file: it.mediaId ? mediaName(it.mediaId) : it.name || "tệp tải lên",
 						kind: it.kind,
-						from: r1$1((it.from || 0) + (it.trim || 0)),
-						to: it.kind === "image" ? 0 : r1$1((it.from || 0) + (it.trim || 0) + Math.min(share, it.dur || share)),
-						start: r1$1(t0 + k * share),
-						end: r1$1(t0 + (k + 1) * share),
+						from: r1$2((it.from || 0) + (it.trim || 0)),
+						to: it.kind === "image" ? 0 : r1$2((it.from || 0) + (it.trim || 0) + Math.min(it.d, it.dur || it.d)),
+						start: r1$2(t0 + offs[k]),
+						end: r1$2(t0 + offs[k] + it.d),
 						whenShort: it.short || "hold"
 					})),
-					...n ? {} : {
+					...s.items.length ? {} : {
 						placeholder: true,
 						prompt: s.prompt
 					},
@@ -9075,7 +9326,7 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 					n: 1,
 					title: p.title,
 					text: p.text,
-					fields: clone(p.fields || {}),
+					fields: clone$1(p.fields || {}),
 					words: p.words,
 					hasCase: p.hasCase,
 					createdAt: now,
@@ -9658,12 +9909,30 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 			r = Object.assign({ simulated: true }, m);
 		}
 		const f = byId(S.vidFormats, v.formatId);
-		if (v.script) v.history = [{
-			script: v.script,
-			prompts: clone(v.prompts),
-			at: v.writtenAt || "",
-			ai: v.ai || null
-		}].concat(v.history || []).slice(0, 5);
+		if (v.script) {
+			pushVersion(v);
+			const cuts = v.edit && v.edit.cuts;
+			v.edit = null;
+			if (cuts && cuts.length) migrateEdit(v.edit = {
+				scenes: [],
+				voice: { mode: "tts" },
+				voAll: null,
+				captions: {
+					mode: "full",
+					pos: "bottom",
+					style: 0
+				},
+				segs: null,
+				capStale: false,
+				frame: "logo",
+				music: null,
+				cuts: clone$1(cuts),
+				seq: 1,
+				plannedAt: null,
+				tpl: "script",
+				doneAt: null
+			});
+		}
 		v.script = r.script;
 		v.prompts = {
 			audio: r.audio || (v.kind === "bantin" ? (vidSections(r.script).find((s) => /máy/i.test(s.label)) || {}).text || "" : ""),
@@ -9702,12 +9971,6 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 			ok: true,
 			changed: false
 		};
-		if (v.script && P.script != null && P.script !== v.script) v.history = [{
-			script: v.script,
-			prompts: clone(v.prompts),
-			at: v.writtenAt || "",
-			ai: v.ai || null
-		}].concat(v.history || []).slice(0, 5);
 		if (P.script != null) {
 			v.script = String(P.script).replace(/\r/g, "").trim();
 			v.edited = true;
@@ -9720,6 +9983,71 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		return {
 			ok: true,
 			changed: true
+		};
+	}
+	function vidVersions(v) {
+		const H = v.history = v.history || [];
+		if (!(v.verN > 0)) v.verN = H.length + 1;
+		H.forEach((h, i) => {
+			if (!(h.n > 0)) h.n = Math.max(1, v.verN - 1 - i);
+		});
+		return H.slice().reverse().concat([{
+			n: v.verN,
+			current: true,
+			script: v.script,
+			prompts: v.prompts,
+			insight: v.insight,
+			edit: v.edit || null,
+			at: v.writtenAt || "",
+			ai: v.ai || null
+		}]);
+	}
+	function pushVersion(v) {
+		vidVersions(v);
+		v.history = [{
+			n: v.verN,
+			script: v.script,
+			prompts: clone$1(v.prompts),
+			insight: clone$1(v.insight),
+			edit: v.edit ? clone$1(v.edit) : null,
+			at: v.writtenAt || "",
+			ai: v.ai || null
+		}].concat(v.history).slice(0, 4);
+		v.verN = Math.max(v.verN, ...v.history.map((h) => h.n)) + 1;
+	}
+	function useVidVersion(S, id, n) {
+		const v = vidGet$1(S, id);
+		if (!v) return {
+			ok: false,
+			error: "Không thấy video."
+		};
+		if (v.cancelled) return {
+			ok: false,
+			error: "Kịch bản đã hủy. Bấm Khôi phục trước."
+		};
+		vidVersions(v);
+		const h = v.history.find((x) => x.n === Number(n));
+		if (!h) return {
+			ok: false,
+			error: "Không thấy bản này."
+		};
+		const src = clone$1(h);
+		pushVersion(v);
+		v.script = src.script || "";
+		v.prompts = src.prompts || {
+			audio: "",
+			image: ""
+		};
+		if (src.insight) v.insight = Object.assign({}, v.insight, src.insight);
+		v.edit = src.edit ? migrateEdit(src.edit) : null;
+		v.ai = src.ai || null;
+		v.status = v.edit && v.edit.scenes.length ? "APPROVED" : "DRAFT";
+		v.writtenAt = S.settings.demoNow;
+		log(S, "vid-version", "video", id, `từ bản ${h.n}`);
+		return {
+			ok: true,
+			n: v.verN,
+			from: h.n
 		};
 	}
 	function approveVidScript(S, id) {
@@ -12184,7 +12512,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				ctaType: "action",
 				extraBanned: []
 			},
-			criteria: clone(DEFAULT_CELL_CRITERIA),
+			criteria: clone$1(DEFAULT_CELL_CRITERIA),
 			assetPrompt
 		});
 		const columns = [
@@ -12241,7 +12569,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				wordsPerSlideMax: null,
 				extraBanned: []
 			}, rules),
-			criteria: clone(DEFAULT_SLOT_CRITERIA),
+			criteria: clone$1(DEFAULT_SLOT_CRITERIA),
 			assetNeeds
 		});
 		const words = (min, max, extra) => Object.assign({
@@ -13595,7 +13923,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				n,
 				title: p.title,
 				text: p.text,
-				fields: clone(p.fields),
+				fields: clone$1(p.fields),
 				words: p.words,
 				hasCase: p.hasCase,
 				createdAt: now,
@@ -13674,7 +14002,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 					n: 1,
 					title: p.title,
 					text: p.text,
-					fields: clone(p.fields),
+					fields: clone$1(p.fields),
 					words: p.words,
 					hasCase: p.hasCase,
 					createdAt: now,
@@ -14202,7 +14530,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 	}
 	function detachAsset(S, a) {
 		const id = a.shareId;
-		a.versions = clone(a.versions);
+		a.versions = clone$1(a.versions);
 		delete a.shareId;
 		tidyShare(S, id);
 	}
@@ -14318,7 +14646,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				if (assetRatioOf(a) !== assetRatioOf(b)) return why(`Khác tỉ lệ (${assetRatioOf(a)} và ${assetRatioOf(b)}): chỉ Sao chép được.`);
 				if (!a.shareId) a.shareId = nextId(S, "shr");
 				if (b.shareId) detachAsset(S, b);
-				const keep = b.versions.filter((v) => v.src && v.kind !== "video").map((v) => clone(v));
+				const keep = b.versions.filter((v) => v.src && v.kind !== "video").map((v) => clone$1(v));
 				b.versions = a.versions;
 				b.shareId = a.shareId;
 				keep.forEach((v) => {
@@ -14335,7 +14663,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				});
 			} else {
 				imgGuard(S, t, b);
-				const v = clone(cur);
+				const v = clone$1(cur);
 				v.n = b.versions.length + 1;
 				v.createdAt = at || S.settings.demoNow;
 				v.copiedFrom = {
@@ -14838,7 +15166,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		return S.weeks.find((w) => w.startDate === m) || null;
 	}
 	function exportBackup(S) {
-		const state = clone(S);
+		const state = clone$1(S);
 		delete state.ui;
 		const body = JSON.stringify(state);
 		return JSON.stringify({
@@ -15949,10 +16277,10 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		items.forEach((it) => {
 			const i = list.findIndex((x) => x.id === it.id);
 			if (i < 0) {
-				list.push(clone(it));
+				list.push(clone$1(it));
 				added++;
 			} else if (!onlyMissing && JSON.stringify(list[i]) !== JSON.stringify(it)) {
-				list[i] = clone(it);
+				list[i] = clone$1(it);
 				replaced++;
 			}
 		});
@@ -16120,7 +16448,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 	}
 	//#endregion
 	//#region src/logic/05u-vidpop.js
-	var r1 = (x) => Math.round(Number(x) * 10) / 10;
+	var r1$1 = (x) => Math.round(Number(x) * 10) / 10;
 	var vidGet = (S, id) => byId(S.videos || [], id);
 	var AUDIO_RE = /^data:audio\//;
 	function voPeaks(seed, n) {
@@ -16149,16 +16477,51 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				ok: false,
 				error: "Cảnh cuối không kéo được khi dùng VO toàn bài: kéo mép cảnh trước."
 			};
-			d = Math.min(d, a.dur + b.dur - sceneMin(ed, b));
-			const tot = a.dur + b.dur;
-			a.dur = r1(d);
-			b.dur = r1(tot - d);
-		} else a.dur = r1(d);
+			const tot = r1$1(a.dur + b.dur);
+			d = Math.min(d, tot - sceneMin(ed, b));
+			setSceneDur(ed, a, d);
+			setSceneDur(ed, b, r1$1(tot - a.dur));
+		} else setSceneDur(ed, a, d);
 		if (a.dur !== was) ed.capStale = true;
 		return {
 			ok: true,
 			dur: a.dur,
 			changed: a.dur !== was
+		};
+	}
+	function resizeItem(S, id, sid, k, nd) {
+		const v = vidGet(S, id);
+		const ed = v && v.edit;
+		const sc = ed && ed.scenes.find((x) => x.id === sid);
+		const it = sc && sc.items[k];
+		if (!it) return {
+			ok: false,
+			error: "Không thấy hình."
+		};
+		const was = it.d;
+		let d = Number(nd) || 0;
+		if (ed.voAll) {
+			const nx = sc.items[k + 1];
+			if (!nx) return {
+				ok: false,
+				error: "Hình cuối: kéo mép cảnh."
+			};
+			const tot = r1$1(it.d + nx.d);
+			d = Math.max(1, Math.min(tot - 1, d));
+			it.d = r1$1(d);
+			nx.d = r1$1(tot - it.d);
+		} else {
+			const other = sc.items.reduce((a, x, j) => a + (j === k ? 0 : x.d), 0);
+			const vo = sc.vo ? Math.ceil(sc.vo.dur * 10) / 10 : 0;
+			d = Math.max(1, vo - other, SCENE_FLOOR - other, Math.min(60, d));
+			it.d = r1$1(d);
+		}
+		sc.dur = r1$1(sc.items.reduce((a, x) => a + x.d, 0));
+		if (it.d !== was) ed.capStale = true;
+		return {
+			ok: true,
+			d: it.d,
+			changed: it.d !== was
 		};
 	}
 	function nudgeScene(S, id, sid, delta) {
@@ -16174,17 +16537,24 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		const sum = ed.scenes.reduce((a, s) => a + s.dur, 0);
 		if (!(target > 0) || !(sum > 0)) return;
 		ed.scenes.forEach((s) => {
-			s.dur = r1(Math.max(sceneMin(ed, s), s.dur * target / sum));
+			s.dur = r1$1(Math.max(sceneMin(ed, s), s.dur * target / sum));
 		});
-		const diff = r1(target - ed.scenes.reduce((a, s) => a + s.dur, 0));
-		if (diff > 0) ed.scenes[ed.scenes.length - 1].dur = r1(ed.scenes[ed.scenes.length - 1].dur + diff);
+		const diff = r1$1(target - ed.scenes.reduce((a, s) => a + s.dur, 0));
+		if (diff > 0) ed.scenes[ed.scenes.length - 1].dur = r1$1(ed.scenes[ed.scenes.length - 1].dur + diff);
 		else if (diff < 0) for (let i = ed.scenes.length - 1, left = -diff; i >= 0 && left > 0; i--) {
 			const room = ed.scenes[i].dur - sceneMin(ed, ed.scenes[i]);
 			const cut = Math.min(room, left);
-			ed.scenes[i].dur = r1(ed.scenes[i].dur - cut);
-			left = r1(left - cut);
+			ed.scenes[i].dur = r1$1(ed.scenes[i].dur - cut);
+			left = r1$1(left - cut);
 		}
 		ed.scenes.forEach((s) => {
+			if (s.items.length) {
+				const d = s.dur;
+				s.items.forEach((it) => {
+					it.d = it.d || 1;
+				});
+				setSceneDur(ed, s, d);
+			}
 			s.defDur = s.dur;
 		});
 	}
@@ -16196,7 +16566,9 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			error: "Chưa có cảnh."
 		};
 		ed.scenes.forEach((s) => {
-			s.dur = r1(Math.max(s.defDur || 1.5, sceneMin(ed, s)));
+			const d = r1$1(Math.max(s.defDur || 1.5, sceneMin(ed, s)));
+			if (s.items.length) evenSplit(s, d);
+			else s.dur = d;
 		});
 		if (ed.voAll && ed.voAll.dur > 0) fitTotal(ed, ed.voAll.dur);
 		ed.capStale = true;
@@ -16222,7 +16594,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				error: "VO tải lên phải là tệp audio."
 			};
 		}
-		const dur = r1(Number(p.dur) > 0 ? p.dur : fallbackDur);
+		const dur = r1$1(Number(p.dur) > 0 ? p.dur : fallbackDur);
 		if (!(dur > 0)) return {
 			ok: false,
 			error: "Chưa đọc được độ dài VO."
@@ -16292,11 +16664,11 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			error: "Đang dùng VO toàn bài: gỡ VO toàn bài trước khi làm VO cảnh."
 		};
 		const i = ed.scenes.indexOf(sc);
-		const r = voFrom(v, p || {}, r1((sc.defDur || sc.dur) * .85), i + 1);
+		const r = voFrom(v, p || {}, r1$1((sc.defDur || sc.dur) * .85), i + 1);
 		if (!r.ok) return r;
 		if (r.vo.peaks && r.vo.peaks.length > 120) r.vo.peaks = r.vo.peaks.slice(0, 120);
 		sc.vo = r.vo;
-		if (sc.dur < r.vo.dur) sc.dur = r1(Math.ceil(r.vo.dur * 10) / 10);
+		setSceneDur(ed, sc, Math.ceil(r.vo.dur * 10) / 10);
 		ed.capStale = true;
 		return {
 			ok: true,
@@ -16373,11 +16745,12 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			const span = ed.voAll ? sc.dur * .92 : sc.vo ? Math.min(sc.vo.dur, sc.dur) : sc.dur * .92;
 			const n = texts.reduce((a, g) => a + countWords(g.t), 0) || 1;
 			let acc = 0;
+			const tw = mode === "key" ? null : sceneWordTimes(ed, ed.scenes.indexOf(sc));
 			texts.forEach((g) => {
 				res.push({
 					t: g.t,
 					sc: sc.id,
-					at: r1(st + acc / n * span),
+					at: tw && tw[acc] ? r1$1(tw[acc].s) : r1$1(st + acc / n * span),
 					ed: g.ed ? 1 : 0
 				});
 				acc += countWords(g.t);
@@ -16411,7 +16784,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		if (patch.at != null) {
 			const tot = editTimeline(v).total;
 			const lo = i ? ed.segs[i - 1].at : 0, hi = i + 1 < ed.segs.length ? ed.segs[i + 1].at : tot;
-			g.at = r1(Math.max(lo, Math.min(hi, Number(String(patch.at).replace(",", ".")) || 0)));
+			g.at = r1$1(Math.max(lo, Math.min(hi, Number(String(patch.at).replace(",", ".")) || 0)));
 			g.ed = 1;
 		}
 		return { ok: true };
@@ -16439,7 +16812,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		}, {
 			t: w.slice(h).join(" "),
 			sc: g.sc,
-			at: r1((g.at + nx) / 2),
+			at: r1$1((g.at + nx) / 2),
 			ed: 1
 		});
 		return { ok: true };
@@ -16470,7 +16843,6 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		const c = ch.find((x) => t - it.t0 < x.t1) || ch[ch.length - 1];
 		return c ? c.text : "";
 	}
-	var keyOf = (t) => (captionChunks(t, 1, "key")[0] || {}).text || "";
 	var VID_TEMPLATES = {
 		script: {
 			name: "Theo kịch bản (tự chia)",
@@ -16489,12 +16861,6 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				"B-roll minh họa vấn đề",
 				"Biểu đồ hoặc sơ đồ đơn giản",
 				"Người nói, chốt việc làm ngay"
-			],
-			overlays: () => [
-				"",
-				"Vấn đề",
-				"Giải đáp",
-				"Làm ngay"
 			]
 		},
 		chunhan: {
@@ -16510,8 +16876,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				"Nền đơn sắc, chữ lớn",
 				"Nền đơn sắc, chữ lớn",
 				"Nền đơn sắc, chữ lớn"
-			],
-			overlays: (ts) => ts.map(keyOf)
+			]
 		},
 		nguoinoi: {
 			name: "Người nói + b-roll",
@@ -16528,13 +16893,6 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				"Người nói, nhấn ý chính",
 				"B-roll minh họa cách làm",
 				"Người nói, chốt"
-			],
-			overlays: (ts) => [
-				"",
-				"",
-				keyOf(ts[2]),
-				"",
-				"Làm ngay"
 			]
 		}
 	};
@@ -16577,10 +16935,9 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			cuts.push(i === k - 1 ? ss.length : Math.max((cuts[i - 1] || 0) + 1, Math.min(ss.length - (k - 1 - i), Math.round(ss.length * acc / sum))));
 		});
 		const texts = cuts.map((e, i) => ss.slice(i ? cuts[i - 1] : 0, e).join(" "));
-		const ov = T.overlays(texts);
 		ed.seq = ed.seq || 1;
 		ed.scenes = texts.map((t, i) => {
-			const d = Math.max(SCENE_FLOOR, r1(countWords(t) / c.wps));
+			const d = Math.max(SCENE_FLOOR, r1$1(countWords(t) / c.wps));
 			return {
 				id: `sc${ed.seq++}`,
 				label: `Cảnh ${i + 1}`,
@@ -16589,7 +16946,6 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				defDur: d,
 				items: [],
 				prompt: T.hints[i] || scenePrompt(S, v, t),
-				overlay: ov[i] || "",
 				fit: "fill",
 				vol: 100,
 				vo: null,
@@ -16602,6 +16958,8 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		ed.capStale = true;
 		ed.doneAt = null;
 		ed.plannedAt = S.settings.demoNow;
+		ed.cues = [];
+		ed.splitFrom = v.script || "";
 		return {
 			ok: true,
 			count: ed.scenes.length,
@@ -16709,13 +17067,600 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			skipped
 		};
 	}
+	var VID_ICONS = [
+		["🔥", "lửa nóng hot"],
+		["💡", "ý tưởng bóng đèn mẹo"],
+		["✅", "đúng đồng ý ok"],
+		["❌", "sai không"],
+		["⚠️", "cảnh báo chú ý"],
+		["❓", "hỏi câu hỏi"],
+		["❗", "chú ý quan trọng"],
+		["⏰", "đồng hồ báo thức giờ"],
+		["⏱️", "bấm giờ hẹn giờ phút"],
+		["📚", "sách học"],
+		["🧠", "não trí nhớ tập trung"],
+		["😴", "buồn ngủ mệt"],
+		["😮", "bất ngờ wow"],
+		["🤔", "suy nghĩ"],
+		["👍", "tốt like"],
+		["👉", "chỉ tay"],
+		["⬆️", "lên tăng"],
+		["⬇️", "xuống giảm"],
+		["📈", "tăng biểu đồ"],
+		["📉", "giảm biểu đồ"],
+		["💯", "100 tuyệt đối"],
+		["⭐", "sao nổi bật"],
+		["🎯", "mục tiêu"],
+		["🚀", "nhanh tên lửa"],
+		["📱", "điện thoại"],
+		["☕", "cà phê nghỉ"],
+		["🏃", "vận động chạy"],
+		["💪", "mạnh cố gắng"],
+		["❤️", "tim yêu"],
+		["🎉", "chúc mừng"],
+		["🔑", "chìa khóa bí quyết"],
+		["📌", "ghim lưu"],
+		["🔔", "chuông nhắc"],
+		["💤", "ngủ"],
+		["✨", "lấp lánh"],
+		["➡️", "mũi tên sang"],
+		["1️⃣", "số một 1"],
+		["2️⃣", "số hai 2"],
+		["3️⃣", "số ba 3"],
+		["4️⃣", "số bốn 4"]
+	];
+	var VID_SFX = [
+		[
+			"ding",
+			"Ting",
+			"Nhấn",
+			.6,
+			"ding",
+			1
+		],
+		[
+			"pop",
+			"Pop",
+			"Nhấn",
+			.1,
+			"pop",
+			1
+		],
+		[
+			"pop2",
+			"Pop cao",
+			"Nhấn",
+			.1,
+			"pop",
+			1.6
+		],
+		[
+			"boom",
+			"Bùm",
+			"Nhấn",
+			.8,
+			"boom",
+			1
+		],
+		[
+			"drum",
+			"Trống",
+			"Nhấn",
+			.3,
+			"drum",
+			1
+		],
+		[
+			"snap",
+			"Búng tay",
+			"Nhấn",
+			.1,
+			"snap",
+			1
+		],
+		[
+			"click",
+			"Click",
+			"Nhấn",
+			.1,
+			"click",
+			1
+		],
+		[
+			"knock",
+			"Gõ bàn",
+			"Nhấn",
+			.3,
+			"knock",
+			1
+		],
+		[
+			"whoosh",
+			"Vút",
+			"Chuyển cảnh",
+			.5,
+			"whoosh",
+			1
+		],
+		[
+			"rise",
+			"Vút lên",
+			"Chuyển cảnh",
+			.6,
+			"rise",
+			1
+		],
+		[
+			"fall",
+			"Vút xuống",
+			"Chuyển cảnh",
+			.6,
+			"fall",
+			1
+		],
+		[
+			"swipe",
+			"Lướt",
+			"Chuyển cảnh",
+			.3,
+			"swipe",
+			1
+		],
+		[
+			"swipe2",
+			"Quét nhanh",
+			"Chuyển cảnh",
+			.2,
+			"swipe",
+			1.8
+		],
+		[
+			"wind",
+			"Gió",
+			"Chuyển cảnh",
+			1.2,
+			"wind",
+			1
+		],
+		[
+			"chime",
+			"Đúng (ting ting)",
+			"Đúng/Sai",
+			.6,
+			"chime",
+			1
+		],
+		[
+			"buzz",
+			"Sai (bíp)",
+			"Đúng/Sai",
+			.4,
+			"buzz",
+			1
+		],
+		[
+			"bell",
+			"Chuông",
+			"Đúng/Sai",
+			1.2,
+			"bell",
+			1
+		],
+		[
+			"dingdong",
+			"Ding dong",
+			"Đúng/Sai",
+			.8,
+			"dingdong",
+			1
+		],
+		[
+			"whistle",
+			"Còi",
+			"Đúng/Sai",
+			.4,
+			"whistle",
+			1
+		],
+		[
+			"boing",
+			"Boing",
+			"Vui",
+			.5,
+			"boing",
+			1
+		],
+		[
+			"bubble",
+			"Bong bóng",
+			"Vui",
+			.15,
+			"bubble",
+			1
+		],
+		[
+			"sparkle",
+			"Lấp lánh",
+			"Vui",
+			.4,
+			"sparkle",
+			1
+		],
+		[
+			"magic",
+			"Phép thuật",
+			"Vui",
+			.6,
+			"sparkle",
+			.7
+		],
+		[
+			"fanfare",
+			"Kèn vui",
+			"Vui",
+			.8,
+			"fanfare",
+			1
+		],
+		[
+			"heart",
+			"Tim đập",
+			"Vui",
+			.4,
+			"heart",
+			1
+		],
+		[
+			"key",
+			"Gõ phím",
+			"Giao diện",
+			.05,
+			"key",
+			1
+		],
+		[
+			"notify",
+			"Thông báo",
+			"Giao diện",
+			.4,
+			"notify",
+			1
+		],
+		[
+			"shutter",
+			"Chụp ảnh",
+			"Giao diện",
+			.2,
+			"shutter",
+			1
+		],
+		[
+			"tick",
+			"Tích tắc",
+			"Giao diện",
+			.6,
+			"tick",
+			1
+		],
+		[
+			"page",
+			"Lật trang",
+			"Giao diện",
+			.2,
+			"page",
+			1
+		],
+		[
+			"unlock",
+			"Mở khóa",
+			"Giao diện",
+			.2,
+			"unlock",
+			1
+		],
+		[
+			"roll",
+			"Trống dồn",
+			"Không khí",
+			1,
+			"roll",
+			1
+		],
+		[
+			"drone",
+			"Hồi hộp",
+			"Không khí",
+			2,
+			"drone",
+			1
+		],
+		[
+			"bigboom",
+			"Bùm lớn",
+			"Không khí",
+			1.2,
+			"boom",
+			.6
+		],
+		[
+			"gong",
+			"Chiêng",
+			"Không khí",
+			1.6,
+			"bell",
+			.45
+		]
+	];
+	var VID_SFX_GROUPS = [
+		"Chuyển cảnh",
+		"Nhấn",
+		"Đúng/Sai",
+		"Vui",
+		"Giao diện",
+		"Không khí"
+	];
+	var VID_CUE_FX = [
+		"Hiện ngay",
+		"Nảy",
+		"Mờ dần"
+	];
+	var VID_CUE_TEXT_STYLES = [
+		"Trắng nổi",
+		"Nền vàng",
+		"Nhãn đỏ"
+	];
+	var sfxOf = (k) => VID_SFX.find((x) => x[0] === k) || null;
+	var iconOk = (g) => VID_ICONS.some((x) => x[0] === g);
+	function vidLibOf(S) {
+		if (!S.vidLib) S.vidLib = {
+			favS: [
+				"ding",
+				"pop",
+				"whoosh",
+				"chime",
+				"buzz",
+				"boom",
+				"sparkle",
+				"tick"
+			],
+			favI: [
+				"🔥",
+				"💡",
+				"✅",
+				"❌",
+				"❓",
+				"⏰",
+				"🧠",
+				"👉",
+				"⭐",
+				"🎯",
+				"📈",
+				"🎉"
+			],
+			recS: [],
+			recI: []
+		};
+		return S.vidLib;
+	}
+	function toggleVidFav(S, kind, key) {
+		const L = vidLibOf(S);
+		const a = kind === "sfx" ? L.favS : L.favI;
+		if (kind === "sfx" ? !sfxOf(key) : !iconOk(key)) return {
+			ok: false,
+			error: "Không có trong kho."
+		};
+		const i = a.indexOf(key);
+		if (i >= 0) a.splice(i, 1);
+		else a.push(key);
+		return {
+			ok: true,
+			fav: i < 0
+		};
+	}
+	var pushRecent = (a, x) => {
+		const i = a.indexOf(x);
+		if (i >= 0) a.splice(i, 1);
+		a.unshift(x);
+		if (a.length > 10) a.length = 10;
+	};
+	var cueGet = (S, id, cid) => {
+		const v = vidGet(S, id);
+		const ed = v && v.edit;
+		return {
+			v,
+			ed,
+			c: ed && (ed.cues || []).find((x) => x.id === cid)
+		};
+	};
+	var cueOf = (ed, cid) => (ed && ed.cues || []).find((x) => x.id === cid) || null;
+	function addCue(S, id, sid, wi) {
+		const v = vidGet(S, id);
+		const ed = v && v.edit;
+		const sc = ed && ed.scenes.find((x) => x.id === sid);
+		if (!sc) return {
+			ok: false,
+			error: "Không thấy cảnh."
+		};
+		const ws = sceneWords(sc.text);
+		const k = Math.round(Number(wi));
+		if (!(k >= 0 && k < ws.length)) return {
+			ok: false,
+			error: "Không thấy từ trong lời cảnh."
+		};
+		ed.cues = ed.cues || [];
+		const old = ed.cues.find((c) => c.sc === sid && c.wi === k && !c.lost);
+		if (old) return {
+			ok: true,
+			cue: old,
+			existed: true
+		};
+		if (ed.cues.length >= 60) return {
+			ok: false,
+			error: "Tối đa 60 cue mỗi video."
+		};
+		ed.cueSeq = ed.cueSeq || 1;
+		const c = {
+			id: `cu${ed.cueSeq++}`,
+			sc: sid,
+			wi: k,
+			w: ws[k],
+			dt: 0,
+			icon: null,
+			text: null,
+			sfx: null,
+			lost: false
+		};
+		ed.cues.push(c);
+		return {
+			ok: true,
+			cue: c
+		};
+	}
+	function moveCue(S, id, cid, sid, wi) {
+		const { ed, c } = cueGet(S, id, cid);
+		if (!c) return {
+			ok: false,
+			error: "Không thấy cue."
+		};
+		const sc = ed.scenes.find((x) => x.id === sid);
+		if (!sc) return {
+			ok: false,
+			error: "Không thấy cảnh."
+		};
+		const ws = sceneWords(sc.text);
+		const k = Math.round(Number(wi));
+		if (!(k >= 0 && k < ws.length)) return {
+			ok: false,
+			error: "Không thấy từ trong lời cảnh."
+		};
+		if (ed.cues.some((x) => x !== c && x.sc === sid && x.wi === k && !x.lost)) return {
+			ok: false,
+			error: "Từ này đã có cue."
+		};
+		Object.assign(c, {
+			sc: sid,
+			wi: k,
+			w: ws[k],
+			dt: 0,
+			lost: false
+		});
+		return {
+			ok: true,
+			cue: c
+		};
+	}
+	function removeCue(S, id, cid) {
+		const { ed, c } = cueGet(S, id, cid);
+		if (!c) return {
+			ok: false,
+			error: "Không thấy cue."
+		};
+		ed.cues = ed.cues.filter((x) => x !== c);
+		return { ok: true };
+	}
+	var num = (x, lo, hi, d) => {
+		const n = Number(x);
+		return Number.isFinite(n) ? Math.max(lo, Math.min(hi, n)) : d;
+	};
+	function editCue(S, id, cid, patch) {
+		const { v, c } = cueGet(S, id, cid);
+		if (!c) return {
+			ok: false,
+			error: "Không thấy cue."
+		};
+		const P = patch || {};
+		const L = vidLibOf(S);
+		if (P.dt != null) c.dt = r1$1(num(P.dt, -5, 5, 0));
+		if (P.icon !== void 0) {
+			if (!P.icon) c.icon = null;
+			else {
+				const o = Object.assign({
+					g: "💡",
+					x: 78,
+					y: 30,
+					sz: 56,
+					dur: 1.5,
+					fx: 1
+				}, c.icon || {}, P.icon);
+				if (!iconOk(o.g)) return {
+					ok: false,
+					error: "Icon không có trong kho."
+				};
+				c.icon = {
+					g: o.g,
+					x: r1$1(num(o.x, 0, 100, 50)),
+					y: r1$1(num(o.y, 0, 100, 30)),
+					sz: Math.round(num(o.sz, 12, 160, 56)),
+					dur: r1$1(num(o.dur, .5, 10, 1.5)),
+					fx: Math.round(num(o.fx, 0, VID_CUE_FX.length - 1, 0))
+				};
+				if (P.icon.g) pushRecent(L.recI, o.g);
+			}
+		}
+		if (P.text !== void 0) {
+			if (!P.text) c.text = null;
+			else {
+				const o = Object.assign({
+					t: String(c.w || "").replace(/[.,?!…]/g, "").toUpperCase(),
+					st: 1,
+					x: 50,
+					y: 34,
+					sz: 24,
+					dur: 2,
+					fx: 1
+				}, c.text || {}, P.text);
+				const t = String(o.t || "").trim().slice(0, 80);
+				if (!t) return {
+					ok: false,
+					error: "Chữ của cue đang trống."
+				};
+				c.text = {
+					t,
+					st: Math.round(num(o.st, 0, VID_CUE_TEXT_STYLES.length - 1, 0)),
+					x: r1$1(num(o.x, 0, 100, 50)),
+					y: r1$1(num(o.y, 0, 100, 34)),
+					sz: Math.round(num(o.sz, 12, 160, 24)),
+					dur: r1$1(num(o.dur, .5, 10, 2)),
+					fx: Math.round(num(o.fx, 0, VID_CUE_FX.length - 1, 0))
+				};
+			}
+		}
+		if (P.sfx !== void 0) {
+			if (!P.sfx) c.sfx = null;
+			else {
+				const o = Object.assign({
+					k: L.favS[0] || "ding",
+					vol: 80
+				}, c.sfx || {}, P.sfx);
+				if (!sfxOf(o.k)) return {
+					ok: false,
+					error: "Âm thanh không có trong kho."
+				};
+				c.sfx = {
+					k: o.k,
+					vol: Math.round(num(o.vol, 0, 100, 80))
+				};
+				if (P.sfx.k) pushRecent(L.recS, o.k);
+			}
+		}
+		return {
+			ok: true,
+			cue: c,
+			time: cueTime(v.edit, c)
+		};
+	}
+	var cueLabel = (c) => [
+		c.icon ? c.icon.g : "",
+		c.text ? "T" : "",
+		c.sfx ? "♪" : ""
+	].join("") || "•";
 	//#endregion
 	//#region src/logic/99-export.js
 	var AC = {
 		DATA_VERSION,
 		STORAGE_KEY,
 		RELEASE: "R4",
-		BUILD: 105,
+		BUILD: 106,
 		TEMPLATES,
 		STEP_NAMES,
 		STEP_COUNT,
@@ -16729,7 +17674,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		VOICE_HEADINGS,
 		TOPIC_MAX: 10,
 		TOPIC_SHORT_WORDS: 300,
-		clone,
+		clone: clone$1,
 		hash32,
 		sha256,
 		fold,
@@ -17279,7 +18224,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		VID_FIT,
 		VID_SHORT,
 		SCENE_FLOOR,
-		VID_POPUP_VER: 1,
+		VID_POPUP_VER: 4,
 		migrateEdit,
 		editOf,
 		sceneMin,
@@ -17312,6 +18257,34 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		weekDays,
 		busyCells,
 		scheduleCells,
+		ITEM_MIN: 1,
+		evenSplit,
+		setSceneDur,
+		itemOffsets,
+		sceneWords,
+		normWord,
+		alignWords,
+		sceneWordTimes,
+		cueTime,
+		rematchCues,
+		resizeItem,
+		VID_ICONS,
+		VID_SFX,
+		VID_SFX_GROUPS,
+		VID_CUE_FX,
+		VID_CUE_TEXT_STYLES,
+		sfxOf,
+		vidLibOf,
+		toggleVidFav,
+		cueOf,
+		addCue,
+		moveCue,
+		removeCue,
+		editCue,
+		cueLabel,
+		VID_KEEP_VERSIONS: 5,
+		vidVersions,
+		useVidVersion,
 		demoGate,
 		demoRun,
 		demoRunAll,
@@ -26491,14 +27464,18 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 	//#endregion
 	//#region src/ui/09c-videdit.js
 	var fmt = (t) => AC.fmtClock(t).replace(/\.\d$/, "");
-	var f1 = (x) => String(Math.round(x * 10) / 10).replace(".", ",");
+	var r1 = (x) => Math.round(x * 10) / 10;
+	var f1 = (x) => String(r1(x)).replace(".", ",");
+	var f3 = (x) => x.toFixed(3).replace(".", ",");
 	var vOf = (id) => AC.byId(S.videos, id);
 	var mediaOf = (v, o) => (v.media || []).find((m) => m.id === (o && o.mediaId));
 	var srcOf = (v, o) => !o ? "" : o.src || (mediaOf(v, o) || {}).src || "";
 	var thumbOf = (v, it) => it.kind === "image" ? srcOf(v, it) : it.thumb || (mediaOf(v, it) || {}).thumb || "";
+	var thumbHtml = (v, it) => thumbOf(v, it) ? `<img src="${esc(thumbOf(v, it))}" alt="">` : "<span class=\"small\">Clip</span>";
 	var peaksOf = (o, seed) => o && o.peaks && o.peaks.length ? o.peaks : AC.voPeaks(seed, 80);
 	var bars = (p) => p.map((x) => `<i style="height:${x}%"></i>`).join("");
 	var opt = (o, cur) => Object.entries(o).map(([k, l]) => `<option value="${k}" ${k === cur ? "selected" : ""}>${esc(l)}</option>`).join("");
+	var layerRoot = () => document.getElementById("layer") || document.body;
 	var ST = {};
 	var pool = [];
 	var poolIx = /* @__PURE__ */ new Map();
@@ -26544,32 +27521,321 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		a.onerror = () => res(0);
 		a.src = src;
 	});
-	function sceneCard(v, it, i, n) {
-		const sc = it.scene, ed = v.edit, k = sc.items.length, share = k ? sc.dur / k : 0, locked = !!ed.voAll, mn = AC.sceneMin(ed, sc), cur = ST[v.id].cur === i;
-		const first = sc.items[0];
-		const thumb = k ? (thumbOf(v, first) ? `<img src="${esc(thumbOf(v, first))}" alt="">` : "<span class=\"small\">Clip</span>") + (k > 1 ? `<span class="vp-cnt">${k}</span>` : "") : sc.ph ? "Thẻ giữ chỗ" : icon("plus");
-		const voRow = locked ? `<div class="vp-tools small muted">VO cảnh bị khóa vì đang dùng VO toàn bài${sc.vo ? " (dữ liệu giữ nguyên)" : ""}</div>` : sc.vo ? `<div class="vp-tools small">VO cảnh: <b>${esc(sc.vo.name)}</b> · ${f1(sc.vo.dur)} giây <span class="vp-tag">${sc.vo.kind === "ai" ? "AI" : "Up"}</span><button class="btn icon sm ghost" data-a="vox" data-i="${i}" aria-label="Gỡ VO cảnh">${icon("close")}</button></div>` : `<div class="vp-tools small">VO cảnh: <button class="btn sm" data-a="voup" data-i="${i}">${icon("up")} Up</button><button class="btn sm" data-a="voai" data-i="${i}" data-testid="ve-voai">Gen AI</button></div>`;
+	var ACX = null;
+	var actx = () => {
+		const Ctx = window.AudioContext || window.webkitAudioContext;
+		if (!Ctx) return null;
+		return ACX || (ACX = new Ctx());
+	};
+	function playSfx(k, vol) {
+		try {
+			const E = AC.sfxOf(k);
+			const a = actx();
+			if (!E || !a) return;
+			const P = E[5], t = a.currentTime, g = a.createGain();
+			g.gain.value = (vol == null ? 80 : vol) / 100 * .5;
+			g.connect(a.destination);
+			const tone = (f, d, type = "sine", f2, at = 0, amp = 1) => {
+				const o = a.createOscillator(), e = a.createGain();
+				o.type = type;
+				o.frequency.setValueAtTime(f * P, t + at);
+				if (f2) o.frequency.exponentialRampToValueAtTime(f2 * P, t + at + d);
+				e.gain.setValueAtTime(1e-4, t + at);
+				e.gain.exponentialRampToValueAtTime(amp, t + at + .01);
+				e.gain.exponentialRampToValueAtTime(1e-4, t + at + d);
+				o.connect(e);
+				e.connect(g);
+				o.start(t + at);
+				o.stop(t + at + d + .05);
+			};
+			const noise = (d, f, f2, at = 0, amp = 1, q = 1) => {
+				const b = a.createBuffer(1, Math.ceil(a.sampleRate * d), a.sampleRate), ch = b.getChannelData(0);
+				for (let i = 0; i < ch.length; i++) ch[i] = Math.random() * 2 - 1;
+				const s = a.createBufferSource();
+				s.buffer = b;
+				const fl = a.createBiquadFilter();
+				fl.type = "bandpass";
+				fl.Q.value = q;
+				fl.frequency.setValueAtTime(f * P, t + at);
+				if (f2) fl.frequency.exponentialRampToValueAtTime(f2 * P, t + at + d);
+				const e = a.createGain();
+				e.gain.setValueAtTime(1e-4, t + at);
+				e.gain.exponentialRampToValueAtTime(amp, t + at + d * .3);
+				e.gain.exponentialRampToValueAtTime(1e-4, t + at + d);
+				s.connect(fl);
+				fl.connect(e);
+				e.connect(g);
+				s.start(t + at);
+			};
+			const SYN = {
+				ding: () => tone(1320, .6),
+				pop: () => tone(600, .12, "sine", 180),
+				boom: () => {
+					tone(120, .8, "sine", 40);
+					noise(.4, 200, 60);
+				},
+				drum: () => {
+					tone(150, .3, "sine", 50);
+					noise(.1, 1500);
+				},
+				snap: () => noise(.05, 2e3, 0, 0, 1, 2),
+				click: () => noise(.03, 3e3),
+				knock: () => {
+					noise(.08, 300, 0, 0, 1, 3);
+					noise(.08, 300, 0, .15, 1, 3);
+				},
+				whoosh: () => noise(.5, 400, 3e3, 0, 1, .8),
+				rise: () => tone(300, .6, "sawtooth", 1500, 0, .3),
+				fall: () => tone(1500, .6, "sawtooth", 300, 0, .3),
+				swipe: () => noise(.3 / P, 2500, 500, 0, 1, .7),
+				wind: () => noise(1.2, 600, 1200, 0, .6, .5),
+				chime: () => {
+					tone(1047, .3);
+					tone(1568, .5, "sine", 0, .15);
+				},
+				buzz: () => tone(160, .4, "square", 0, 0, .3),
+				bell: () => {
+					tone(880, 1.2);
+					tone(1760, .8, "sine", 0, 0, .4);
+				},
+				dingdong: () => {
+					tone(784, .5);
+					tone(659, .6, "sine", 0, .3);
+				},
+				whistle: () => tone(1e3, .4, "square", 800, 0, .15),
+				boing: () => tone(300, .5, "triangle", 120),
+				bubble: () => tone(400, .15, "sine", 1e3),
+				sparkle: () => [
+					0,
+					.07,
+					.14,
+					.21
+				].forEach((at, i) => tone(2e3 + i * 400, .2, "sine", 0, at, .5)),
+				fanfare: () => [
+					523,
+					659,
+					784,
+					1047
+				].forEach((f, i) => tone(f, .25, "sawtooth", 0, i * .15, .25)),
+				heart: () => {
+					tone(70, .15);
+					tone(60, .15, "sine", 0, .22);
+				},
+				key: () => noise(.02, 5e3, 0, 0, 1, 2),
+				notify: () => {
+					tone(880, .2);
+					tone(1175, .3, "sine", 0, .12);
+				},
+				shutter: () => {
+					noise(.05, 3e3);
+					noise(.08, 1500, 0, .08);
+				},
+				tick: () => {
+					noise(.03, 4e3);
+					noise(.03, 2500, 0, .5);
+				},
+				page: () => noise(.2, 1200, 3e3, 0, 1, .5),
+				unlock: () => {
+					tone(700, .1);
+					tone(1400, .15, "sine", 0, .08);
+				},
+				roll: () => {
+					for (let i = 0; i < 12; i++) noise(.06, 800, 0, i * .08, .8, 2);
+				},
+				drone: () => {
+					tone(55, 2, "sawtooth", 0, 0, .2);
+					tone(82, 2, "sine", 0, 0, .3);
+				}
+			};
+			(SYN[E[4]] || SYN.ding)();
+		} catch (e) {}
+	}
+	var GEN_STYLES = [
+		"Ảnh chụp thật",
+		"Minh họa phẳng",
+		"3D",
+		"Tranh vẽ tay"
+	];
+	function mockGenImg(desc, seed) {
+		const c = document.createElement("canvas");
+		c.width = 360;
+		c.height = 640;
+		const x = c.getContext("2d");
+		if (!x) return "";
+		const h = seed * 67 % 360;
+		const g = x.createLinearGradient(0, 0, 360, 640);
+		g.addColorStop(0, `hsl(${h} 45% 38%)`);
+		g.addColorStop(1, `hsl(${(h + 50) % 360} 50% 18%)`);
+		x.fillStyle = g;
+		x.fillRect(0, 0, 360, 640);
+		x.fillStyle = "rgba(255,255,255,.9)";
+		x.font = "bold 22px system-ui";
+		x.fillText("Ảnh Gen AI (mô phỏng)", 20, 44);
+		x.font = "20px system-ui";
+		let y = 96, line = "";
+		for (const w of String(desc).split(" ")) {
+			if (x.measureText(line + w).width > 310) {
+				x.fillText(line, 20, y);
+				y += 28;
+				line = "";
+				if (y > 600) break;
+			}
+			line += w + " ";
+		}
+		x.fillText(line, 20, y);
+		return c.toDataURL("image/png");
+	}
+	function openGenImage(id, sid, done) {
+		const v0 = vOf(id);
+		const sc0 = v0 && v0.edit && v0.edit.scenes.find((x) => x.id === sid);
+		if (!sc0) return;
+		const api = AC.imageApiOn(S);
+		const st = {
+			opts: null,
+			pick: /* @__PURE__ */ new Set(),
+			pr: sc0.prompt || "",
+			stl: GEN_STYLES[0],
+			busy: false
+		};
+		const idx = () => vOf(id).edit.scenes.findIndex((x) => x.id === sid);
+		const html = () => {
+			const sc = vOf(id).edit.scenes.find((x) => x.id === sid) || sc0;
+			return `<header class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:nowrap"><div><span class="eyebrow">Gen ảnh · Cảnh ${idx() + 1} · ${api ? `qua ${esc(providerLabel())}` : "mô phỏng"}</span><h2>Tạo ảnh cho cảnh</h2></div><button class="btn icon ghost" data-act="close-layer" aria-label="Đóng">${icon("close")}</button></header>
+    <div class="body stack" style="gap:8px">
+      <div class="field"><label for="vg-p">Mô tả hình ảnh (prompt)</label><textarea id="vg-p" rows="3">${esc(st.pr)}</textarea></div>
+      <div class="row" style="gap:8px;align-items:flex-end"><div class="field"><label for="vg-s">Phong cách</label><select id="vg-s">${GEN_STYLES.map((x) => `<option ${x === st.stl ? "selected" : ""}>${esc(x)}</option>`).join("")}</select></div><div class="field"><label>Khung</label><select disabled><option>Dọc 9:16</option></select></div>
+        <button class="btn primary" id="vg-do" data-testid="vg-do" ${st.busy ? "disabled" : ""}>${st.busy ? "Đang tạo…" : st.opts ? "Tạo lại" : "Tạo 4 ảnh"}</button></div>
+      <p class="small muted" style="margin:0">Lời cảnh: ${esc(sc.text)}</p>
+      ${st.opts ? `<div class="vp-gopts">${st.opts.map((s, k) => `<img src="${esc(s)}" data-gk="${k}" aria-pressed="${st.pick.has(k)}" alt="Phương án ${k + 1}" role="button" tabindex="0">`).join("")}</div>` : ""}
+      <div class="actions"><span class="small muted" style="margin-right:auto">${st.opts ? "Bấm chọn một hoặc nhiều ảnh" : api ? "Mỗi ảnh là một lần gọi API ảnh." : "Mô phỏng: bật AI ảnh ở Setup để gọi dịch vụ Gen ảnh thật"}</span><button class="btn ghost" data-act="close-layer">Hủy</button><button class="btn primary" id="vg-add" data-testid="vg-add" ${st.pick.size ? "" : "disabled"}>Thêm vào cảnh</button></div></div>`;
+		};
+		const box = openLayer(html(), "dialog");
+		const draw = () => {
+			box.innerHTML = html();
+		};
+		const keep = () => {
+			const p = box.querySelector("#vg-p"), s = box.querySelector("#vg-s");
+			if (p) st.pr = p.value;
+			if (s) st.stl = s.value;
+		};
+		box.addEventListener("click", async (e) => {
+			const im = e.target.closest("[data-gk]");
+			if (im) {
+				keep();
+				const k = Number(im.dataset.gk);
+				if (st.pick.has(k)) st.pick.delete(k);
+				else st.pick.add(k);
+				draw();
+				return;
+			}
+			if (e.target.closest("#vg-do")) {
+				keep();
+				if (!st.pr.trim()) return toast("Nhập mô tả hình ảnh trước.", "bad");
+				AC.editScene(S, id, sid, { prompt: st.pr });
+				save();
+				const prompt = `${st.pr.trim()}. Phong cách: ${st.stl}. Khung dọc 9:16.`;
+				st.busy = true;
+				st.pick.clear();
+				draw();
+				if (api) {
+					const rs = await Promise.allSettled([
+						0,
+						1,
+						2,
+						3
+					].map(() => imageApiCall("gen", {
+						prompt,
+						ratio: "9:16"
+					})));
+					const ok = rs.filter((r) => r.status === "fulfilled").map((r) => r.value.src);
+					st.busy = false;
+					if (!ok.length) {
+						st.opts = null;
+						draw();
+						return toast(`Không tạo được ảnh: ${rs[0].reason && rs[0].reason.message || "lỗi API"}`, "bad");
+					}
+					st.opts = ok;
+				} else {
+					st.opts = [
+						0,
+						1,
+						2,
+						3
+					].map((k) => mockGenImg(`${st.pr} · ${st.stl}`, idx() * 7 + k + Date.now() % 97));
+					st.busy = false;
+				}
+				draw();
+				return;
+			}
+			if (e.target.closest("#vg-add")) {
+				const list = [...st.pick].sort().map((k, j) => ({
+					src: st.opts[k],
+					name: `gen-ai-${idx() + 1}-${j + 1}.png`,
+					gen: true
+				}));
+				const r = AC.addSceneItems(S, id, sid, list);
+				if (!r.ok) return toast(r.error, "bad");
+				closeLayer();
+				if (done) done(`Đã thêm ${list.length} ảnh Gen vào cảnh ${idx() + 1}.`);
+			}
+		});
+		box.addEventListener("keydown", (e) => {
+			if ((e.key === "Enter" || e.key === " ") && e.target.matches("[data-gk]")) {
+				e.preventDefault();
+				e.target.click();
+			}
+		});
+	}
+	function voRow(v, sc, i) {
+		const ed = v.edit;
+		if (ed.voAll) return `<div class="vp-voline"><span>🎙 VO cảnh</span><span class="small muted vp-nm">khóa vì đang dùng VO toàn bài${sc.vo ? ` (vẫn giữ ${esc(sc.vo.name)})` : ""}</span></div>`;
+		if (sc.vo) return `<div class="vp-voline"><span>🎙 VO cảnh</span><b class="vp-nm">${esc(sc.vo.name)}</b><span class="small muted">${f1(sc.vo.dur)}s</span><span class="vp-tag">${sc.vo.kind === "ai" ? "AI" : "Up"}</span><span class="small muted">cảnh tối thiểu ${f1(AC.sceneMin(ed, sc))}s</span><button class="btn icon sm ghost" data-a="vox" data-i="${i}" aria-label="Gỡ VO cảnh" style="margin-left:auto">${icon("close")}</button></div>`;
+		return `<div class="vp-voline"><span>🎙 VO cảnh</span><button class="btn sm" data-a="voup" data-i="${i}">Up</button><button class="btn sm" data-a="voai" data-i="${i}" data-testid="ve-voai">Gen AI</button><span class="small muted">chưa có</span></div>`;
+	}
+	function cueRow(v, sc, i, st) {
+		const ed = v.edit, t = AC.sceneWordTimes(ed, i), ws = AC.sceneWords(sc.text), mine = (ed.cues || []).filter((c) => c.sc === sc.id);
+		const lost = mine.filter((c) => c.lost).map((c) => `<button class="vp-cw lost" data-a="lostcue" data-c="${esc(c.id)}" title="Từ này đã bị xóa khỏi lời: bấm rồi chọn từ mới">⚠ ${esc(c.w)}</button>`).join("");
+		if (!t) return `<div class="vp-cuerow off" data-testid="ve-cuerow"><b>Cue</b>&nbsp;<span class="small muted">cần VO của cảnh để tính giây từng từ${mine.length ? ` · ${mine.length} cue đang chờ` : ""}</span>${lost}</div>`;
+		return `<div class="vp-cuerow" data-testid="ve-cuerow"><b>Cue</b>&nbsp;${ws.map((w, k) => {
+			const c = mine.find((x) => !x.lost && x.wi === k);
+			return `<button class="vp-cw${c ? " on" : ""}" data-a="cw" data-i="${i}" data-j="${k}" title="${f3(t[k].s)}–${f3(t[k].e)}s${c ? ` · ${AC.cueLabel(c)}` : ""}">${c && c.icon ? `${c.icon.g} ` : ""}${esc(w)}${c ? `<span class="vp-cx" data-a="cuex" data-c="${esc(c.id)}" title="Xóa cue" aria-label="Xóa cue">✕</span>` : ""}</button>`;
+		}).join("")}${lost}<span class="small muted vp-cuenote">${st.reCue ? "Bấm một từ để đặt lại cue · " : ""}${ed.voAll ? "theo VO toàn bài" : "đã căn với VO"} (mô phỏng)</span></div>`;
+	}
+	var curItem = (sc, loc) => {
+		let k = 0, off = 0;
+		const n = sc.items.length;
+		while (k < n - 1 && loc >= off + sc.items[k].d) {
+			off += sc.items[k].d;
+			k++;
+		}
+		return {
+			k,
+			off
+		};
+	};
+	function sceneCard(v, it, i, n, st) {
+		const sc = it.scene, k = sc.items.length, cur = st.cur === i;
+		const ik = cur && k ? curItem(sc, Math.max(0, st.t - it.t0)).k : 0;
+		const main = k ? thumbHtml(v, sc.items[Math.min(ik, k - 1)]) : sc.ph ? "Thẻ giữ chỗ" : icon("plus");
 		const shorts = sc.items.map((m, j) => {
 			if (m.kind !== "video" || !(m.dur > 0)) return "";
-			if (m.dur < share - .3) return `<div class="vp-tools small">Hình ${j + 1} (${f1(m.dur)} giây) ngắn hơn phần được chia (${f1(share)} giây): <select data-a="short" data-i="${i}" data-j="${j}" aria-label="Cách xử lý clip ngắn">${opt(AC.VID_SHORT, m.short || "hold")}</select></div>`;
-			if (m.dur > share + .5) return `<div class="vp-tools small">Hình ${j + 1} (${f1(m.dur)} giây): lấy ${f1(share)} giây từ giây <input type="range" min="0" max="${Math.max(0, Math.floor(m.dur - share))}" value="${m.trim || 0}" data-a="trim" data-i="${i}" data-j="${j}" aria-label="Điểm bắt đầu lấy clip"> <b>${m.trim || 0}</b></div>`;
+			if (m.dur < m.d - .3) return `<div class="vp-tools small">Ảnh ${j + 1} là clip ${f1(m.dur)}s, ngắn hơn ${f1(m.d)}s: <select data-a="short" data-i="${i}" data-j="${j}" aria-label="Cách xử lý clip ngắn">${opt(AC.VID_SHORT, m.short || "hold")}</select></div>`;
+			if (m.dur > m.d + .5) return `<div class="vp-tools small">Clip ${j + 1} (${f1(m.dur)}s): lấy ${f1(m.d)}s từ giây <input type="range" min="0" max="${Math.max(0, Math.floor(m.dur - m.d))}" value="${m.trim || 0}" data-a="trim" data-i="${i}" data-j="${j}" aria-label="Điểm bắt đầu lấy clip"> <b>${m.trim || 0}</b></div>`;
 			return "";
 		}).join("");
 		const units = AC.brollUnits(v);
 		return `<div class="vp-sc" data-sid="${esc(sc.id)}" data-c="${i}" aria-current="${cur}" data-testid="ve-scene">
-    <div class="vp-add${sc.ph && !k ? " ph" : ""}" data-a="up" data-i="${i}" role="button" tabindex="0" aria-label="Up hình hoặc video cho cảnh ${i + 1}">${thumb}</div>
+    <div class="vp-mcol"><div class="vp-add${k ? " has" : sc.ph ? " ph" : ""}" data-a="up" data-i="${i}" role="button" tabindex="0" aria-label="${k ? `Up thêm hình cho cảnh ${i + 1}` : `Up hình hoặc video cho cảnh ${i + 1}`}">${main}</div>
+      ${k ? `<div class="vp-thumbs">${sc.items.map((m, j) => `<span class="vp-th" data-a="pick" data-i="${i}" data-j="${j}" aria-current="${cur && j === ik}" title="Ảnh ${j + 1}: ${f1(m.d)} giây">${thumbHtml(v, m)}<span class="vp-d">${f1(m.d)}s</span><button class="vp-x" data-a="itx" data-i="${i}" data-j="${j}" aria-label="Bỏ ảnh ${j + 1}">✕</button></span>`).join("")}</div>` : ""}
+      <button class="vp-plus" data-a="up" data-i="${i}">＋ ${k ? "Thêm" : "Up"}</button><button class="vp-plus" data-a="gen" data-i="${i}" data-testid="ve-gen" title="Tạo ảnh bằng AI từ mô tả hình">Gen ảnh</button></div>
     <div class="vp-scb">
       <div class="vp-hd"><b>Cảnh ${i + 1}</b><span class="small muted">${fmt(it.t0)}–${fmt(it.t1)}</span>
         <span><button class="btn icon sm ghost" data-a="dd" data-i="${i}" data-d="-0.5" title="Ngắn hơn 0,5 giây" aria-label="Ngắn hơn 0,5 giây">−</button><button class="btn icon sm ghost" data-a="dd" data-i="${i}" data-d="0.5" title="Dài hơn 0,5 giây" aria-label="Dài hơn 0,5 giây">+</button></span>
         <span class="vp-r"><button class="btn icon sm ghost" data-a="mv" data-i="${i}" data-d="-1" ${i ? "" : "disabled"} aria-label="Lên">↑</button><button class="btn icon sm ghost" data-a="mv" data-i="${i}" data-d="1" ${i < n - 1 ? "" : "disabled"} aria-label="Xuống">↓</button><button class="btn icon sm ghost danger" data-a="del" data-i="${i}" ${n < 2 ? "disabled" : ""} aria-label="Xóa cảnh">${icon("close")}</button></span></div>
-      <label class="sr" for="vp-t-${esc(sc.id)}">Lời cảnh ${i + 1}</label><textarea id="vp-t-${esc(sc.id)}" data-sf="text" data-i="${i}" rows="2" placeholder="Lời của cảnh">${esc(sc.text)}</textarea>
-      <div class="vp-tools small"><label>Chữ phủ <input data-sf="overlay" data-i="${i}" value="${esc(sc.overlay || "")}" placeholder="Chữ lớn trên hình" style="width:170px"></label></div>
-      ${k ? `<div class="vp-thumbs">${sc.items.map((m, j) => `<span class="vp-th">${thumbOf(v, m) ? `<img src="${esc(thumbOf(v, m))}" alt="">` : "<span class=\"small\">Clip</span>"}<button class="btn icon sm" data-a="itx" data-i="${i}" data-j="${j}" aria-label="Bỏ hình ${j + 1}">${icon("close")}</button></span>`).join("")}<button class="btn sm" data-a="up" data-i="${i}">${icon("plus")} Up thêm</button></div>
-        <div class="vp-tools small"><label class="sr" for="vp-fit-${esc(sc.id)}">Cách đặt hình</label><select id="vp-fit-${esc(sc.id)}" data-a="fit" data-i="${i}">${opt(AC.VID_FIT, sc.fit)}</select><label>Âm lượng clip <input type="range" min="0" max="100" value="${sc.vol}" data-a="vol" data-i="${i}"></label></div>` : `<div class="vp-tools small"><button class="btn sm" data-a="up" data-i="${i}">${icon("up")} Up hình/video</button><button class="btn sm ${sc.ph ? "primary" : ""}" data-a="ph" data-i="${i}" aria-pressed="${!!sc.ph}">Dùng thẻ giữ chỗ</button>
-        ${units.length ? `<label class="sr" for="vp-u-${esc(sc.id)}">Chọn từ tệp nguồn</label><select id="vp-u-${esc(sc.id)}" data-a="unit" data-i="${i}"><option value="">Từ nguồn vào…</option>${units.map((u, x) => `<option value="${x}">${esc(`${u.label.includes("s") ? "Đoạn" : "Tệp"} ${x + 1}: ${u.desc}`.slice(0, 60))}</option>`).join("")}</select>` : ""}</div>
-        <details><summary class="small">Prompt hình</summary><div class="stack" style="gap:4px;margin-top:4px"><textarea data-sf="prompt" data-i="${i}" rows="2">${esc(sc.prompt || "")}</textarea><button class="btn sm" data-a="copyp" data-i="${i}">Chép prompt</button></div></details>`}
-      ${voRow}${shorts}
-      ${k > 1 ? `<div class="small muted">${k} hình chia đều ${f1(share)} giây mỗi hình. VO bám đầu hình 1. Cảnh tối thiểu ${f1(mn)} giây.</div>` : sc.vo && !locked ? `<div class="small muted">Cảnh tối thiểu ${f1(mn)} giây (độ dài VO).</div>` : ""}
+      <label class="vp-f" for="vp-t-${esc(sc.id)}">Nội dung</label><textarea id="vp-t-${esc(sc.id)}" class="vp-r2" data-sf="text" data-i="${i}" rows="2" placeholder="Lời của cảnh">${esc(sc.text)}</textarea>
+      ${voRow(v, sc, i)}${cueRow(v, sc, i, st)}
+      <div class="vp-tools small">${k ? `<label class="sr" for="vp-fit-${esc(sc.id)}">Cách đặt hình</label><select id="vp-fit-${esc(sc.id)}" data-a="fit" data-i="${i}">${opt(AC.VID_FIT, sc.fit)}</select><label>🔊 Âm clip <input type="range" min="0" max="100" value="${sc.vol}" data-a="vol" data-i="${i}"></label>` : `<button class="btn sm ${sc.ph ? "primary" : ""}" data-a="ph" data-i="${i}" aria-pressed="${!!sc.ph}">Dùng thẻ giữ chỗ</button>${units.length ? `<label class="sr" for="vp-u-${esc(sc.id)}">Chọn từ tệp nguồn</label><select id="vp-u-${esc(sc.id)}" data-a="unit" data-i="${i}"><option value="">Từ nguồn vào…</option>${units.map((u, x) => `<option value="${x}">${esc(`${u.label.includes("s") ? "Đoạn" : "Tệp"} ${x + 1}: ${u.desc}`.slice(0, 60))}</option>`).join("")}</select>` : ""}`}</div>
+      ${shorts}
     </div></div>`;
 	}
 	function cutsHtml(v) {
@@ -26582,13 +27848,13 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
     <div class="stack" style="gap:2px;max-height:140px;overflow:auto">${cs.map((c, i) => `<label class="small row" style="gap:6px"><input type="checkbox" data-a="cut" data-i="${i}" ${c.on !== false ? "checked" : ""}> <span class="mono">${fmt(c.from)}–${fmt(c.to)}</span> ${esc(c.why)}</label>`).join("")}</div>
     <div class="row"><button class="btn sm" data-a="remeasure">Đo lại</button><span class="small faint">Gợi ý cắt câu vấp, câu thừa so với kịch bản cần API nhận giọng nói.</span></div></section>`;
 	}
-	function scenePane(v) {
+	function scenePane(v, st) {
 		const ed = v.edit, tl = AC.editTimeline(v), n = tl.items.length, vo = ed.voAll;
 		const sug = AC.suggestTemplate(S, v);
-		const voAll = vo ? `<b>${esc(vo.name)}</b> <span class="small muted">${f1(vo.dur)} giây · ${vo.kind === "ai" ? "AI" : "Up"}</span><button class="btn icon sm ghost" data-a="voallx" aria-label="Gỡ VO toàn bài">${icon("close")}</button>` : `<button class="btn sm" data-a="voallup">${icon("up")} Up</button><button class="btn sm" data-a="voallai" data-testid="ve-voallai">Gen AI</button>`;
-		return `<div class="vp-pane">${cutsHtml(v)}<div class="vp-tools" style="margin-bottom:8px"><label class="small">Mẫu <select data-a="tpl" aria-label="Mẫu dựng">${opt(Object.fromEntries(Object.entries(AC.VID_TEMPLATES).map(([k, t]) => [k, t.name + (k === sug ? " (gợi ý)" : "")])), ed.tpl)}</select></label>
-      <span class="small">VO toàn bài: ${voAll}</span><span class="small muted vp-r">Tổng ${f1(tl.total)} giây</span></div>
-    ${tl.items.map((it, i) => sceneCard(v, it, i, n)).join("")}
+		const voAll = vo ? `<b class="vp-nm">${esc(vo.name)}</b> <span class="small muted">${f1(vo.dur)}s · ${vo.kind === "ai" ? "AI" : "Up"}</span><button class="btn icon sm ghost" data-a="voallx" aria-label="Gỡ VO toàn bài">${icon("close")}</button>` : `<button class="btn sm" data-a="voallup">Up</button><button class="btn sm" data-a="voallai" data-testid="ve-voallai">Gen AI</button>`;
+		return `<div class="vp-pane">${cutsHtml(v)}<div class="vp-ctl"><div><label class="vp-f" for="ve-tpl">Mẫu dựng</label><select id="ve-tpl" data-a="tpl">${opt(Object.fromEntries(Object.entries(AC.VID_TEMPLATES).map(([k, t]) => [k, t.name + (k === sug ? " (gợi ý)" : "")])), ed.tpl)}</select></div>
+      <div><span class="vp-f">VO toàn bài</span><div class="vp-vo1">${voAll}</div></div><span class="small muted" style="padding-bottom:6px">Tổng ${f1(tl.total)}s</span></div>
+    ${tl.items.map((it, i) => sceneCard(v, it, i, n, st)).join("")}
     <button class="btn sm" data-a="add">${icon("plus")} Thêm cảnh</button></div>`;
 	}
 	var FRAME_TILE = {
@@ -26615,53 +27881,116 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
     <div class="vp-grp"><div class="eyebrow">Giọng</div><label class="sr" for="ve-voice">Nguồn giọng</label><select id="ve-voice" ${ed.voAll ? "disabled" : ""}>${opt(AC.VID_VOICES, ed.voice.mode)}</select>
       <p class="small muted">${ed.voAll ? "Đang dùng VO toàn bài." : "Giọng máy đọc lời bằng giọng có sẵn của trình duyệt khi xem thử."}</p></div></div>`;
 	}
-	function capPane(v) {
+	function capPane(v, ro) {
 		const ed = v.edit;
-		if (!ed.segs) AC.genCaptions(S, v.id, { full: true });
+		if (!ed.segs && !ro) AC.genCaptions(S, v.id, { full: true });
 		const segs = ed.segs || [];
-		return `<div class="vp-pane"><div class="eyebrow"><button class="btn sm" data-a="capback">← Cài đặt</button><span>Quản lý caption</span></div>
-    <div class="vp-note ${ed.capStale ? "warn" : ""}" id="vp-capnote">① ${ed.capStale ? "<b>Timeline đã đổi, caption chưa khớp.</b> " : ""}Bấm Gen caption để chia lại theo timeline mới nhất; chữ bạn đã sửa tay được giữ, chỉ tính lại giây. <button class="btn sm ${ed.capStale ? "primary" : ""}" data-a="gencap" data-testid="ve-gencap">Gen caption</button> <button class="btn sm" data-a="gencapall" title="Chia lại hết, bỏ cả chữ đã sửa">Chia lại hết</button></div>
+		return `<div class="vp-pane"><div class="eyebrow"><button class="btn sm" data-a="capback" data-ro="1">← Cài đặt</button><span>Quản lý caption</span></div>
+    <div class="vp-note ${ed.capStale ? "warn" : ""}" id="vp-capnote">① ${ed.capStale ? "<b>Timeline đã đổi, caption chưa khớp.</b> " : ""}Bấm Gen caption để chia lại theo timeline mới nhất; chữ bạn đã sửa tay được giữ, chỉ tính lại giây. Có VO thì caption bám giây từng từ. <button class="btn sm ${ed.capStale ? "primary" : ""}" data-a="gencap" data-testid="ve-gencap">Gen caption</button> <button class="btn sm" data-a="gencapall" title="Chia lại hết, bỏ cả chữ đã sửa">Chia lại hết</button></div>
     ${ed.captions.mode === "off" ? "<p class=\"small muted\">Kiểu caption đang là Không caption: đổi ở Cài đặt để hiện chữ.</p>" : ""}
-    ${segs.map((g, i) => `<div class="vp-seg" data-g="${i}"><input class="vp-sat" type="number" step="0.1" min="0" value="${g.at}" data-a="segat" data-i="${i}" aria-label="Giây bắt đầu đoạn ${i + 1}"><input data-a="segt" data-i="${i}" value="${esc(g.t)}" aria-label="Chữ đoạn ${i + 1}"><span><button class="btn sm" data-a="seek" data-t="${g.at}" title="Xem thử đoạn này">▶</button> <button class="btn sm" data-a="split" data-i="${i}">Tách</button> <button class="btn sm" data-a="merge" data-i="${i}" ${i ? "" : "disabled"}>Gộp ↑</button></span></div>`).join("")}
+    ${segs.map((g, i) => `<div class="vp-seg" data-g="${i}"><input class="vp-sat" type="number" step="0.1" min="0" value="${g.at}" data-a="segat" data-i="${i}" aria-label="Giây bắt đầu đoạn ${i + 1}"><input data-a="segt" data-i="${i}" value="${esc(g.t)}" aria-label="Chữ đoạn ${i + 1}"><span><button class="btn sm" data-a="seek" data-ro="1" data-t="${g.at}" title="Xem thử đoạn này">▶</button> <button class="btn sm" data-a="split" data-i="${i}">Tách</button> <button class="btn sm" data-a="merge" data-i="${i}" ${i ? "" : "disabled"}>Gộp ↑</button></span></div>`).join("")}
     <p class="small muted">② Số ở đầu mỗi dòng là giây bắt đầu đoạn; sửa được trong khoảng giữa hai đoạn kề nhau.</p></div>`;
 	}
-	function timelineHtml(v) {
-		const ed = v.edit, tl = AC.editTimeline(v), T = tl.total || 1, st = ST[v.id], roll = !!ed.voAll;
+	function timelineHtml(v, st) {
+		const ed = v.edit, tl = AC.editTimeline(v), T = tl.total || 1, roll = !!ed.voAll;
+		const cues = (ed.cues || []).map((c) => ({
+			c,
+			t: AC.cueTime(ed, c)
+		})).filter((x) => x.t != null);
+		const ctrack = `<div class="vp-ctrack" id="vp-ctrack" data-testid="ve-ctrack">${cues.map(({ c, t }) => `<button class="vp-cb" data-a="cb" data-c="${esc(c.id)}" style="left:${t / T * 100}%" aria-current="${st.cue === c.id}" aria-label="Cue “${esc(c.w)}”, ${f3(t)} giây">${esc(AC.cueLabel(c))}<span class="vp-cx" data-a="cuex" data-c="${esc(c.id)}" title="Xóa cue" aria-label="Xóa cue">✕</span></button>`).join("")}${cues.length ? "" : "<span class=\"small muted vp-chint\">Hàng Cue: bấm một từ ở dòng Cue của cảnh (cảnh cần có VO)</span>"}</div>`;
 		const blocks = tl.items.map((it, i) => {
 			const s = it.scene, k = s.items.length;
-			return `<div class="vp-blk${k || s.ph ? "" : " empty"}" data-i="${i}" style="width:${s.dur / T * 100}%" aria-current="${st.cur === i}"><span class="vp-bl">${i + 1}${k ? ` ✓ ${k} hình` : s.ph ? " ▢" : " ＋"} · ${f1(s.dur)}s</span>${k > 1 ? s.items.map((_, x) => x ? `<span class="vp-tick" style="left:${x / k * 100}%"></span>` : "").join("") : ""}${s.vo && !roll ? `<span class="vp-vob" style="width:${Math.min(100, s.vo.dur / s.dur * 100)}%"></span>` : ""}<span class="vp-hdl" data-h="${i}" tabindex="0" role="slider" aria-label="Độ dài cảnh ${i + 1}" aria-valuenow="${s.dur}" aria-valuemin="${AC.sceneMin(ed, s)}" ${roll && i === tl.items.length - 1 ? "hidden" : ""}></span></div>`;
+			let acc = 0;
+			const segs = s.items.map((m, j) => {
+				const l = acc / s.dur * 100, w = m.d / s.dur * 100;
+				acc += m.d;
+				return `<span class="vp-seg2" style="left:${l}%;width:${w}%">${f1(m.d)}s</span>${j < k - 1 ? `<span class="vp-ih" data-ih="${i},${j}" tabindex="0" role="slider" aria-label="Ranh giới ảnh ${j + 1} và ${j + 2} của cảnh ${i + 1}" aria-valuenow="${m.d}" style="left:${acc / s.dur * 100}%"></span>` : ""}`;
+			}).join("");
+			return `<div class="vp-blk${k || s.ph ? "" : " empty"}" data-i="${i}" style="width:${s.dur / T * 100}%" aria-current="${st.cur === i}"><span class="vp-bl">${i + 1} · ${f1(s.dur)}s${k ? ` · ${k} hình` : s.ph ? " · ▢" : " · ＋"}</span>${segs}${s.vo && !roll ? `<span class="vp-vob" style="width:${Math.min(100, s.vo.dur / s.dur * 100)}%"></span>` : ""}<span class="vp-hdl" data-h="${i}" tabindex="0" role="slider" aria-label="Độ dài cảnh ${i + 1}" aria-valuenow="${s.dur}" aria-valuemin="${AC.sceneMin(ed, s)}" ${roll && i === tl.items.length - 1 ? "hidden" : ""}></span></div>`;
 		}).join("");
-		return `<div class="vp-tlw"><div class="vp-tlh"><span>Timeline · ${roll ? "VO toàn bài cố định: kéo mép = dời ranh giới hai cảnh" : "kéo mép để đổi độ dài; cảnh không ngắn hơn VO của nó"}</span><span>${ed.capStale && ed.captions.mode !== "off" ? "<span class=\"vp-badge\" data-testid=\"ve-stale\">Caption chưa khớp timeline</span> " : ""}<button class="btn sm" data-a="reset" data-testid="ve-reset">Hoàn trả mặc định</button> <span class="mono" id="vp-tlt"></span></span></div>
-    <div class="vp-tl" id="vp-tl">${blocks}<div class="vp-phl" id="vp-phl"></div></div><div class="vp-wave" id="vp-wave">${waveHtml(v)}</div>
+		return `<div class="vp-tlw"><div class="vp-tlh"><span>Timeline · ${roll ? "VO toàn bài cố định: kéo mép = dời ranh giới hai cảnh, kéo vạch = dời ranh giới hai ảnh" : "kéo mép cảnh: các ảnh co giãn theo; kéo vạch giữa hai ảnh: chỉnh riêng từng ảnh. Cảnh không ngắn hơn VO"}</span><span>${ed.capStale && ed.captions.mode !== "off" ? "<span class=\"vp-badge\" data-testid=\"ve-stale\">Caption chưa khớp timeline</span> " : ""}<button class="btn sm" data-a="reset" data-testid="ve-reset">Hoàn trả mặc định</button> <span class="mono" id="vp-tlt"></span></span></div>
+    ${ctrack}<div class="vp-tl" id="vp-tl">${blocks}<div class="vp-phl" id="vp-phl"></div></div><div class="vp-wave" id="vp-wave">${waveHtml(v)}</div>
     ${ed.music ? `<div class="vp-wave m" id="vp-wave2"><div class="vp-wv m" style="left:0;width:100%">${bars(peaksOf(ed.music, 3))}</div></div>` : ""}
-    <div class="small muted" style="margin-top:2px">Sóng âm của VO bắt đầu từ đầu hình đầu tiên của cảnh.</div></div>`;
+    <div class="small muted" style="margin-top:2px">Hàng Cue: rê chuột để xem, bấm để sửa, ✕ để xóa; cue bám theo từ trong VO · Hàng giữa: cảnh và ảnh · Hàng đỏ: VO (bám đầu ảnh thứ nhất của cảnh).</div></div>`;
 	}
 	function waveHtml(v) {
 		const ed = v.edit, tl = AC.editTimeline(v), T = tl.total || 1;
 		if (ed.voAll) return `<div class="vp-wv" style="left:0;width:100%">${bars(peaksOf(ed.voAll, 7))}</div>`;
 		return tl.items.map((it, i) => it.scene.vo ? `<div class="vp-wv" style="left:${it.t0 / T * 100}%;width:${Math.min(it.scene.vo.dur, it.scene.dur) / T * 100}%">${bars(peaksOf(it.scene.vo, i + 1))}</div>` : "").join("");
 	}
-	function bodyHtml(v) {
-		const ed = v.edit, st = ST[v.id];
-		const left = st.cap ? capPane(v) : st.sub === "scene" ? scenePane(v) : settingsPane(v);
+	function bodyHtml(v, st, ro) {
+		const ed = v.edit;
+		const dis = ro ? "disabled" : "";
+		const left = st.cap ? capPane(v, ro) : st.sub === "scene" ? scenePane(v, st) : settingsPane(v);
 		const bl = AC.editBlockers(v);
-		const iss = AC.editIssues(S, v);
-		return `<div class="vp-ed"><div class="vp-l"><div class="vp-mini" role="tablist" aria-label="Công cụ biên tập"><button role="tab" data-a="sub" data-k="scene" aria-selected="${st.sub === "scene" && !st.cap}" data-testid="ve-sub-scene">Scene</button><button role="tab" data-a="sub" data-k="set" aria-selected="${st.sub === "set" || st.cap}" data-testid="ve-sub-set">Cài đặt</button></div>${left}</div>
+		const iss = ro ? [] : AC.editIssues(S, v);
+		return `<div class="vp-ed"><div class="vp-l"><div class="vp-mini" role="tablist" aria-label="Công cụ biên tập"><button role="tab" data-a="sub" data-k="scene" aria-selected="${st.sub === "scene" && !st.cap}" data-testid="ve-sub-scene">Scene</button><button role="tab" data-a="sub" data-k="set" aria-selected="${st.sub === "set" || st.cap}" data-testid="ve-sub-set">Cài đặt</button></div><fieldset class="vp-fs" ${dis}>${left}</fieldset></div>
     <div class="vp-pv"><div class="eyebrow"><span id="vp-pvt"></span></div><div class="vp-box" id="vp-box" data-testid="ve-stage"></div>
       <div class="vp-pvbar"><button class="btn sm" data-a="prev" aria-label="Cảnh trước">⏮</button><button class="btn sm primary" data-a="play" id="vp-play" data-testid="ve-play">▶ Phát</button><button class="btn sm" data-a="next" aria-label="Cảnh sau">⏭</button><label class="small" style="margin-left:8px"><input type="checkbox" data-a="safe" ${st.safe ? "checked" : ""}> Vùng an toàn</label></div>
-      <p class="small faint">Xem thử mô phỏng, chưa ghép thành file video. Giọng AI dùng giọng đọc có sẵn của trình duyệt.</p></div></div>
-    ${timelineHtml(v)}
-    <div class="vp-foot"><span class="small ${bl.length ? "" : "muted"}" id="ve-issues">${bl.length ? bl.map((x) => `<a href="#" data-a="goto" data-i="${x.i}">Cảnh ${x.i + 1} chưa có hình</a>`).join(" · ") : ed.doneAt ? "Đã hoàn thành. Lệnh dựng đã lưu; file video có khi bộ xuất chạy." : "Đủ hình cho mọi cảnh"}${iss.filter((x) => !/chưa có hình/.test(x)).length ? `<br><span class="vp-warn">${iss.filter((x) => !/chưa có hình/.test(x)).map(esc).join(" · ")}</span>` : ""}</span>
-      <button class="btn" data-a="export" data-testid="ve-export">Xuất lệnh dựng (JSON)</button><button class="btn primary" data-a="done" data-testid="ve-done" ${bl.length ? "disabled" : ""}>${ed.doneAt ? "Đã hoàn thành ✓" : "Hoàn thành"}</button></div>
+      <p class="small faint">Xem thử mô phỏng, chưa ghép thành file video. Giọng AI dùng giọng đọc có sẵn của trình duyệt; SFX là âm tổng hợp.</p></div></div>
+    <fieldset class="vp-fs" ${dis}>${timelineHtml(v, st)}</fieldset>
+    ${ro ? "<div class=\"vp-foot\"><span class=\"small muted\">Bản cũ: chỉ xem. Bấm Dùng bản này để sửa tiếp.</span></div>" : `<div class="vp-foot"><span class="small ${bl.length ? "" : "muted"}" id="ve-issues">${bl.length ? bl.map((x) => `<a href="#" data-a="goto" data-i="${x.i}">Cảnh ${x.i + 1} chưa có hình</a>`).join(" · ") : ed.doneAt ? "Đã hoàn thành. Lệnh dựng đã lưu; file video có khi bộ xuất chạy." : "Đủ hình cho mọi cảnh"}${iss.filter((x) => !/chưa có hình/.test(x)).length ? `<br><span class="vp-warn">${iss.filter((x) => !/chưa có hình/.test(x)).map(esc).join(" · ")}</span>` : ""}</span>
+      <button class="btn" data-a="export" data-testid="ve-export">Xuất lệnh dựng (JSON)</button><button class="btn primary" data-a="done" data-testid="ve-done" ${bl.length ? "disabled" : ""}>${ed.doneAt ? "Đã hoàn thành ✓" : "Hoàn thành"}</button></div>`}
     <input type="file" id="vp-file" accept="image/*,video/*" multiple class="sr" tabindex="-1"><input type="file" id="vp-fileA" accept="audio/*" class="sr" tabindex="-1"><input type="file" id="vp-fileM" accept="audio/*" class="sr" tabindex="-1">`;
 	}
-	function emptyHtml(v) {
-		const ok = !!(v.script || (v.media || []).length);
-		return `<div class="vp-empty"><p>${ok ? "Chưa chia cảnh. App chia kịch bản thành các cảnh có lời, gợi ý hình và thời lượng; sau đó bạn Up hình, thêm VO, chỉnh timeline." : "Chưa có kịch bản hoặc tệp nguồn để chia cảnh. Viết hoặc duyệt kịch bản ở tab Kịch bản trước."}</p><button class="btn primary" data-a="plan" data-testid="ve-plan" ${ok ? "" : "disabled"}>${icon("spark")} Chia cảnh theo kịch bản</button></div>`;
+	function emptyHtml(v, ro) {
+		const ok = !ro && !!(v.script || (v.media || []).length);
+		return `<div class="vp-empty"><p>${ro ? "Bản này chưa chia cảnh." : ok ? "Chưa chia cảnh. App chia kịch bản thành các cảnh có lời, gợi ý hình và thời lượng; sau đó bạn Up hình, thêm VO, đặt cue, chỉnh timeline." : "Chưa có kịch bản hoặc tệp nguồn để chia cảnh. Viết kịch bản ở tab Kịch bản trước."}</p>${ro ? "" : `<button class="btn primary" data-a="plan" data-testid="ve-plan" ${ok ? "" : "disabled"}>${icon("spark")} Chia cảnh theo kịch bản</button>`}</div>`;
+	}
+	var fxName = (i) => AC.VID_CUE_FX[i || 0] || AC.VID_CUE_FX[0];
+	var sfxName = (k) => (AC.sfxOf(k) || [k, k])[1];
+	function iconLib(c, st) {
+		const L = AC.vidLibOf(S), tab = st.iTab || "fav", q = (st.cueQ || "").toLowerCase();
+		const full = (g) => AC.VID_ICONS.find((x) => x[0] === g) || [g, ""];
+		return (tab === "fav" ? L.favI.map(full) : tab === "rec" ? L.recI.map(full) : AC.VID_ICONS.filter(([, n]) => !q || n.includes(q))).map(([g, n]) => `<button data-ig="${esc(g)}" aria-pressed="${!!c.icon && c.icon.g === g}" title="${esc(n)}">${g}</button>`).join("") || `<span class="small muted">${tab === "rec" ? "Chưa dùng icon nào" : tab === "fav" ? "Chưa có icon yêu thích: chọn icon rồi bấm ☆" : "Không thấy icon"}</span>`;
+	}
+	function sfxLib(c, st) {
+		const L = AC.vidLibOf(S), tab = st.sTab || "fav", q = (st.sQ || "").toLowerCase(), gr = st.sGrp || "";
+		return (tab === "fav" ? L.favS.map(AC.sfxOf).filter(Boolean) : tab === "rec" ? L.recS.map(AC.sfxOf).filter(Boolean) : AC.VID_SFX.filter((x) => (!gr || x[2] === gr) && (!q || x[1].toLowerCase().includes(q) || x[2].toLowerCase().includes(q)))).map(([k, n, , d]) => {
+			const fav = L.favS.includes(k);
+			return `<div class="vp-sfi" aria-pressed="${!!c.sfx && c.sfx.k === k}"><button class="vp-ic" data-sp="${esc(k)}" title="Nghe thử" aria-label="Nghe thử ${esc(n)}">▶</button><button class="vp-ic vp-sfn" data-sk="${esc(k)}">${esc(n)}</button><span class="vp-ln">${f1(d)}s</span><button class="vp-ic vp-star${fav ? " on" : ""}" data-sf="${esc(k)}" title="${fav ? "Bỏ yêu thích" : "Yêu thích"}" aria-label="${fav ? "Bỏ yêu thích" : "Yêu thích"}">${fav ? "★" : "☆"}</button></div>`;
+		}).join("") || `<span class="small muted">${tab === "rec" ? "Chưa dùng âm nào" : tab === "fav" ? "Chưa có âm yêu thích: bấm ☆ ở Thư viện" : "Không thấy âm thanh"}</span>`;
+	}
+	function cueHtml(v, c, st, ro) {
+		const ed = v.edit, t = AC.cueTime(ed, c), si = ed.scenes.findIndex((s) => s.id === c.sc), sec = st.cueSec || "icon", L = AC.vidLibOf(S);
+		const sum = {
+			icon: c.icon ? `${c.icon.g} · ${f1(c.icon.dur)}s · ${fxName(c.icon.fx)}` : "tắt",
+			text: c.text ? `“${esc(c.text.t)}” · ${f1(c.text.dur)}s` : "tắt",
+			sfx: c.sfx ? `${esc(sfxName(c.sfx.k))} · ${c.sfx.vol}%` : "tắt"
+		};
+		const head = (k, l) => `<div class="vp-shd" data-sec="${k}" role="button" tabindex="0" aria-expanded="${sec === k}"><input type="checkbox" data-ct="${k}" ${c[k] ? "checked" : ""} aria-label="Bật ${l}"><b>${l}</b><span class="vp-sum">${sum[k]}</span><span class="vp-chev">${sec === k ? "▾" : "▸"}</span></div>`;
+		const tabs = (nm, cur, list) => `<div class="vp-subt">${list.map(([k, l]) => `<button data-${nm}="${k}" aria-selected="${cur === k}">${l}</button>`).join("")}</div>`;
+		const fxSel = (k) => `<label>Hiệu ứng <select data-cfx="${k}">${AC.VID_CUE_FX.map((n, j) => `<option value="${j}" ${(c[k].fx || 0) === j ? "selected" : ""}>${esc(n)}</option>`).join("")}</select></label>`;
+		const dur = (k) => `<label>Hiện <input type="number" step="0.5" min="0.5" max="10" value="${c[k].dur}" data-cd="${k}" style="width:62px">s</label>`;
+		const it = st.iTab || "fav", stb = st.sTab || "fav";
+		let body = "";
+		if (sec === "icon") body = `${c.icon ? `<div class="vp-curr">Đang dùng <span style="font-size:20px">${c.icon.g}</span><button class="vp-ic vp-star${L.favI.includes(c.icon.g) ? " on" : ""}" data-if title="Yêu thích" aria-label="Yêu thích icon này">${L.favI.includes(c.icon.g) ? "★" : "☆"}</button><label style="margin-left:auto">Cỡ <input type="range" min="24" max="140" value="${c.icon.sz}" data-csz="icon" style="width:90px"></label></div><div class="vp-tools small" style="margin:0">${dur("icon")}${fxSel("icon")}</div>` : ""}
+    ${tabs("itab", it, [
+			["fav", "★ Yêu thích"],
+			["rec", "Gần đây"],
+			["all", "Tất cả"]
+		])}${it === "all" ? `<input placeholder="Tìm icon (vd: giờ, não, sao)…" value="${esc(st.cueQ || "")}" data-cq aria-label="Tìm icon" style="margin-bottom:4px">` : ""}<div class="vp-lib" id="vp-clib">${iconLib(c, st)}</div>`;
+		if (sec === "text") body = c.text ? `<input value="${esc(c.text.t)}" data-ctt aria-label="Chữ của cue" maxlength="80" style="margin:4px 0"><div class="vp-tools small" style="margin:0"><select data-cst aria-label="Kiểu chữ">${AC.VID_CUE_TEXT_STYLES.map((n, k) => `<option value="${k}" ${c.text.st === k ? "selected" : ""}>${esc(n)}</option>`).join("")}</select><label>Cỡ <input type="range" min="14" max="56" value="${c.text.sz}" data-csz="text"></label></div><div class="vp-tools small">${dur("text")}${fxSel("text")}</div>` : "<p class=\"small muted\" style=\"margin:4px 0\">Bật công tắc để thêm chữ (mặc định là từ được đặt cue).</p>";
+		if (sec === "sfx") body = `${c.sfx ? `<div class="vp-curr">Đang dùng <b>${esc(sfxName(c.sfx.k))}</b><button class="vp-ic" data-sp="${esc(c.sfx.k)}" title="Nghe thử" aria-label="Nghe thử">▶</button><label style="margin-left:auto">🔊 <input type="range" min="0" max="100" value="${c.sfx.vol}" data-csv aria-label="Âm lượng SFX" style="width:90px"></label></div>` : ""}
+    ${tabs("stab", stb, [
+			["fav", "★ Yêu thích"],
+			["rec", "Gần đây"],
+			["lib", "Thư viện"]
+		])}${stb === "lib" ? `<input placeholder="Tìm âm thanh (vd: vút, chuông)…" value="${esc(st.sQ || "")}" data-sq aria-label="Tìm âm thanh" style="margin-bottom:4px"><div class="vp-subt" style="flex-wrap:wrap;margin-top:0">${["", ...AC.VID_SFX_GROUPS].map((g) => `<button data-sg="${esc(g)}" aria-selected="${(st.sGrp || "") === g}">${esc(g || "Tất cả")}</button>`).join("")}</div>` : ""}<div class="vp-sfxl" id="vp-sfxl">${sfxLib(c, st)}</div>`;
+		return `<fieldset class="vp-fs" ${ro ? "disabled" : ""}><div class="eyebrow" style="margin-bottom:4px"><span>Cue · “${esc(c.w)}” · cảnh ${si + 1}</span><button class="vp-ic" data-cpx title="Đóng" aria-label="Đóng">✕</button></div>
+    <div class="vp-tools small" style="margin:0">${c.lost ? "<span style=\"color:var(--bad)\">Từ này đã bị xóa khỏi lời cảnh. Bấm một từ ở dòng Cue để đặt lại.</span>" : t == null ? "<span class=\"muted\">Cảnh chưa có VO nên chưa có giây</span>" : `<b data-testid="ve-cuetime">${f3(t)}s</b><button class="btn sm" data-nud="-0.1">‹ −0,1s</button><button class="btn sm" data-nud="0.1">+0,1s ›</button>${c.dt ? `<span class="muted">${c.dt > 0 ? "+" : ""}${f1(c.dt)}s so với từ</span>` : ""}`}</div>
+    <div class="vp-csec">${head("icon", "Icon")}${sec === "icon" ? body : ""}</div><div class="vp-csec">${head("text", "Text")}${sec === "text" ? body : ""}</div><div class="vp-csec">${head("sfx", "SFX")}${sec === "sfx" ? body : ""}</div>
+    <div class="vp-tools small" style="margin-top:8px;border-top:1px solid var(--line);padding-top:6px"><span class="muted">Kéo icon/chữ trên khung xem thử để đổi vị trí. Yêu thích dùng chung cho mọi video.</span><button class="btn sm danger" data-cdel style="margin-left:auto">Xóa cue</button></div></fieldset>`;
 	}
 	function mountEditor(host, id, hooks) {
 		const H = hooks || {};
-		const st = ST[id] = ST[id] && ST[id].keep ? Object.assign(ST[id], { play: false }) : {
+		const RO = !!H.view;
+		const key = RO ? `${id}#${H.view.verN}` : id;
+		const st = ST[key] = ST[key] && ST[key].keep ? Object.assign(ST[key], {
+			play: false,
+			cue: null,
+			reCue: null
+		}) : {
 			cur: 0,
 			t: 0,
 			play: false,
@@ -26671,15 +28000,16 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			hist: [],
 			fut: [],
 			saved: "",
-			keep: true
+			keep: true,
+			cue: null
 		};
 		let timer = 0;
-		let au = {
+		const au = {
 			list: [],
 			music: null
 		};
-		const dragging = { on: false };
-		const v = () => vOf(id);
+		let drag = false;
+		const v = () => H.view || vOf(id);
 		const tot = () => AC.editTimeline(v()).total;
 		const starts = () => {
 			let a = 0;
@@ -26701,6 +28031,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			if (H.bar) H.bar();
 		};
 		const commit = () => {
+			if (RO) return;
 			snapNow();
 			save();
 			stamp();
@@ -26715,12 +28046,14 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			render();
 		};
 		const undo = () => {
+			if (RO) return;
 			if (st.hist.length > 1) {
 				st.fut.push(st.hist.pop());
 				restore(st.hist[st.hist.length - 1]);
 			}
 		};
 		const redo = () => {
+			if (RO) return;
 			if (st.fut.length) {
 				const j = st.fut.pop();
 				st.hist.push(j);
@@ -26840,7 +28173,12 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			if (st.t > T) st.t = T;
 			const sts = starts();
 			st.cur = Math.min(st.cur, ed.scenes.length - 1);
-			const sc = ed.scenes[st.cur], t0 = sts[st.cur], k = sc.items.length, share = k ? sc.dur / k : 0, loc = Math.max(0, st.t - t0), ik = k ? Math.min(k - 1, Math.floor(loc / share)) : 0, it = k ? sc.items[ik] : null;
+			const sc = ed.scenes[st.cur], t0 = sts[st.cur], k = sc.items.length, loc = Math.max(0, st.t - t0);
+			const { k: ik, off } = k ? curItem(sc, loc) : {
+				k: 0,
+				off: 0
+			};
+			const it = k ? sc.items[ik] : null;
 			const txt = AC.captionAt(vv, Math.max(0, st.t)) || "";
 			const style = ed.captions.style || 0;
 			let ct = esc(txt);
@@ -26853,7 +28191,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				ct = w.map((x, i) => i === li ? `<em>${esc(x)}</em>` : esc(x)).join(" ");
 			}
 			const src = it ? srcOf(vv, it) : "";
-			const key = [
+			const key2 = [
 				st.cur,
 				ik,
 				sc.fit,
@@ -26862,26 +28200,31 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				ed.captions.pos,
 				ed.captions.mode,
 				st.safe,
-				sc.overlay,
 				src.length,
 				src.slice(-24),
 				sc.prompt,
 				sc.ph
 			].join("|");
-			if (box.dataset.k !== key) {
-				box.dataset.k = key;
+			if (box.dataset.k !== key2) {
+				box.dataset.k = key2;
 				let h = "";
 				if (it && src) h += it.kind === "video" ? `<video class="vp-media${sc.fit === "fit" ? " contain" : ""}" src="${esc(src)}" playsinline preload="auto"></video>` : `<img class="vp-media${sc.fit === "fit" ? " contain" : ""}" src="${esc(src)}" alt="">`;
-				else h += `<div class="vp-ph"><b>Thẻ giữ chỗ</b><span>${esc(sc.prompt || "Chưa có prompt hình")}</span></div>`;
-				h += `${sc.overlay ? `<div class="vp-ovl">${esc(sc.overlay)}</div>` : ""}<div class="vp-cap pos-${esc(ed.captions.pos)} s${style}" ${ed.captions.mode === "off" ? "hidden" : ""}><span></span></div><div class="vp-fm">${frameHtml(vv, ed)}</div>${st.safe ? "<div class=\"vp-safe\"></div>" : ""}`;
+				else h += `<div class="vp-ph"><b>Thẻ giữ chỗ</b><span>${esc(sc.prompt || "Chưa có mô tả hình")}</span></div>`;
+				h += `${k > 1 ? `<div class="vp-ovk">ảnh ${ik + 1}/${k}</div>` : ""}<div class="vp-cap pos-${esc(ed.captions.pos)} s${style}" ${ed.captions.mode === "off" ? "hidden" : ""}><span></span></div><div class="vp-lys" id="vp-lys" data-testid="ve-layers"></div><div class="vp-fm">${frameHtml(vv, ed)}</div>${st.safe ? "<div class=\"vp-safe\"></div>" : ""}`;
 				box.innerHTML = h;
+				host.querySelectorAll(".vp-th").forEach((e) => e.setAttribute("aria-current", String(Number(e.dataset.i) === st.cur && Number(e.dataset.j) === ik)));
+				const mn = host.querySelector(`.vp-sc[data-c="${st.cur}"] .vp-add.has`);
+				if (mn && it && mn.dataset.src !== src.slice(-40)) {
+					mn.dataset.src = src.slice(-40);
+					mn.innerHTML = thumbHtml(vv, it);
+				}
 			}
 			const el = box.querySelector("video");
 			if (el) {
 				el.muted = ed.voice.mode !== "clip";
 				el.volume = Math.max(0, Math.min(1, sc.vol / 100));
 				try {
-					const tt = vidTime(it, loc - ik * share, share, el);
+					const tt = vidTime(it, loc - off, it.d, el);
 					if (!st.play || Math.abs(el.currentTime - tt) > .5) el.currentTime = tt;
 					if (st.play && el.paused) el.play().catch(() => {});
 					if (!st.play) el.pause();
@@ -26889,6 +28232,39 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			}
 			const cs = box.querySelector(".vp-cap span");
 			if (cs) cs.innerHTML = ct;
+			const ly = box.querySelector("#vp-lys");
+			if (ly && !drag) {
+				const on = [];
+				(ed.cues || []).forEach((c) => {
+					const a = AC.cueTime(ed, c);
+					if (a == null) return;
+					["icon", "text"].forEach((kk) => {
+						const o = c[kk];
+						if (o && st.t >= a - .001 && st.t < a + o.dur) on.push([
+							c,
+							kk,
+							o
+						]);
+					});
+				});
+				const lk = on.map(([c, kk, o]) => [
+					c.id,
+					kk,
+					o.x,
+					o.y,
+					o.sz,
+					o.g,
+					o.t,
+					o.st,
+					o.fx,
+					st.cue === c.id
+				].join(":")).join("|");
+				if (ly.dataset.k !== lk) {
+					ly.dataset.k = lk;
+					ly.innerHTML = on.map(([c, kk, o]) => `<div class="vp-ly fx${o.fx || 0} ${kk === "text" ? `lt${o.st}` : ""}${st.cue === c.id ? " sel" : ""}" data-ly="${esc(c.id)},${kk}" style="left:${o.x}%;top:${o.y}%;font-size:${o.sz}px" title="${RO ? "Cue" : "Kéo để đổi vị trí"}">${kk === "icon" ? o.g : esc(o.t)}${RO ? "" : "<span class=\"vp-rz\" title=\"Kéo để đổi cỡ\"></span>"}</div>`).join("");
+				}
+			}
+			host.querySelectorAll(".vp-cb").forEach((b) => b.setAttribute("aria-current", String(st.cue === b.dataset.c)));
 			const pt = host.querySelector("#vp-pvt");
 			if (pt) pt.textContent = `Xem thử · cảnh ${st.cur + 1}`;
 			const pl = host.querySelector("#vp-play");
@@ -26906,22 +28282,50 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			host.querySelectorAll(".vp-sc").forEach((e) => e.setAttribute("aria-current", String(Number(e.dataset.c) === st.cur)));
 			host.querySelectorAll(".vp-blk").forEach((e) => e.setAttribute("aria-current", String(Number(e.dataset.i) === st.cur)));
 		}
-		function seekScene(i) {
-			st.cur = i;
-			st.t = starts()[i] || 0;
+		function seekT(t) {
+			st.t = Math.round(Math.max(0, Math.min(tot() - .05, t)) * 1e3) / 1e3;
+			const sts = starts();
+			let c = 0;
+			sts.forEach((x, i) => {
+				if (st.t >= x) c = i;
+			});
+			st.cur = c;
 			if (st.play) startAudio();
 			mark();
 			paint();
 		}
+		function seekScene(i, j) {
+			const sc = v().edit.scenes[i];
+			let t = starts()[i] || 0;
+			for (let q = 0; q < (j || 0); q++) t += sc.items[q].d;
+			st.cur = i;
+			st.t = r1(t);
+			if (st.play) startAudio();
+			mark();
+			paint();
+		}
+		function cleanup() {
+			stopAudio();
+			closeCue();
+			hideTip();
+			document.removeEventListener("pointerdown", outside, true);
+		}
 		function tick() {
 			if (!host.isConnected) {
 				clearInterval(timer);
-				stopAudio();
+				cleanup();
 				return;
 			}
 			if (!st.play) return;
+			const p0 = st.t;
 			st.t = Math.round((st.t + .1) * 10) / 10;
 			const T = tot();
+			const ed = v().edit;
+			(ed.cues || []).forEach((c) => {
+				if (!c.sfx) return;
+				const a = AC.cueTime(ed, c);
+				if (a != null && a > p0 && a <= st.t + 1e-9) playSfx(c.sfx.k, c.sfx.vol);
+			});
 			if (st.t >= T) {
 				st.t = 0;
 				st.cur = 0;
@@ -26943,6 +28347,290 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			}
 			paint();
 		}
+		const cueById = (cid) => AC.cueOf(v().edit, cid);
+		function showTip(c, el) {
+			if (!c) return;
+			let tp = document.getElementById("vp-tip");
+			if (!tp) {
+				tp = document.createElement("div");
+				tp.id = "vp-tip";
+				tp.className = "vp-tip";
+				tp.setAttribute("role", "tooltip");
+				layerRoot().appendChild(tp);
+			}
+			const t = AC.cueTime(v().edit, c);
+			tp.innerHTML = `<div><b>${t == null ? "—" : `${f3(t)}s`}</b> · “${esc(c.w)}”</div>${c.icon ? `<div>${c.icon.g} Icon · ${f1(c.icon.dur)}s · ${esc(fxName(c.icon.fx))}</div>` : ""}${c.text ? `<div>T “${esc(c.text.t)}” · ${f1(c.text.dur)}s</div>` : ""}${c.sfx ? `<div>♪ ${esc(sfxName(c.sfx.k))} · ${c.sfx.vol}%</div>` : ""}${!c.icon && !c.text && !c.sfx ? "<div>Chưa có nội dung</div>" : ""}<div style="opacity:.65">${RO ? "Bấm để xem" : "Bấm để sửa · ✕ để xóa"}</div>`;
+			tp.hidden = false;
+			const r = el.getBoundingClientRect();
+			tp.style.left = `${Math.max(8, Math.min(innerWidth - tp.offsetWidth - 8, r.left + r.width / 2 - tp.offsetWidth / 2))}px`;
+			tp.style.top = `${Math.max(8, r.top - tp.offsetHeight - 8)}px`;
+		}
+		function hideTip() {
+			const tp = document.getElementById("vp-tip");
+			if (tp) tp.hidden = true;
+		}
+		const popEl = () => document.getElementById("vp-cuepop");
+		function closeCue() {
+			st.cue = null;
+			st.reCue = null;
+			const p = popEl();
+			if (p) p.remove();
+			host.querySelectorAll(".vp-cb").forEach((b) => b.setAttribute("aria-current", "false"));
+			const ly = host.querySelector("#vp-lys");
+			if (ly) ly.dataset.k = "";
+		}
+		function openCue(cid, anchor) {
+			if (st.cue !== cid) st.cueQ = "";
+			st.cue = cid;
+			let p = popEl();
+			if (!p) {
+				p = document.createElement("div");
+				p.id = "vp-cuepop";
+				p.className = "vp-pop";
+				p.setAttribute("role", "dialog");
+				p.setAttribute("aria-label", "Cue");
+				p.dataset.testid = "ve-cuepop";
+				p.setAttribute("data-testid", "ve-cuepop");
+				layerRoot().appendChild(p);
+				bindPop(p);
+			}
+			drawCue();
+			if (anchor) {
+				const r = anchor.getBoundingClientRect(), h = p.offsetHeight, w = p.offsetWidth;
+				let y = r.bottom + 6;
+				if (y + h > innerHeight - 8) y = Math.max(8, r.top - h - 6);
+				p.style.left = `${Math.max(8, Math.min(innerWidth - w - 8, r.left + r.width / 2 - w / 2))}px`;
+				p.style.top = `${y}px`;
+			}
+			const ly = host.querySelector("#vp-lys");
+			if (ly) ly.dataset.k = "";
+			paint();
+		}
+		function drawCue() {
+			const p = popEl();
+			if (!p) return;
+			const c = cueById(st.cue);
+			if (!c) {
+				closeCue();
+				return;
+			}
+			p.innerHTML = cueHtml(v(), c, st, RO);
+		}
+		const showCueTime = (c) => {
+			const a = AC.cueTime(v().edit, c);
+			if (a != null) seekT(a);
+		};
+		const cueEdit = (c, patch, after) => {
+			if (RO) return;
+			const r = AC.editCue(S, id, c.id, patch);
+			if (!r.ok) {
+				toast(r.error, "bad");
+				drawCue();
+				return;
+			}
+			commit();
+			render();
+			if (after) after();
+		};
+		function bindPop(p) {
+			p.addEventListener("click", (e) => {
+				const c = cueById(st.cue);
+				if (!c) return;
+				const T = e.target;
+				if (T.closest("[data-cpx]")) {
+					closeCue();
+					return;
+				}
+				const sp = T.closest("[data-sp]");
+				if (sp) {
+					playSfx(sp.dataset.sp, c.sfx ? c.sfx.vol : 80);
+					return;
+				}
+				const sh = T.closest("[data-sec]");
+				if (sh && !T.matches("input")) {
+					st.cueSec = sh.dataset.sec;
+					drawCue();
+					return;
+				}
+				const tb = T.closest("[data-itab],[data-stab],[data-sg]");
+				if (tb) {
+					if (tb.dataset.itab) st.iTab = tb.dataset.itab;
+					else if (tb.dataset.stab) st.sTab = tb.dataset.stab;
+					else st.sGrp = tb.dataset.sg;
+					drawCue();
+					return;
+				}
+				if (RO) return;
+				const nd = T.closest("[data-nud]");
+				if (nd) {
+					cueEdit(c, { dt: r1((c.dt || 0) + Number(nd.dataset.nud)) }, () => showCueTime(c));
+					return;
+				}
+				if (T.closest("[data-cdel]")) {
+					delCue(c.id);
+					return;
+				}
+				const ig = T.closest("[data-ig]");
+				if (ig) {
+					cueEdit(c, { icon: { g: ig.dataset.ig } }, () => showCueTime(c));
+					return;
+				}
+				if (T.closest("[data-if]") && c.icon) {
+					AC.toggleVidFav(S, "icon", c.icon.g);
+					save();
+					drawCue();
+					return;
+				}
+				const sk = T.closest("[data-sk]");
+				if (sk) {
+					cueEdit(c, { sfx: { k: sk.dataset.sk } }, () => playSfx(c.sfx.k, c.sfx.vol));
+					return;
+				}
+				const sf = T.closest("[data-sf]");
+				if (sf) {
+					AC.toggleVidFav(S, "sfx", sf.dataset.sf);
+					save();
+					drawCue();
+				}
+			});
+			p.addEventListener("keydown", (e) => {
+				if ((e.key === "Enter" || e.key === " ") && e.target.matches("[data-sec]")) {
+					e.preventDefault();
+					st.cueSec = e.target.dataset.sec;
+					drawCue();
+				}
+				if (e.key === "Escape") {
+					e.stopPropagation();
+					closeCue();
+				}
+			});
+			p.addEventListener("input", (e) => {
+				const c = cueById(st.cue);
+				if (!c || RO) return;
+				const T = e.target;
+				if (T.matches("[data-cq]")) {
+					st.cueQ = T.value;
+					p.querySelector("#vp-clib").innerHTML = iconLib(c, st);
+					return;
+				}
+				if (T.matches("[data-sq]")) {
+					st.sQ = T.value;
+					p.querySelector("#vp-sfxl").innerHTML = sfxLib(c, st);
+					return;
+				}
+				if (T.matches("[data-csz]") && c[T.dataset.csz]) {
+					c[T.dataset.csz].sz = Number(T.value);
+					paint();
+					return;
+				}
+				if (T.matches("[data-ctt]") && c.text) {
+					c.text.t = T.value;
+					paint();
+					return;
+				}
+				if (T.matches("[data-csv]") && c.sfx) c.sfx.vol = Number(T.value);
+			});
+			p.addEventListener("change", (e) => {
+				const c = cueById(st.cue);
+				if (!c || RO) return;
+				const T = e.target;
+				if (T.matches("[data-ct]")) {
+					const kk = T.dataset.ct;
+					st.cueSec = kk;
+					cueEdit(c, { [kk]: T.checked ? {} : null }, () => {
+						if (kk === "sfx" && c.sfx) playSfx(c.sfx.k, c.sfx.vol);
+						showCueTime(c);
+					});
+					return;
+				}
+				if (T.matches("[data-csz]")) {
+					cueEdit(c, { [T.dataset.csz]: { sz: Number(T.value) } });
+					return;
+				}
+				if (T.matches("[data-cd]")) {
+					cueEdit(c, { [T.dataset.cd]: { dur: Number(T.value) } });
+					return;
+				}
+				if (T.matches("[data-cfx]")) {
+					cueEdit(c, { [T.dataset.cfx]: { fx: Number(T.value) } }, () => showCueTime(c));
+					return;
+				}
+				if (T.matches("[data-ctt]")) {
+					cueEdit(c, { text: { t: T.value } });
+					return;
+				}
+				if (T.matches("[data-cst]")) {
+					cueEdit(c, { text: { st: Number(T.value) } });
+					return;
+				}
+				if (T.matches("[data-csv]")) cueEdit(c, { sfx: { vol: Number(T.value) } }, () => playSfx(c.sfx.k, c.sfx.vol));
+			});
+		}
+		function delCue(cid) {
+			if (RO) return;
+			const r = AC.removeCue(S, id, cid);
+			if (!r.ok) return toast(r.error, "bad");
+			if (st.cue === cid) closeCue();
+			hideTip();
+			commit();
+			render();
+		}
+		function outside(e) {
+			if (st.cue && !e.target.closest("#vp-cuepop,.vp-cb,.vp-cw,.vp-ly")) closeCue();
+		}
+		document.addEventListener("pointerdown", outside, true);
+		host.addEventListener("pointerdown", (e) => {
+			const el = e.target.closest(".vp-ly");
+			if (!el) return;
+			e.preventDefault();
+			e.stopPropagation();
+			const [cid, kk] = el.dataset.ly.split(",");
+			const c = cueById(cid);
+			if (!c) return;
+			if (RO) {
+				openCue(c.id, el);
+				return;
+			}
+			const o = c[kk], box = host.querySelector("#vp-box").getBoundingClientRect(), rz = e.target.classList.contains("vp-rz"), x0 = e.clientX, y0 = e.clientY, ox = o.x, oy = o.y, os = o.sz;
+			let moved = false;
+			drag = true;
+			const mv = (ev) => {
+				const dx = ev.clientX - x0, dy = ev.clientY - y0;
+				if (Math.abs(dx) + Math.abs(dy) > 3) moved = true;
+				if (rz) {
+					o.sz = Math.round(Math.max(12, Math.min(160, os + (dx + dy) / 2)));
+					el.style.fontSize = `${o.sz}px`;
+				} else {
+					o.x = r1(Math.max(0, Math.min(100, ox + dx / box.width * 100)));
+					o.y = r1(Math.max(0, Math.min(100, oy + dy / box.height * 100)));
+					el.style.left = `${o.x}%`;
+					el.style.top = `${o.y}%`;
+				}
+			};
+			const up = () => {
+				removeEventListener("pointermove", mv);
+				removeEventListener("pointerup", up);
+				drag = false;
+				if (moved) {
+					if (AC.editCue(S, id, c.id, { [kk]: {
+						x: o.x,
+						y: o.y,
+						sz: o.sz
+					} }).ok) commit();
+				}
+				openCue(c.id, el);
+			};
+			addEventListener("pointermove", mv);
+			addEventListener("pointerup", up);
+		});
+		host.addEventListener("mouseover", (e) => {
+			const b = e.target.closest(".vp-cb");
+			if (b && !(e.relatedTarget && b.contains(e.relatedTarget))) showTip(cueById(b.dataset.c), b);
+		});
+		host.addEventListener("mouseout", (e) => {
+			const b = e.target.closest(".vp-cb");
+			if (b && !(e.relatedTarget && b.contains(e.relatedTarget))) hideTip();
+		});
 		function render() {
 			const vv = v();
 			if (!vv) return;
@@ -26950,48 +28638,72 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			const sy = keepScroll ? keepScroll.scrollTop : 0;
 			if (!st.play) stopAudio();
 			if (!vv.edit || !vv.edit.scenes.length) {
-				host.innerHTML = emptyHtml(vv);
+				host.innerHTML = emptyHtml(vv, RO);
 				return;
 			}
-			if (!st.hist.length) st.hist.push(snapOf(vv.edit));
-			host.innerHTML = bodyHtml(vv);
+			if (!st.hist.length && !RO) st.hist.push(snapOf(vv.edit));
+			hideTip();
+			host.innerHTML = bodyHtml(vv, st, RO);
 			const p = host.querySelector(".vp-pane");
 			if (p) p.scrollTop = sy;
+			bindTl();
+			paint();
+			if (st.cue) {
+				if (cueById(st.cue)) drawCue();
+				else closeCue();
+			}
+		}
+		function bindTl() {
+			if (RO) return;
 			host.querySelectorAll(".vp-hdl").forEach((h) => {
 				h.onpointerdown = (e) => dragStart(e, Number(h.dataset.h));
 				h.onkeydown = (e) => keyNudge(e, Number(h.dataset.h));
 			});
+			host.querySelectorAll(".vp-ih").forEach((h) => {
+				const [i, j] = h.dataset.ih.split(",").map(Number);
+				h.onpointerdown = (e) => dragStart(e, i, j);
+				h.onkeydown = (e) => keyItem(e, i, j);
+			});
+		}
+		function liveTl() {
+			const w = host.querySelector(".vp-tlw");
+			if (!w) return;
+			const tmp = document.createElement("div");
+			tmp.innerHTML = timelineHtml(v(), st);
+			w.replaceWith(tmp.firstElementChild);
+			bindTl();
 			paint();
 		}
-		function dragStart(e, i) {
+		function dragStart(e, i, j) {
 			e.preventDefault();
 			e.stopPropagation();
 			const ed = v().edit;
 			const W = host.querySelector("#vp-tl").getBoundingClientRect().width || 1, T0 = tot(), x0 = e.clientX;
-			const base = ed.scenes.map((s) => s.dur);
+			const base = ed.scenes.map((s) => ({
+				dur: s.dur,
+				d: s.items.map((m) => m.d)
+			}));
 			const sid = ed.scenes[i].id;
-			dragging.on = true;
 			const was = ed.capStale;
+			const item = j != null;
+			const d0 = item ? ed.scenes[i].items[j].d : base[i].dur;
+			const back = () => ed.scenes.forEach((s, q) => {
+				s.dur = base[q].dur;
+				s.items.forEach((m, z) => {
+					m.d = base[q].d[z];
+				});
+			});
 			const mv = (ev) => {
-				ed.scenes.forEach((s, j) => {
-					s.dur = base[j];
-				});
-				AC.resizeScene(S, id, sid, base[i] + Math.round((ev.clientX - x0) / W * T0));
-				const T = tot();
-				host.querySelectorAll(".vp-blk").forEach((b, j) => {
-					b.style.width = `${ed.scenes[j].dur / T * 100}%`;
-					const l = b.querySelector(".vp-bl");
-					if (l) l.textContent = l.textContent.replace(/·.*$/, `· ${f1(ed.scenes[j].dur)}s`);
-				});
-				const w = host.querySelector("#vp-wave");
-				if (w) w.innerHTML = waveHtml(v());
-				paint();
+				back();
+				const nd = r1(d0 + (ev.clientX - x0) / W * T0);
+				if (item) AC.resizeItem(S, id, sid, j, nd);
+				else AC.resizeScene(S, id, sid, nd);
+				liveTl();
 			};
 			const up = () => {
 				removeEventListener("pointermove", mv);
 				removeEventListener("pointerup", up);
-				dragging.on = false;
-				if (ed.scenes.some((s, j) => s.dur !== base[j])) commit();
+				if (ed.scenes.some((s, q) => s.dur !== base[q].dur || s.items.some((m, z) => m.d !== base[q].d[z]))) commit();
 				else ed.capStale = was;
 				render();
 			};
@@ -27010,6 +28722,20 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			const n = host.querySelector(`.vp-hdl[data-h="${i}"]`);
 			if (n) n.focus();
 		}
+		function keyItem(e, i, j) {
+			if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+			e.preventDefault();
+			const sc = v().edit.scenes[i];
+			const d = sc.items[j].d;
+			const r = AC.resizeItem(S, id, sc.id, j, d + (e.key === "ArrowRight" ? 1 : -1) * (e.shiftKey ? 2 : .5));
+			if (!r.ok) toast(r.error, "bad");
+			else if (sc.items[j].d !== d) {
+				commit();
+				render();
+			}
+			const n = host.querySelector(`.vp-ih[data-ih="${i},${j}"]`);
+			if (n) n.focus();
+		}
 		let upTarget = null;
 		const pick = (sel, target) => {
 			upTarget = target;
@@ -27020,7 +28746,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			const el = e.target;
 			const files = [...el.files || []];
 			el.value = "";
-			if (!files.length) return;
+			if (!files.length || RO) return;
 			try {
 				if (el.id === "vp-file") {
 					const sid = v().edit.scenes[upTarget].id;
@@ -27063,7 +28789,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 						src: m.src,
 						dur
 					});
-					if (!act(r)) return;
+					if (!act(r, all ? "" : "Đã thêm VO cảnh: cảnh dài đúng bằng VO.")) return;
 					const p = await decodePeaks(m.src, all ? 200 : 60);
 					if (p) {
 						AC.setVoPeaks(S, id, all ? "all" : v().edit.scenes[tgt].id, p);
@@ -27082,6 +28808,12 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			}
 			const el = e.target;
 			const a = el.dataset.a;
+			if (a === "safe") {
+				st.safe = el.checked;
+				paint();
+				return;
+			}
+			if (RO) return;
 			const i = Number(el.dataset.i);
 			const ed = v().edit;
 			const sc = ed && ed.scenes[i];
@@ -27095,11 +28827,6 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 					toast(r.error, "bad");
 					render();
 				}
-				return;
-			}
-			if (a === "safe") {
-				st.safe = el.checked;
-				paint();
 				return;
 			}
 			if (a === "tpl") {
@@ -27194,11 +28921,11 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				AC.setEditOptions(S, id, { pos: el.value });
 				commit();
 				paint();
-				return;
 			}
 		});
 		host.addEventListener("input", (e) => {
 			const el = e.target;
+			if (RO) return;
 			if (el.dataset.a === "musvol") {
 				const ed = v().edit;
 				if (ed.music) ed.music.vol = Number(el.value) / 100;
@@ -27212,10 +28939,11 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				paint();
 			}
 		});
-		async function applyTpl(key) {
-			if (v().edit.scenes.some((s) => s.items.length || s.vo) && !await confirmBox({
+		async function applyTpl(k) {
+			const ed = v().edit;
+			if ((ed.scenes.some((s) => s.items.length || s.vo) || (ed.cues || []).length) && !await confirmBox({
 				title: "Đổi mẫu?",
-				body: "<p>Chia lại cảnh theo mẫu mới: hình và VO cảnh đã thêm sẽ bị xóa. VO toàn bài, caption kiểu, frame, nhạc giữ nguyên.</p>",
+				body: "<p>Chia lại cảnh theo mẫu mới: hình, VO cảnh và cue đã thêm sẽ bị xóa. VO toàn bài, kiểu caption, frame, nhạc giữ nguyên.</p>",
 				ok: "Đổi mẫu"
 			})) {
 				render();
@@ -27223,7 +28951,8 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			}
 			st.cur = 0;
 			st.t = 0;
-			act(AC.applyTemplate(S, id, key), "Đã chia cảnh theo mẫu.");
+			closeCue();
+			act(AC.applyTemplate(S, id, k), "Đã chia cảnh theo mẫu.");
 		}
 		host.addEventListener("keydown", (e) => {
 			if ((e.key === "Enter" || e.key === " ") && e.target.matches(".vp-add")) {
@@ -27231,16 +28960,29 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				e.target.click();
 			}
 		});
+		const VIEW_ACTS = /* @__PURE__ */ new Set([
+			"sub",
+			"capopen",
+			"capback",
+			"play",
+			"prev",
+			"next",
+			"seek",
+			"goto",
+			"pick",
+			"cb"
+		]);
 		host.addEventListener("click", async (e) => {
 			const b = e.target.closest("[data-a]");
 			if (!b || b.disabled || b.tagName === "SELECT" || b.tagName === "INPUT" && b.type !== "button") {
 				const c = e.target.closest(".vp-sc");
-				if (c && !e.target.closest("button,select,input,textarea,.vp-add,summary,a")) seekScene(Number(c.dataset.c));
+				if (c && !e.target.closest("button,select,input,textarea,.vp-add,.vp-th,summary,a")) seekScene(Number(c.dataset.c));
 				const blk = e.target.closest(".vp-blk");
-				if (blk && !e.target.closest(".vp-hdl")) seekScene(Number(blk.dataset.i));
+				if (blk && !e.target.closest(".vp-hdl,.vp-ih")) seekScene(Number(blk.dataset.i));
 				return;
 			}
 			const a = b.dataset.a;
+			if (RO && !VIEW_ACTS.has(a)) return;
 			const i = Number(b.dataset.i);
 			const vv = v();
 			const ed = vv.edit;
@@ -27253,7 +28995,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				st.t = 0;
 				commit();
 				render();
-				return toast(`Đã chia ${r.count} cảnh.`);
+				return toast(`Đã chia ${r.count} cảnh. Kịch bản đã duyệt.`);
 			}
 			if (a === "sub") {
 				st.sub = b.dataset.k;
@@ -27281,8 +29023,62 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			}
 			if (a === "prev") return seekScene(Math.max(0, st.cur - 1));
 			if (a === "next") return seekScene(Math.min(ed.scenes.length - 1, st.cur + 1));
+			if (a === "pick") return seekScene(i, Number(b.dataset.j));
+			if (a === "cb") {
+				e.stopPropagation();
+				hideTip();
+				const c = cueById(b.dataset.c);
+				if (!c) return;
+				showCueTime(c);
+				openCue(c.id, b);
+				return;
+			}
+			if (a === "cuex") {
+				e.stopPropagation();
+				delCue(b.dataset.c);
+				return;
+			}
+			if (a === "cw") {
+				const k = Number(b.dataset.j);
+				if (st.reCue) {
+					const r = AC.moveCue(S, id, st.reCue, sc.id, k);
+					if (!r.ok) return toast(r.error, "bad");
+					const cid = st.reCue;
+					st.reCue = null;
+					commit();
+					render();
+					const nb = host.querySelector(`.vp-cw[data-i="${i}"][data-j="${k}"]`);
+					showCueTime(r.cue);
+					openCue(cid, nb);
+					return;
+				}
+				const r = AC.addCue(S, id, sc.id, k);
+				if (!r.ok) return toast(r.error, "bad");
+				if (!r.existed) commit();
+				st.cueSec = st.cueSec || "icon";
+				render();
+				const nb = host.querySelector(`.vp-cw[data-i="${i}"][data-j="${k}"]`);
+				showCueTime(r.cue);
+				openCue(r.cue.id, nb);
+				return;
+			}
+			if (a === "lostcue") {
+				st.reCue = b.dataset.c;
+				openCue(b.dataset.c, b);
+				render();
+				toast("Bấm một từ ở dòng Cue để đặt lại cue.");
+				return;
+			}
 			if (a === "up") {
 				pick("#vp-file", i);
+				return;
+			}
+			if (a === "gen") {
+				openGenImage(id, sc.id, (msg) => {
+					commit();
+					render();
+					if (msg) toast(msg);
+				});
 				return;
 			}
 			if (a === "ph") {
@@ -27324,7 +29120,6 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				act(r);
 				return;
 			}
-			if (a === "copyp") return copyText(sc.prompt || "");
 			if (a === "reset") {
 				act(AC.resetDurations(S, id), "Đã hoàn trả timeline mặc định. Caption cần Gen lại.");
 				return;
@@ -27352,7 +29147,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				act(AC.setSceneVo(S, id, sc.id, {
 					kind: "ai",
 					name: `vo-canh-${i + 1}-ai.mp3`
-				}), "VO cảnh AI (mô phỏng).");
+				}), "VO cảnh AI (mô phỏng): cảnh dài đúng bằng VO. Bấm một từ ở dòng Cue để đặt cue.");
 				return;
 			}
 			if (a === "vox") {
@@ -27395,16 +29190,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				return;
 			}
 			if (a === "seek") {
-				st.t = Number(b.dataset.t);
-				const sts = starts();
-				let c = 0;
-				sts.forEach((x, j) => {
-					if (st.t >= x) c = j;
-				});
-				st.cur = c;
-				mark();
-				if (st.play) startAudio();
-				paint();
+				seekT(Number(b.dataset.t));
 				return;
 			}
 			if (a === "goto") {
@@ -27442,12 +29228,11 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				commit();
 				render();
 				if (H.done) H.done();
-				return;
 			}
 		});
 		{
 			const vv = v();
-			if (vv && !(vv.edit && vv.edit.scenes.length) && (vv.script || (vv.media || []).length) && !vv.cancelled) {
+			if (!RO && vv && !(vv.edit && vv.edit.scenes.length) && (vv.script || (vv.media || []).length) && !vv.cancelled) {
 				if (AC.planEdit(S, id).ok) save();
 			}
 		}
@@ -27460,17 +29245,19 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			pause: () => {
 				st.play = false;
 				stopAudio();
+				closeCue();
+				hideTip();
 			},
 			stop: () => {
 				st.play = false;
-				stopAudio();
 				clearInterval(timer);
+				cleanup();
 			},
 			state: () => ({
 				canUndo: st.hist.length > 1,
 				canRedo: st.fut.length > 0,
 				saved: st.saved,
-				active: !!(vOf(id) && vOf(id).edit && vOf(id).edit.scenes.length)
+				active: !!(v() && v().edit && v().edit.scenes.length)
 			})
 		};
 	}
@@ -27949,19 +29736,39 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		});
 	};
 	var posOf = (v) => AC.vidsOf(S, v.weekId, v.topicId).findIndex((x) => x.id === v.id) + 1;
-	function popHtml(v) {
+	var clone = (o) => JSON.parse(JSON.stringify(o));
+	function ghostOf(v, n) {
+		const h = n == null ? null : AC.vidVersions(v).find((x) => x.n === n && !x.current);
+		if (!h) return null;
+		return Object.assign({}, v, {
+			script: h.script || "",
+			prompts: h.prompts || {
+				audio: "",
+				image: ""
+			},
+			insight: Object.assign({}, v.insight, h.insight || {}),
+			edit: h.edit ? AC.migrateEdit(clone(h.edit)) : null,
+			verN: h.n,
+			verAt: h.at || "",
+			ro: true
+		});
+	}
+	function popHtml(v, G) {
+		const R = G || v;
+		const ro = !!G;
 		const row = AC.vidTopicRow(S, v.topicId);
 		const tv = row && AC.topicCurrent(row);
 		const idea = v.status === "IDEA";
 		const off = v.cancelled;
+		const lock = off || ro;
 		const c = AC.vidSettingsOf(S);
 		const f = v.file;
-		const words = AC.vidWords(v.script);
-		const issues = AC.vidIssues(S, v).concat(AC.vidDupes(S, v.weekId)[v.id] || []);
+		const words = AC.vidWords(R.script);
+		const issues = ro ? [] : AC.vidIssues(S, v).concat(AC.vidDupes(S, v.weekId)[v.id] || []);
 		const fs = AC.vidFormatsOf(S, true);
 		const kopt = Object.entries(AC.VID_KINDS).map(([k, l]) => `<option value="${k}" ${k === v.kind ? "selected" : ""}>${esc(l)}</option>`).join("");
 		const others = idea ? AC.vidsOf(S, v.weekId, v.topicId).filter((x) => x.id !== v.id && x.status === "IDEA") : [];
-		const upOff = off || idea;
+		const upOff = off || idea || ro;
 		const o = AC.vidOrigin(v);
 		const free = o !== "topic";
 		const media = v.media || [];
@@ -27970,107 +29777,119 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
     ${media.length ? media.map((m) => `<div class="citem stack" style="gap:6px"><div class="row" style="gap:8px;align-items:flex-start;flex-wrap:nowrap">
         ${m.kind === "audio" ? `<audio src="${esc(m.src)}" controls preload="none" style="max-width:100%"></audio>` : `<img class="sv-mthumb" src="${esc(m.thumb || "")}" alt="" ${m.thumb ? "" : "style=\"visibility:hidden\""}>`}
         <div class="stack" style="gap:2px;min-width:0;flex:1"><span class="small"><b>${esc(m.name)}</b>${m.dur ? ` · ${AC.fmtClock(m.dur)}` : ""}</span>
-        ${m.kind !== "audio" ? `<label class="small muted" for="sp-md-${esc(m.id)}">Mô tả${m.descSim ? " (mô phỏng, sửa cho đúng)" : ""}</label><textarea id="sp-md-${esc(m.id)}" data-mdesc="${esc(m.id)}" rows="2" ${off ? "readonly" : ""}>${esc(m.desc)}</textarea>` : ""}</div>
-        <button class="btn icon sm ghost danger" data-x="media-del" data-m="${esc(m.id)}" aria-label="Bỏ tệp" ${off ? "disabled" : ""}>${icon("close")}</button></div>
-      ${m.segs ? `<details ${o === "longroll" ? "open" : ""}><summary class="small">${m.segs.length} đoạn đã tách (mô phỏng: chia đều ${m.segLen || 5} giây)</summary><div class="stack" style="gap:4px;margin-top:6px">${m.segs.map((g, i) => `<label class="small row" style="gap:6px;flex-wrap:nowrap"><span class="mono faint" style="min-width:86px">${AC.fmtClock(g.from)}–${AC.fmtClock(g.to)}</span><input data-seg="${esc(m.id)}|${esc(g.id)}" value="${esc(g.desc)}" aria-label="Mô tả đoạn ${i + 1}" ${off ? "readonly" : ""}></label>`).join("")}
-        <div class="row" style="gap:6px"><label class="small">Mỗi đoạn <input id="sp-seglen" type="number" min="2" max="20" step="1" value="${m.segLen || 5}" style="width:60px"> giây</label><button class="btn sm" data-x="split" data-m="${esc(m.id)}" ${off ? "disabled" : ""}>Tách lại</button></div></div></details>` : ""}
+        ${m.kind !== "audio" ? `<label class="small muted" for="sp-md-${esc(m.id)}">Mô tả${m.descSim ? " (mô phỏng, sửa cho đúng)" : ""}</label><textarea id="sp-md-${esc(m.id)}" data-mdesc="${esc(m.id)}" rows="2" ${lock ? "readonly" : ""}>${esc(m.desc)}</textarea>` : ""}</div>
+        <button class="btn icon sm ghost danger" data-x="media-del" data-m="${esc(m.id)}" aria-label="Bỏ tệp" ${lock ? "disabled" : ""}>${icon("close")}</button></div>
+      ${m.segs ? `<details ${o === "longroll" ? "open" : ""}><summary class="small">${m.segs.length} đoạn đã tách (mô phỏng: chia đều ${m.segLen || 5} giây)</summary><div class="stack" style="gap:4px;margin-top:6px">${m.segs.map((g, i) => `<label class="small row" style="gap:6px;flex-wrap:nowrap"><span class="mono faint" style="min-width:86px">${AC.fmtClock(g.from)}–${AC.fmtClock(g.to)}</span><input data-seg="${esc(m.id)}|${esc(g.id)}" value="${esc(g.desc)}" aria-label="Mô tả đoạn ${i + 1}" ${lock ? "readonly" : ""}></label>`).join("")}
+        <div class="row" style="gap:6px"><label class="small">Mỗi đoạn <input id="sp-seglen" type="number" min="2" max="20" step="1" value="${m.segLen || 5}" style="width:60px"> giây</label><button class="btn sm" data-x="split" data-m="${esc(m.id)}" ${lock ? "disabled" : ""}>Tách lại</button></div></div></details>` : ""}
       </div>`).join("") : "<p class=\"small muted\">Chưa có tệp nguồn.</p>"}
-    ${off ? "" : `<div class="row"><label class="btn sm" for="sp-addmedia">${icon("plus")} Thêm tệp</label><input id="sp-addmedia" type="file" accept="${o === "audio" ? "audio/*" : o === "talk" || o === "longroll" ? "video/*" : "video/*,image/*"}" ${o === "broll" ? "multiple" : ""} class="sr"><span class="small faint">Đọc hiểu clip bằng AI nhìn khung hình: chưa có, mô tả hiện là mô phỏng.</span></div>`}
+    ${lock ? "" : `<div class="row"><label class="btn sm" for="sp-addmedia">${icon("plus")} Thêm tệp</label><input id="sp-addmedia" type="file" accept="${o === "audio" ? "audio/*" : o === "talk" || o === "longroll" ? "video/*" : "video/*,image/*"}" ${o === "broll" ? "multiple" : ""} class="sr"><span class="small faint">Đọc hiểu clip bằng AI nhìn khung hình: chưa có, mô tả hiện là mô phỏng.</span></div>`}
   </section>`;
-		const ideasHtml = o === "broll" || o === "longroll" ? `<div class="stack" style="gap:6px"><div class="field"><label for="sp-request">Yêu cầu cho lời dẫn</label><textarea id="sp-request" rows="2" ${off ? "readonly" : ""} placeholder="Ví dụ: lời dẫn vui, xưng mình">${esc(v.request || "")}</textarea></div>
-      <span class="small muted">Ý tưởng kịch bản (mô phỏng):</span><div class="row" style="gap:6px">${AC.brollIdeas(S, v.id).map((it) => `<button class="btn sm ${v.ideaKey === it.key ? "primary" : ""}" data-x="idea" data-k="${it.key}" title="${esc(it.idea)}" ${off ? "disabled" : ""}>${esc(it.title)}</button>`).join("")}</div></div>` : "";
-		const videoCell = off ? "<p class=\"small muted\">Đã hủy: không cần nộp video.</p>" : idea ? "<p class=\"small muted\">Duyệt Insight rồi mới tải video.</p>" : f ? `<div class="sv-video"><video src="${esc(f.src)}#t=0.1" ${f.cover ? `poster="${esc(f.cover.src)}"` : ""} controls playsinline preload="metadata"></video>
+		const ideasHtml = o === "broll" || o === "longroll" ? `<div class="stack" style="gap:6px"><div class="field"><label for="sp-request">Yêu cầu cho lời dẫn</label><textarea id="sp-request" rows="2" ${lock ? "readonly" : ""} placeholder="Ví dụ: lời dẫn vui, xưng mình">${esc(v.request || "")}</textarea></div>
+      <span class="small muted">Ý tưởng kịch bản (mô phỏng):</span><div class="row" style="gap:6px">${AC.brollIdeas(S, v.id).map((it) => `<button class="btn sm ${v.ideaKey === it.key ? "primary" : ""}" data-x="idea" data-k="${it.key}" title="${esc(it.idea)}" ${lock ? "disabled" : ""}>${esc(it.title)}</button>`).join("")}</div></div>` : "";
+		const videoCell = f ? `<div class="sv-video"><video src="${esc(f.src)}#t=0.1" ${f.cover ? `poster="${esc(f.cover.src)}"` : ""} controls playsinline preload="metadata"></video>
         <div class="stack" style="gap:4px;min-width:0"><span class="small"><b>${esc(f.name)}</b> · ${fmtMb(f.size || AC.dataUrlBytes(f.src).length)}</span>
-        <span class="small faint">${[f.cover ? "có ảnh bìa" : "chưa có ảnh bìa", f.subs ? `phụ đề ${f.subs.cues.length} dòng` : "chưa có phụ đề"].join(" · ")}</span></div></div>` : `<p class="small muted">Chưa có video. MP4, WebM, MOV; tối đa ${vidMax() / 1048576} MB vì lưu trong trình duyệt.</p>`;
-		const hint = v.simulated ? "Bản mô phỏng (chưa bật AI viết bài)." : v.ai ? `AI viết${v.ai.skill ? ` · Skill "${esc(v.ai.skill.name)}" v${v.ai.skill.version}` : ""}${v.edited ? " · đã sửa tay" : ""}.` : "";
+        <span class="small faint">${[f.cover ? "có ảnh bìa" : "chưa có ảnh bìa", f.subs ? `phụ đề ${f.subs.cues.length} dòng` : "chưa có phụ đề"].join(" · ")}</span></div></div>` : "";
+		const hint = R.simulated ? "Bản mô phỏng (chưa bật AI viết bài)." : R.ai ? `AI viết${R.ai.skill ? ` · Skill "${esc(R.ai.skill.name)}" v${R.ai.skill.version}` : ""}${v.edited && !ro ? " · đã sửa tay" : ""}.` : "";
 		const nav = navOf(v.id);
 		const done = AC.vidEditDone(v);
 		const tab = (k, n, label, dis, title) => `<button role="tab" data-nav="tab:${k}" aria-selected="${nav.tab === k}" ${dis ? "disabled" : ""} ${title ? `title="${esc(title)}"` : ""} data-testid="sp-tab-${k}"><span class="vp-step">${n}</span>${label}</button>`;
 		const insightPane = `<section class="panel stack" style="gap:8px"><h3>Insight</h3>
-          <div class="field"><label for="sp-title">Tiêu đề</label><input id="sp-title" value="${esc(v.insight.title)}" maxlength="160" ${off ? "readonly" : ""}></div>
-          <div class="field"><label for="sp-idea">Ý chính</label><textarea id="sp-idea" rows="2" ${off ? "readonly" : ""}>${esc(v.insight.idea)}</textarea></div>
-          <div class="field"><label for="sp-reason">Lý do làm video này</label><textarea id="sp-reason" rows="2" ${off ? "readonly" : ""}>${esc(v.insight.reason)}</textarea></div>
-          <div class="row"><div class="field"><label for="sp-format">Format</label><select id="sp-format" ${off ? "disabled" : ""}>${fs.map((x) => `<option value="${esc(x.id)}" ${x.id === v.formatId ? "selected" : ""}>${esc(x.name)}${x.active === false ? " (đang tắt)" : ""}</option>`).join("")}</select></div>
-            <div class="field"><label for="sp-kind">Kiểu</label><select id="sp-kind" ${off ? "disabled" : ""}>${kopt}</select></div></div>
-          <details ${idea ? "open" : ""}><summary class="small">${free ? "Nội dung nguồn" : "Đoạn căn cứ trong Topic"}</summary><div class="field" style="margin-top:6px"><label class="sr" for="sp-source">Đoạn căn cứ</label><textarea id="sp-source" rows="4" ${off ? "readonly" : ""}>${esc(v.source)}</textarea></div></details>
+          <div class="field"><label for="sp-title">Tiêu đề</label><input id="sp-title" value="${esc(R.insight.title)}" maxlength="160" ${lock ? "readonly" : ""}></div>
+          <div class="field"><label for="sp-idea">Ý chính</label><textarea id="sp-idea" class="vp-r2" rows="2" ${lock ? "readonly" : ""}>${esc(R.insight.idea)}</textarea></div>
+          <div class="field"><label for="sp-reason">Lý do làm video này</label><textarea id="sp-reason" class="vp-r2" rows="2" ${lock ? "readonly" : ""}>${esc(R.insight.reason)}</textarea></div>
+          <div class="row"><div class="field"><label for="sp-format">Format</label><select id="sp-format" ${lock ? "disabled" : ""}>${fs.map((x) => `<option value="${esc(x.id)}" ${x.id === v.formatId ? "selected" : ""}>${esc(x.name)}${x.active === false ? " (đang tắt)" : ""}</option>`).join("")}</select></div>
+            <div class="field"><label for="sp-kind">Kiểu</label><select id="sp-kind" ${lock ? "disabled" : ""}>${kopt}</select></div></div>
+          <details ${idea ? "open" : ""}><summary class="small">${free ? "Nội dung nguồn" : "Đoạn căn cứ trong Topic"}</summary><div class="field" style="margin-top:6px"><label class="sr" for="sp-source">Đoạn căn cứ</label><textarea id="sp-source" class="vp-r2" rows="2" ${lock ? "readonly" : ""}>${esc(R.insight.source || v.source)}</textarea></div></details>
           ${others.length ? `<div class="row" style="gap:6px"><label class="sr" for="sp-merge">Gộp với</label><select id="sp-merge">${others.map((o2) => `<option value="${esc(o2.id)}">${esc(clamp(o2.insight.title, 50))}</option>`).join("")}</select><button class="btn sm" data-x="merge">Gộp vào thẻ này</button></div>` : ""}
         </section>`;
-		const scriptPane = `<section class="panel stack" style="gap:8px"><h3>Script</h3>
-          ${idea ? "<p class=\"small muted\">Duyệt Insight để viết kịch bản.</p>" : `${ideasHtml}
+		const scriptSec = idea ? "<section class=\"panel\"><p class=\"small muted\">Duyệt Insight để viết kịch bản.</p></section>" : `<section class="panel stack" style="gap:8px">
+        <div class="vp-stale" id="sp-stale" hidden>Kịch bản đã sửa sau khi chia cảnh. Cảnh không tự đổi theo. <button class="btn sm primary" data-x="resplit" data-testid="sp-resplit" ${lock ? "disabled" : ""}>Chia lại cảnh</button></div>
+        <details class="vp-src" id="sp-scrd" ${R.edit && R.edit.scenes.length ? "" : "open"}><summary>Script · <span id="sp-scrc">${words} chữ · ≈ ${fmtSec(AC.vidDuration(S, words))}</span></summary>
+          <div class="stack" style="gap:8px;margin-top:6px">${ideasHtml}
           ${issues.length ? `<ul class="small sv-warn" id="sp-warn">${issues.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
-          <div class="field"><label for="sp-script">Lời nói (mỗi phần mở bằng nhãn trong ngoặc vuông, ví dụ [Hook])</label><textarea id="sp-script" style="min-height:260px" ${off ? "readonly" : ""}>${esc(v.script)}</textarea><span class="hint">Nên ${c.wordMin}–${c.wordMax} chữ (nhắm ${c.wordTarget}). ${hint}</span></div>
-          <div class="field"><label for="sp-audio">Prompt Audio (lời cho giọng máy)</label><textarea id="sp-audio" rows="3" ${off ? "readonly" : ""}>${esc(v.prompts.audio)}</textarea></div>
-          <div class="field"><label for="sp-image">Prompt Hình ảnh</label><textarea id="sp-image" rows="2" ${off ? "readonly" : ""}>${esc(v.prompts.image)}</textarea></div>
-          <div class="row" style="gap:6px"><span class="small muted">Tài nguyên:</span><button class="btn sm" data-x="copy-audio" ${v.prompts.audio ? "" : "disabled"}>Chép Prompt Audio</button><button class="btn sm" data-x="copy-image" ${v.prompts.image ? "" : "disabled"}>Chép Prompt Hình ảnh</button>
-            <button class="btn sm" data-x="dl-script" ${v.script ? "" : "disabled"}>Tải kịch bản</button><span class="small faint">Kho B-roll dùng chung, SFX: chưa có.</span></div>`}
-        </section>
-        ${(v.history || []).length ? `<section class="panel stack" style="gap:6px"><h3>Bản kịch bản trước (${v.history.length})</h3>${v.history.map((h, i) => `<div class="citem stack" style="gap:4px"><span class="small muted">${esc(h.at || "")}${h.ai ? " · AI" : ""} · ${AC.vidWords(h.script)} chữ</span><p class="small" style="white-space:pre-wrap;max-height:120px;overflow:auto">${esc(h.script)}</p><button class="btn sm" data-x="use-hist" data-h="${i}" ${off ? "disabled" : ""}>Dùng bản này</button></div>`).join("")}</section>` : ""}`;
-		const outPane = off ? "<p class=\"small muted\">Đã hủy: không cần nộp video.</p>" : idea ? "<p class=\"small muted\">Duyệt Insight rồi mới tải video.</p>" : `${f ? videoCell : ""}
+          <div class="field"><label for="sp-script">Lời nói (mỗi phần mở bằng nhãn trong ngoặc vuông, ví dụ [Hook])</label><textarea id="sp-script" style="min-height:220px" ${lock ? "readonly" : ""}>${esc(R.script)}</textarea><span class="hint">Nên ${c.wordMin}–${c.wordMax} chữ (nhắm ${c.wordTarget}). ${hint}</span></div>
+          <div class="row" style="gap:6px"><button class="btn sm" data-x="dl-script" ${R.script ? "" : "disabled"}>Tải kịch bản</button><span class="small faint">Kho B-roll dùng chung: chưa có.</span></div></div></details>
+        </section>`;
+		const outPane = off ? "<p class=\"small muted\">Đã hủy: không cần nộp video.</p>" : idea ? "<p class=\"small muted\">Duyệt Insight rồi mới tải video.</p>" : `${videoCell}
         <label class="vp-drop${f ? " has" : ""}" for="sp-up" data-testid="sp-drop"><span><b>＋</b><span class="vp-dt">${f ? "Up lại để thay video" : "Up video của bạn lên đây"}</span><span class="small muted">Dọc 9:16, MP4/WebM/MOV, tối đa ${vidMax() / 1048576} MB vì lưu trong trình duyệt. Up lại bất cứ lúc nào.</span></span></label>
-        <div class="row" style="gap:6px;margin-top:8px"><button class="btn sm" data-x="cover" ${f ? "" : "disabled"}>Bìa</button><button class="btn sm" data-x="subs" data-testid="sp-subs" ${f ? "" : "disabled"}>Phụ đề</button>${f ? "<button class=\"btn sm\" data-x=\"dl-video\">Tải video</button>" : ""}<button class="btn sm ghost danger" data-x="file-del" ${f ? "" : "disabled"}>Bỏ video</button></div>
-        `;
-		return `<header class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><span class="eyebrow">Thẻ Vid ${posOf(v)} · ${esc(tv ? tv.title : "?")}</span><h2>${esc(v.insight.title)}</h2>
-      <div class="row" style="gap:8px">${stateChip(v)}<span class="small muted">${esc(vfName(v.formatId))} · ${esc(kindName(v.kind))}</span><span class="small mono" id="sp-count" title="Số chữ lời nói, thời lượng ước tính">${v.script ? `${words} chữ · ≈ ${fmtSec(AC.vidDuration(S, words))}` : ""}</span><span class="small muted sv-busy" aria-live="polite">${view.svBusy ? esc(view.svBusy) : ""}</span></div></div>
-      <div class="row" style="gap:6px;flex-wrap:nowrap"><button class="btn sm ${off ? "primary" : "ghost"}" data-x="cancel" data-testid="sp-cancel" aria-pressed="${off}">${off ? "Khôi phục" : "Hủy thẻ"}</button><button class="btn icon ghost" data-act="close-layer" aria-label="Đóng">${icon("close")}</button></div></header>
-    <div class="vp-tabs tabs" role="tablist" aria-label="Các bước của thẻ Vid">${tab("ks", v.script && v.status !== "DRAFT" && v.status !== "TODO" && !idea ? "✓" : "1", "Kịch bản", false)}${tab("bt", done ? "✓" : "2", "Biên tập", idea || off, idea ? "Duyệt Insight trước" : "")}${tab("sl", slots.length ? "✓" : "3", "Xếp Slot", !done || off || idea, done ? "" : "Cần video thành phẩm hoặc hoàn thành biên tập trước")}</div>
+        <div class="row" style="gap:6px;margin-top:8px"><button class="btn sm" data-x="cover" ${f && !ro ? "" : "disabled"}>Bìa</button><button class="btn sm" data-x="subs" data-testid="sp-subs" ${f && !ro ? "" : "disabled"}>Phụ đề</button>${f ? "<button class=\"btn sm\" data-x=\"dl-video\">Tải video</button>" : ""}<button class="btn sm ghost danger" data-x="file-del" ${f && !ro ? "" : "disabled"}>Bỏ video</button></div>`;
+		const vers = AC.vidVersions(v);
+		const N = vers[vers.length - 1].n;
+		const vi = G ? vers.findIndex((x) => x.n === G.verN) : vers.length - 1;
+		const writeBtn = o === "script" ? "" : o === "audio" || o === "talk" ? `<button class="btn sm ${v.script ? "" : "primary"}" data-x="stt" ${off || ro || idea || !sttOk() ? "disabled" : ""} title="${sttOk() ? "Gửi tệp tới API nhận giọng nói để chép lời" : "Cần chọn OpenAI ở Setup → AI ảnh & video; hoặc dán lời vào ô Lời nói"}">Chép lời (API)</button>` : `<button class="btn sm primary" data-x="write" ${off || ro || idea ? "disabled" : ""} data-testid="sp-write" title="Viết kịch bản mới: bản đang có lùi vào danh sách bản cũ">Tạo Kịch bản</button>`;
+		const verHtml = `<span class="vp-ver" data-testid="sp-ver"><button class="btn sm" data-x="vprev" ${vi > 0 ? "" : "disabled"} title="Bản kịch bản trước" aria-label="Bản kịch bản trước">‹</button><span class="small vp-vn" id="sp-vn">Bản ${vers[vi].n}/${N}${ro ? " · cũ" : ""}</span><button class="btn sm" data-x="vnext" ${ro ? "" : "disabled"} title="Bản kịch bản sau" aria-label="Bản kịch bản sau">›</button>${writeBtn}</span>`;
+		return `<header class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><span class="eyebrow">Thẻ Vid ${posOf(v)} · ${esc(tv ? tv.title : "?")}</span><h2>${esc(R.insight.title)}</h2>
+      <div class="row" style="gap:8px">${stateChip(v)}<span class="small muted">${esc(vfName(v.formatId))} · ${esc(kindName(v.kind))}</span><span class="small mono" id="sp-count" title="Số chữ lời nói, thời lượng ước tính">${R.script ? `${words} chữ · ≈ ${fmtSec(AC.vidDuration(S, words))}` : ""}</span><span class="small muted sv-busy" aria-live="polite">${view.svBusy ? esc(view.svBusy) : ""}</span></div></div>
+      <div class="row" style="gap:6px;flex-wrap:nowrap"><button class="btn sm ${off ? "primary" : "ghost"}" data-x="cancel" data-testid="sp-cancel" aria-pressed="${off}" ${ro ? "disabled" : ""}>${off ? "Khôi phục" : "Hủy thẻ"}</button><button class="btn icon ghost" data-act="close-layer" aria-label="Đóng">${icon("close")}</button></div></header>
+    <div class="vp-h1"><div class="vp-tabs tabs" role="tablist" aria-label="Các bước của thẻ Vid">${tab("ks", v.script && v.status !== "DRAFT" && v.status !== "TODO" && !idea ? "✓" : "1", "Kịch bản", false)}${tab("bt", done ? "✓" : "2", "Biên tập", idea || off, idea ? "Duyệt Insight trước" : "")}${tab("sl", slots.length ? "✓" : "3", "Xếp Slot", !done || off || idea || ro, ro ? "Xếp Slot dùng bản đang dùng" : done ? "" : "Cần video thành phẩm hoặc hoàn thành biên tập trước")}</div>${verHtml}</div>
+    ${ro ? `<div class="vp-old" data-testid="sp-old">Đang xem bản ${G.verN}${G.verAt ? ` (${esc(G.verAt)})` : ""}: chỉ xem, gồm kịch bản và phần biên tập của bản này.<button class="btn sm" data-x="usever" data-testid="sp-usever" ${off ? "disabled" : ""}>Dùng bản này</button></div>` : ""}
     <div class="vp-bar" id="sp-bar">${barHtml(v, null)}</div>
     <div class="sv-pop${off ? " sv-off-pop" : ""}" style="display:block">
-      <div data-pane="ks" hidden>
+      <div data-pane="ks" hidden><fieldset class="vp-fs" ${ro ? "disabled" : ""}>
         <div data-sub="insight" hidden>${insightPane}</div>
-        <div data-sub="script" hidden>${scriptPane}</div>
-        <div data-sub="scene" hidden id="sp-scenes"></div>
+        <div data-sub="scene" hidden><div id="sp-scenes"></div>${scriptSec}</div>
         ${mediaHtml ? `<div data-sub="nguon" hidden>${mediaHtml}</div>` : ""}
-      </div>
+      </fieldset></div>
       <div data-pane="bt" hidden>
         <div data-bm="in" hidden><div id="sp-ed"></div></div>
-        <div data-bm="out" hidden><input id="sp-up" type="file" accept="video/*" class="sr" ${upOff ? "disabled" : ""}>${outPane}</div>
+        <div data-bm="out" hidden><fieldset class="vp-fs" ${ro ? "disabled" : ""}><input id="sp-up" type="file" accept="video/*" class="sr" ${upOff ? "disabled" : ""}>${outPane}</fieldset></div>
       </div>
       <div data-pane="sl" hidden id="sp-sl"></div>
     </div>
     <span class="err" id="sp-err" role="alert"></span>
-    <div class="actions"><button class="btn ghost" data-act="close-layer">Đóng</button><button class="btn primary" data-x="save" data-testid="sp-save" ${off ? "disabled" : ""}>Lưu</button></div>`;
+    <div class="actions"><button class="btn ghost" data-act="close-layer">Đóng</button><button class="btn primary" data-x="save" data-testid="sp-save" ${lock ? "disabled" : ""}>Lưu</button></div>`;
 	}
 	function barHtml(v, es) {
 		const nav = navOf(v.id);
 		const idea = v.status === "IDEA";
-		const off = v.cancelled;
 		const o = AC.vidOrigin(v);
 		const media = !(!(o !== "topic") || o === "script" || o === "post");
-		const b = (k, l, cur) => `<button data-nav="${k}" aria-selected="${cur === k.split(":")[1]}">${l}</button>`;
+		const b = (k, l, cur) => `<button data-nav="${k}" aria-selected="${cur === k.split(":")[1]}" data-testid="sp-sub-${k.split(":")[1]}">${l}</button>`;
 		if (nav.tab === "bt") {
 			const m = AC.editModeOf(v);
-			return `${b("mode:in", "Biên tập trong app", m)}${b("mode:out", "Biên tập ngoài app", m)}<span class="small muted">${m === "in" ? "Làm theo từng cảnh" : "Tự dựng ở phần mềm khác rồi Up thành phẩm"}</span>
-      ${m === "in" && es && es.active ? `<span class="vp-sp"><span class="small muted" id="sp-saved">${esc(es.saved || "")}</span><button class="btn sm" data-x="undo" ${es.canUndo ? "" : "disabled"} data-testid="ve-undo">↶ Hoàn tác</button><button class="btn sm" data-x="redo" ${es.canRedo ? "" : "disabled"}>↷ Làm lại</button></span>` : ""}`;
+			return `${b("mode:in", "Biên tập trong app", m)}${b("mode:out", "Biên tập ngoài app", m)}${m === "out" ? "<span class=\"small muted\">Tự dựng ở phần mềm khác rồi Up thành phẩm</span>" : ""}
+      ${m === "in" && es && es.active && !es.ro ? `<span class="vp-sp"><span class="small muted" id="sp-saved">${esc(es.saved || "")}</span><button class="btn sm" data-x="undo" ${es.canUndo ? "" : "disabled"} data-testid="ve-undo">↶ Hoàn tác</button><button class="btn sm" data-x="redo" ${es.canRedo ? "" : "disabled"}>↷ Làm lại</button></span>` : ""}`;
 		}
 		if (nav.tab === "sl") return "<span class=\"small muted\">Lưới Thứ × Kênh: mỗi ô là một slot của video này</span>";
-		const writeBtn = o === "script" ? "" : o === "audio" || o === "talk" ? `<button class="btn sm ${v.script ? "" : "primary"}" data-x="stt" ${off || !sttOk() ? "disabled" : ""} title="${sttOk() ? "Gửi tệp tới API nhận giọng nói để chép lời" : "Cần chọn OpenAI ở Setup → AI ảnh & video; hoặc dán lời vào ô Lời nói"}">Chép lời (API)</button>` : `<button class="btn sm ${v.script ? "" : "primary"}" data-x="write" ${off ? "disabled" : ""} data-testid="sp-write">${v.script ? "Tạo lại" : o === "broll" || o === "longroll" ? "Viết lời dẫn" : "Viết kịch bản"}</button>`;
-		return `${[
-			["insight", "Insight"],
-			["script", "Script"],
-			["scene", "Scene"]
-		].concat(media ? [["nguon", "Nguồn vào"]] : []).map(([k, l]) => b(`ks:${k}`, l, nav.ks)).join("")}<span class="vp-sp">${idea ? `<button class="btn sm primary" data-x="approve-idea">Duyệt Insight</button><button class="btn sm ghost danger" data-x="drop-idea">Bỏ đề xuất</button>` : `${writeBtn}<button class="btn sm ${v.script && v.status !== "APPROVED" && !off ? "primary" : ""}" data-x="approve" data-testid="sp-approve" ${off || !v.script ? "disabled" : ""}>Duyệt kịch bản</button>`}</span>`;
+		return `${[["insight", "Insight"], ["scene", "Phân cảnh"]].concat(media ? [["nguon", "Nguồn vào"]] : []).map(([k, l]) => b(`ks:${k}`, l, nav.ks)).join("")}${idea ? `<span class="vp-sp"><button class="btn sm primary" data-x="approve-idea">Duyệt Insight</button><button class="btn sm ghost danger" data-x="drop-idea">Bỏ đề xuất</button></span>` : ""}`;
 	}
 	var NAV = {};
-	var navOf = (id) => NAV[id] || (NAV[id] = {
-		tab: "ks",
-		ks: "insight"
-	});
+	var navOf = (id) => {
+		const n = NAV[id] || (NAV[id] = {
+			tab: "ks",
+			ks: "insight",
+			ver: null
+		});
+		if (n.ks === "script") n.ks = "scene";
+		return n;
+	};
+	var fmtS = (x) => String(Math.round(x * 10) / 10).replace(".", ",");
 	function sceneListHtml(v) {
-		if (!v.edit || !v.edit.scenes.length) return `<section class="panel stack" style="gap:8px"><h3>Scene</h3><p class="small muted">${v.script || (v.media || []).length ? "Chưa chia cảnh. App chia kịch bản thành các cảnh có lời, hình/âm cần có và thời lượng; chỉnh tiếp ở Biên tập." : "Cần kịch bản hoặc tệp nguồn để chia cảnh."}</p><div class="row"><button class="btn sm primary" data-x="plan-scenes" data-testid="sp-plan" ${v.script || (v.media || []).length ? "" : "disabled"}>Chia cảnh theo kịch bản</button></div></section>`;
+		if (!v.edit || !v.edit.scenes.length) return `<section class="panel stack" style="gap:8px;margin-bottom:12px"><h3>Phân cảnh</h3><p class="small muted">${v.script || (v.media || []).length ? "Chưa chia cảnh. Bấm Chia cảnh: app chia kịch bản thành các cảnh có lời, mô tả hình và thời lượng; kịch bản được coi là đã duyệt." : "Cần kịch bản hoặc tệp nguồn để chia cảnh."}</p><div class="row"><button class="btn sm primary" data-x="plan-scenes" data-testid="sp-plan" ${!v.ro && (v.script || (v.media || []).length) ? "" : "disabled"}>Chia cảnh theo kịch bản</button></div></section>`;
 		const tl = AC.editTimeline(v);
-		return `<section class="panel stack" style="gap:6px"><h3>Scene · phân cảnh theo timeline <span class="small muted">${tl.items.length} cảnh · ${tl.total.toFixed(1).replace(".", ",")} giây</span></h3>
-    ${tl.items.map((it, i) => `<div class="vp-srow" data-testid="sp-scene-row"><b>${i + 1}</b><span class="mono small muted">${it.t0.toFixed(1)}–${it.t1.toFixed(1)}s</span><span>${esc(it.scene.text || "(chưa có lời)")}</span><span class="small"><span class="vp-tag">Hình/Âm</span>${esc(it.scene.items.length ? `${it.scene.items.length} hình đã up` : it.scene.prompt || "Chưa có mô tả")}${it.scene.overlay ? ` · chữ phủ “${esc(it.scene.overlay)}”` : ""}</span></div>`).join("")}
-    <p class="small faint">Mô tả hình và âm là đầu vào của tab Biên tập: chỉnh cảnh, Up hình, thêm VO ở đó.</p></section>`;
+		return `<section class="panel stack" style="gap:6px;margin-bottom:12px"><h3>Phân cảnh <span class="small muted">${tl.items.length} cảnh · ${fmtS(tl.total)} giây</span></h3>
+    <div class="vp-phw"><table class="vp-phc"><thead><tr><th>STT</th><th>Timeline</th><th>Nội dung</th><th>Mô tả hình ảnh (cơ sở để Gen ảnh)</th></tr></thead><tbody>
+    ${tl.items.map((it, i) => {
+			const s = it.scene;
+			return `<tr data-testid="sp-scene-row"><td class="n">${i + 1}</td><td class="t">${fmtS(it.t0)}–${fmtS(it.t1)}s<br><span class="small muted">${s.items.length ? `${s.items.length} hình` : s.ph ? "thẻ giữ chỗ" : "chưa có hình"}</span></td>
+      <td><label class="sr" for="sp-pt-${esc(s.id)}">Lời cảnh ${i + 1}</label><textarea id="sp-pt-${esc(s.id)}" class="vp-r2" rows="2" data-pt="${esc(s.id)}">${esc(s.text)}</textarea></td>
+      <td><label class="sr" for="sp-pp-${esc(s.id)}">Mô tả hình cảnh ${i + 1}</label><textarea id="sp-pp-${esc(s.id)}" class="vp-r2" rows="2" data-pp="${esc(s.id)}">${esc(s.prompt || "")}</textarea><div class="vp-gen"><button class="btn sm" data-x="gen" data-s="${esc(s.id)}" data-testid="sp-gen">✦ Gen ảnh</button><span class="small faint">ảnh tạo ra thêm vào cảnh ${i + 1}</span></div></td></tr>`;
+		}).join("")}
+    </tbody></table></div></section>`;
 	}
 	function openVid(id) {
 		const v0 = AC.byId(S.videos, id);
 		if (!v0) return;
-		const box = openLayer(popHtml(v0), "dialog");
+		const n0 = navOf(id);
+		let G = ghostOf(v0, n0.ver);
+		if (!G) n0.ver = null;
+		const box = openLayer(popHtml(v0, G), "dialog");
 		box.classList.add("wide", "sv-dlg");
 		const g = (k) => box.querySelector("#sp-" + k);
 		const err = (m) => {
 			g("err").textContent = m || "";
 		};
+		const cur = () => G || AC.byId(S.videos, id);
 		let ED = null;
 		const sel = {};
 		const reopen = (msg) => {
@@ -28084,7 +29903,13 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		const bar = () => {
 			const vv = AC.byId(S.videos, id);
 			const el = g("bar");
-			if (vv && el) el.innerHTML = barHtml(vv, ED ? ED.state() : null);
+			if (vv && el) el.innerHTML = barHtml(vv, ED ? Object.assign(ED.state(), { ro: !!G }) : null);
+		};
+		const stale = () => {
+			const el = g("stale");
+			const ta = g("script");
+			const ed = cur().edit;
+			if (el && ta) el.hidden = !(ed && ed.scenes.length && ed.splitFrom != null && ta.value.trim() !== String(ed.splitFrom).trim());
 		};
 		const show = () => {
 			const vv = AC.byId(S.videos, id);
@@ -28092,15 +29917,17 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			const n = navOf(id);
 			const m = AC.editModeOf(vv);
 			if (n.tab === "ks" && n.ks === "nguon" && !box.querySelector("[data-sub=\"nguon\"]")) n.ks = "insight";
+			if (G && n.tab === "sl") n.tab = "ks";
 			const done = AC.vidEditDone(vv);
 			box.querySelectorAll(".vp-tabs [data-nav]").forEach((b) => {
 				const k = b.dataset.nav.split(":")[1];
 				b.setAttribute("aria-selected", String(n.tab === k));
 				if (k === "sl") {
-					b.disabled = !done || vv.cancelled || vv.status === "IDEA";
+					b.disabled = !done || vv.cancelled || vv.status === "IDEA" || !!G;
 					b.querySelector(".vp-step").textContent = AC.vidSlotsOf(S, id).length ? "✓" : "3";
 				}
 				if (k === "bt") b.querySelector(".vp-step").textContent = done ? "✓" : "2";
+				if (k === "ks") b.querySelector(".vp-step").textContent = vv.script && vv.status !== "DRAFT" && vv.status !== "TODO" && vv.status !== "IDEA" ? "✓" : "1";
 			});
 			box.querySelectorAll("[data-pane]").forEach((e) => {
 				e.hidden = e.dataset.pane !== n.tab;
@@ -28112,11 +29939,15 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				e.hidden = e.dataset.bm !== m;
 			});
 			if (n.tab !== "bt" && ED) ED.pause();
-			if (n.tab === "ks" && n.ks === "scene") g("scenes").innerHTML = sceneListHtml(vv);
+			if (n.tab === "ks" && n.ks === "scene") {
+				g("scenes").innerHTML = sceneListHtml(cur());
+				stale();
+			}
 			if (n.tab === "sl") g("sl").innerHTML = slotPaneHtml(vv, sel);
 			if (n.tab === "bt" && m === "in" && !vv.cancelled && vv.status !== "IDEA") {
 				if (!ED) ED = mountEditor(g("ed"), id, {
 					bar,
+					view: G,
 					done: () => {
 						n.tab = "sl";
 						show();
@@ -28129,7 +29960,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		};
 		const persist = () => {
 			const v = AC.byId(S.videos, id);
-			if (!v || v.cancelled) return true;
+			if (!v || v.cancelled || G) return true;
 			if (g("request")) AC.setVidRequest(S, id, g("request").value);
 			box.querySelectorAll("[data-mdesc]").forEach((el) => AC.editVidMedia(S, id, el.dataset.mdesc, { desc: el.value }));
 			box.querySelectorAll("[data-seg]").forEach((el) => {
@@ -28153,24 +29984,8 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			}
 			if (g("script")) {
 				const sc = g("script").value;
-				if (!sc.trim() && !v.script) {
-					if (g("audio").value.trim() || g("image").value.trim()) {
-						const r = AC.editVidScript(S, id, {
-							audio: g("audio").value,
-							image: g("image").value
-						});
-						if (!r.ok) {
-							err(r.error);
-							return false;
-						}
-					}
-					return true;
-				}
-				const r2 = AC.editVidScript(S, id, {
-					script: sc,
-					audio: g("audio").value,
-					image: g("image").value
-				});
+				if (!sc.trim() && !v.script) return true;
+				const r2 = AC.editVidScript(S, id, { script: sc });
 				if (!r2.ok) {
 					err(r2.error);
 					return false;
@@ -28183,8 +29998,11 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			const c = AC.vidSettingsOf(S);
 			const cnt = () => {
 				const n = AC.vidWords(ta.value);
-				g("count").textContent = ta.value.trim() ? `${n} chữ · ≈ ${fmtSec(AC.vidDuration(S, n))}` : "";
+				const t = ta.value.trim() ? `${n} chữ · ≈ ${fmtSec(AC.vidDuration(S, n))}` : "";
+				g("count").textContent = t;
+				if (g("scrc")) g("scrc").textContent = t || "0 chữ";
 				g("count").style.color = n && (n < c.wordMin || n > c.wordMax) ? "var(--warn)" : "";
+				stale();
 			};
 			cnt();
 			ta.addEventListener("input", cnt);
@@ -28192,6 +30010,14 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		g("format").addEventListener("change", () => {
 			const f = AC.byId(S.vidFormats, g("format").value);
 			if (f) g("kind").value = f.kind;
+		});
+		box.addEventListener("change", (e) => {
+			const el = e.target;
+			const sid = el.dataset.pt || el.dataset.pp;
+			if (!sid || G) return;
+			const r = AC.editScene(S, id, sid, el.dataset.pt ? { text: el.value } : { prompt: el.value });
+			if (!r.ok) return err(r.error);
+			save();
 		});
 		g("up").addEventListener("change", (e) => {
 			const file = e.target.files && e.target.files[0];
@@ -28251,9 +30077,17 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				n.tab = "ks";
 				n.ks = val;
 			} else if (kind === "mode") {
-				AC.setEditMode(S, id, val);
-				save();
+				if (!G) {
+					AC.setEditMode(S, id, val);
+					save();
+				}
 				n.tab = "bt";
+			}
+			const vv = AC.byId(S.videos, id);
+			if (n.tab === "bt" && !G && vv && vv.script && (vv.status === "DRAFT" || vv.status === "TODO")) {
+				AC.approveVidScript(S, id);
+				save();
+				render();
 			}
 			show();
 		});
@@ -28264,6 +30098,43 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			const v = AC.byId(S.videos, id);
 			if (!v) return;
 			err("");
+			const n = navOf(id);
+			if (k === "vprev" || k === "vnext") {
+				if (!persist()) return;
+				const vers = AC.vidVersions(v);
+				const i = G ? vers.findIndex((h) => h.n === G.verN) : vers.length - 1;
+				const j = Math.max(0, Math.min(vers.length - 1, i + (k === "vprev" ? -1 : 1)));
+				n.ver = j === vers.length - 1 ? null : vers[j].n;
+				if (n.tab === "sl") n.tab = "ks";
+				reopen();
+				return;
+			}
+			if (k === "usever") {
+				const from = G.verN;
+				const r = AC.useVidVersion(S, id, from);
+				if (!r.ok) return err(r.error);
+				n.ver = null;
+				reopen(`Đã dùng lại bản ${from}: thành bản ${r.n}, bản mới nhất.`);
+				return;
+			}
+			if (k === "dl-script") {
+				const R = cur();
+				const t = `# ${R.insight.title}\n\n${g("script") ? g("script").value : R.script}\n`;
+				return downloadBytes(`${AC.slugOf(R.insight.title) || "kich-ban"}.md`, new TextEncoder().encode(t), "text/markdown");
+			}
+			if (k === "undo") {
+				if (ED) ED.undo();
+				return;
+			}
+			if (k === "redo") {
+				if (ED) ED.redo();
+				return;
+			}
+			if (k === "dl-video") {
+				if (v.file) return downloadBytes(v.file.name || "video.mp4", AC.dataUrlBytes(v.file.src), (/^data:([^;,]+)/.exec(v.file.src) || [])[1] || "video/mp4");
+				return;
+			}
+			if (G) return;
 			if (k === "save") {
 				if (!persist()) return;
 				reopen("Đã lưu thẻ Vid.");
@@ -28273,7 +30144,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				if (!persist()) return;
 				const r = AC.approveIdeas(S, v.weekId, v.topicId, [id]);
 				if (!r.ok) return err(r.error);
-				reopen("Đã duyệt Insight. Bấm Viết kịch bản.");
+				reopen("Đã duyệt Insight. Bấm Tạo Kịch bản.");
 				return;
 			}
 			if (k === "drop-idea") {
@@ -28293,9 +30164,9 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			if (k === "write") {
 				if (view.svBusy) return;
 				if (v.script && !await confirmBox({
-					title: "Tạo lại kịch bản?",
-					body: "<p>Kịch bản hiện tại được giữ trong lịch sử (5 bản gần nhất).</p>",
-					ok: "Tạo lại"
+					title: "Tạo Kịch bản mới?",
+					body: `<p>Bản đang có (kịch bản, Insight và phần biên tập) lùi vào danh sách bản cũ, xem lại bằng nút ‹ ›. App giữ ${AC.VID_KEEP_VERSIONS} bản gần nhất. Bản mới chưa có cảnh.</p>`,
+					ok: "Tạo Kịch bản"
 				})) return;
 				if (!persist()) return;
 				const r = await writeOne(id);
@@ -28303,14 +30174,10 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 					if (!r.stopped) err(r.error);
 					return;
 				}
-				reopen(`Đã viết kịch bản ${r.words} chữ.`);
-				return;
-			}
-			if (k === "approve") {
-				if (!persist()) return;
-				const r = AC.approveVidScript(S, id);
-				if (!r.ok) return err(r.error);
-				reopen("Đã duyệt kịch bản. Quay xong thì Up video.");
+				n.ver = null;
+				n.tab = "ks";
+				n.ks = "scene";
+				reopen(`Đã viết kịch bản ${r.words} chữ. Bấm Chia cảnh để duyệt.`);
 				return;
 			}
 			if (k === "cancel") {
@@ -28332,30 +30199,39 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				reopen("Đã bỏ video.");
 				return;
 			}
-			if (k === "use-hist") {
-				const h = v.history[Number(x.dataset.h)];
-				if (!h || !g("script")) return;
-				g("script").value = h.script;
-				g("audio").value = h.prompts.audio || "";
-				g("image").value = h.prompts.image || "";
-				g("script").dispatchEvent(new Event("input"));
-				return;
-			}
-			if (k === "undo") {
-				if (ED) ED.undo();
-				return;
-			}
-			if (k === "redo") {
-				if (ED) ED.redo();
-				return;
-			}
 			if (k === "plan-scenes") {
 				if (!persist()) return;
 				const r = AC.planEdit(S, id);
 				if (!r.ok) return err(r.error);
 				save();
+				render();
 				show();
-				toast(`Đã chia ${r.count} cảnh. Chỉnh tiếp ở Biên tập.`);
+				toast(`Đã chia ${r.count} cảnh. Kịch bản đã duyệt; chỉnh tiếp ở Biên tập.`);
+				return;
+			}
+			if (k === "resplit") {
+				const ed = v.edit;
+				if (ed && (ed.scenes.some((s) => s.items.length || s.vo) || (ed.cues || []).length) && !await confirmBox({
+					title: "Chia lại cảnh?",
+					body: "<p>Chia cảnh lại theo kịch bản mới: hình, VO cảnh và cue đã thêm sẽ bị xóa. VO toàn bài, kiểu caption, frame, nhạc giữ nguyên.</p>",
+					ok: "Chia lại cảnh"
+				})) return;
+				if (!persist()) return;
+				const r = AC.planEdit(S, id);
+				if (!r.ok) return err(r.error);
+				save();
+				render();
+				show();
+				toast(`Đã chia lại ${r.count} cảnh.`);
+				return;
+			}
+			if (k === "gen") {
+				if (!persist()) return;
+				openGenImage(id, x.dataset.s, (msg) => {
+					save();
+					show();
+					if (msg) toast(msg);
+				});
 				return;
 			}
 			if (k === "cell") {
@@ -28425,7 +30301,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			if (k === "idea") {
 				if (!persist()) return;
 				AC.useBrollIdea(S, id, x.dataset.k);
-				reopen("Đã chọn ý tưởng. Bấm Viết lời dẫn.");
+				reopen("Đã chọn ý tưởng. Bấm Tạo Kịch bản.");
 				return;
 			}
 			if (k === "stt") {
@@ -28433,7 +30309,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				if (!m || view.svBusy) return;
 				if (v.script && !await confirmBox({
 					title: "Chép lời lại?",
-					body: "<p>Lời hiện tại được giữ trong lịch sử.</p>",
+					body: "<p>Lời hiện tại được thay bằng lời chép từ tệp.</p>",
 					ok: "Chép lời"
 				})) return;
 				if (!persist()) return;
@@ -28448,16 +30324,6 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 					setBusy(null);
 					err(er.message);
 				}
-				return;
-			}
-			if (k === "copy-audio") return copyText(g("audio") ? g("audio").value : v.prompts.audio);
-			if (k === "copy-image") return copyText(g("image") ? g("image").value : v.prompts.image);
-			if (k === "dl-script") {
-				const t = `# ${v.insight.title}\n\n${g("script") ? g("script").value : v.script}\n\n## Prompt Audio\n${v.prompts.audio}\n\n## Prompt Hình ảnh\n${v.prompts.image}\n`;
-				return downloadBytes(`${AC.slugOf(v.insight.title) || "kich-ban"}.md`, new TextEncoder().encode(t), "text/markdown");
-			}
-			if (k === "dl-video") {
-				if (v.file) return downloadBytes(v.file.name || "video.mp4", AC.dataUrlBytes(v.file.src), (/^data:([^;,]+)/.exec(v.file.src) || [])[1] || "video/mp4");
 				return;
 			}
 			if (k === "cover" || k === "subs") {

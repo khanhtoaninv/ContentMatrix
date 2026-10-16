@@ -410,7 +410,8 @@ export function writeVidScript(S, id, res, meta) {
   let r = res && res.ok ? res : null;
   if (!r) { const m = mockScript(S, v); if (!m) return { ok: false, error: 'Không thấy Topic của video.' }; if (m.error) return { ok: false, error: m.error }; r = Object.assign({ simulated: true }, m); }
   const f = byId(S.vidFormats, v.formatId);
-  if (v.script) v.history = [{ script: v.script, prompts: clone(v.prompts), at: v.writtenAt || '', ai: v.ai || null }].concat(v.history || []).slice(0, 5);
+  // Tạo Kịch bản = bản mới: bản đang có (kịch bản, Insight, phần biên tập) lùi vào danh sách bản cũ; bản mới chưa có cảnh
+  if (v.script) { pushVersion(v); const cuts = v.edit && v.edit.cuts; v.edit = null; if (cuts && cuts.length) { migrateEdit(v.edit = { scenes: [], voice: { mode: 'tts' }, voAll: null, captions: { mode: 'full', pos: 'bottom', style: 0 }, segs: null, capStale: false, frame: 'logo', music: null, cuts: clone(cuts), seq: 1, plannedAt: null, tpl: 'script', doneAt: null }); } }
   v.script = r.script; v.prompts = { audio: r.audio || (v.kind === 'bantin' ? ((vidSections(r.script).find(s => /máy/i.test(s.label)) || {}).text || '') : ''), image: r.image || '' };
   v.status = 'DRAFT'; v.writtenAt = S.settings.demoNow; v.simulated = !!r.simulated;
   v.ai = r.simulated ? null : Object.assign({ provider: (meta || {}).provider || '', model: (meta || {}).model || '' }, f && skillRefOf(f) ? { skill: skillRefOf(f) } : {});
@@ -424,13 +425,33 @@ export function editVidScript(S, id, patch) {
   if (P.script != null && !String(P.script).trim()) return { ok: false, error: 'Kịch bản đang trống.' };
   const changed = (P.script != null && P.script !== v.script) || (P.audio != null && P.audio !== v.prompts.audio) || (P.image != null && P.image !== v.prompts.image);
   if (!changed) return { ok: true, changed: false };
-  if (v.script && P.script != null && P.script !== v.script) v.history = [{ script: v.script, prompts: clone(v.prompts), at: v.writtenAt || '', ai: v.ai || null }].concat(v.history || []).slice(0, 5);
   if (P.script != null) { v.script = String(P.script).replace(/\r/g, '').trim(); v.edited = true; }
   if (P.audio != null) v.prompts.audio = String(P.audio).trim();
   if (P.image != null) v.prompts.image = String(P.image).trim();
   if (v.status === 'APPROVED' || v.status === 'TODO') v.status = 'DRAFT';
   v.writtenAt = S.settings.demoNow; log(S, 'vid-edit', 'video', id);
   return { ok: true, changed: true };
+}
+// ---- Phiên bản kịch bản (bản 4, mục 10.77): mỗi bản gồm kịch bản, Insight và phần biên tập; giữ 5 bản gần nhất (bản đang dùng + 4 bản cũ trong v.history, mới nhất đứng đầu) ----
+export const VID_KEEP_VERSIONS = 5;
+export function vidVersions(v) {
+  const H = v.history = v.history || []; if (!(v.verN > 0)) v.verN = H.length + 1;
+  H.forEach((h, i) => { if (!(h.n > 0)) h.n = Math.max(1, v.verN - 1 - i); });
+  return H.slice().reverse().concat([{ n: v.verN, current: true, script: v.script, prompts: v.prompts, insight: v.insight, edit: v.edit || null, at: v.writtenAt || '', ai: v.ai || null }]);
+}
+function pushVersion(v) {
+  vidVersions(v);
+  v.history = [{ n: v.verN, script: v.script, prompts: clone(v.prompts), insight: clone(v.insight), edit: v.edit ? clone(v.edit) : null, at: v.writtenAt || '', ai: v.ai || null }].concat(v.history).slice(0, VID_KEEP_VERSIONS - 1);
+  v.verN = Math.max(v.verN, ...v.history.map(h => h.n)) + 1;
+}
+// Dùng một bản cũ: chép bản đó thành bản mới nhất (bản đang dùng lùi vào danh sách bản cũ)
+export function useVidVersion(S, id, n) {
+  const v = vidGet(S, id); if (!v) return { ok: false, error: 'Không thấy video.' }; if (v.cancelled) return { ok: false, error: 'Kịch bản đã hủy. Bấm Khôi phục trước.' };
+  vidVersions(v); const h = v.history.find(x => x.n === Number(n)); if (!h) return { ok: false, error: 'Không thấy bản này.' };
+  const src = clone(h); pushVersion(v);
+  v.script = src.script || ''; v.prompts = src.prompts || { audio: '', image: '' }; if (src.insight) v.insight = Object.assign({}, v.insight, src.insight); v.edit = src.edit ? migrateEdit(src.edit) : null; v.ai = src.ai || null;
+  v.status = v.edit && v.edit.scenes.length ? 'APPROVED' : 'DRAFT'; v.writtenAt = S.settings.demoNow; log(S, 'vid-version', 'video', id, `từ bản ${h.n}`);
+  return { ok: true, n: v.verN, from: h.n };
 }
 export function approveVidScript(S, id) {
   const v = vidGet(S, id); if (!v) return { ok: false, error: 'Không thấy video.' };

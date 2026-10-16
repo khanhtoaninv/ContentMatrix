@@ -2196,7 +2196,7 @@ test('10.76 · Popup bản 1: cảnh nhiều hình, VO toàn bài / VO cảnh, c
   const old = AC.addFreeVideo(S, T2, { origin: 'script', script: 'Một câu mở đầu thật ngắn.\n\nMột câu ở giữa.\n\nTheo dõi kênh nhé.' }).video;
   old.edit = { scenes: [{ id: 'sc1', label: 'a', text: 'x', dur: 3, asset: { kind: 'image', src: IMG, name: 'a.jpg', from: 0, to: 0 }, prompt: '', overlay: '', voice: 'self' }], voice: { mode: 'tts' }, captions: { mode: 'full', pos: 'bottom' }, frame: 'logo', music: null, cuts: [], seq: 2 };
   AC.ensureShortVid(S); const o0 = old.edit.scenes[0];
-  assert.ok(o0.items.length === 1 && o0.items[0].kind === 'image' && !('asset' in o0) && o0.fit === 'fill' && o0.vo === null && old.edit.v === 2 && old.edit.captions.style === 0);
+  assert.ok(o0.items.length === 1 && o0.items[0].kind === 'image' && !('asset' in o0) && o0.fit === 'fill' && o0.vo === null && old.edit.v === 3 && old.edit.captions.style === 0);
   // chia cảnh, mức tối thiểu của cảnh
   assert.ok(AC.planEdit(S, id).ok); const ed = v.edit; assert.ok(ed.scenes.length >= 4 && ed.scenes.every(s => s.defDur === s.dur && Array.isArray(s.items) && s.vo === null));
   const [a, b] = ed.scenes;
@@ -2247,9 +2247,9 @@ test('10.76 · Popup bản 1: cảnh nhiều hình, VO toàn bài / VO cảnh, c
   assert.equal(AC.editModeOf(v), 'in'); assert.ok(AC.setEditMode(S, id, 'out').ok); assert.equal(AC.editModeOf(v), 'out'); assert.equal(AC.setEditMode(S, id, 'x').ok, false);
   // lệnh dựng bản 2
   AC.setSceneAsset(S, id, ed.scenes[0].id, { src: IMG, name: 'a.jpg' }); AC.addSceneItems(S, id, ed.scenes[0].id, [{ src: IMG, name: 'b.jpg' }]); AC.setVoAll(S, id, { kind: 'up', name: 'all.mp3', src: AUD, dur: 30 });
-  const cmd = AC.editCommands(S, v); assert.equal(cmd.version, 2); assert.equal(cmd.popup, AC.VID_POPUP_VER); assert.equal(cmd.voiceover.scope, 'all'); assert.equal(cmd.voiceover.file, 'all.mp3');
+  const cmd = AC.editCommands(S, v); assert.equal(cmd.version, 3); assert.equal(cmd.popup, AC.VID_POPUP_VER); assert.equal(cmd.voiceover.scope, 'all'); assert.equal(cmd.voiceover.file, 'all.mp3');
   assert.equal(cmd.scenes[0].sources.length, 2); assert.equal(cmd.scenes[0].sources[1].start, cmd.scenes[0].sources[0].end); assert.ok(cmd.scenes[0].voiceover === null && cmd.scenes[1].placeholder); assert.ok(cmd.captions.styleName); assert.ok(!JSON.stringify(cmd).includes('base64'));
-  assert.equal(AC.VID_POPUP_VER, 1);
+  assert.equal(AC.VID_POPUP_VER, 4);
 });
 test('10.76 · Xếp Slot theo ô Thứ × Kênh: mỗi kênh một ngày, cần video thành phẩm, ô của video khác bị khóa', () => {
   const S = seed(); const days = AC.weekDays(S, T2); assert.equal(days.length, 7); assert.equal(days[0], '2026-10-12');
@@ -2264,4 +2264,63 @@ test('10.76 · Xếp Slot theo ô Thứ × Kênh: mỗi kênh một ngày, cần
   assert.ok(r.ok, r.error); assert.equal(r.slots.length, 3); assert.equal(S.slots.length, n0 + 3); assert.deepEqual(r.slots.map(s => s.date).sort(), [days[1], days[2], days[2]]);
   assert.equal(AC.vidState(v, S), 'SCHEDULED'); const busy = AC.busyCells(S, T2, w.id); assert.equal(busy[`${days[1]}|ch-tt`], v.id); assert.equal(Object.keys(AC.busyCells(S, T2, v.id)).length, 0);
   const again = AC.scheduleCells(S, v.id, { cells: [{ date: days[3], channelId: 'ch-tt' }], time: '18:30' }); assert.ok(again.ok); assert.deepEqual(again.skipped, ['TikTok']); assert.equal(S.slots.length, n0 + 3);
+});
+
+test('10.77 · Popup bản 4: độ dài từng hình, VO, cue bám từ trong VO, phiên bản kịch bản, Yêu thích dùng chung', () => {
+  const S = seed();
+  const SCR = '[Hook]\nBạn nghĩ học tám tiếng mỗi ngày thì sẽ giỏi hơn? Chưa chắc.\n\n[Cơ chế]\nNhiều người ngồi cả ngày nhưng đầu óc đã tắt từ giờ thứ ba. Điều quyết định là mức tập trung, không phải số giờ.\n\n[Cách làm]\nHãy thử hai mươi lăm phút học sâu, nghỉ năm phút. Lặp lại bốn lần mỗi ngày.\n\n[CTA]\nHôm nay hãy thử đúng một vòng nhé.';
+  const v = AC.addFreeVideo(S, T2, { origin: 'script', script: SCR }).video; const id = v.id;
+  // chữ phủ cũ thành cue Text ở từ đầu cảnh; hình cũ nhận độ dài riêng
+  const old = AC.addFreeVideo(S, T2, { origin: 'script', script: 'Một câu.\n\nHai câu.\n\nBa câu nhé.' }).video;
+  old.edit = { v: 2, scenes: [{ id: 'sc1', label: 'a', text: 'Học ít mà nhớ lâu', dur: 4, items: [{ kind: 'image', src: IMG, name: 'a.jpg', from: 0, to: 0, dur: 0 }, { kind: 'image', src: IMG, name: 'b.jpg', from: 0, to: 0, dur: 0 }], prompt: '', overlay: 'Nhớ lâu', fit: 'fill', vol: 100, vo: null, ph: false, defDur: 4 }], voice: { mode: 'tts' }, voAll: null, captions: { mode: 'full', pos: 'bottom', style: 0 }, frame: 'logo', music: null, cuts: [], seq: 2 };
+  AC.ensureShortVid(S); const oe = old.edit;
+  assert.equal(oe.v, 3); assert.deepEqual(oe.scenes[0].items.map(x => x.d), [2, 2]); assert.ok(!('overlay' in oe.scenes[0])); assert.equal(oe.cues.length, 1); assert.equal(oe.cues[0].text.t, 'Nhớ lâu'); assert.equal(oe.cues[0].wi, 0);
+  // chia cảnh là duyệt kịch bản
+  assert.equal(v.status, 'DRAFT'); assert.ok(AC.planEdit(S, id).ok); assert.equal(v.status, 'APPROVED'); const ed = v.edit; assert.equal(ed.splitFrom, v.script); assert.deepEqual(ed.cues, []);
+  const [a, b, c] = ed.scenes;
+  // nhiều hình: chia đều độ dài cảnh; kéo cảnh thì các hình co giãn theo; kéo vạch thì chỉ hình đó đổi
+  assert.ok(AC.addSceneItems(S, id, a.id, [{ src: IMG, name: '1.jpg' }, { src: IMG, name: '2.jpg' }, { src: IMG, name: '3.jpg' }]).ok);
+  const sum = sc => Math.round(sc.items.reduce((x, it) => x + it.d, 0) * 10) / 10;
+  assert.equal(sum(a), a.dur); assert.ok(a.items.every(it => it.d >= 1));
+  const d0 = a.dur; assert.ok(AC.resizeScene(S, id, a.id, d0 + 3).ok); assert.equal(a.dur, Math.round((d0 + 3) * 10) / 10); assert.equal(sum(a), a.dur, 'kéo cảnh: các hình co giãn theo');
+  assert.ok(AC.resizeScene(S, id, a.id, 0.5).ok); assert.ok(a.dur >= 3 && a.items.every(it => it.d >= 1), 'mỗi hình ≥ 1 giây');
+  const k0 = a.items[0].d; assert.ok(AC.resizeItem(S, id, a.id, 0, k0 + 2).ok); assert.equal(a.items[0].d, Math.round((k0 + 2) * 10) / 10); assert.equal(sum(a), a.dur, 'kéo vạch: cảnh = tổng hình');
+  assert.ok(AC.resizeItem(S, id, a.id, 1, 0).ok); assert.equal(a.items[1].d, 1);
+  const cmd = AC.editCommands(S, v); assert.equal(cmd.scenes[0].sources[1].start, cmd.scenes[0].sources[0].end); assert.ok(Math.abs(cmd.scenes[0].sources[0].end - cmd.scenes[0].sources[0].start - a.items[0].d) < 0.01);
+  // VO cảnh: mặc định cảnh = VO; không kéo ngắn hơn VO, cả khi kéo vạch
+  assert.ok(AC.addSceneItems(S, id, b.id, [{ src: IMG }, { src: IMG }]).ok);
+  assert.ok(AC.setSceneVo(S, id, b.id, { kind: 'up', name: 'b.mp3', src: AUD, dur: 6.3 }).ok); assert.equal(b.dur, 6.3); assert.equal(sum(b), 6.3);
+  assert.ok(AC.resizeScene(S, id, b.id, 2).ok); assert.equal(b.dur, 6.3, 'không ngắn hơn VO');
+  assert.ok(AC.resizeItem(S, id, b.id, 0, 0.5).ok); assert.ok(b.dur >= 6.3, 'kéo vạch cũng không ngắn hơn VO');
+  assert.ok(AC.resizeScene(S, id, b.id, 9).ok); assert.equal(b.dur, 9, 'cảnh dài hơn VO được');
+  // cue: chưa có VO thì chưa có giây; có VO thì giây theo từ; cue dời theo VO khi cảnh trước dài ra
+  assert.equal(AC.sceneWordTimes(ed, 0), null);
+  const ws = AC.sceneWords(b.text); const r = AC.addCue(S, id, b.id, 2); assert.ok(r.ok); const cu = r.cue; assert.equal(cu.w, ws[2]);
+  assert.equal(AC.addCue(S, id, b.id, 2).existed, true); assert.equal(AC.addCue(S, id, b.id, 999).ok, false);
+  const t1 = AC.cueTime(ed, cu); const tw = AC.sceneWordTimes(ed, 1); assert.ok(t1 > a.dur && t1 < a.dur + 6.3 && tw.every((x, i) => i === 0 || x.s >= tw[i - 1].s));
+  assert.ok(AC.resizeScene(S, id, a.id, a.dur + 2).ok); assert.ok(Math.abs(AC.cueTime(ed, cu) - t1 - 2) < 0.01, 'cue cảnh sau dời theo VO');
+  assert.ok(AC.editCue(S, id, cu.id, { icon: { g: '🧠' }, text: { t: 'TẬP TRUNG' }, sfx: { k: 'ding' }, dt: 0.1 }).ok); assert.ok(Math.abs(AC.cueTime(ed, cu) - t1 - 2.1) < 0.01);
+  assert.equal(AC.editCue(S, id, cu.id, { icon: { g: '🦄' } }).ok, false); assert.equal(AC.editCue(S, id, cu.id, { sfx: { k: 'khong-co' } }).ok, false); assert.equal(AC.editCue(S, id, cu.id, { text: { t: '  ' } }).ok, false);
+  assert.ok(AC.editCue(S, id, cu.id, { icon: { x: 140, sz: 999 } }).ok); assert.deepEqual([cu.icon.x, cu.icon.sz, cu.icon.g], [100, 160, '🧠']);
+  assert.equal(AC.cueLabel(cu), '🧠T♪'); const lib = AC.vidLibOf(S); assert.equal(lib.recI[0], '🧠'); assert.equal(lib.recS[0], 'ding');
+  const cc = AC.editCommands(S, v).cues; assert.equal(cc.length, 1); assert.equal(cc[0].icon.glyph, '🧠'); assert.equal(cc[0].sfx.key, 'ding'); assert.equal(cc[0].at, AC.cueTime(ed, cu));
+  // sửa lời: cue tìm lại từ cũ; từ bị xóa thì cue báo mất; đặt lại vào từ khác
+  const w2 = ws[2]; assert.ok(AC.editScene(S, id, b.id, { text: 'Thật ra ' + b.text }).ok); assert.equal(cu.wi, 4); assert.equal(cu.lost, false);
+  assert.ok(AC.editScene(S, id, b.id, { text: b.text.split(' ').filter(x => AC.normWord(x) !== AC.normWord(w2)).join(' ') }).ok); assert.equal(cu.lost, true); assert.equal(AC.cueTime(ed, cu), null);
+  assert.ok(AC.moveCue(S, id, cu.id, b.id, 0).ok); assert.equal(cu.lost, false); assert.equal(cu.wi, 0);
+  // VO toàn bài: giây theo cả bài; gỡ cảnh thì bỏ cue của cảnh đó
+  assert.ok(AC.setVoAll(S, id, { kind: 'ai' }).ok); assert.ok(AC.sceneWordTimes(ed, 0).length === AC.sceneWords(a.text).length); assert.ok(AC.cueTime(ed, cu) != null);
+  const T = AC.editTimeline(v).total; assert.ok(AC.resizeItem(S, id, a.id, 0, a.items[0].d + 1).ok); assert.equal(AC.editTimeline(v).total, T, 'VO toàn bài: kéo vạch giữ tổng');
+  assert.ok(AC.removeScene(S, id, b.id).ok); assert.equal(ed.cues.length, 0); assert.ok(AC.removeCue(S, id, 'x').ok === false);
+  // Yêu thích dùng chung
+  assert.ok(AC.toggleVidFav(S, 'sfx', 'boing').fav); assert.ok(AC.vidLibOf(S).favS.includes('boing')); assert.equal(AC.toggleVidFav(S, 'sfx', 'boing').fav, false); assert.equal(AC.toggleVidFav(S, 'icon', '🦄').ok, false);
+  assert.ok(AC.VID_SFX.length >= 30 && AC.VID_SFX_GROUPS.every(g => AC.VID_SFX.some(x => x[2] === g)) && AC.VID_ICONS.length >= 40);
+  // phiên bản: Tạo Kịch bản = bản mới chưa có cảnh; tối đa 5 bản; Dùng bản này chép bản cũ thành bản mới nhất
+  assert.equal(AC.vidVersions(v).length, 1); const scenes1 = ed.scenes.length;
+  assert.ok(AC.writeVidScript(S, id, { ok: true, script: '[Hook]\nBản hai của kịch bản.\n\n[CTA]\nTheo dõi nhé.' }).ok);
+  assert.equal(v.edit, null); assert.equal(v.verN, 2); assert.equal(v.history[0].n, 1); assert.equal(v.history[0].edit.scenes.length, scenes1); assert.equal(v.status, 'DRAFT');
+  for (let i = 3; i <= 6; i++) assert.ok(AC.writeVidScript(S, id, { ok: true, script: `[Hook]\nBản ${i}.` }).ok);
+  assert.equal(AC.vidVersions(v).length, AC.VID_KEEP_VERSIONS); assert.deepEqual(AC.vidVersions(v).map(x => x.n), [2, 3, 4, 5, 6]);
+  assert.ok(AC.editVidScript(S, id, { script: '[Hook]\nSửa tay.' }).ok); assert.equal(AC.vidVersions(v).length, 5, 'sửa tay không tạo bản mới');
+  const u = AC.useVidVersion(S, id, 2); assert.ok(u.ok); assert.equal(v.verN, 7); assert.ok(v.script.includes('Bản hai')); assert.deepEqual(AC.vidVersions(v).map(x => x.n), [3, 4, 5, 6, 7]); assert.equal(AC.useVidVersion(S, id, 1).ok, false);
 });

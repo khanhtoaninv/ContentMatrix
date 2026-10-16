@@ -1,8 +1,8 @@
-// ---------- 05u · Short Vid: popup thẻ Vid bản 1 (mục 10.76): cảnh nhiều hình, VO toàn bài / VO cảnh, co giãn timeline, caption theo timeline, mẫu, Hoàn thành, xếp slot theo ô ----------
+// ---------- 05u · Short Vid: popup thẻ Vid (bản 1 mục 10.76, bản 4 mục 10.77): cảnh nhiều hình, độ dài từng hình, VO toàn bài / VO cảnh, co giãn timeline, caption theo timeline, cue, mẫu, Hoàn thành, xếp slot theo ô ----------
 import { countWords, addDays } from './01-util.js';
 import { byId, deleteSlot, weekOf } from './05-model.js';
 import { vidBody, vidSettingsOf } from './05s-shortvid.js';
-import { SCENE_FLOOR, VID_CAPTION_MODES, captionChunks, editOf, editTimeline, planEdit, scenePrompt, sceneMin, scheduleGate, scheduleVideo, vidChannels } from './05t-videdit.js';
+import { ITEM_MIN, SCENE_FLOOR, VID_CAPTION_MODES, captionChunks, cueTime, editOf, editTimeline, evenSplit, planEdit, sceneWordTimes, sceneWords, scenePrompt, sceneMin, scheduleGate, scheduleVideo, setSceneDur, vidChannels } from './05t-videdit.js';
 import { splitSentences } from './01-util.js';
 
 const r1 = x => Math.round(Number(x) * 10) / 10;
@@ -24,10 +24,19 @@ export function resizeScene(S, id, sid, nd) {
   let d = Math.max(sceneMin(ed, a), Math.min(120, Number(nd) || 0));
   if (ed.voAll) {
     if (!b) return { ok: false, error: 'Cảnh cuối không kéo được khi dùng VO toàn bài: kéo mép cảnh trước.' };
-    d = Math.min(d, a.dur + b.dur - sceneMin(ed, b)); const tot = a.dur + b.dur; a.dur = r1(d); b.dur = r1(tot - d);
-  } else a.dur = r1(d);
+    const tot = r1(a.dur + b.dur); d = Math.min(d, tot - sceneMin(ed, b)); setSceneDur(ed, a, d); setSceneDur(ed, b, r1(tot - a.dur));
+  } else setSceneDur(ed, a, d);
   if (a.dur !== was) ed.capStale = true;
   return { ok: true, dur: a.dur, changed: a.dur !== was };
+}
+// Kéo vạch giữa hình k và k+1: không có VO toàn bài thì chỉ hình k đổi (cảnh dài/ngắn theo, không dưới VO); có VO toàn bài thì dời ranh giới hai hình (cảnh không đổi)
+export function resizeItem(S, id, sid, k, nd) {
+  const v = vidGet(S, id); const ed = v && v.edit; const sc = ed && ed.scenes.find(x => x.id === sid); const it = sc && sc.items[k]; if (!it) return { ok: false, error: 'Không thấy hình.' };
+  const was = it.d; let d = Number(nd) || 0;
+  if (ed.voAll) { const nx = sc.items[k + 1]; if (!nx) return { ok: false, error: 'Hình cuối: kéo mép cảnh.' }; const tot = r1(it.d + nx.d); d = Math.max(ITEM_MIN, Math.min(tot - ITEM_MIN, d)); it.d = r1(d); nx.d = r1(tot - it.d); }
+  else { const other = sc.items.reduce((a, x, j) => a + (j === k ? 0 : x.d), 0); const vo = sc.vo ? Math.ceil(sc.vo.dur * 10) / 10 : 0; d = Math.max(ITEM_MIN, vo - other, SCENE_FLOOR - other, Math.min(60, d)); it.d = r1(d); }
+  sc.dur = r1(sc.items.reduce((a, x) => a + x.d, 0)); if (it.d !== was) ed.capStale = true;
+  return { ok: true, d: it.d, changed: it.d !== was };
 }
 export function nudgeScene(S, id, sid, delta) { const v = vidGet(S, id); const sc = v && v.edit && v.edit.scenes.find(x => x.id === sid); if (!sc) return { ok: false, error: 'Không thấy cảnh.' }; return resizeScene(S, id, sid, sc.dur + Number(delta)); }
 // Co/giãn các cảnh cho tổng đúng `target` giây (theo tỉ lệ, không dưới mức tối thiểu của cảnh)
@@ -37,12 +46,12 @@ function fitTotal(ed, target) {
   const diff = r1(target - ed.scenes.reduce((a, s) => a + s.dur, 0));
   if (diff > 0) ed.scenes[ed.scenes.length - 1].dur = r1(ed.scenes[ed.scenes.length - 1].dur + diff);
   else if (diff < 0) for (let i = ed.scenes.length - 1, left = -diff; i >= 0 && left > 0; i--) { const room = ed.scenes[i].dur - sceneMin(ed, ed.scenes[i]); const cut = Math.min(room, left); ed.scenes[i].dur = r1(ed.scenes[i].dur - cut); left = r1(left - cut); }
-  ed.scenes.forEach(s => { s.defDur = s.dur; });
+  ed.scenes.forEach(s => { if (s.items.length) { const d = s.dur; s.items.forEach(it => { it.d = it.d || 1; }); setSceneDur(ed, s, d); } s.defDur = s.dur; });
 }
 // Hoàn trả: về timeline mặc định (độ dài lúc chia cảnh hoặc lúc đổi mẫu), không dưới mức tối thiểu
 export function resetDurations(S, id) {
   const v = vidGet(S, id); const ed = v && v.edit; if (!ed || !ed.scenes.length) return { ok: false, error: 'Chưa có cảnh.' };
-  ed.scenes.forEach(s => { s.dur = r1(Math.max(s.defDur || SCENE_FLOOR, sceneMin(ed, s))); });
+  ed.scenes.forEach(s => { const d = r1(Math.max(s.defDur || SCENE_FLOOR, sceneMin(ed, s))); if (s.items.length) evenSplit(s, d); else s.dur = d; });
   if (ed.voAll && ed.voAll.dur > 0) fitTotal(ed, ed.voAll.dur);
   ed.capStale = true; return { ok: true };
 }
@@ -75,7 +84,8 @@ export function setSceneVo(S, id, sid, p) {
   if (ed.voAll) return { ok: false, error: 'Đang dùng VO toàn bài: gỡ VO toàn bài trước khi làm VO cảnh.' };
   const i = ed.scenes.indexOf(sc); const r = voFrom(v, p || {}, r1((sc.defDur || sc.dur) * 0.85), i + 1); if (!r.ok) return r;
   if (r.vo.peaks && r.vo.peaks.length > 120) r.vo.peaks = r.vo.peaks.slice(0, 120);
-  sc.vo = r.vo; if (sc.dur < r.vo.dur) sc.dur = r1(Math.ceil(r.vo.dur * 10) / 10); ed.capStale = true; return { ok: true, vo: sc.vo };
+  // Mặc định tổng độ dài các hình = VO (cảnh co/giãn đúng bằng VO, trừ khi số hình × 1 giây dài hơn)
+  sc.vo = r.vo; setSceneDur(ed, sc, Math.ceil(r.vo.dur * 10) / 10); ed.capStale = true; return { ok: true, vo: sc.vo };
 }
 export function clearSceneVo(S, id, sid) { const v = vidGet(S, id); const sc = v && v.edit && v.edit.scenes.find(x => x.id === sid); if (!sc || !sc.vo) return { ok: false, error: 'Cảnh chưa có VO.' }; sc.vo = null; v.edit.capStale = true; return { ok: true }; }
 export function setVoPeaks(S, id, target, peaks) {
@@ -102,8 +112,8 @@ export function genCaptions(S, id, opt) {
     const keep = !full && mine.some(g => g.ed);
     const texts = keep ? mine.map(g => ({ t: g.t, ed: g.ed })) : (mode === 'key' ? captionChunks(sc.text, 1, 'key').map(c => c.text) : chunkWords(sc.text)).map(t => ({ t }));
     const span = ed.voAll ? sc.dur * 0.92 : sc.vo ? Math.min(sc.vo.dur, sc.dur) : sc.dur * 0.92;
-    const n = texts.reduce((a, g) => a + countWords(g.t), 0) || 1; let acc = 0;
-    texts.forEach(g => { res.push({ t: g.t, sc: sc.id, at: r1(st + acc / n * span), ed: g.ed ? 1 : 0 }); acc += countWords(g.t); });
+    const n = texts.reduce((a, g) => a + countWords(g.t), 0) || 1; let acc = 0; const tw = mode === 'key' ? null : sceneWordTimes(ed, ed.scenes.indexOf(sc));
+    texts.forEach(g => { res.push({ t: g.t, sc: sc.id, at: tw && tw[acc] ? r1(tw[acc].s) : r1(st + acc / n * span), ed: g.ed ? 1 : 0 }); acc += countWords(g.t); });
     st += sc.dur;
   });
   ed.segs = res; ed.capStale = false; return { ok: true, count: res.length };
@@ -137,12 +147,11 @@ export function captionAt(v, t) {
 
 // ---- Mẫu dựng theo Format ----
 // Mỗi mẫu chia các câu của kịch bản vào vài cảnh theo trọng số, gợi ý hình và chữ phủ; thời lượng theo số chữ.
-const keyOf = t => (captionChunks(t, 1, 'key')[0] || {}).text || '';
 export const VID_TEMPLATES = {
   script: { name: 'Theo kịch bản (tự chia)', hint: 'Mỗi phần có nhãn trong kịch bản thành một hay vài cảnh.' },
-  hoidap: { name: 'Hỏi đáp 3 bước', w: [2, 1, 2, 2], hints: ['Người nói, cận mặt', 'B-roll minh họa vấn đề', 'Biểu đồ hoặc sơ đồ đơn giản', 'Người nói, chốt việc làm ngay'], overlays: () => ['', 'Vấn đề', 'Giải đáp', 'Làm ngay'] },
-  chunhan: { name: 'Chữ nhấn ý', w: [2, 2, 1, 2], hints: ['Nền đơn sắc, chữ lớn', 'Nền đơn sắc, chữ lớn', 'Nền đơn sắc, chữ lớn', 'Nền đơn sắc, chữ lớn'], overlays: ts => ts.map(keyOf) },
-  nguoinoi: { name: 'Người nói + b-roll', w: [1, 2, 1, 2, 1], hints: ['Người nói, cận mặt', 'B-roll minh họa ý đầu', 'Người nói, nhấn ý chính', 'B-roll minh họa cách làm', 'Người nói, chốt'], overlays: ts => ['', '', keyOf(ts[2]), '', 'Làm ngay'] },
+  hoidap: { name: 'Hỏi đáp 3 bước', w: [2, 1, 2, 2], hints: ['Người nói, cận mặt', 'B-roll minh họa vấn đề', 'Biểu đồ hoặc sơ đồ đơn giản', 'Người nói, chốt việc làm ngay'] },
+  chunhan: { name: 'Chữ nhấn ý', w: [2, 2, 1, 2], hints: ['Nền đơn sắc, chữ lớn', 'Nền đơn sắc, chữ lớn', 'Nền đơn sắc, chữ lớn', 'Nền đơn sắc, chữ lớn'] },
+  nguoinoi: { name: 'Người nói + b-roll', w: [1, 2, 1, 2, 1], hints: ['Người nói, cận mặt', 'B-roll minh họa ý đầu', 'Người nói, nhấn ý chính', 'B-roll minh họa cách làm', 'Người nói, chốt'] },
 };
 // Gợi ý theo Format: giải thích → hỏi đáp, mẹo → chữ nhấn ý, còn lại → người nói + b-roll
 export function suggestTemplate(S, v) {
@@ -158,11 +167,10 @@ export function applyTemplate(S, id, key) {
   const k = Math.min(T.w.length, ss.length); const W = T.w.slice(0, k); const sum = W.reduce((a, x) => a + x, 0);
   const cuts = []; let acc = 0; W.forEach((x, i) => { acc += x; cuts.push(i === k - 1 ? ss.length : Math.max((cuts[i - 1] || 0) + 1, Math.min(ss.length - (k - 1 - i), Math.round(ss.length * acc / sum)))); });
   const texts = cuts.map((e, i) => ss.slice(i ? cuts[i - 1] : 0, e).join(' '));
-  const ov = T.overlays(texts);
   ed.seq = ed.seq || 1;
-  ed.scenes = texts.map((t, i) => { const d = Math.max(SCENE_FLOOR, r1(countWords(t) / c.wps)); return { id: `sc${ed.seq++}`, label: `Cảnh ${i + 1}`, text: t, dur: d, defDur: d, items: [], prompt: T.hints[i] || scenePrompt(S, v, t), overlay: ov[i] || '', fit: 'fill', vol: 100, vo: null, ph: false }; });
+  ed.scenes = texts.map((t, i) => { const d = Math.max(SCENE_FLOOR, r1(countWords(t) / c.wps)); return { id: `sc${ed.seq++}`, label: `Cảnh ${i + 1}`, text: t, dur: d, defDur: d, items: [], prompt: T.hints[i] || scenePrompt(S, v, t), fit: 'fill', vol: 100, vo: null, ph: false }; });
   if (ed.voAll && ed.voAll.dur > 0 && ed.voAll.kind === 'up') fitTotal(ed, ed.voAll.dur);
-  ed.tpl = key; ed.segs = null; ed.capStale = true; ed.doneAt = null; ed.plannedAt = S.settings.demoNow;
+  ed.tpl = key; ed.segs = null; ed.capStale = true; ed.doneAt = null; ed.plannedAt = S.settings.demoNow; ed.cues = []; ed.splitFrom = v.script || '';
   return { ok: true, count: ed.scenes.length, template: key };
 }
 
@@ -202,3 +210,73 @@ export function scheduleCells(S, vidId, p) {
   }
   return { ok: true, slots: made, skipped };
 }
+
+// ---- Cue (bản 4, mục 10.77): mỗi cue bám một từ trong lời cảnh; Icon / Text / SFX hiện hoặc phát ở giây của từ đó trong VO ----
+// Kho mẫu: icon là emoji (bản thật dùng bộ Lucide/Fluent Emoji), SFX tổng hợp bằng âm thanh trình duyệt (bản thật dùng tệp có giấy phép Pixabay/Mixkit)
+export const VID_ICONS = [['🔥', 'lửa nóng hot'], ['💡', 'ý tưởng bóng đèn mẹo'], ['✅', 'đúng đồng ý ok'], ['❌', 'sai không'], ['⚠️', 'cảnh báo chú ý'], ['❓', 'hỏi câu hỏi'], ['❗', 'chú ý quan trọng'], ['⏰', 'đồng hồ báo thức giờ'], ['⏱️', 'bấm giờ hẹn giờ phút'], ['📚', 'sách học'],
+  ['🧠', 'não trí nhớ tập trung'], ['😴', 'buồn ngủ mệt'], ['😮', 'bất ngờ wow'], ['🤔', 'suy nghĩ'], ['👍', 'tốt like'], ['👉', 'chỉ tay'], ['⬆️', 'lên tăng'], ['⬇️', 'xuống giảm'], ['📈', 'tăng biểu đồ'], ['📉', 'giảm biểu đồ'],
+  ['💯', '100 tuyệt đối'], ['⭐', 'sao nổi bật'], ['🎯', 'mục tiêu'], ['🚀', 'nhanh tên lửa'], ['📱', 'điện thoại'], ['☕', 'cà phê nghỉ'], ['🏃', 'vận động chạy'], ['💪', 'mạnh cố gắng'], ['❤️', 'tim yêu'], ['🎉', 'chúc mừng'],
+  ['🔑', 'chìa khóa bí quyết'], ['📌', 'ghim lưu'], ['🔔', 'chuông nhắc'], ['💤', 'ngủ'], ['✨', 'lấp lánh'], ['➡️', 'mũi tên sang'], ['1️⃣', 'số một 1'], ['2️⃣', 'số hai 2'], ['3️⃣', 'số ba 3'], ['4️⃣', 'số bốn 4']];
+// [mã, tên, nhóm, giây, kiểu tổng hợp, cao độ]
+export const VID_SFX = [['ding', 'Ting', 'Nhấn', 0.6, 'ding', 1], ['pop', 'Pop', 'Nhấn', 0.1, 'pop', 1], ['pop2', 'Pop cao', 'Nhấn', 0.1, 'pop', 1.6], ['boom', 'Bùm', 'Nhấn', 0.8, 'boom', 1], ['drum', 'Trống', 'Nhấn', 0.3, 'drum', 1], ['snap', 'Búng tay', 'Nhấn', 0.1, 'snap', 1], ['click', 'Click', 'Nhấn', 0.1, 'click', 1], ['knock', 'Gõ bàn', 'Nhấn', 0.3, 'knock', 1],
+  ['whoosh', 'Vút', 'Chuyển cảnh', 0.5, 'whoosh', 1], ['rise', 'Vút lên', 'Chuyển cảnh', 0.6, 'rise', 1], ['fall', 'Vút xuống', 'Chuyển cảnh', 0.6, 'fall', 1], ['swipe', 'Lướt', 'Chuyển cảnh', 0.3, 'swipe', 1], ['swipe2', 'Quét nhanh', 'Chuyển cảnh', 0.2, 'swipe', 1.8], ['wind', 'Gió', 'Chuyển cảnh', 1.2, 'wind', 1],
+  ['chime', 'Đúng (ting ting)', 'Đúng/Sai', 0.6, 'chime', 1], ['buzz', 'Sai (bíp)', 'Đúng/Sai', 0.4, 'buzz', 1], ['bell', 'Chuông', 'Đúng/Sai', 1.2, 'bell', 1], ['dingdong', 'Ding dong', 'Đúng/Sai', 0.8, 'dingdong', 1], ['whistle', 'Còi', 'Đúng/Sai', 0.4, 'whistle', 1],
+  ['boing', 'Boing', 'Vui', 0.5, 'boing', 1], ['bubble', 'Bong bóng', 'Vui', 0.15, 'bubble', 1], ['sparkle', 'Lấp lánh', 'Vui', 0.4, 'sparkle', 1], ['magic', 'Phép thuật', 'Vui', 0.6, 'sparkle', 0.7], ['fanfare', 'Kèn vui', 'Vui', 0.8, 'fanfare', 1], ['heart', 'Tim đập', 'Vui', 0.4, 'heart', 1],
+  ['key', 'Gõ phím', 'Giao diện', 0.05, 'key', 1], ['notify', 'Thông báo', 'Giao diện', 0.4, 'notify', 1], ['shutter', 'Chụp ảnh', 'Giao diện', 0.2, 'shutter', 1], ['tick', 'Tích tắc', 'Giao diện', 0.6, 'tick', 1], ['page', 'Lật trang', 'Giao diện', 0.2, 'page', 1], ['unlock', 'Mở khóa', 'Giao diện', 0.2, 'unlock', 1],
+  ['roll', 'Trống dồn', 'Không khí', 1, 'roll', 1], ['drone', 'Hồi hộp', 'Không khí', 2, 'drone', 1], ['bigboom', 'Bùm lớn', 'Không khí', 1.2, 'boom', 0.6], ['gong', 'Chiêng', 'Không khí', 1.6, 'bell', 0.45]];
+export const VID_SFX_GROUPS = ['Chuyển cảnh', 'Nhấn', 'Đúng/Sai', 'Vui', 'Giao diện', 'Không khí'];
+export const VID_CUE_FX = ['Hiện ngay', 'Nảy', 'Mờ dần'];
+export const VID_CUE_TEXT_STYLES = ['Trắng nổi', 'Nền vàng', 'Nhãn đỏ'];
+export const sfxOf = k => VID_SFX.find(x => x[0] === k) || null;
+const iconOk = g => VID_ICONS.some(x => x[0] === g);
+// Yêu thích và Gần đây: dùng chung cho mọi video (nằm trong dữ liệu chung, đi theo tệp sao lưu)
+export function vidLibOf(S) {
+  if (!S.vidLib) S.vidLib = { favS: ['ding', 'pop', 'whoosh', 'chime', 'buzz', 'boom', 'sparkle', 'tick'], favI: ['🔥', '💡', '✅', '❌', '❓', '⏰', '🧠', '👉', '⭐', '🎯', '📈', '🎉'], recS: [], recI: [] };
+  return S.vidLib;
+}
+export function toggleVidFav(S, kind, key) {
+  const L = vidLibOf(S); const a = kind === 'sfx' ? L.favS : L.favI; if (kind === 'sfx' ? !sfxOf(key) : !iconOk(key)) return { ok: false, error: 'Không có trong kho.' };
+  const i = a.indexOf(key); if (i >= 0) a.splice(i, 1); else a.push(key); return { ok: true, fav: i < 0 };
+}
+const pushRecent = (a, x) => { const i = a.indexOf(x); if (i >= 0) a.splice(i, 1); a.unshift(x); if (a.length > 10) a.length = 10; };
+const cueGet = (S, id, cid) => { const v = vidGet(S, id); const ed = v && v.edit; return { v, ed, c: ed && (ed.cues || []).find(x => x.id === cid) }; };
+export const cueOf = (ed, cid) => (ed && ed.cues || []).find(x => x.id === cid) || null;
+// Đặt cue ở từ thứ wi của cảnh; đã có cue ở từ đó thì trả cue đó
+export function addCue(S, id, sid, wi) {
+  const v = vidGet(S, id); const ed = v && v.edit; const sc = ed && ed.scenes.find(x => x.id === sid); if (!sc) return { ok: false, error: 'Không thấy cảnh.' };
+  const ws = sceneWords(sc.text); const k = Math.round(Number(wi)); if (!(k >= 0 && k < ws.length)) return { ok: false, error: 'Không thấy từ trong lời cảnh.' };
+  ed.cues = ed.cues || []; const old = ed.cues.find(c => c.sc === sid && c.wi === k && !c.lost); if (old) return { ok: true, cue: old, existed: true };
+  if (ed.cues.length >= 60) return { ok: false, error: 'Tối đa 60 cue mỗi video.' };
+  ed.cueSeq = ed.cueSeq || 1; const c = { id: `cu${ed.cueSeq++}`, sc: sid, wi: k, w: ws[k], dt: 0, icon: null, text: null, sfx: null, lost: false }; ed.cues.push(c); return { ok: true, cue: c };
+}
+// Đặt lại cue (vd. từ cũ đã bị xóa) vào từ khác
+export function moveCue(S, id, cid, sid, wi) {
+  const { ed, c } = cueGet(S, id, cid); if (!c) return { ok: false, error: 'Không thấy cue.' }; const sc = ed.scenes.find(x => x.id === sid); if (!sc) return { ok: false, error: 'Không thấy cảnh.' };
+  const ws = sceneWords(sc.text); const k = Math.round(Number(wi)); if (!(k >= 0 && k < ws.length)) return { ok: false, error: 'Không thấy từ trong lời cảnh.' };
+  if (ed.cues.some(x => x !== c && x.sc === sid && x.wi === k && !x.lost)) return { ok: false, error: 'Từ này đã có cue.' };
+  Object.assign(c, { sc: sid, wi: k, w: ws[k], dt: 0, lost: false }); return { ok: true, cue: c };
+}
+export function removeCue(S, id, cid) { const { ed, c } = cueGet(S, id, cid); if (!c) return { ok: false, error: 'Không thấy cue.' }; ed.cues = ed.cues.filter(x => x !== c); return { ok: true }; }
+const num = (x, lo, hi, d) => { const n = Number(x); return Number.isFinite(n) ? Math.max(lo, Math.min(hi, n)) : d; };
+// Sửa cue: patch.icon / text / sfx = null để tắt, = {...} để bật hoặc đổi; dt = độ lệch so với từ (giây)
+export function editCue(S, id, cid, patch) {
+  const { v, c } = cueGet(S, id, cid); if (!c) return { ok: false, error: 'Không thấy cue.' }; const P = patch || {}; const L = vidLibOf(S);
+  if (P.dt != null) c.dt = r1(num(P.dt, -5, 5, 0));
+  if (P.icon !== undefined) {
+    if (!P.icon) c.icon = null;
+    else { const o = Object.assign({ g: '💡', x: 78, y: 30, sz: 56, dur: 1.5, fx: 1 }, c.icon || {}, P.icon); if (!iconOk(o.g)) return { ok: false, error: 'Icon không có trong kho.' };
+      c.icon = { g: o.g, x: r1(num(o.x, 0, 100, 50)), y: r1(num(o.y, 0, 100, 30)), sz: Math.round(num(o.sz, 12, 160, 56)), dur: r1(num(o.dur, 0.5, 10, 1.5)), fx: Math.round(num(o.fx, 0, VID_CUE_FX.length - 1, 0)) };
+      if (P.icon.g) pushRecent(L.recI, o.g); }
+  }
+  if (P.text !== undefined) {
+    if (!P.text) c.text = null;
+    else { const o = Object.assign({ t: String(c.w || '').replace(/[.,?!…]/g, '').toUpperCase(), st: 1, x: 50, y: 34, sz: 24, dur: 2, fx: 1 }, c.text || {}, P.text); const t = String(o.t || '').trim().slice(0, 80); if (!t) return { ok: false, error: 'Chữ của cue đang trống.' };
+      c.text = { t, st: Math.round(num(o.st, 0, VID_CUE_TEXT_STYLES.length - 1, 0)), x: r1(num(o.x, 0, 100, 50)), y: r1(num(o.y, 0, 100, 34)), sz: Math.round(num(o.sz, 12, 160, 24)), dur: r1(num(o.dur, 0.5, 10, 2)), fx: Math.round(num(o.fx, 0, VID_CUE_FX.length - 1, 0)) }; }
+  }
+  if (P.sfx !== undefined) {
+    if (!P.sfx) c.sfx = null;
+    else { const o = Object.assign({ k: L.favS[0] || 'ding', vol: 80 }, c.sfx || {}, P.sfx); if (!sfxOf(o.k)) return { ok: false, error: 'Âm thanh không có trong kho.' }; c.sfx = { k: o.k, vol: Math.round(num(o.vol, 0, 100, 80)) }; if (P.sfx.k) pushRecent(L.recS, o.k); }
+  }
+  return { ok: true, cue: c, time: cueTime(v.edit, c) };
+}
+export const cueLabel = c => [c.icon ? c.icon.g : '', c.text ? 'T' : '', c.sfx ? '♪' : ''].join('') || '•';
