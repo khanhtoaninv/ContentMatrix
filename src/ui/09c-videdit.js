@@ -209,7 +209,7 @@ function tbarHtml(v, st) {
 function fxSum(v, i) {
   const ed = v.edit, sc = ed.scenes[i], ki = sc.items.findIndex(m => m.kind !== 'video');
   const mo = !sc.items.length ? '—' : ki < 0 ? 'Video giữ nguyên' : AC.VID_MOTIONS[AC.motionOf(ed, i, ki)] + (AC.sceneImgCount(sc) > 1 && !sc.mo ? ' …' : '') + (AC.sceneVidCount(sc) ? ' (chỉ ảnh)' : '');
-  return `✦ ${mo}${i || sc.tr ? ` · vào: ${AC.VID_TRANS[AC.transOf(ed, i)]}` : ''}${sc.mo || sc.tr ? '' : ' · tự động'}`;
+  return `${mo}${i || sc.tr ? ` · vào: ${AC.VID_TRANS[AC.transOf(ed, i)]}` : ''}${sc.mo || sc.tr ? '' : ' · tự động'}`;
 }
 function fxBox(v, i) {
   const ed = v.edit, sc = ed.scenes[i], n = sc.items.length, nImg = AC.sceneImgCount(sc), nVid = AC.sceneVidCount(sc), vid = n && !nImg, mix = nImg && nVid;
@@ -278,7 +278,7 @@ function settingsPane(v, lk) {
       <label for="ve-gtr">Chuyển cảnh</label><select id="ve-gtr"><option value="auto" ${ed.fxTr === 'auto' ? 'selected' : ''}>Tự động (Cắt; Mờ dần khi sang phần mới và scene chốt)</option>${opt(AC.VID_TRANS, ed.fxTr)}</select>
       <label for="ve-gmo">Chuyển động ảnh tĩnh</label><select id="ve-gmo"><option value="auto" ${ed.fxMo === 'auto' ? 'selected' : ''}>Tự động (luân phiên Zoom vào, Lia, Zoom ra)</option>${opt(AC.VID_MOTIONS, ed.fxMo)}</select>
       <label for="ve-gdu">Thời gian chuyển</label><select id="ve-gdu">${AC.VID_FX_DURS.map(x => `<option value="${x}" ${ed.fxDur === x ? 'selected' : ''}>${f1(x)} giây</option>`).join('')}</select></div>
-      <div class="vp-tools small">${(() => { const own = ed.scenes.filter(x => x.mo || x.tr).length; return own ? `<span class="muted">${own} scene đang chỉnh riêng, giữ lựa chọn của scene đó.</span><button class="btn sm" data-a="fxclr">Đưa mọi scene về tự động</button>` : '<span class="muted">Chuyển động chỉ áp dụng cho ảnh; video giữ nguyên chuyển động gốc. Chỉnh riêng từng scene bằng chip ✦ ở đầu scene.</span>'; })()}</div></div>
+      <div class="vp-tools small">${(() => { const own = ed.scenes.filter(x => x.mo || x.tr).length; return own ? `<span class="muted">${own} scene đang chỉnh riêng, giữ lựa chọn của scene đó.</span><button class="btn sm" data-a="fxclr">Đưa mọi scene về tự động</button>` : '<span class="muted">Chuyển động chỉ áp dụng cho ảnh; video giữ nguyên chuyển động gốc. Chỉnh riêng từng scene bằng chip hiệu ứng ở đầu scene.</span>'; })()}</div></div>
     <div class="vp-grp"><div class="eyebrow">Frame <button class="btn sm" data-a="frlib" data-testid="ve-frlib">Thư viện frame →</button></div><div class="vp-frames">${fr.map(([k, n]) => {
       const pf = (S.frames || []).find(f => f.id === k);
       return `<button class="vp-fr" data-a="frame" data-k="${esc(k)}" aria-pressed="${ed.frame === k}" title="${esc(n)}"><i>${pf ? `<img src="${esc(pf.src)}" alt="">` : FRAME_TILE[k] || ''}</i>${esc(n)}</button>`;
@@ -335,7 +335,7 @@ function bodyHtml(v, st, ro, lockd) {
 }
 function emptyHtml(v, ro) {
   const ok = !ro && !!(v.script || (v.media || []).length);
-  return `<div class="vp-empty"><p>${ro ? 'Bản kịch bản cũ chỉ xem lời. Phần biên tập có lịch sử riêng ở Biên tập của bản đang dùng.' : ok ? 'Chưa chia cảnh. App chia kịch bản thành các cảnh có lời, gợi ý hình và thời lượng; sau đó bạn Up hình, thêm VO, đặt cue, chỉnh timeline.' : 'Chưa có kịch bản hoặc tệp nguồn để chia cảnh. Viết kịch bản ở tab Kịch bản trước.'}</p>${ro ? '' : `<button class="btn primary" data-a="plan" data-testid="ve-plan" ${ok ? '' : 'disabled'}>${icon('spark')} Chia cảnh theo kịch bản</button>`}</div>`;
+  return `<div class="vp-empty"><p>${ro ? 'Bản kịch bản cũ chỉ xem lời. Phần biên tập có lịch sử riêng ở Biên tập của bản đang dùng.' : ok ? 'Chưa chia cảnh. App chia kịch bản thành các cảnh có lời, gợi ý hình và thời lượng; sau đó bạn Up hình, thêm VO, đặt cue, chỉnh timeline.' : 'Chưa có kịch bản hoặc tệp nguồn để chia cảnh. Viết kịch bản ở tab Kịch bản trước.'}</p>${ro ? '' : `<button class="btn primary" data-a="plan" data-testid="ve-plan" ${ok ? '' : 'disabled'}>Chia cảnh theo kịch bản</button>`}</div>`;
 }
 
 // ---- Popup Cue: Icon / Text / SFX, kho dùng chung (Yêu thích, Gần đây) ----

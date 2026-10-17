@@ -20,7 +20,7 @@ export function imgToolbar(o) {
   const { s, a, i, lk } = o; const ci = a.versions.findIndex(v => v.n === a.current), cur = ci >= 0 ? a.versions[ci] : null;
   const vid = assetKind(a) === 'video' || (cur && cur.kind === 'video');
   const gen = vid
-    ? `<span class="gen-wrap"><button class="btn sm" disabled title="Chưa tạo video bằng AI được">${icon('spark')} Gen</button></span>`
+    ? `<span class="gen-wrap"><button class="btn sm" disabled title="Chưa tạo video bằng AI được">Gen</button></span>`
     : `<span class="gen-wrap"><button class="btn sm" data-x="img-genai" data-i="${i}" ${lk ? 'disabled' : ''} title="Gen AI: mô tả ảnh, prompt, ảnh tham chiếu, rồi tạo phiên bản ảnh mới">Gen AI</button></span>`;
   const cellR = AC.assetRatioOf(a), sz = cur && !vid ? AC.versionSize(cur) : null, bad = !lk && !!sz && AC.ratioMismatch(sz, cellR);
   const acc = o.accept || (s.free || vid ? 'image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm,video/quicktime' : 'image/png,image/jpeg,image/webp,image/gif');

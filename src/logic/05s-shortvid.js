@@ -355,6 +355,17 @@ export function editInsight(S, id, patch) {
   if (P.kind != null) { if (!VID_KINDS[P.kind]) return { ok: false, error: 'Kiểu không hợp lệ.' }; v.kind = P.kind; }
   return { ok: true, video: v };
 }
+// Thẻ đã hoàn thành: Biên tập đã duyệt hoặc đã có video (mục 10.91). Thẻ hoàn thành chỉ xóa được trong popup (nút Xóa thẻ)
+export const vidDone = v => !!(v && ((v.edit && v.edit.doneAt) || v.file));
+// Xóa thẻ Vid: chỉ xóa nội dung đã biên tập (kịch bản, bàn dựng, thumbnail); video đã ren vẫn ở Kho, slot đã xếp vẫn giữ video của nó
+export function deleteVid(S, id, P) {
+  const v = vidGet(S, id); if (!v) return { ok: false, error: 'Không thấy thẻ Vid.' };
+  if (vidDone(v) && !(P && P.full)) return { ok: false, error: 'Thẻ đã hoàn thành: mở thẻ rồi bấm Xóa thẻ.' };
+  S.videos = S.videos.filter(x => x.id !== id);
+  const kept = (S.library || []).filter(x => x.kind === 'video' && x.vidId === id).length; const slots = (S.slots || []).filter(s => s.videoId === id).length;
+  log(S, 'vid-delete', 'video', id, `${(v.insight && v.insight.title) || ''}${kept ? ` · giữ ${kept} video trong Kho` : ''}`);
+  return { ok: true, kept, slots };
+}
 export function dropIdea(S, id) {
   const v = vidGet(S, id); if (!v) return { ok: false, error: 'Không thấy video.' };
   if (v.status !== 'IDEA') return { ok: false, error: 'Chỉ bỏ được đề xuất chưa duyệt; kịch bản đã duyệt thì bấm Hủy.' };

@@ -1458,3 +1458,9 @@ Quyết định D178–D179. Áp dụng thử cho Short Vid trước; Matrix và
 - **Giao diện popup**: hàng phiên bản đổi theo tab (`#sp-verw`): Kịch bản `‹ › Duyệt/Sửa Kịch bản` (`sp-slock`/`sp-sunlock`), Biên tập `‹ › Duyệt/Sửa Biên tập` (`ve-done`/`ve-unlock`, xem bản cũ `sp-eold` + Dùng bản này `sp-euse`). Tên tab có icon khóa khi đã duyệt (`sp-lock-ks`, `sp-lock-bt`). Đáy popup: Hủy Biên tập (`sp-ecancel`) chỉ hiện khi đang sửa và đã có bản duyệt. Chân trình biên tập còn Xuất lệnh dựng và Ren Vid (khi đang sửa). Thẻ tự do: "Duyệt Biên tập cả lô".
 - **Kiểm thử**: logic 150 (thêm test 10.90), UI 664 (thêm khối 10.90).
 
+## 10.91. Short Vid: sửa giao diện, xóa thẻ Vid, bỏ icon AI (17/10/2026, bản 120)
+- Ba nút Kịch bản, Biên tập, Xếp Slot trong popup thẻ Vid giữ kiểu bản 115: số tròn, chữ cùng dòng, cùng chiều cao; khóa thì có icon khóa nhỏ cạnh chữ.
+- Ô Topic: bỏ nút Ren cả hàng; tên Topic và Phân tích lại đậm hơn; Bỏ hàng là dấu x ở góc phải phía trên ô.
+- Xóa thẻ Vid: thẻ chưa hoàn thành (Biên tập chưa duyệt, chưa có video) có dấu x ở góc phải phía trên ô, bấm và xác nhận là xóa. Thẻ đã hoàn thành không xóa nhanh: mở thẻ, bấm Xóa thẻ cạnh Hủy thẻ. Xóa thẻ chỉ xóa nội dung đã biên tập; video đã ren vẫn ở Kho, slot đã xếp vẫn giữ video.
+- Bỏ mọi icon gắn với AI trong app (hình ngôi sao lấp lánh ✦, ✨).
+

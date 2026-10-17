@@ -2787,3 +2787,15 @@ test('10.90 · Duyệt và khóa Short Vid: bản Biên tập kèm video lưu kh
   // Dữ liệu cũ: thẻ đã duyệt có bản đã duyệt
   delete v.apprSnap; AC.ensureShortVid(S); assert.equal(v.apprSnap.script, v.script);
 });
+// ---------- Short Vid: xóa thẻ Vid (mục 10.91) ----------
+test('10.91 · Xóa thẻ: thẻ chưa hoàn thành xóa nhanh; thẻ đã hoàn thành chỉ xóa khi full, video ren vẫn ở Kho, slot giữ video', () => {
+  const S = seed(); const a = readyCard(S, 'free');
+  assert.equal(AC.vidDone(a), false); const r = AC.deleteVid(S, a.id); assert.ok(r.ok); assert.equal(AC.byId(S.videos, a.id), undefined);
+  const v = readyCard(S, 'free'); AC.completeEdit(S, v.id); assert.ok(AC.renderVid(S, v.id).ok);
+  const s = AC.scheduleVideo(S, v.id, { date: '2026-10-14', time: '19:00', channelIds: ['ch-tt'] }).slots[0];
+  assert.equal(AC.vidDone(v), true); assert.equal(AC.deleteVid(S, v.id).ok, false, 'thẻ đã hoàn thành không xóa nhanh');
+  const nLib = AC.libraryOf(S).length; const d = AC.deleteVid(S, v.id, { full: true }); assert.ok(d.ok); assert.equal(d.kept, 1); assert.equal(d.slots, 1);
+  assert.equal(AC.byId(S.videos, v.id), undefined); assert.equal(AC.libraryOf(S).length, nLib, 'video ren vẫn ở Kho');
+  assert.ok(/^data:video\//.test(s.assets[0].versions.find(x => x.n === s.assets[0].current).src), 'slot đã xếp giữ video');
+  assert.equal(AC.deleteVid(S, 'nope').ok, false);
+});
