@@ -48,14 +48,16 @@ function mxTableHtml(w) {
   if (!ms.length) return `<p class="muted small" style="padding:8px 2px">Không có Topic nào chứa "${esc(q)}".</p>`;
   const rowHead = ({ r, v, n }) => {
     const tw = AC.topicWarnings(S, r, v);
-    return `<b>Topic ${r.order}</b> <span class="faint">v${v.n}/${r.versions.length}</span>${q && n ? ` <span class="small muted">· ${n} chỗ khớp</span>` : ''}<br>
-      <button class="linkbtn small" data-act="open-topic" data-id="${esc(r.id)}">${esc(v.title)}</button><br>
+    // Mục 10.93: Xóa Topic = dấu x ở góc phải phía trên ô (như Short Vid); ẩn khi Matrix đã khóa hoặc tuần đã chốt
+    const x = locked || mdone ? '' : `<button class="sv-x sv-rowx" data-act="topic-remove" data-id="${esc(r.id)}" data-testid="mx-topic-del" aria-label="Xóa Topic ${r.order}" title="Xóa Topic">${icon('close')}</button>`;
+    return `${x}<b>Topic ${r.order}</b> <span class="faint">v${v.n}/${r.versions.length}</span>${q && n ? ` <span class="small muted">· ${n} chỗ khớp</span>` : ''}<br>
+      <button class="linkbtn small sv-strong" data-act="open-topic" data-id="${esc(r.id)}">${esc(v.title)}</button><br>
       <span class="small muted">${v.words.toLocaleString('vi-VN')} chữ</span>${tw.length ? ` <span class="small" style="color:var(--warn)">· ${tw.length} lưu ý</span>` : ''}<br>
-      ${locked ? '' : `<button class="linkbtn small" data-act="topic-edit" data-id="${esc(r.id)}" ${mdone ? 'disabled' : ''}>Sửa</button> · <button class="linkbtn small danger" data-act="topic-remove" data-id="${esc(r.id)}" ${mdone ? 'disabled' : ''}>Xóa</button>`}`;
+      ${locked ? '' : `<button class="linkbtn small sv-strong" data-act="topic-edit" data-id="${esc(r.id)}" ${mdone ? 'disabled' : ''}>Sửa</button>`}`;
   };
   const head = `<div class="mc mhd">Topic \\ Cột</div>${cols.map(c => `<div class="mc mhd">${esc(c.label)}</div>`).join('')}`;
-  const rowsHtml = ms.map(m => `<div class="mc mrow">${rowHead(m)}</div>${cols.map(col => `<div class="mc">${cellBtnHtml(w, m.r, col)}</div>`).join('')}`).join('');
-  const cards = ms.map(m => `<section class="panel mcard"><div>${rowHead(m)}</div><div class="cells">${cols.map(col => `<div class="stack" style="gap:4px"><span class="small muted">${esc(col.label)}</span>${cellBtnHtml(w, m.r, col)}</div>`).join('')}</div></section>`).join('');
+  const rowsHtml = ms.map(m => `<div class="mc mrow sv-rowh">${rowHead(m)}</div>${cols.map(col => `<div class="mc">${cellBtnHtml(w, m.r, col)}</div>`).join('')}`).join('');
+  const cards = ms.map(m => `<section class="panel mcard"><div class="sv-rowh">${rowHead(m)}</div><div class="cells">${cols.map(col => `<div class="stack" style="gap:4px"><span class="small muted">${esc(col.label)}</span>${cellBtnHtml(w, m.r, col)}</div>`).join('')}</div></section>`).join('');
   return `<div class="matrix-wrap"><div class="matrix" style="grid-template-columns: 190px repeat(${cols.length}, minmax(130px, 1fr))">${head}${rowsHtml}</div></div><div class="mcards">${cards}</div>`;
 }
 
@@ -100,10 +102,10 @@ function mxToolsHtml(w) {
   const writeBtn = run
     ? `<button class="btn danger" data-act="mx-stop">Dừng</button><span class="small" id="mx-run" aria-live="polite">Đang viết ${run.done}/${run.total} ô…</span>`
     : `<button class="btn ${wg.ok && !done ? 'primary' : ''}" data-act="mx-write" ${wg.ok && !done ? '' : 'disabled'} title="${esc(done ? AC.MATRIX_LOCK_MSG : wg.ok ? (wg.redo ? `Viết lại ${wg.count} ô Đã hủy` : `Viết ${wg.count} ô Trống`) : wg.reasons.join('; '))}">${wg.redo ? 'Viết lại ma trận' : 'Viết ma trận'}${wg.ok && !done ? ` (${wg.count} ô)` : ''}</button>`;
-  const lockBtn = `<button class="btn ${done ? '' : cg.ok && !run ? 'primary' : ''}" data-act="mx-lock" data-testid="mx-lock" aria-pressed="${done}" ${(done ? locked : !cg.ok) || run ? 'disabled' : ''} title="${esc(done ? (locked ? 'Tuần đã chốt. Mở lại tuần trước.' : 'Bấm để mở khóa Matrix và sửa ô, Topic') : cg.ok ? 'Bấm để khóa Matrix, sau đó mới Viết tất cả ở Dashboard' : 'Chưa khóa được: ' + cg.reasons.join('; '))}">${icon(done ? 'lock' : 'unlock')} ${done ? 'Đã khóa' : 'Khóa Matrix'}</button>`;
+  const lockBtn = `<button class="btn ${done ? '' : cg.ok && !run ? 'primary' : ''}" data-act="mx-lock" data-testid="mx-lock" aria-pressed="${done}" ${(done ? locked : !cg.ok) || run ? 'disabled' : ''} title="${esc(done ? (locked ? 'Tuần đã chốt. Mở lại tuần trước.' : 'Bấm để mở khóa Matrix và sửa ô, Topic') : cg.ok ? 'Bấm để khóa Matrix, sau đó mới Viết tất cả ở Dashboard' : 'Chưa khóa được: ' + cg.reasons.join('; '))}">${icon(done ? 'lock' : 'unlock')} ${done ? 'Sửa Matrix' : 'Khóa Matrix'}</button>`;
   return `<div class="row" id="mx-tools">
       ${writeBtn}
-      ${bulk && !run && !done ? `<button class="btn" data-act="mx-bulk">Duyệt tất cả (${bulk} ô)</button>` : ''}
+      ${bulk && !run && !done ? `<button class="btn" data-act="mx-bulk" data-testid="mx-bulk">Duyệt Nhanh (${bulk} ô)</button>` : ''}
       ${lockBtn}
     </div>
     <p class="${done ? 'sr' : 'small faint'}" id="deal-why">${done ? `${AC.MATRIX_LOCK_MSG} Qua Dashboard bấm "Viết tất cả".` : cg.ok ? 'Mọi ô đã xử lý: bấm Khóa Matrix, rồi Viết tất cả ở Dashboard.' : `${!wg.ok && !run ? `Viết ma trận: ${esc(wg.reasons.join('; '))}. ` : ''}Chưa khóa được: ${esc(cg.reasons.join('; '))}.`}</p>`;
@@ -128,26 +130,27 @@ async function mxStep() {
     view.mxRun = null; save();
     const left = AC.writeQueue(S, run.weekId, run.mode === 'redo' ? 'redo' : undefined).length;
     render();
-    toast(run.stop || left ? `Đã viết ${run.done} ô · còn ${left} ô ${run.mode === 'redo' ? 'Đã hủy' : 'Trống'}.` : `Đã viết ${run.done} ô. Mời bạn duyệt từng ô.`);
+    const bl = run.blank ? ` ${run.blank} ô không có nội dung, để trống.` : '';
+    toast(run.stop || left ? `Đã viết ${run.done} ô · còn ${left} ô ${run.mode === 'redo' ? 'Đã hủy' : 'Trống'}.${bl}` : `Đã viết ${run.done} ô.${bl} Mời bạn duyệt từng ô.`);
     return;
   }
   const r = await withAiText(C => AC.writeCellNow(C, q[0]), { noAi: run.mock, fallbackAll: true, progress: run });
   if (r.busy && !run.stop) { setTimeout(mxStep, MX_BUSY_WAIT); return; }   // AI đang bận việc khác: chờ rồi thử lại, không bỏ hàng chờ
   if (r.fellBack) run.mock = true;
   if (!r.ok) { view.mxRun = null; save(); render(); toast(r.error, 'bad'); return; }
-  run.done++; save();
+  if (r.empty) run.blank = (run.blank || 0) + 1; else run.done++; save();
   if (view.screen === 'matrix') {
     const t = document.getElementById('mx-table'), c = document.getElementById('mx-counts'), m = document.getElementById('mx-run');
     if (t) t.innerHTML = mxTableHtml(curWeek());
     if (c) c.innerHTML = mxCountsHtml(curWeek());
-    if (m) m.textContent = `Đang viết ${run.done}/${run.total} ô…`;
+    if (m) m.textContent = `Đang viết ${run.done + (run.blank || 0)}/${run.total} ô…`;
   }
   setTimeout(mxStep, MX_DELAY);
 }
 const MX_BUSY_WAIT = 1500;
 const MX_DELAY = 160;   // mô phỏng thời gian AI viết một ô
 ACTIONS['mx-stop'] = () => { if (view.mxRun) view.mxRun.stop = true; };
-// Duyệt tất cả (10.56): dùng chung cho ô (Matrix, Dashboard bước 4) và slot (Dashboard bước 6)
+// Duyệt Nhanh / Duyệt tất cả (10.56, đổi tên ở Matrix mục 10.93): dùng chung cho ô (Matrix, Dashboard bước 4) và slot (Dashboard bước 6)
 async function approveAllFlow(kind, w) {
   const isCell = kind === 'cell';
   const clean = isCell ? AC.bulkApprovable(S, w.id) : AC.slotsApprovable(S, w.id);
@@ -157,7 +160,7 @@ async function approveAllFlow(kind, w) {
   if (!clean.length && !warned.length) return toast(`Không có ${unit} nào chờ duyệt.`, 'bad');
   const extra = warned.length ? `<label class="check"><input type="checkbox" data-collect="all" ${clean.length ? '' : 'checked'}> Duyệt cả ${warned.length} ${unit} có cảnh báo</label>
     <ul class="small" style="max-height:180px;overflow:auto;margin:6px 0 0">${warned.map(x => `<li>${esc(name(x))}: ${esc(AC.summarizeWarnings(x.warnings).label)}</li>`).join('')}</ul>` : '';
-  const res = await confirmBox({ title: 'Duyệt tất cả', ok: 'Duyệt', extra,
+  const res = await confirmBox({ title: isCell ? 'Duyệt Nhanh' : 'Duyệt tất cả', ok: 'Duyệt', extra,
     body: `<p>${clean.length} ${unit} Chưa duyệt không có cảnh báo sẽ được duyệt.${warned.length ? ` ${warned.length} ${unit} có cảnh báo (chỉ để tham khảo): đánh dấu ô bên dưới nếu muốn duyệt luôn, hoặc để lại xem từng ${unit}.` : ''}</p>` });
   if (!res) return;
   const all = res === true ? false : !!res.all;

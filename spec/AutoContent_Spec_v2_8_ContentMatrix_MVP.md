@@ -1469,3 +1469,9 @@ Quyết định D178–D179. Áp dụng thử cho Short Vid trước; Matrix và
 - Bảng Phân cảnh: dấu x ở góc phải phía trên ô STT để xóa cảnh; cảnh dưới tự dồn lên, STT đánh lại. Cảnh đã có hình hoặc VO thì hỏi trước khi xóa. Kịch bản đã duyệt thì không xóa được (bấm Sửa Kịch bản trước); luôn giữ ít nhất một cảnh.
 - Nút Hoàn tác bên phải Tạo mới: đưa trạng thái và nội dung các cảnh về đúng như ngay sau lần Tạo mới gần nhất. Tắt khi chưa Tạo mới lần nào hoặc cảnh chưa đổi.
 
+## 10.93. Matrix: ô Topic, Duyệt Nhanh, Sửa Matrix, ô trống không chặn khóa (17/10/2026, bản 122)
+- Ô Topic: tên Topic và Sửa đậm hơn; Xóa Topic là dấu x ở góc phải phía trên ô (ẩn khi Matrix đã khóa).
+- Đổi tên: Duyệt tất cả → Duyệt Nhanh; nút ổ khóa khi đã khóa: Đã khóa → Sửa Matrix (chưa khóa vẫn là Khóa Matrix).
+- Viết ma trận: ô nào máy không viết ra nội dung thì để trống, không báo lỗi, không dừng lượt viết.
+- Khóa Matrix bật khi mọi ô có nội dung đều Đã duyệt (cần ít nhất một ô Đã duyệt); ô trống không chặn khóa và không xuống Dashboard.
+

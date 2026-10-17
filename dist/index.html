@@ -13318,10 +13318,11 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		const out = [];
 		topicsOf(S, weekId).filter((r) => topicCurrent(r)).forEach((r) => weekLanes(S, w).forEach(({ colId, k }) => {
 			const c = cellAt(S, weekId, r.id, colId, k);
-			if (c && cellView(S, c).state === want && !cellNoCase(S, c)) out.push(c.id);
+			if (c && cellView(S, c).state === want && !cellNoCase(S, c) && !(want === "EMPTY" && cellBlank(S, c))) out.push(c.id);
 		}));
 		return out;
 	}
+	var cellBlank = (S, c) => c.blank != null && c.blank === cellView(S, c).topicVersion;
 	function noCaseEmptyCount(S, weekId) {
 		return cellsOf(S, weekId).filter((c) => cellView(S, c).state === "EMPTY" && cellNoCase(S, c) && topicCurrent(byId(S.topics, c.topicId) || {})).length;
 	}
@@ -13341,8 +13342,8 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		}
 		if (!rows.length) reasons.push("Chưa có Topic");
 		else if (!queue.length) {
-			const nc = noCaseEmptyCount(S, weekId);
-			reasons.push(nc ? `Mọi ô viết được đã có bài; ${nc} ô Câu chuyện không viết (Topic không có trường hợp) · nên Hủy` : "Mọi ô đã có bài");
+			const nc = noCaseEmptyCount(S, weekId) + cellsOf(S, weekId).filter((c) => cellView(S, c).state === "EMPTY" && !cellNoCase(S, c) && cellBlank(S, c)).length;
+			reasons.push(nc ? `Mọi ô viết được đã có bài; ${nc} ô không có nội dung để trống` : "Mọi ô đã có bài");
 		}
 		return {
 			ok: !reasons.length,
@@ -13369,11 +13370,21 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			ok: false,
 			error: "Topic không có trường hợp cụ thể · nên Hủy ô Câu chuyện này."
 		};
-		const gen = addCellGen(S, cell, byId(S.topics, cell.topicId).currentVersion, "DRAFT", at || S.settings.demoNow);
-		if (!gen) return {
-			ok: false,
-			error: "Không viết được ô này."
-		};
+		const row = byId(S.topics, cell.topicId);
+		const gen = addCellGen(S, cell, row.currentVersion, "DRAFT", at || S.settings.demoNow);
+		if (!gen) {
+			if (st0 === "CANCELLED") return {
+				ok: false,
+				error: "Không viết được ô này."
+			};
+			cell.blank = row.currentVersion;
+			log(S, "write-blank", "cell", cellId);
+			return {
+				ok: true,
+				empty: true
+			};
+		}
+		delete cell.blank;
 		return {
 			ok: true,
 			gen
@@ -13387,13 +13398,17 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			written: 0
 		};
 		let written = 0;
+		let blank = 0;
 		gate.queue.forEach((id) => {
-			if (writeCellNow(S, id, at).ok) written++;
+			const r = writeCellNow(S, id, at);
+			if (r.ok && r.empty) blank++;
+			else if (r.ok) written++;
 		});
-		log(S, "write-matrix", "week", weekId, `${written} ô`);
+		log(S, "write-matrix", "week", weekId, `${written} ô${blank ? `, ${blank} ô để trống` : ""}`);
 		return {
 			ok: true,
-			written
+			written,
+			blank
 		};
 	}
 	function approveCell(S, cellId, at) {
@@ -15418,9 +15433,8 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		if (!(w ? topicsOf(S, weekId).filter((r) => topicCurrent(r)) : []).length) reasons.push("Chưa có Topic");
 		else {
 			const mc = matrixCounts(S, weekId);
-			if (mc.EMPTY) reasons.push(`${mc.EMPTY} ô chưa viết`);
 			if (mc.DRAFT) reasons.push(`${mc.DRAFT} ô chưa duyệt`);
-			if (!mc.EMPTY && !mc.DRAFT && !mc.APPROVED) reasons.push("Chưa có ô nào được duyệt");
+			if (!mc.DRAFT && !mc.APPROVED) reasons.push("Chưa có ô nào được duyệt");
 		}
 		return {
 			ok: !reasons.length,
@@ -16330,9 +16344,10 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		const mc = matrixCounts(S, weekId);
 		const sc = slotCounts(S, weekId);
 		const ic = imageCounts(S, weekId);
-		const written = rows.length > 0 && mc.total > 0 && mc.EMPTY === 0;
-		const approved = written && mc.DRAFT === 0 && mc.APPROVED > 0;
+		const todo = rows.length ? writeQueue(S, weekId).length : 0;
+		const approved = mc.DRAFT === 0 && mc.APPROVED > 0;
 		const completed = approved && !!w.matrixDoneAt;
+		const written = rows.length > 0 && mc.total > 0 && (todo === 0 || completed);
 		const dealt = sc.total > 0 && sc.EMPTY === 0;
 		const st = [];
 		st.push({
@@ -16343,14 +16358,14 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			done: rows.length > 0,
 			reason: rows.length ? `${rows.length} Topic` : "Chưa có Topic"
 		});
-		const nc = mc.EMPTY ? noCaseEmptyCount(S, weekId) : 0;
+		mc.EMPTY && noCaseEmptyCount(S, weekId);
 		st.push({
 			done: written,
-			reason: rows.length && mc.EMPTY ? mc.EMPTY > nc ? `${mc.EMPTY - nc}/${mc.total} ô chưa viết` : `${nc} ô Câu chuyện nên Hủy` : ""
+			reason: rows.length && todo && !written ? `${todo}/${mc.total} ô chưa viết` : ""
 		});
 		st.push({
 			done: completed,
-			reason: written && mc.DRAFT ? `${mc.DRAFT} ô chưa duyệt` : approved && !completed ? "Chờ khóa Matrix" : ""
+			reason: mc.DRAFT ? `${mc.DRAFT} ô chưa duyệt` : approved && !completed ? "Chờ khóa Matrix" : ""
 		});
 		st.push({
 			done: dealt,
@@ -20456,7 +20471,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		DATA_VERSION,
 		STORAGE_KEY,
 		RELEASE: "R4",
-		BUILD: 121,
+		BUILD: 122,
 		TEMPLATES,
 		STEP_NAMES,
 		STEP_COUNT,
@@ -23732,14 +23747,14 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		if (!ms.length) return `<p class="muted small" style="padding:8px 2px">Không có Topic nào chứa "${esc(q)}".</p>`;
 		const rowHead = ({ r, v, n }) => {
 			const tw = AC.topicWarnings(S, r, v);
-			return `<b>Topic ${r.order}</b> <span class="faint">v${v.n}/${r.versions.length}</span>${q && n ? ` <span class="small muted">· ${n} chỗ khớp</span>` : ""}<br>
-      <button class="linkbtn small" data-act="open-topic" data-id="${esc(r.id)}">${esc(v.title)}</button><br>
+			return `${locked || mdone ? "" : `<button class="sv-x sv-rowx" data-act="topic-remove" data-id="${esc(r.id)}" data-testid="mx-topic-del" aria-label="Xóa Topic ${r.order}" title="Xóa Topic">${icon("close")}</button>`}<b>Topic ${r.order}</b> <span class="faint">v${v.n}/${r.versions.length}</span>${q && n ? ` <span class="small muted">· ${n} chỗ khớp</span>` : ""}<br>
+      <button class="linkbtn small sv-strong" data-act="open-topic" data-id="${esc(r.id)}">${esc(v.title)}</button><br>
       <span class="small muted">${v.words.toLocaleString("vi-VN")} chữ</span>${tw.length ? ` <span class="small" style="color:var(--warn)">· ${tw.length} lưu ý</span>` : ""}<br>
-      ${locked ? "" : `<button class="linkbtn small" data-act="topic-edit" data-id="${esc(r.id)}" ${mdone ? "disabled" : ""}>Sửa</button> · <button class="linkbtn small danger" data-act="topic-remove" data-id="${esc(r.id)}" ${mdone ? "disabled" : ""}>Xóa</button>`}`;
+      ${locked ? "" : `<button class="linkbtn small sv-strong" data-act="topic-edit" data-id="${esc(r.id)}" ${mdone ? "disabled" : ""}>Sửa</button>`}`;
 		};
 		const head = `<div class="mc mhd">Topic \\ Cột</div>${cols.map((c) => `<div class="mc mhd">${esc(c.label)}</div>`).join("")}`;
-		const rowsHtml = ms.map((m) => `<div class="mc mrow">${rowHead(m)}</div>${cols.map((col) => `<div class="mc">${cellBtnHtml(w, m.r, col)}</div>`).join("")}`).join("");
-		const cards = ms.map((m) => `<section class="panel mcard"><div>${rowHead(m)}</div><div class="cells">${cols.map((col) => `<div class="stack" style="gap:4px"><span class="small muted">${esc(col.label)}</span>${cellBtnHtml(w, m.r, col)}</div>`).join("")}</div></section>`).join("");
+		const rowsHtml = ms.map((m) => `<div class="mc mrow sv-rowh">${rowHead(m)}</div>${cols.map((col) => `<div class="mc">${cellBtnHtml(w, m.r, col)}</div>`).join("")}`).join("");
+		const cards = ms.map((m) => `<section class="panel mcard"><div class="sv-rowh">${rowHead(m)}</div><div class="cells">${cols.map((col) => `<div class="stack" style="gap:4px"><span class="small muted">${esc(col.label)}</span>${cellBtnHtml(w, m.r, col)}</div>`).join("")}</div></section>`).join("");
 		return `<div class="matrix-wrap"><div class="matrix" style="grid-template-columns: 190px repeat(${cols.length}, minmax(130px, 1fr))">${head}${rowsHtml}</div></div><div class="mcards">${cards}</div>`;
 	}
 	RENDERERS.matrix = () => {
@@ -23786,10 +23801,10 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		const cg = AC.completeGate(S, w.id);
 		const locked = w.status === "CONFIRMED";
 		const writeBtn = run ? `<button class="btn danger" data-act="mx-stop">Dừng</button><span class="small" id="mx-run" aria-live="polite">Đang viết ${run.done}/${run.total} ô…</span>` : `<button class="btn ${wg.ok && !done ? "primary" : ""}" data-act="mx-write" ${wg.ok && !done ? "" : "disabled"} title="${esc(done ? AC.MATRIX_LOCK_MSG : wg.ok ? wg.redo ? `Viết lại ${wg.count} ô Đã hủy` : `Viết ${wg.count} ô Trống` : wg.reasons.join("; "))}">${wg.redo ? "Viết lại ma trận" : "Viết ma trận"}${wg.ok && !done ? ` (${wg.count} ô)` : ""}</button>`;
-		const lockBtn = `<button class="btn ${done ? "" : cg.ok && !run ? "primary" : ""}" data-act="mx-lock" data-testid="mx-lock" aria-pressed="${done}" ${(done ? locked : !cg.ok) || run ? "disabled" : ""} title="${esc(done ? locked ? "Tuần đã chốt. Mở lại tuần trước." : "Bấm để mở khóa Matrix và sửa ô, Topic" : cg.ok ? "Bấm để khóa Matrix, sau đó mới Viết tất cả ở Dashboard" : "Chưa khóa được: " + cg.reasons.join("; "))}">${icon(done ? "lock" : "unlock")} ${done ? "Đã khóa" : "Khóa Matrix"}</button>`;
+		const lockBtn = `<button class="btn ${done ? "" : cg.ok && !run ? "primary" : ""}" data-act="mx-lock" data-testid="mx-lock" aria-pressed="${done}" ${(done ? locked : !cg.ok) || run ? "disabled" : ""} title="${esc(done ? locked ? "Tuần đã chốt. Mở lại tuần trước." : "Bấm để mở khóa Matrix và sửa ô, Topic" : cg.ok ? "Bấm để khóa Matrix, sau đó mới Viết tất cả ở Dashboard" : "Chưa khóa được: " + cg.reasons.join("; "))}">${icon(done ? "lock" : "unlock")} ${done ? "Sửa Matrix" : "Khóa Matrix"}</button>`;
 		return `<div class="row" id="mx-tools">
       ${writeBtn}
-      ${bulk && !run && !done ? `<button class="btn" data-act="mx-bulk">Duyệt tất cả (${bulk} ô)</button>` : ""}
+      ${bulk && !run && !done ? `<button class="btn" data-act="mx-bulk" data-testid="mx-bulk">Duyệt Nhanh (${bulk} ô)</button>` : ""}
       ${lockBtn}
     </div>
     <p class="${done ? "sr" : "small faint"}" id="deal-why">${done ? `${AC.MATRIX_LOCK_MSG} Qua Dashboard bấm "Viết tất cả".` : cg.ok ? "Mọi ô đã xử lý: bấm Khóa Matrix, rồi Viết tất cả ở Dashboard." : `${!wg.ok && !run ? `Viết ma trận: ${esc(wg.reasons.join("; "))}. ` : ""}Chưa khóa được: ${esc(cg.reasons.join("; "))}.`}</p>`;
@@ -23830,7 +23845,8 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			save();
 			const left = AC.writeQueue(S, run.weekId, run.mode === "redo" ? "redo" : void 0).length;
 			render();
-			toast(run.stop || left ? `Đã viết ${run.done} ô · còn ${left} ô ${run.mode === "redo" ? "Đã hủy" : "Trống"}.` : `Đã viết ${run.done} ô. Mời bạn duyệt từng ô.`);
+			const bl = run.blank ? ` ${run.blank} ô không có nội dung, để trống.` : "";
+			toast(run.stop || left ? `Đã viết ${run.done} ô · còn ${left} ô ${run.mode === "redo" ? "Đã hủy" : "Trống"}.${bl}` : `Đã viết ${run.done} ô.${bl} Mời bạn duyệt từng ô.`);
 			return;
 		}
 		const r = await withAiText((C) => AC.writeCellNow(C, q[0]), {
@@ -23850,13 +23866,14 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			toast(r.error, "bad");
 			return;
 		}
-		run.done++;
+		if (r.empty) run.blank = (run.blank || 0) + 1;
+		else run.done++;
 		save();
 		if (view.screen === "matrix") {
 			const t = document.getElementById("mx-table"), c = document.getElementById("mx-counts"), m = document.getElementById("mx-run");
 			if (t) t.innerHTML = mxTableHtml(curWeek());
 			if (c) c.innerHTML = mxCountsHtml(curWeek());
-			if (m) m.textContent = `Đang viết ${run.done}/${run.total} ô…`;
+			if (m) m.textContent = `Đang viết ${run.done + (run.blank || 0)}/${run.total} ô…`;
 		}
 		setTimeout(mxStep, MX_DELAY);
 	}
@@ -23878,11 +23895,12 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			return `${x.slot.time} ${AC.dmy(x.slot.date)} · ${fmtName(x.slot.formatId)}`;
 		};
 		if (!clean.length && !warned.length) return toast(`Không có ${unit} nào chờ duyệt.`, "bad");
+		const extra = warned.length ? `<label class="check"><input type="checkbox" data-collect="all" ${clean.length ? "" : "checked"}> Duyệt cả ${warned.length} ${unit} có cảnh báo</label>
+    <ul class="small" style="max-height:180px;overflow:auto;margin:6px 0 0">${warned.map((x) => `<li>${esc(name(x))}: ${esc(AC.summarizeWarnings(x.warnings).label)}</li>`).join("")}</ul>` : "";
 		const res = await confirmBox({
-			title: "Duyệt tất cả",
+			title: isCell ? "Duyệt Nhanh" : "Duyệt tất cả",
 			ok: "Duyệt",
-			extra: warned.length ? `<label class="check"><input type="checkbox" data-collect="all" ${clean.length ? "" : "checked"}> Duyệt cả ${warned.length} ${unit} có cảnh báo</label>
-    <ul class="small" style="max-height:180px;overflow:auto;margin:6px 0 0">${warned.map((x) => `<li>${esc(name(x))}: ${esc(AC.summarizeWarnings(x.warnings).label)}</li>`).join("")}</ul>` : "",
+			extra,
 			body: `<p>${clean.length} ${unit} Chưa duyệt không có cảnh báo sẽ được duyệt.${warned.length ? ` ${warned.length} ${unit} có cảnh báo (chỉ để tham khảo): đánh dấu ô bên dưới nếu muốn duyệt luôn, hoặc để lại xem từng ${unit}.` : ""}</p>`
 		});
 		if (!res) return;

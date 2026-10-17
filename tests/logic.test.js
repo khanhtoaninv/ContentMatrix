@@ -307,7 +307,7 @@ test('Chia bài: cổng chặn khi chưa lập tuần, chưa có Topic, tuần �
   assert.ok(AC.completeGate(S, w.id).reasons.includes('Chưa có Topic')); assert.ok(AC.dealGate(S, w.id).reasons.includes('Matrix chưa khóa'));
   assert.ok(AC.dealGate(S, T1).reasons.includes('Tuần đã chốt'));
   AC.importTopics(S, w.id, fileOf(S, T2));
-  assert.equal(AC.completeGate(S, w.id).reasons[0], '15 ô chưa viết');
+  assert.equal(AC.completeGate(S, w.id).reasons[0], 'Chưa có ô nào được duyệt', 'mục 10.93: ô trống không chặn khóa');
 });
 
 test('Đổi ô nguồn của slot: chỉ chọn ô Đã duyệt cùng Cột; slot viết lại theo Format', () => {
@@ -709,11 +709,11 @@ test('MTX-01/07 · không viết lại ô Đã duyệt/Đã hủy; Câu chuyện
   const c = AC.cellAt(S, T3, rows[2].id, 'col-cauchuyen');
   delete c.byVersion[rows[2].currentVersion];
   const g = AC.writeGate(S, T3);
-  assert.equal(g.ok, false); assert.match(g.reasons[0], /1 ô Câu chuyện không viết/);
+  assert.equal(g.ok, false); assert.match(g.reasons[0], /1 ô không có nội dung để trống/);
   assert.equal(AC.writeCellNow(S, c.id).ok, false);
   assert.equal(AC.regenCell(S, c.id).ok, false);
-  assert.match(AC.weekProgress(S, T3).steps[2].reason, /Câu chuyện nên Hủy/);
-  assert.equal(AC.nextAction(S, T3).label, 'Hủy 1 ô Câu chuyện');
+  assert.equal(AC.weekProgress(S, T3).steps[2].done, true, 'mục 10.93: ô không có nội dung để trống, bước Viết ma trận xong');
+  assert.equal(AC.nextAction(S, T3).label, 'Duyệt 3 ô');
   assert.ok(AC.cancelCellNow(S, c.id).ok);
   assert.equal(AC.cellView(S, c).state, 'CANCELLED');
   assert.equal(AC.nextAction(S, T3).label, 'Duyệt 3 ô');
@@ -2818,4 +2818,21 @@ test('10.92 · Xóa cảnh dồn STT; Hoàn tác đưa cảnh về bản ngay sa
   const r = AC.undoGen(S, v.id); assert.ok(r.ok); assert.equal(r.count, n); assert.deepEqual(v.edit.scenes.map(s => s.id), ids); assert.notEqual(v.edit.scenes[0].text, 'Lời mới');
   assert.notEqual(v.edit, v.genSnap.edit, 'bản lưu tách rời'); AC.removeScene(S, v.id, ids[0]); assert.equal(v.genSnap.edit.scenes.length, n);
   AC.approveVidScript(S, v.id); assert.equal(AC.undoGen(S, v.id).ok, false, 'Kịch bản đã duyệt');
+});
+// ---------- Matrix: Viết ma trận để trống ô không có nội dung, Khóa Matrix khi mọi ô có nội dung đã duyệt (mục 10.93) ----------
+test('10.93 · Ô không viết ra nội dung: để trống, ra khỏi hàng chờ; ô trống không chặn Khóa Matrix', () => {
+  const S = seed(); const rows = AC.topicsOf(S, T3);
+  const c = AC.cellAt(S, T3, rows[2].id, 'col-cauchuyen'); delete c.byVersion[rows[2].currentVersion];
+  AC.topicCurrent(rows[2]).hasCase = true;   // giả Topic báo có trường hợp nhưng không có đoạn kể: máy không viết ra nội dung
+  assert.deepEqual(AC.writeQueue(S, T3), [c.id]);
+  const r = AC.writeCellNow(S, c.id); assert.ok(r.ok); assert.equal(r.empty, true); assert.equal(AC.cellView(S, c).state, 'EMPTY');
+  assert.deepEqual(AC.writeQueue(S, T3), [], 'ô để trống không vào hàng chờ nữa'); assert.match(AC.writeGate(S, T3).reasons[0], /để trống/);
+  assert.equal(AC.completeGate(S, T3).ok, false, 'còn ô chưa duyệt');
+  AC.cellsOf(S, T3).filter(x => AC.cellView(S, x).state === 'DRAFT').forEach(x => AC.approveCell(S, x.id));
+  const g = AC.completeGate(S, T3); assert.ok(g.ok, g.reasons.join('; ')); assert.ok(AC.weekProgress(S, T3).steps[2].done);
+  // tuần mới: viết một phần, duyệt hết ô đã viết thì khóa được
+  const w = AC.applyTemplateWeek(S, '2026-10-26', 'wt-2').week; AC.importTopics(S, w.id, fileOf(S, T2));
+  const q = AC.writeQueue(S, w.id); AC.writeCellNow(S, q[0]); AC.approveCell(S, q[0]);
+  assert.ok(AC.completeGate(S, w.id).ok, 'ô chưa viết không chặn khóa'); assert.equal(AC.weekProgress(S, w.id).steps[2].done, false);
+  assert.ok(AC.completeMatrix(S, w.id).ok); assert.equal(AC.weekProgress(S, w.id).steps[2].done, true);
 });

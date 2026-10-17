@@ -15,7 +15,7 @@ results = []
 
 def unlock(page):
     b = page.locator('[data-testid="mx-lock"]')
-    if b.count() and 'Đã khóa' in b.inner_text() and not b.is_disabled():
+    if b.count() and 'Sửa Matrix' in b.inner_text() and not b.is_disabled():
         b.click(); page.wait_for_timeout(150)
 
 
@@ -307,9 +307,9 @@ with sync_playwright() as pw:
     check('Duyệt lại ô', 'Đã duyệt' in txt(page, '.drawer') and page.locator('#cell-actions button:has-text("Duyệt")').count() == 0)
     page.keyboard.press('Escape')
     # MTX-08 duyệt hàng loạt, rồi duyệt từng ô có cảnh báo
-    page.locator('button:has-text("Duyệt tất cả")').click()
+    page.locator('[data-act="mx-bulk"]').click()
     check('Duyệt hàng loạt: hộp xác nhận nêu ô có cảnh báo vẫn chờ', 'có cảnh báo' in txt(page, '.dialog'))
-    check('10.56 nút đổi tên thành "Duyệt tất cả"', page.locator('[data-act="mx-bulk"]').inner_text().startswith('Duyệt tất cả') and page.locator('.dialog h2').inner_text() == 'Duyệt tất cả')
+    check('10.93 nút đổi tên thành "Duyệt Nhanh"', page.locator('[data-act="mx-bulk"]').inner_text().startswith('Duyệt Nhanh') and page.locator('.dialog h2').inner_text() == 'Duyệt Nhanh')
     check('10.55 Duyệt hàng loạt có ô đánh dấu "Duyệt cả 2 ô có cảnh báo", mặc định không chọn', 'Duyệt cả 2 ô có cảnh báo' in txt(page, '.dialog') and not page.locator('.dialog input[data-collect="all"]').is_checked())
     page.locator('.dialog button.primary').click()
     page.wait_for_timeout(100)
@@ -332,7 +332,7 @@ with sync_playwright() as pw:
     check('Viết tất cả slot khóa khi Matrix chưa khóa', page.locator('[data-testid="deal"]').is_disabled())
     click_nav(page, 'Matrix')
     page.locator('[data-testid="mx-lock"]').click(); page.wait_for_timeout(150)
-    check('Khóa Matrix: nút Sửa Topic tắt, Viết ma trận tắt, hiện "Đã khóa"', 'Đã khóa' in txt(page, '[data-testid="mx-lock"]') and page.locator('.matrix [data-act="topic-edit"]').first.is_disabled() and page.locator('button.btn:has-text("Viết ma trận")').first.is_disabled() and 'Matrix đã khóa' in txt(page))
+    check('Khóa Matrix: nút Sửa Topic tắt, Viết ma trận tắt, hiện "Sửa Matrix"', 'Sửa Matrix' in txt(page, '[data-testid="mx-lock"]') and page.locator('.matrix [data-act="topic-edit"]').first.is_disabled() and page.locator('button.btn:has-text("Viết ma trận")').first.is_disabled() and 'Matrix đã khóa' in txt(page))
     click_nav(page, 'Dashboard')
     check('Dashboard sau khi khóa: Viết tất cả slot bật (17 slot), việc tiếp theo cùng tên', 'Viết tất cả (17 slot)' in txt(page, '[data-testid="deal"]') and not page.locator('[data-testid="deal"]').is_disabled() and 'Viết tất cả' in txt(page, '.nextband'))
     page.locator('[data-testid="deal"]').click()
@@ -405,7 +405,7 @@ with sync_playwright() as pw:
     page.locator('[data-act="mx-write"]').click()
     page.wait_for_function("!document.querySelector('[data-act=\"mx-stop\"]')", timeout=15000)
     c2 = txt(page, '#mx-counts')
-    check('Viết ma trận xong: 0 trống, mọi ô Chưa duyệt (trừ Câu chuyện không có trường hợp)', '0 trống' in c2 or 'nên Hủy' in txt(page), c2)
+    check('Viết ma trận xong: 0 trống, mọi ô Chưa duyệt (trừ Câu chuyện không có trường hợp)', '0 trống' in c2 or 'để trống' in txt(page), c2)
     check('Viết ma trận không lỗi script', not errs, '; '.join(errs))
     # TPC-08 Sửa Topic → phiên bản mới; back → Dùng phiên bản này
     page.locator('.matrix [data-act="open-topic"]').first.click()
@@ -2319,6 +2319,30 @@ with sync_playwright() as pw:
     check('10.92 Hoàn tác: các cảnh về như ngay sau Tạo mới, Hoàn tác tắt lại', rows().count() == n and rows().nth(2).locator('textarea').first.input_value() == first2 and dlg.locator('[data-testid="sp-undo-gen"]').is_disabled())
     check('10.92 Kịch bản chưa duyệt Biên tập: Xếp Slot vẫn khóa', dlg.locator('[data-testid="sp-tab-sl"]').is_disabled())
     check('10.92 không lỗi trang', not errs, '; '.join(errs))
+    ctx.close()
+
+    # ---------- Matrix: ô Topic, Duyệt Nhanh, Sửa Matrix, ô trống không chặn khóa (mục 10.93) ----------
+    ctx, page, errs = fresh(p)
+    S_ = lambda js: page.evaluate(f"() => {{ const S = window.__AC_S(); return {js}; }}")
+    click_nav(page, 'Matrix'); page.wait_for_timeout(400)
+    lk = page.locator('[data-testid="mx-lock"]')
+    check('10.93 Matrix đã khóa: nút ổ khóa ghi "Sửa Matrix", dấu x Xóa Topic ẩn', 'Sửa Matrix' in lk.inner_text() and page.locator('.matrix [data-testid="mx-topic-del"]').count() == 0)
+    lk.click(); page.wait_for_timeout(300)
+    row = page.locator('.matrix .mrow').first
+    fw = page.evaluate("() => [...document.querySelectorAll('.matrix .mrow')][0].querySelectorAll('.sv-strong').length && [...[...document.querySelectorAll('.matrix .mrow')][0].querySelectorAll('.sv-strong')].map(e => getComputedStyle(e).fontWeight)")
+    check('10.93 Mở khóa: ô Topic có x ở góc, không còn chữ Xóa, tên Topic và Sửa đậm hơn', row.locator('.sv-rowx').count() == 1 and 'Xóa' not in row.inner_text() and fw and len(fw) == 2 and all(int(x) >= 600 for x in fw), str(fw))
+    check('10.93 Nút khi chưa khóa: "Khóa Matrix"', 'Khóa Matrix' in lk.inner_text())
+    # tuần mới: viết một ô, duyệt, ô trống không chặn khóa
+    page.evaluate("""() => { const S = window.__AC_S(); const w = AC.applyTemplateWeek(S, '2026-10-26', 'wt-2').week; const src = AC.topicFileOf(S, AC.weekIdOf('2026-10-12')).md; AC.importTopics(S, w.id, src); const q = AC.writeQueue(S, w.id); AC.writeCellNow(S, q[0]); AC.writeCellNow(S, q[1]); S.ui.weekStart = '2026-10-26'; }""")
+    click_nav(page, 'Dashboard'); page.wait_for_timeout(200); click_nav(page, 'Matrix'); page.wait_for_timeout(400)
+    check('10.93 Có ô chưa duyệt: Khóa Matrix tắt; có nút Duyệt Nhanh', lk.is_disabled() and page.locator('[data-testid="mx-bulk"]').inner_text().startswith('Duyệt Nhanh'))
+    page.locator('[data-testid="mx-bulk"]').click(); page.wait_for_timeout(200)
+    check('10.93 Hộp Duyệt Nhanh', page.locator('.dialog h2').inner_text() == 'Duyệt Nhanh')
+    page.locator('.dialog [data-x="yes"]').last.click(); page.wait_for_timeout(300)
+    check('10.93 Mọi ô có nội dung đã duyệt (còn ô trống): Khóa Matrix bật', lk.is_enabled() and S_("AC.matrixCounts(S, AC.weekIdOf('2026-10-26')).EMPTY") > 0)
+    lk.click(); page.wait_for_timeout(300)
+    check('10.93 Khóa xong: nút thành Sửa Matrix', 'Sửa Matrix' in lk.inner_text())
+    check('10.93 không lỗi trang', not errs, '; '.join(errs))
     ctx.close()
 
     # ---------- localStorage bị chặn ----------

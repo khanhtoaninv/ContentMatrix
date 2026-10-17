@@ -38,10 +38,12 @@ export function writeQueue(S, weekId, mode) {
   const out = [];
   topicsOf(S, weekId).filter(r => topicCurrent(r)).forEach(r => weekLanes(S, w).forEach(({ colId, k }) => {
     const c = cellAt(S, weekId, r.id, colId, k);
-    if (c && cellView(S, c).state === want && !cellNoCase(S, c)) out.push(c.id);
+    if (c && cellView(S, c).state === want && !cellNoCase(S, c) && !(want === 'EMPTY' && cellBlank(S, c))) out.push(c.id);
   }));
   return out;
 }
+// Ô Viết ma trận không ra nội dung (mục 10.93): để trống, đánh dấu theo phiên bản Topic để không vào hàng chờ viết nữa
+export const cellBlank = (S, c) => c.blank != null && c.blank === cellView(S, c).topicVersion;
 export function noCaseEmptyCount(S, weekId) {
   return cellsOf(S, weekId).filter(c => cellView(S, c).state === 'EMPTY' && cellNoCase(S, c) && topicCurrent(byId(S.topics, c.topicId) || {})).length;
 }
@@ -55,8 +57,8 @@ export function writeGate(S, weekId) {
   if (rows.length && !queue.length) { const redo = writeQueue(S, weekId, 'redo'); if (redo.length) { queue = redo; mode = 'redo'; } }
   if (!rows.length) reasons.push('Chưa có Topic');
   else if (!queue.length) {
-    const nc = noCaseEmptyCount(S, weekId);
-    reasons.push(nc ? `Mọi ô viết được đã có bài; ${nc} ô Câu chuyện không viết (Topic không có trường hợp) · nên Hủy` : 'Mọi ô đã có bài');
+    const nc = noCaseEmptyCount(S, weekId) + cellsOf(S, weekId).filter(c => cellView(S, c).state === 'EMPTY' && !cellNoCase(S, c) && cellBlank(S, c)).length;
+    reasons.push(nc ? `Mọi ô viết được đã có bài; ${nc} ô không có nội dung để trống` : 'Mọi ô đã có bài');
   }
   return { ok: !reasons.length, reasons, count: queue.length, queue, mode, redo: mode === 'redo' };
 }
@@ -69,17 +71,17 @@ export function writeCellNow(S, cellId, at) {
   if (cellNoCase(S, cell)) return { ok: false, error: 'Topic không có trường hợp cụ thể · nên Hủy ô Câu chuyện này.' };
   const row = byId(S.topics, cell.topicId);
   const gen = addCellGen(S, cell, row.currentVersion, 'DRAFT', at || S.settings.demoNow);
-  if (!gen) return { ok: false, error: 'Không viết được ô này.' };
-  return { ok: true, gen };
+  if (!gen) { if (st0 === 'CANCELLED') return { ok: false, error: 'Không viết được ô này.' }; cell.blank = row.currentVersion; log(S, 'write-blank', 'cell', cellId); return { ok: true, empty: true }; }
+  delete cell.blank; return { ok: true, gen };
 }
 // Viết toàn bộ hàng đợi (dùng cho test; giao diện viết từng ô để có nút Dừng)
 export function writeMatrix(S, weekId, at) {
   const gate = writeGate(S, weekId);
   if (!gate.ok) return { ok: false, reasons: gate.reasons, written: 0 };
   let written = 0;
-  gate.queue.forEach(id => { if (writeCellNow(S, id, at).ok) written++; });
-  log(S, 'write-matrix', 'week', weekId, `${written} ô`);
-  return { ok: true, written };
+  let blank = 0; gate.queue.forEach(id => { const r = writeCellNow(S, id, at); if (r.ok && r.empty) blank++; else if (r.ok) written++; });
+  log(S, 'write-matrix', 'week', weekId, `${written} ô${blank ? `, ${blank} ô để trống` : ''}`);
+  return { ok: true, written, blank };
 }
 
 // ---- Thao tác ô (MTX-03..06) ----

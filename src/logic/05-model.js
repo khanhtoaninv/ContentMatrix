@@ -704,9 +704,9 @@ export function completeGate(S, weekId) {
   if (!rows.length) reasons.push('Chưa có Topic');
   else {
     const mc = matrixCounts(S, weekId);
-    if (mc.EMPTY) reasons.push(`${mc.EMPTY} ô chưa viết`);
+    // Mục 10.93: ô trống (chưa viết hoặc không có nội dung) không chặn khóa; chỉ cần mọi ô có nội dung đã duyệt
     if (mc.DRAFT) reasons.push(`${mc.DRAFT} ô chưa duyệt`);
-    if (!mc.EMPTY && !mc.DRAFT && !mc.APPROVED) reasons.push('Chưa có ô nào được duyệt');
+    if (!mc.DRAFT && !mc.APPROVED) reasons.push('Chưa có ô nào được duyệt');
   }
   return { ok: !reasons.length, reasons };
 }
@@ -1152,16 +1152,17 @@ export function weekProgress(S, weekId) {
   const mc = matrixCounts(S, weekId);
   const sc = slotCounts(S, weekId);
   const ic = imageCounts(S, weekId);
-  const written = rows.length > 0 && mc.total > 0 && mc.EMPTY === 0;
-  const approved = written && mc.DRAFT === 0 && mc.APPROVED > 0;
+  const todo = rows.length ? writeQueue(S, weekId).length : 0;
+  const approved = mc.DRAFT === 0 && mc.APPROVED > 0;
   const completed = approved && !!w.matrixDoneAt;
+  const written = rows.length > 0 && mc.total > 0 && (todo === 0 || completed);
   const dealt = sc.total > 0 && sc.EMPTY === 0;
   const st = [];
   st.push({ done: sc.total > 0, reason: sc.total ? '' : 'Tuần chưa có slot' });
   st.push({ done: rows.length > 0, reason: rows.length ? `${rows.length} Topic` : 'Chưa có Topic' });
   const nc = mc.EMPTY ? noCaseEmptyCount(S, weekId) : 0;
-  st.push({ done: written, reason: rows.length && mc.EMPTY ? (mc.EMPTY > nc ? `${mc.EMPTY - nc}/${mc.total} ô chưa viết` : `${nc} ô Câu chuyện nên Hủy`) : '' });
-  st.push({ done: completed, reason: written && mc.DRAFT ? `${mc.DRAFT} ô chưa duyệt` : (approved && !completed ? 'Chờ khóa Matrix' : '') });
+  st.push({ done: written, reason: rows.length && todo && !written ? `${todo}/${mc.total} ô chưa viết` : '' });
+  st.push({ done: completed, reason: mc.DRAFT ? `${mc.DRAFT} ô chưa duyệt` : (approved && !completed ? 'Chờ khóa Matrix' : '') });
   st.push({ done: dealt, reason: sc.EMPTY ? `${sc.EMPTY} slot chưa có bài` : '' });
   st.push({ done: dealt && sc.DRAFT === 0, reason: dealt && sc.DRAFT ? `${sc.DRAFT} slot chưa duyệt${ic.boxes ? ` · ${ic.done}/${ic.boxes} ảnh` : ''}` : '' });
   st.push({ done: w.status === 'CONFIRMED', reason: w.status === 'REOPENED' ? 'Đang sửa' : (w.status === 'CONFIRMED' ? `Đã chốt · bản ${w.revision}` : '') });
