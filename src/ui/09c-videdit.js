@@ -118,6 +118,74 @@ export function openGenImage(id, sid, done) {
   box.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[data-gk]')) { e.preventDefault(); e.target.click(); } });
 }
 
+// ---- Thumbnail của video (mục 10.87): cũng là ảnh bìa khi xếp vào Slot ----
+function thumbGrp(v) {
+  const th = AC.vidThumbOf(v), t = v.thumb, ci = t ? t.versions.findIndex(x => x.n === t.current) : -1, n = t ? t.versions.length : 0;
+  const ext = th.kind !== 'auto' && th.kind !== 'file' && !/^data:image\/svg/.test(th.src);
+  return `<div class="vp-grp" data-testid="ve-thumb"><div class="eyebrow" title="Thumbnail cũng là ảnh bìa của video khi xếp vào Slot. Mặc định hệ thống tự sinh từ hình cảnh đầu và tiêu đề.">Thumbnail</div>
+    <div class="vp-tb"><img class="vp-tbimg" src="${esc(th.src)}" alt="Thumbnail đang dùng" data-testid="ve-thimg"><div class="vp-tbside">
+      <div class="pv-imgtools imgbar" role="toolbar" aria-label="Công cụ thumbnail">
+        <button class="btn sm icon" data-a="thstep" data-d="-1" ${ci > 0 ? '' : 'disabled'} aria-label="Bản trước" data-testid="ve-thprev">${icon('left')}</button><button class="btn sm icon" data-a="thstep" data-d="1" ${ci >= 0 && ci < n - 1 ? '' : 'disabled'} aria-label="Bản sau" data-testid="ve-thnext">${icon('right')}</button>
+        <button class="btn sm" data-a="thauto" data-testid="ve-thauto" title="Hệ thống tự sinh: hình cảnh đầu có hình làm nền, tiêu đề ở dưới">Tự sinh</button>
+        <button class="btn sm" data-a="thscene" data-testid="ve-thscene" title="Chọn một cảnh trong video làm thumbnail">Chọn cảnh</button>
+        <button class="btn sm" data-a="thup" data-testid="ve-thup" title="Tải ảnh của bạn lên làm thumbnail">${icon('upload')} Up</button>
+        <button class="btn sm" data-a="thlib" data-testid="ve-thlib" title="Store: chọn ảnh từ kho ảnh chung">${icon('gallery')} Store</button>
+        <button class="btn sm" data-a="thgen" data-testid="ve-thgen" title="Gen AI: mô tả ảnh rồi tạo thumbnail mới">Gen AI</button>
+        <button class="btn sm" data-a="thcrop" data-testid="ve-thcrop" ${ext ? '' : 'disabled'} title="${ext ? 'Cắt giữa về khung dọc 9:16 (thành bản mới, bản gốc giữ nguyên)' : 'Ảnh tự sinh đã đúng 9:16'}">Cắt về 9:16</button>
+        <button class="btn sm" data-a="thsave" data-testid="ve-thsave" ${ext ? '' : 'disabled'} title="Lưu thumbnail này vào Store để dùng lại">Lưu Store</button>
+        <button class="btn sm icon" data-a="thdl" aria-label="Tải thumbnail xuống" title="Tải thumbnail xuống">${icon('export')}</button>
+        <button class="btn sm icon ghost" data-a="thdel" data-testid="ve-thdel" ${n ? '' : 'disabled'} aria-label="Xóa bản thumbnail đang xem" title="Xóa bản đang xem; hết bản thì quay về ảnh tự sinh">${icon('trash')}</button>
+      </div>
+      <span class="small pv-imgmeta" data-testid="ve-thmeta">${n ? `v${t.current}/${n} · ` : ''}${esc(th.label)}</span>
+    </div></div><input type="file" id="vp-fileT" accept="image/png,image/jpeg,image/webp,image/gif" class="sr" tabindex="-1"></div>`;
+}
+function loadImg(src) { return new Promise((ok, no) => { const im = new Image(); im.onload = () => ok(im); im.onerror = () => no(new Error('Không đọc được ảnh.')); im.src = src; }); }
+async function cropTo916(src) {
+  const im = await loadImg(src); const W = im.naturalWidth || im.width, Hh = im.naturalHeight || im.height; if (!W || !Hh) throw new Error('Không đọc được ảnh.');
+  if (Math.abs(W / Hh - 9 / 16) < 0.01) return null;
+  const cw = W / Hh > 9 / 16 ? Math.round(Hh * 9 / 16) : W, ch = W / Hh > 9 / 16 ? Hh : Math.round(W * 16 / 9);
+  const c = document.createElement('canvas'); c.width = cw; c.height = ch; c.getContext('2d').drawImage(im, (W - cw) / 2, (Hh - ch) / 2, cw, ch, 0, 0, cw, ch);
+  return c.toDataURL('image/png');
+}
+function thumbBytes(src) { return /^data:image\/svg\+xml;utf8,/.test(src) ? new TextEncoder().encode(decodeURIComponent(src.slice(src.indexOf(',') + 1))) : AC.dataUrlBytes(src); }
+function openThumbScenes(id, done) {
+  const v = vOf(id); const list = AC.thumbScenes(v);
+  const box = openLayer(`<header><span class="eyebrow">Thumbnail</span><h2>Chọn cảnh làm thumbnail</h2></header>
+    <div class="vp-gopts th">${list.map(x => x.src ? `<button class="vp-thpick" data-sid="${esc(x.sid)}" data-testid="th-scene"><img src="${esc(x.src)}" alt=""><span>Cảnh ${x.i + 1}</span></button>` : `<span class="vp-thpick none" title="Cảnh chưa có hình"><span class="td-ph">▢</span><span>Cảnh ${x.i + 1}</span></span>`).join('')}</div>
+    <div class="actions"><button class="btn ghost" data-act="close-layer">Đóng</button></div>`, 'dialog');
+  box.addEventListener('click', e => { const b = e.target.closest('[data-sid]'); if (!b) return; const r = AC.addSceneThumb(S, id, b.dataset.sid); if (!r.ok) return toast(r.error, 'bad'); closeLayer(); done(r); });
+}
+function openThumbLib(id, done) {
+  const list = AC.libraryFind(S, '', '').slice().reverse();
+  const box = openLayer(`<header><span class="eyebrow">Thumbnail · Store</span><h2>Kho ảnh chung</h2></header>
+    ${list.length ? `<div class="vp-gopts th">${list.map(x => `<button class="vp-thpick" data-lib="${esc(x.id)}" data-testid="th-lib"><img src="${esc(x.src)}" alt="" loading="lazy"><span>${esc(x.name)}</span></button>`).join('')}</div>` : '<p class="muted">Kho đang trống.</p>'}
+    <div class="actions"><button class="btn ghost" data-act="close-layer">Đóng</button></div>`, 'dialog');
+  box.addEventListener('click', e => { const b = e.target.closest('[data-lib]'); if (!b) return; const x = list.find(y => y.id === b.dataset.lib); const r = AC.addVidThumb(S, id, { src: x.src, kind: 'lib', name: x.name }); if (!r.ok) return toast(r.error, 'bad'); closeLayer(); done(r); });
+}
+function openThumbGen(id, done) {
+  const api = AC.imageApiOn(S); const st = { opts: null, pr: `Ảnh bìa video: ${vOf(id).insight.title}`, stl: GEN_STYLES[0], busy: false };
+  const html = () => `<header><span class="eyebrow">Thumbnail · Gen AI${api ? ` qua ${esc(providerLabel())}` : ' (mô phỏng)'}</span><h2>Tạo thumbnail</h2></header>
+    <div class="body stack" style="gap:8px"><div class="field"><label for="tg-p">Mô tả ảnh (prompt)</label><textarea id="tg-p" rows="3">${esc(st.pr)}</textarea></div>
+      <div class="row" style="gap:8px;align-items:flex-end"><div class="field"><label for="tg-s">Phong cách</label><select id="tg-s">${GEN_STYLES.map(x => `<option ${x === st.stl ? 'selected' : ''}>${esc(x)}</option>`).join('')}</select></div>
+      <button class="btn primary" id="tg-do" data-testid="tg-do" ${st.busy ? 'disabled' : ''}>${st.busy ? 'Đang tạo…' : st.opts ? 'Tạo lại' : 'Tạo 4 ảnh'}</button></div>
+      ${st.opts ? `<div class="vp-gopts">${st.opts.map((s, k) => `<img src="${esc(s)}" data-tk="${k}" alt="Phương án ${k + 1}" role="button" tabindex="0" title="Dùng ảnh này">`).join('')}</div>` : ''}
+      <div class="actions"><button class="btn ghost" data-act="close-layer">Đóng</button></div></div>`;
+  const box = openLayer(html(), 'dialog'); const draw = () => { box.innerHTML = html(); };
+  const keep = () => { const p = box.querySelector('#tg-p'), s = box.querySelector('#tg-s'); if (p) st.pr = p.value; if (s) st.stl = s.value; };
+  box.addEventListener('click', async e => {
+    const im = e.target.closest('[data-tk]');
+    if (im) { const r = AC.addVidThumb(S, id, { src: st.opts[Number(im.dataset.tk)], kind: 'gen', name: 'thumbnail-gen-ai.png' }); if (!r.ok) return toast(r.error, 'bad'); closeLayer(); return done(r); }
+    if (!e.target.closest('#tg-do')) return; keep(); if (!st.pr.trim()) return toast('Nhập mô tả ảnh trước.', 'bad');
+    const prompt = `${st.pr.trim()}. Phong cách: ${st.stl}. Khung dọc 9:16.`; st.busy = true; draw();
+    if (api) {
+      const rs = await Promise.allSettled([0, 1, 2, 3].map(() => imageApiCall('gen', { prompt, ratio: '9:16' }))); st.busy = false;
+      const ok = rs.filter(r => r.status === 'fulfilled').map(r => r.value.src); if (!ok.length) { draw(); return toast(`Không tạo được ảnh: ${rs[0].reason && rs[0].reason.message || 'lỗi API'}`, 'bad'); }
+      st.opts = ok;
+    } else { st.opts = [0, 1, 2, 3].map(k => mockGenImg(`${st.pr} · ${st.stl}`, k * 11 + Date.now() % 97)); st.busy = false; }
+    draw();
+  });
+}
+
 // ---- Khung giao diện ----
 function voRow(v, sc, i) {
   const ed = v.edit;
@@ -202,7 +270,7 @@ const FRAME_TILE = { none: '', logo: '<span class="vp-fm-logo"></span>', band: '
 function settingsPane(v) {
   const ed = v.edit, mus = ed.music;
   const fr = [['none', 'Không frame'], ['logo', 'Nhãn góc'], ['band', 'Dải dưới']].concat(AC.vidFavFrames(S).filter(f => f.kind === 'png' && f.ratio === '9:16').map(f => [f.id, f.name]));
-  return `<div class="vp-pane"><div class="vp-grp"><div class="eyebrow">Caption <button class="btn sm" data-a="capopen" data-testid="ve-capopen">Quản lý caption →</button></div>
+  return `<div class="vp-pane">${thumbGrp(v)}<div class="vp-grp"><div class="eyebrow">Caption <button class="btn sm" data-a="capopen" data-testid="ve-capopen">Quản lý caption →</button></div>
       <div class="vp-styles">${AC.VID_CAPTION_STYLES.map((n, i) => `<button class="vp-cs s${i}" data-a="cstyle" data-i="${i}" aria-pressed="${ed.captions.style === i}">Aa<small>${esc(n)}</small></button>`).join('')}</div>
       <div class="vp-tools small"><label>Kiểu <select id="ve-cap">${opt(AC.VID_CAPTION_MODES, ed.captions.mode)}</select></label><label>Vị trí <select id="ve-pos">${opt(AC.VID_CAPTION_POS, ed.captions.pos)}</select></label></div></div>
     <div class="vp-grp"><div class="eyebrow">Hiệu ứng <span class="small muted" style="text-transform:none;letter-spacing:0">áp dụng cho mọi scene chưa chỉnh riêng</span></div><div class="vp-fxg">
@@ -314,6 +382,7 @@ export function mountEditor(host, id, hooks) {
   const undo = () => { if (RO) return; if (st.hist.length > 1) { st.fut.push(st.hist.pop()); restore(st.hist[st.hist.length - 1]); } };
   const redo = () => { if (RO) return; if (st.fut.length) { const j = st.fut.pop(); st.hist.push(j); restore(j); } };
   // Thực hiện một thay đổi dữ liệu: lỗi thì báo, đúng thì lưu + vẽ lại
+  const thDone = (r, msg) => { if (!r || !r.ok) return toast((r && r.error) || 'Lỗi.', 'bad'); save(); render(); if (msg) toast(r.slots ? `${msg}; bìa ${r.slots} slot đã xếp đổi theo.` : `${msg}.`); };
   const act = (r, msg) => { if (r && r.ok === false) { toast(r.error, 'bad'); return false; } commit(); render(); if (msg) toast(msg); return true; };
 
   function stopAudio() { au.list.forEach(a => { try { a.pause(); } catch (e) { /* bỏ qua */ } }); au.list = []; try { if ('speechSynthesis' in window) window.speechSynthesis.cancel(); } catch (e) { /* bỏ qua */ } if (au.music) { try { au.music.pause(); } catch (e) { /* bỏ qua */ } au.music = null; } }
@@ -559,6 +628,7 @@ export function mountEditor(host, id, hooks) {
     const el = e.target; const files = [...(el.files || [])]; el.value = ''; if (!files.length || RO) return;
     try {
       if (el.id === 'vp-file') { const sid = v().edit.scenes[upTarget].id; const ms = await readMediaList(files); act(AC.addSceneItems(S, id, sid, ms.map(m => ({ src: m.src, name: m.name, dur: m.dur, thumb: m.thumb }))), `Đã thêm ${ms.length} hình vào cảnh ${upTarget + 1}.`); return; }
+      if (el.id === 'vp-fileT') { const m = await readMedia(files[0]); const r = AC.addVidThumb(S, id, { src: m.src, kind: 'up', name: m.name }); thDone(r, 'Đã thêm thumbnail Up'); return; }
       if (el.id === 'vp-fileM') { const m = await readMedia(files[0]); if (!act(AC.setEditOptions(S, id, { music: { src: m.src, name: m.name } }), 'Đã thêm nhạc nền. Ghi nguồn/giấy phép bên dưới.')) return; const p = await decodePeaks(m.src, 200); if (p) AC.setEditOptions(S, id, { musicPeaks: p }); AC.vidMusicAdd(S, { name: m.name, src: m.src, peaks: p || null }); save(); render(); return; }
       if (el.id === 'vp-fileA') {
         const m = await readMedia(files[0]); const dur = m.dur || (await audioDur(m.src)); const tgt = upTarget; const all = tgt === 'all';
@@ -667,6 +737,16 @@ export function mountEditor(host, id, hooks) {
     if (a === 'voai') { act(AC.setSceneVo(S, id, sc.id, { kind: 'ai', name: `vo-canh-${i + 1}-ai.mp3` }), 'VO cảnh AI (mô phỏng): cảnh dài đúng bằng VO. Bấm một từ ở dòng Cue để đặt cue.'); return; }
     if (a === 'vox') { act(AC.clearSceneVo(S, id, sc.id)); return; }
     if (a === 'cstyle') { AC.setEditOptions(S, id, { style: i }); commit(); render(); return; }
+    if (a === 'thstep') { thDone(AC.stepVidThumb(S, id, Number(b.dataset.d))); return; }
+    if (a === 'thauto') { thDone(AC.addAutoThumb(S, id), 'Đã tự sinh thumbnail'); return; }
+    if (a === 'thscene') { openThumbScenes(id, r => thDone(r, 'Đã lấy cảnh làm thumbnail')); return; }
+    if (a === 'thup') { pick('#vp-fileT', null); return; }
+    if (a === 'thlib') { openThumbLib(id, r => thDone(r, 'Đã dùng ảnh từ Store làm thumbnail')); return; }
+    if (a === 'thgen') { openThumbGen(id, r => thDone(r, 'Đã thêm thumbnail Gen AI')); return; }
+    if (a === 'thcrop') { try { const out = await cropTo916(AC.vidThumbOf(v()).src); if (!out) return toast('Ảnh đã đúng tỉ lệ 9:16.'); thDone(AC.addVidThumb(S, id, { src: out, kind: 'crop', name: 'thumbnail-9x16.png' }), 'Đã cắt về 9:16 thành bản mới'); } catch (er) { toast(er.message, 'bad'); } return; }
+    if (a === 'thsave') { const th = AC.vidThumbOf(v()); const r = AC.addLibraryItem(S, { name: `Thumbnail ${v().insight.title}`.slice(0, 80), src: th.src, tags: ['thumbnail'] }); if (!r.ok) return toast(r.error, 'bad'); save(); toast('Đã lưu thumbnail vào Store.'); return; }
+    if (a === 'thdl') { const th = AC.vidThumbOf(v()); const ext = (/^data:image\/(png|jpeg|webp|gif|svg)/.exec(th.src) || [, 'png'])[1].replace('jpeg', 'jpg'); downloadBytes(`${AC.slugOf(v().insight.title) || 'video'}-thumbnail.${ext}`, thumbBytes(th.src), th.src.slice(5, th.src.indexOf(';'))); return; }
+    if (a === 'thdel') { if (!(await confirmBox({ title: 'Xóa bản thumbnail đang xem?', body: '<p>Hết bản thì video quay về ảnh tự sinh.</p>', ok: 'Xóa bản', danger: true }))) return; thDone(AC.removeVidThumb(S, id), 'Đã xóa bản thumbnail'); return; }
     if (a === 'frame') { AC.setEditOptions(S, id, { frame: b.dataset.k }); commit(); render(); return; }
     if (a === 'musup') { pick('#vp-fileM', null); return; }
     if (a === 'autobuild') { const r = AC.autoBuild(S, id); if (!r.ok) { toast(r.error, 'bad'); return; } commit(); render(); toast(r.filled || r.miss ? `Dựng tự động (mô phỏng, khớp theo chữ): điền ${r.filled} scene${r.miss ? `, ${r.miss} scene chưa khớp` : ''}${r.skipped ? `, giữ nguyên ${r.skipped} scene đã có hình` : ''}.` : 'Mọi scene đã có hình, không có gì để điền.'); return; }

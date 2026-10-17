@@ -1415,3 +1415,9 @@ Màn Short Vid mở ra chỉ có một hàng trống, mọi ô là dấu +. Dấ
 
 ## 10.86. Short Vid: Ren Vid, Kho và Xếp Slot (17/10/2026, bản 115)
 Mọi thẻ Vid (Topic và tự do) đi chung một quy trình: Biên tập → Hoàn thành → Ren Vid → tự lưu Kho → Xếp Slot. Ren Vid hiện là bản mô phỏng (video giữ chỗ); biên tập đổi sau khi ren thì video lỗi thời và nút thành Ren lại. Kho nhận thêm video (kèm ảnh bìa, độ dài, thẻ Vid ren). Xếp Slot là bảng Kênh × Ngày đều cột: bấm ô chọn giờ đăng (hộp kèm ảnh nhỏ các bài của kênh trong ngày), bấm ô để sửa, kéo ô trong cùng kênh sang ngày khác rồi xác nhận. Trùng lịch (cùng kênh, cùng ngày, dưới 30 phút) tự đẩy +30 phút kèm cảnh báo. Ren cả hàng, Ren cả lô. Chi tiết: HANDOFF mục 10.86, `notes/phan-tich-ren-vid-xep-slot.md`.
+
+## 10.87. Short Vid: Thumbnail của video và slot video ở Dashboard (17/10/2026, bản 116)
+- Tab Cài đặt trong Biên tập có mục **Thumbnail**. Mặc định hệ thống tự sinh (hình cảnh đầu có hình làm nền, tiêu đề ở dưới). Người dùng có thể Tự sinh lại, Chọn cảnh trong video, Up ảnh, lấy từ Store, Gen AI, Cắt về 9:16; mỗi lần là một phiên bản mới, chuyển bằng ‹ ›, xóa được bản đang xem (hết bản thì về ảnh tự sinh). Lưu Store và Tải xuống thumbnail đang dùng.
+- Thumbnail đang dùng là **ảnh bìa** của video khi xếp vào Slot; đổi thumbnail thì bìa ở các slot chưa đăng (tuần chưa chốt) đổi theo. Đổi thumbnail không bắt ren lại video.
+- Dashboard: slot video không còn nhãn "Không Cột" và "Short Vid". Ô ảnh của slot hiện thumbnail của video, bên cạnh là biểu tượng thước phim (giống icon menu Short Vid).
+

@@ -58,7 +58,7 @@ const posOfVid = (v2) => AC.vidsOf(S, v2.weekId, v2.topicId).findIndex(x => x.id
 // Ảnh nhỏ của một slot: video của Short Vid dùng ảnh bìa; slot khác dùng ảnh đầu tiên có sẵn; không có thì ô giữ chỗ
 function slotThumb(s) {
   let src = '';
-  if (s.videoId) { const vd = AC.byId(S.videos, s.videoId); const li = vd && vd.file && vd.file.libId && AC.libraryOf(S).find(x => x.id === vd.file.libId); src = (vd && vd.file && vd.file.cover) || (li && li.cover) || ''; }
+  if (s.videoId) { const vd = AC.byId(S.videos, s.videoId); const li = vd && vd.file && vd.file.libId && AC.libraryOf(S).find(x => x.id === vd.file.libId); src = (vd && AC.vidThumbOf(vd).src) || (li && li.cover) || ''; }
   if (!src) { const a = (s.assets || []).find(x => x.versions.some(vv => vv.n === x.current && /^data:image\//.test(vv.src || ''))); if (a) src = a.versions.find(vv => vv.n === a.current).src; }
   return /^data:image\//.test(src) ? `<img src="${esc(src)}" alt="">` : `<span class="td-ph" aria-hidden="true">${s.videoId ? '▶' : 'Aa'}</span>`;
 }

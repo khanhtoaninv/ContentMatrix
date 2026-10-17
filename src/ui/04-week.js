@@ -22,7 +22,7 @@ function slotLevel(s) {
   return '';
 }
 // Chuyên mục của slot = tên Cột của Format (D97, CAL-12)
-function segName(s) { const id = AC.slotColumnId(S, s); return id ? colName(id) : s.free ? 'Không Cột' : ''; }
+function segName(s) { const id = AC.slotColumnId(S, s); return id ? colName(id) : s.free && !s.videoId ? 'Không Cột' : ''; }
 // Slot chỉ xem (mục 10.24): bài Đã đăng không sửa; tuần đã chốt phải Mở lại để sửa
 export function lockNote(s) { return s.state === 'PUBLISHED' ? `Bài đã đăng nên chỉ xem.${s.pub && s.pub.mode === 'manual' ? ' Lỡ đánh dấu nhầm thì bấm "Bỏ đánh dấu" rồi sửa.' : ''}` : 'Tuần đã chốt nên chỉ xem. Muốn sửa: Mở lại để sửa ở Dashboard.'; }
 // Bài quá giờ mà chưa đăng được: Đăng lỗi (sửa được, rồi đăng lại)
@@ -59,10 +59,17 @@ function slotChipBtn(s) {
 }
 // Ô ảnh ngay trên chip slot (CAL-14): ảnh thu nhỏ của từng ô ảnh + số ô đã có ảnh
 function slotImgsHtml(s) {
+  if (s.videoId) return vidImgsHtml(s);
   if (!s.assets.length) return '<span class="imgs noimg small faint">Không cần ảnh</span>';
   const done = s.assets.filter(a => a.done).length; const n = s.assets.length;
   const shown = s.assets.slice(0, 3);
   return `<span class="imgs" title="${esc(s.assets.map(a => a.name).join(' · '))}"><span class="imgstack">${shown.map((a, i) => `<span class="stk" style="z-index:${shown.length - i}">${imgMini(a)}</span>`).join('')}</span><b class="imgn ${done < n ? 'need' : ''}" aria-label="${done} trên ${n} ảnh">${done < n ? `${done}/${n}` : n}</b>${s.assets.some(a => AC.shareCount(S, a) > 1) ? `<span class="shared" title="Ảnh dùng chung với slot khác" role="img" aria-label="Ảnh dùng chung với slot khác">${icon('link')}</span>` : ''}</span>`;
+}
+// Slot video từ Short Vid (mục 10.87): ảnh thumbnail của video (cũng là bìa) và biểu tượng thước phim
+function vidImgsHtml(s) {
+  const a = s.assets.find(x => x.versions.some(v => v.n === x.current && v.kind === 'video')); const ver = a && a.versions.find(v => v.n === a.current);
+  const vd = AC.byId(S.videos || [], s.videoId); const src = (ver && ver.cover && ver.cover.src) || (vd ? AC.vidThumbOf(vd).src : '');
+  return `<span class="imgs vid" title="Video Short Vid${vd ? ': ' + esc(vd.insight.title) : ''}"><span class="imgmini vthumb${src ? ' up' : ' none'}" aria-hidden="true">${src ? `<img src="${esc(src)}" alt="">` : ''}</span><span class="vfilm" aria-label="Video">${icon('film')}</span></span>`;
 }
 function imgMini(a) {
   const v = a.versions.find(x => x.n === a.current);

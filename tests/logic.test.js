@@ -2626,3 +2626,28 @@ test('10.86 · Đổi lịch slot video: đổi ngày / giờ trong cùng kênh,
   assert.equal(AC.moveVideoSlot(S, s2.id, { date: '2026-10-25' }).ok, false, 'ngoài tuần'); assert.equal(AC.moveVideoSlot(S, 'slot-1', { date: '2026-10-14' }).ok, false, 'không phải slot video');
   s1.state = 'PUBLISHED'; assert.equal(AC.moveVideoSlot(S, s1.id, { date: '2026-10-16' }).ok, false, 'đã đăng');
 });
+// ---------- Short Vid: Thumbnail của video (mục 10.87) ----------
+const PNG1 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+const vidCover = s => s.assets[0].versions.find(x => x.n === s.assets[0].current).cover;
+for (const origin of ['topic', 'free']) {
+  test(`10.87 · Thumbnail (${origin}): mặc định tự sinh, thêm bản từ cảnh / Up, ‹ ›, xóa bản; bìa slot đổi theo`, () => {
+    const S = seed(); const v = readyCard(S, origin);
+    const d = AC.vidThumbOf(v); assert.equal(d.kind, 'auto'); assert.equal(d.n, 0); assert.match(d.src, /^data:image\/svg\+xml;/);
+    AC.completeEdit(S, v.id); AC.renderVid(S, v.id);
+    const s = AC.scheduleVideo(S, v.id, { date: '2026-10-14', time: '19:00', channelIds: ['ch-tt'] }).slots[0];
+    assert.equal(vidCover(s).src, d.src, 'slot mới xếp lấy thumbnail làm bìa'); assert.equal(vidCover(s).thumb, 'auto');
+    assert.equal(AC.addVidThumb(S, v.id, { src: 'data:image/svg+xml;utf8,<svg/>', kind: 'up' }).ok, false, 'Up không nhận SVG');
+    const u = AC.addVidThumb(S, v.id, { src: PNG1, kind: 'up', name: 'a.png' }); assert.ok(u.ok); assert.equal(u.version, 1); assert.equal(u.slots, 1);
+    assert.equal(vidCover(s).src, PNG1); assert.equal(AC.vidThumbOf(v).label, 'Ảnh Up');
+    assert.equal(AC.addSceneThumb(S, v.id, v.edit.scenes[0].id).ok, false, 'cảnh giữ chỗ chưa có hình');
+    AC.addSceneItems(S, v.id, v.edit.scenes[1].id, [{ src: PNG1, name: 'h.png' }]);
+    const sc = AC.addSceneThumb(S, v.id, v.edit.scenes[1].id); assert.ok(sc.ok); assert.equal(AC.vidThumbOf(v).label, 'Cảnh 2');
+    assert.ok(AC.autoThumbSrc(v).includes(encodeURIComponent(PNG1).slice(0, 30)), 'ảnh tự sinh lấy hình cảnh đầu có hình làm nền');
+    const sig = AC.editSig(v); assert.ok(AC.addAutoThumb(S, v.id).ok); assert.equal(v.thumb.versions.length, 3);
+    assert.ok(AC.stepVidThumb(S, v.id, -1).ok); assert.equal(v.thumb.current, 2); assert.equal(AC.stepVidThumb(S, v.id, 5).ok, false);
+    assert.ok(AC.removeVidThumb(S, v.id).ok); assert.equal(v.thumb.versions.length, 2);
+    AC.removeVidThumb(S, v.id); AC.removeVidThumb(S, v.id); assert.equal(v.thumb, undefined); assert.equal(AC.vidThumbOf(v).kind, 'auto'); assert.equal(vidCover(s).thumb, 'auto');
+    assert.equal(AC.editSig(v), sig, 'đổi thumbnail không làm video lỗi thời');
+    s.state = 'PUBLISHED'; AC.addVidThumb(S, v.id, { src: PNG1, kind: 'up' }); assert.equal(vidCover(s).thumb, 'auto', 'slot đã đăng giữ bìa cũ');
+  });
+}

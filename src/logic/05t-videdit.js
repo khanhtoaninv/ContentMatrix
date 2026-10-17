@@ -2,7 +2,8 @@
 import { countWords, dmy, fold, isValidTime, splitSentences } from './01-util.js';
 import { addSlot, addSlotAsset, byId, cellLabel, cellView, cellsOf, deleteSlot, isLocked, log, topicCurrent, topicsOf, uploadSlotImage, weekOf } from './05-model.js';
 import { editSlot } from './05c-slots.js';
-import { fmtClock, setVideoCover, setVideoSubs } from './05n-media.js';
+import { fmtClock, setVideoSubs } from './05n-media.js';
+import { vidThumbOf } from './05x-vidthumb.js';
 import { aiSystem, extractJson } from './05o-aitext.js';
 import { VID_MAX_PER_TOPIC, attachVidRow, ensureShortVid, newVideo, vidGridOf, vidBody, vidSections, vidSettingsOf, vidTopicRow, vidsOf } from './05s-shortvid.js';
 // Mọi cách vào cùng đổ về một "dự án dựng" (v.edit): danh sách cảnh, mỗi cảnh có lời, thời lượng, tài nguyên (clip, ảnh hoặc prompt),
@@ -660,7 +661,7 @@ export function scheduleVideo(S, vidId, p) {
     const ai = addSlotAsset(S, s.id, 'video'); s.assets[ai.index].name = 'Video Short Vid';
     const up = uploadSlotImage(S, s.id, ai.index, { src: v.file.src, name: v.file.name });
     if (!up.ok) { made.concat([s]).forEach(z => deleteSlot(S, z.id)); return { ok: false, error: up.error }; }
-    if (v.file.cover) setVideoCover(S, s.id, ai.index, v.file.cover);
+    { const th = vidThumbOf(v); const ver = s.assets[ai.index].versions.find(z => z.n === s.assets[ai.index].current); if (ver) ver.cover = { src: th.src, t: null, at: S.settings.demoNow, thumb: th.kind }; }
     if (v.file.subs) setVideoSubs(S, s.id, ai.index, v.file.subs.cues, v.file.subs.source);
     editSlot(S, s.id, (P.captions && P.captions[x.channel.id]) || mockCaption(S, v, x.channel));
     s.vidCaptionSim = !(P.captions && P.captions[x.channel.id]);

@@ -118,7 +118,7 @@ const SLOT_STATE = {
   EMPTY: ['Chưa có bài', 'st-need'], DRAFT: ['Chưa duyệt', 'st-need'], APPROVED: ['Đã duyệt', 'st-ok'], PUBLISHED: ['Đã đăng', 'st-done'],
 };
 export const CELL_STATE = { EMPTY: ['Trống', 'st-need'], DRAFT: ['Chưa duyệt', 'st-need'], APPROVED: ['Đã duyệt', 'st-ok'], CANCELLED: ['Đã hủy', 'st-off'] };
-function freeTag(s) { return s.videoId ? '<span class="free-tag" title="Slot video từ Short Vid: video thành phẩm và caption viết từ kịch bản">Short Vid</span>' : s.free ? '<span class="free-tag" title="Slot tự do: bạn tự viết bài, tải ảnh/video">Tự viết</span>' : ''; }
+function freeTag(s) { return s.videoId ? '' : s.free ? '<span class="free-tag" title="Slot tự do: bạn tự viết bài, tải ảnh/video">Tự viết</span>' : ''; }
 export function slotStateHtml(s) {
   if (s.needsUpdate) return `<span class="st st-bad">Cần cập nhật</span>`;
   const [l, c] = SLOT_STATE[s.state] || [s.state, 'st-off'];

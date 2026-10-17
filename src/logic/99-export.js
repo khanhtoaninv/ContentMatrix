@@ -15,6 +15,7 @@ import { BUILTIN_FRAMES, FRAME_RATIOS, FRAME_RATIO_LABEL, addSlotImageVersion, a
 import { TEXT_EFFECTS, TEXT_FONTS, TEXT_PLACES, newTextLayer, normTextLayer, placeTextLayer, textFontCss, validateTextLayers } from './05j-textlayer.js';
 import { AI_OPS, DEFAULT_SNIPPETS, HOOK_KINDS, aiOpsOf, aiRewrite, captionOptions, coreIdea, deleteSnippet, hookOptions, replaceHook, saveSnippet, setSlotHookKind, snippetsFor, snippetsOf, useSnippet } from './05k-assist.js';
 import { CROP_RATIOS, applyDesignTemplate, cropOutSize, cropRect, deleteDesignTemplate, designTemplatesOf, normRotation, saveDesignTemplate } from './05l-design.js';
+import { THUMB_KINDS, THUMB_MAX, addAutoThumb, addSceneThumb, addVidThumb, autoThumbSrc, removeVidThumb, sceneImageSrc, stepVidThumb, syncVidThumb, thumbLabel, thumbScenes, vidThumbOf } from './05x-vidthumb.js';
 import { editSig, renderBlockers, renderState, renderVid, renderTargets, rowRenderTargets } from './05w-vidrender.js';
 import { addLibraryItem, addLibraryVideo, carouselCompose, carouselParse, convertPost, deleteLibraryItem, libraryFind, libraryOf, libraryTags, libraryUses, plainSentences, repurposeSlot, saveCarouselSlides, updateLibraryItem, useLibraryItem } from './05m-studio.js';
 import { IMAGE_PROVIDERS, SUB_MAX_CHARS, apiSizeFor, buildCheckRequest, buildImageRequest, buildSttRequest, cuesToSrt, cuesToVtt, fmtClock, imageApiOf, imageApiOn, normCues, parseClock, parseImageResponse, parseSttResponse, parseSubtitles, scriptLines, setImageApi, setVideoCover, setVideoSubs, srtTime, subtitleDraft, validateCues, videoAt } from './05n-media.js';
@@ -40,7 +41,7 @@ const AC = {
   TEXT_FONTS, TEXT_EFFECTS, TEXT_PLACES, newTextLayer, normTextLayer, placeTextLayer, textFontCss, validateTextLayers,
   AI_OPS, HOOK_KINDS, aiOpsOf, aiRewrite, coreIdea, hookOptions, replaceHook, captionOptions, setSlotHookKind, DEFAULT_SNIPPETS, snippetsOf, snippetsFor, saveSnippet, deleteSnippet, useSnippet,
   CROP_RATIOS, cropRect, cropOutSize, normRotation, designTemplatesOf, saveDesignTemplate, deleteDesignTemplate, applyDesignTemplate, dataUrlBytes, slugOf,
-  editSig, renderBlockers, renderState, renderVid, renderTargets, rowRenderTargets, SLOT_GAP_MIN, channelDaySlots, freeSlotTime, shiftMsg, moveVideoSlot,
+  editSig, renderBlockers, renderState, renderVid, renderTargets, rowRenderTargets, THUMB_KINDS, THUMB_MAX, addAutoThumb, addSceneThumb, addVidThumb, autoThumbSrc, removeVidThumb, sceneImageSrc, stepVidThumb, syncVidThumb, thumbLabel, thumbScenes, vidThumbOf, SLOT_GAP_MIN, channelDaySlots, freeSlotTime, shiftMsg, moveVideoSlot,
   libraryOf, addLibraryItem, addLibraryVideo, updateLibraryItem, deleteLibraryItem, libraryFind, libraryTags, libraryUses, useLibraryItem, carouselParse, carouselCompose, saveCarouselSlides, plainSentences, convertPost, repurposeSlot, writeCell, writeImagePrompt, writeSlot, parseLabeled, topicMaterial,
   defaultSetup, emptyState, nextId, byId, setBrandMd, setVoiceMd, setupStatus, sumWeights,
   validateFormat, validateColumn, formatUsage, deleteFormat,
