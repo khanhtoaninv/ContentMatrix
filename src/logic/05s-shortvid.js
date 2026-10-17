@@ -603,7 +603,7 @@ export function vidStageGate(v) {
   const has = !!String((v && v.script) || '').trim(); const idea = !v || v.status === 'IDEA'; const off = !v || v.cancelled; const mix = v && v.origin === 'mix';
   const src = has || ((v && v.media) || []).length > 0 || !!(v && v.edit && (v.edit.scenes || []).length);
   const bt = idea ? 'Tạo Kịch bản trước' : off ? 'Thẻ đã hủy' : mix && !has ? 'Nạp nguyên liệu rồi Dựng nhanh hoặc lập Dàn ý' : !src ? 'Chưa có kịch bản hoặc tệp nguồn' : scriptOpen(v) ? 'Duyệt Kịch bản trước khi biên tập' : '';
-  const sl = idea ? 'Tạo Kịch bản trước' : off ? 'Thẻ đã hủy' : vidFinal(v) ? '' : !v.file ? 'Ren Vid rồi Duyệt Biên tập trước' : !editLocked(v) ? 'Duyệt Biên tập trước' : 'Video lệch bản biên tập: Sửa Biên tập, Ren lại rồi Duyệt';
+  const sl = idea ? 'Tạo Kịch bản trước' : off ? 'Thẻ đã hủy' : vidFinal(v) && editLocked(v) ? '' : !v.file ? 'Ren Vid rồi Duyệt Biên tập trước' : !editLocked(v) ? 'Duyệt Biên tập trước' : 'Video lệch bản biên tập: Sửa Biên tập, Ren lại rồi Duyệt';
   return { bt: { ok: !bt, why: bt }, sl: { ok: !sl, why: sl } };
 }
 // Biên tập đã Hoàn thành = khóa; Mở khóa để sửa tiếp (video đã ren thành lỗi thời khi biên tập đổi)

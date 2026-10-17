@@ -1,5 +1,5 @@
 // ---------- 05t · Short Vid: Vid tự do, nguồn vào, bàn dựng mô phỏng, Đưa vào lịch (mục 10.75) ----------
-import { countWords, dmy, fold, isValidTime, splitSentences } from './01-util.js';
+import { clone, countWords, dmy, fold, isValidTime, splitSentences } from './01-util.js';
 import { addSlot, addSlotAsset, byId, cellLabel, cellView, cellsOf, deleteSlot, isLocked, log, slotLockMsg, slotSrcState, topicCurrent, topicsOf, uploadSlotImage, vidOutSig, weekOf } from './05-model.js';
 import { editSlot } from './05c-slots.js';
 import { fmtClock, setVideoSubs } from './05n-media.js';
@@ -481,6 +481,17 @@ export function addScene(S, id, afterSid) {
   const sc = newScene(ed, { label: 'Cảnh mới', dur: 3, text: '' }); ed.scenes.splice(i + 1, 0, sc); ed.capStale = true; return { ok: true, scene: sc };
 }
 export function removeScene(S, id, sid) { const v = vidGet(S, id); if (!v || !v.edit) return { ok: false, error: 'Không thấy cảnh.' }; if (v.edit.scenes.length < 2) return { ok: false, error: 'Giữ ít nhất một cảnh.' }; v.edit.scenes = v.edit.scenes.filter(x => x.id !== sid); v.edit.cues = (v.edit.cues || []).filter(c => c.sc !== sid); v.edit.capStale = true; return { ok: true }; }
+// Hoàn tác ở Phân cảnh (mục 10.92): lưu toàn bộ cảnh ngay sau lần Tạo mới gần nhất; Hoàn tác đưa cảnh về đúng bản đó
+export function snapGen(S, id) { const v = vidGet(S, id); if (!v || !v.edit) return { ok: false, error: 'Chưa có cảnh.' }; v.genSnap = { edit: clone(v.edit), at: S.settings.demoNow }; return { ok: true }; }
+export const canUndoGen = v => !!(v && v.genSnap && v.edit && JSON.stringify(v.edit) !== JSON.stringify(v.genSnap.edit));
+export function undoGen(S, id) {
+  const v = vidGet(S, id); if (!v) return { ok: false, error: 'Không thấy thẻ Vid.' }; if (v.cancelled) return { ok: false, error: 'Thẻ đã hủy.' };
+  if (!v.genSnap) return { ok: false, error: 'Chưa bấm Tạo mới lần nào.' };
+  if (String(v.script || '').trim() && v.status === 'APPROVED') return { ok: false, error: 'Kịch bản đã duyệt. Bấm Sửa Kịch bản trước.' };
+  if (!canUndoGen(v)) return { ok: false, error: 'Các cảnh chưa đổi từ lần Tạo mới gần nhất.' };
+  v.edit = clone(v.genSnap.edit); log(S, 'vid-undo-gen', 'video', id, `${v.edit.scenes.length} cảnh`);
+  return { ok: true, count: v.edit.scenes.length };
+}
 export function moveScene(S, id, sid, dir) {
   const v = vidGet(S, id); const a = v && v.edit && v.edit.scenes; const i = a ? a.findIndex(x => x.id === sid) : -1; const j = i + (dir < 0 ? -1 : 1);
   if (i < 0 || j < 0 || j >= a.length) return { ok: false, error: 'Không đổi chỗ được.' };
@@ -617,7 +628,7 @@ export function parseVidCaptions(raw, chans) {
 export function scheduleGate(S, vidId) {
   const v = vidGet(S, vidId); if (!v) return { ok: false, error: 'Không thấy thẻ Vid.' };
   if (v.cancelled) return { ok: false, error: 'Thẻ đã hủy.' };
-  if (!vidFinal(v)) return { ok: false, error: v.file ? 'Video chưa là thành phẩm: Duyệt Biên tập (video khớp bản biên tập) trước.' : 'Chưa có video thành phẩm. Ren Vid rồi Duyệt Biên tập trước.' };
+  if (!vidFinal(v) || !(v.edit && v.edit.doneAt)) return { ok: false, error: v.file ? 'Video chưa là thành phẩm: Duyệt Biên tập (video khớp bản biên tập) trước.' : 'Chưa có video thành phẩm. Ren Vid rồi Duyệt Biên tập trước.' };
   if (isLocked(S, v.weekId)) return { ok: false, error: 'Tuần đã chốt. Bấm "Mở lại để sửa" ở Dashboard trước.' };
   return { ok: true, video: v };
 }

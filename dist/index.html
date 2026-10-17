@@ -1495,6 +1495,12 @@ details.vp-src summary { cursor: pointer; font-size: var(--fs-2); color: var(--i
 .sv-x:hover, .sv-x:focus-visible { color: var(--bad, #c0392b); border-color: currentColor; }
 .sv-vx { top: -7px; right: -7px; width: 20px; height: 20px; }
 .sv-strong { font-weight: 600; }
+/* Phân cảnh: dấu x xóa cảnh ở góc ô STT (mục 10.92) */
+.vp-phc td.n { position: relative; }
+.sp-scx { top: 2px; right: 2px; width: 18px; height: 18px; }
+.sp-scx svg { width: 10px; height: 10px; }
+.sp-scx:disabled { display: none; }
+.vp-phc td.n { width: 58px; padding-right: 22px; }
 
 </style>
 <div class="app" id="app">
@@ -9076,6 +9082,48 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		v.edit.capStale = true;
 		return { ok: true };
 	}
+	function snapGen(S, id) {
+		const v = vidGet$4(S, id);
+		if (!v || !v.edit) return {
+			ok: false,
+			error: "Chưa có cảnh."
+		};
+		v.genSnap = {
+			edit: clone$1(v.edit),
+			at: S.settings.demoNow
+		};
+		return { ok: true };
+	}
+	var canUndoGen = (v) => !!(v && v.genSnap && v.edit && JSON.stringify(v.edit) !== JSON.stringify(v.genSnap.edit));
+	function undoGen(S, id) {
+		const v = vidGet$4(S, id);
+		if (!v) return {
+			ok: false,
+			error: "Không thấy thẻ Vid."
+		};
+		if (v.cancelled) return {
+			ok: false,
+			error: "Thẻ đã hủy."
+		};
+		if (!v.genSnap) return {
+			ok: false,
+			error: "Chưa bấm Tạo mới lần nào."
+		};
+		if (String(v.script || "").trim() && v.status === "APPROVED") return {
+			ok: false,
+			error: "Kịch bản đã duyệt. Bấm Sửa Kịch bản trước."
+		};
+		if (!canUndoGen(v)) return {
+			ok: false,
+			error: "Các cảnh chưa đổi từ lần Tạo mới gần nhất."
+		};
+		v.edit = clone$1(v.genSnap.edit);
+		log(S, "vid-undo-gen", "video", id, `${v.edit.scenes.length} cảnh`);
+		return {
+			ok: true,
+			count: v.edit.scenes.length
+		};
+	}
 	function moveScene(S, id, sid, dir) {
 		const v = vidGet$4(S, id);
 		const a = v && v.edit && v.edit.scenes;
@@ -9462,7 +9510,7 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 			ok: false,
 			error: "Thẻ đã hủy."
 		};
-		if (!vidFinal(v)) return {
+		if (!vidFinal(v) || !(v.edit && v.edit.doneAt)) return {
 			ok: false,
 			error: v.file ? "Video chưa là thành phẩm: Duyệt Biên tập (video khớp bản biên tập) trước." : "Chưa có video thành phẩm. Ren Vid rồi Duyệt Biên tập trước."
 		};
@@ -11229,7 +11277,7 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		const mix = v && v.origin === "mix";
 		const src = has || (v && v.media || []).length > 0 || !!(v && v.edit && (v.edit.scenes || []).length);
 		const bt = idea ? "Tạo Kịch bản trước" : off ? "Thẻ đã hủy" : mix && !has ? "Nạp nguyên liệu rồi Dựng nhanh hoặc lập Dàn ý" : !src ? "Chưa có kịch bản hoặc tệp nguồn" : scriptOpen(v) ? "Duyệt Kịch bản trước khi biên tập" : "";
-		const sl = idea ? "Tạo Kịch bản trước" : off ? "Thẻ đã hủy" : vidFinal(v) ? "" : !v.file ? "Ren Vid rồi Duyệt Biên tập trước" : !editLocked(v) ? "Duyệt Biên tập trước" : "Video lệch bản biên tập: Sửa Biên tập, Ren lại rồi Duyệt";
+		const sl = idea ? "Tạo Kịch bản trước" : off ? "Thẻ đã hủy" : vidFinal(v) && editLocked(v) ? "" : !v.file ? "Ren Vid rồi Duyệt Biên tập trước" : !editLocked(v) ? "Duyệt Biên tập trước" : "Video lệch bản biên tập: Sửa Biên tập, Ren lại rồi Duyệt";
 		return {
 			bt: {
 				ok: !bt,
@@ -20408,7 +20456,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		DATA_VERSION,
 		STORAGE_KEY,
 		RELEASE: "R4",
-		BUILD: 120,
+		BUILD: 121,
 		TEMPLATES,
 		STEP_NAMES,
 		STEP_COUNT,
@@ -21019,6 +21067,9 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		setSceneAsset,
 		addScene,
 		removeScene,
+		snapGen,
+		canUndoGen,
+		undoGen,
 		moveScene,
 		setEditOptions,
 		editTimeline,
@@ -33624,7 +33675,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		"T7"
 	];
 	var dayLabel = (d) => `${DOW[(/* @__PURE__ */ new Date(`${d}T00:00:00Z`)).getUTCDay()]} ${AC.dmy(d)}`;
-	var readyToSchedule = (S2, weekId) => AC.vidsOf(S2, weekId).filter((v) => !v.cancelled && v.file && !AC.vidSlotsOf(S2, v.id).length);
+	var readyToSchedule = (S2, weekId) => AC.vidsOf(S2, weekId).filter((v) => !v.cancelled && v.file && AC.vidStageGate(v).sl.ok && !AC.vidSlotsOf(S2, v.id).length);
 	function openSchedule(ids) {
 		const w = AC.weekOf(S, AC.weekIdOf(S.ui.weekStart));
 		if (!w) return;
@@ -34247,11 +34298,12 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		const btn = G || !hasScript || idea ? "" : sLock ? `<button class="btn sm" data-x="sunlock" data-testid="sp-sunlock" ${off ? "disabled" : ""} title="Kịch bản đã duyệt nên đang khóa. Bấm để sửa tiếp">${icon("edit")} Sửa Kịch bản</button>` : `<button class="btn sm primary" data-x="slock" data-testid="sp-slock" ${off ? "disabled" : ""} title="Duyệt kịch bản, Insight và phân cảnh; lưu thành một bản và khóa lại">${icon("check")} Duyệt Kịch bản</button>`;
 		return `<button class="btn sm" data-x="vprev" ${vi > 0 ? "" : "disabled"} title="Bản kịch bản trước" aria-label="Bản kịch bản trước">‹</button><span class="small vp-vn" id="sp-vn">Bản ${cv.n}/${N}${G ? " · cũ" : cv.draft && hasScript ? " · nháp" : ""}</span><button class="btn sm" data-x="vnext" ${G ? "" : "disabled"} title="Bản kịch bản sau" aria-label="Bản kịch bản sau">›</button>${btn}`;
 	}
+	var undoGenBtn = (v, off) => `<button class="btn sm" data-x="undo-gen" data-testid="sp-undo-gen" ${off || !AC.canUndoGen(v) ? "disabled" : ""} title="${v.genSnap ? "Đưa các cảnh về đúng như ngay sau lần Tạo mới gần nhất" : "Chưa bấm Tạo mới lần nào"}">Hoàn tác</button>`;
 	function writeBtnHtml(v, ro) {
 		const o = AC.vidOrigin(v);
 		const off = v.cancelled || ro || !!String(v.script || "").trim() && v.status === "APPROVED";
 		if (o === "audio" || o === "talk") return `<button class="btn sm ${v.script ? "" : "primary"}" data-x="stt" ${off || !sttOk() ? "disabled" : ""} title="${sttOk() ? "Gửi tệp tới API nhận giọng nói để chép lời" : "Cần chọn OpenAI ở Setup → AI ảnh & video; hoặc dán lời vào ô Lời nói"}">Chép lời (API)</button>`;
-		return `<button class="btn sm primary" data-x="${o === "script" ? "resplit" : "write"}" data-testid="sp-write" ${off ? "disabled" : ""} title="${off ? "Kịch bản đã duyệt. Bấm Sửa Kịch bản để tạo mới" : o === "script" ? "Chia cảnh lại theo kịch bản" : "Viết kịch bản mới và chia cảnh; thay bản nháp đang có"}">Tạo mới</button>`;
+		return `<button class="btn sm primary" data-x="${o === "script" ? "resplit" : "write"}" data-testid="sp-write" ${off ? "disabled" : ""} title="${off ? "Kịch bản đã duyệt. Bấm Sửa Kịch bản để tạo mới" : o === "script" ? "Chia cảnh lại theo kịch bản" : "Viết kịch bản mới và chia cảnh; thay bản nháp đang có"}">Tạo mới</button>${undoGenBtn(v, off)}`;
 	}
 	function popHtml(v, G, GE) {
 		const R = G || v;
@@ -34362,14 +34414,15 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		return n;
 	};
 	var fmtS = (x) => String(Math.round(x * 10) / 10).replace(".", ",");
-	function sceneListHtml(v) {
+	function sceneListHtml(v, ro) {
 		if (!v.edit || !v.edit.scenes.length) return `<section class="panel stack" style="gap:8px;margin-bottom:12px"><h3>Phân cảnh</h3><p class="small muted">${v.script || (v.media || []).length ? "Chưa chia cảnh. Bấm Tạo mới để viết kịch bản và chia cảnh, hoặc Chia cảnh để chia kịch bản đang có thành các cảnh có lời, mô tả hình và thời lượng." : "Cần kịch bản hoặc tệp nguồn để chia cảnh."}</p><div class="row"><button class="btn sm primary" data-x="plan-scenes" data-testid="sp-plan" ${!v.ro && !(v.status === "APPROVED" && v.script) && (v.script || (v.media || []).length) ? "" : "disabled"}>Chia cảnh theo kịch bản</button></div></section>`;
 		const tl = AC.editTimeline(v);
+		const lk = ro || v.cancelled || !!String(v.script || "").trim() && v.status === "APPROVED" || tl.items.length < 2;
 		return `<section class="panel stack" style="gap:6px;margin-bottom:12px"><h3>Phân cảnh <span class="small muted">${tl.items.length} cảnh · ${fmtS(tl.total)} giây</span></h3>
     <div class="vp-phw"><table class="vp-phc"><thead><tr><th>STT</th><th>Timeline</th><th>Nội dung</th><th>Mô tả hình ảnh hoặc video minh hoạ</th></tr></thead><tbody>
     ${tl.items.map((it, i) => {
 			const s = it.scene;
-			return `<tr data-testid="sp-scene-row"><td class="n">${i + 1}</td><td class="t">${fmtS(it.t0)}–${fmtS(it.t1)}s<br><span class="small muted">${s.items.length ? `${s.items.length} hình` : s.ph ? "thẻ giữ chỗ" : ""}</span></td>
+			return `<tr data-testid="sp-scene-row"><td class="n"><span class="sp-n">${i + 1}</span><button class="sv-x sp-scx" data-x="scene-del" data-sid="${esc(s.id)}" data-testid="sp-scene-del" ${lk ? "disabled" : ""} aria-label="Xóa cảnh ${i + 1}" title="${lk ? tl.items.length < 2 ? "Giữ ít nhất một cảnh" : "Kịch bản đã duyệt: bấm Sửa Kịch bản để xóa cảnh" : "Xóa cảnh"}">${icon("close")}</button></td><td class="t">${fmtS(it.t0)}–${fmtS(it.t1)}s<br><span class="small muted">${s.items.length ? `${s.items.length} hình` : s.ph ? "thẻ giữ chỗ" : ""}</span></td>
       <td><label class="sr" for="sp-pt-${esc(s.id)}">Lời cảnh ${i + 1}</label><textarea id="sp-pt-${esc(s.id)}" class="vp-ag" rows="1" data-pt="${esc(s.id)}">${esc(s.text)}</textarea></td>
       <td><label class="sr" for="sp-pp-${esc(s.id)}">Mô tả hình cảnh ${i + 1}</label><textarea id="sp-pp-${esc(s.id)}" class="vp-ag" rows="1" data-pp="${esc(s.id)}">${esc(s.prompt || "")}</textarea></td></tr>`;
 		}).join("")}
@@ -34485,7 +34538,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			}
 			if (n.tab !== "bt" && ED) ED.pause();
 			if (n.tab === "ks" && n.ks === "scene") {
-				g("scenes").innerHTML = sceneListHtml(cur());
+				g("scenes").innerHTML = sceneListHtml(cur(), !!G);
 				g("scenes").querySelectorAll("textarea.vp-ag").forEach(grow);
 				stale();
 			}
@@ -34654,6 +34707,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			const r = AC.editScene(S, id, sid, el.dataset.pt ? { text: el.value } : { prompt: el.value });
 			if (!r.ok) return err(r.error);
 			save();
+			bar();
 		});
 		const addIn = g("addmedia");
 		if (addIn) addIn.addEventListener("change", async (e) => {
@@ -34774,6 +34828,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				}
 				if (v.origin === "mix") {
 					const p = AC.mixPlan(S, id);
+					if (p.ok) AC.snapGen(S, id);
 					n.ver = null;
 					n.tab = "ks";
 					n.ks = "scene";
@@ -34781,6 +34836,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 					return;
 				}
 				const p = AC.planEdit(S, id);
+				if (p.ok) AC.snapGen(S, id);
 				n.ver = null;
 				n.tab = "ks";
 				n.ks = "scene";
@@ -34850,6 +34906,37 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				reopen(`Đã nạp bản biên tập ${from} để sửa. Bấm Duyệt Biên tập để lưu thành bản mới.`);
 				return;
 			}
+			if (k === "scene-del") {
+				const sc = v.edit && v.edit.scenes.find((z) => z.id === x.dataset.sid);
+				if (!sc) return;
+				const i = v.edit.scenes.indexOf(sc);
+				const lost = [sc.items.length ? `${sc.items.length} hình` : "", sc.vo ? "VO cảnh" : ""].filter(Boolean);
+				if (lost.length && !await confirmBox({
+					title: `Xóa cảnh ${i + 1}?`,
+					body: `<p>Cảnh này có ${esc(lost.join(", "))}. Xóa xong vẫn lấy lại được bằng Hoàn tác (về bản ngay sau lần Tạo mới gần nhất).</p>`,
+					ok: "Xóa cảnh",
+					danger: true
+				})) return;
+				if (!persist()) return;
+				const r = AC.removeScene(S, id, sc.id);
+				if (!r.ok) return err(r.error);
+				save();
+				render();
+				show();
+				toast(`Đã xóa cảnh ${i + 1}; các cảnh dưới dồn lên.`);
+				return;
+			}
+			if (k === "undo-gen") {
+				if (!persist()) return;
+				const r = AC.undoGen(S, id);
+				if (!r.ok) return err(r.error);
+				if (ED) ED.reset();
+				save();
+				render();
+				show();
+				toast(`Đã hoàn tác: ${r.count} cảnh như ngay sau lần Tạo mới gần nhất.`);
+				return;
+			}
 			if (k === "vid-delete") {
 				const kept = (S.library || []).filter((x) => x.kind === "video" && x.vidId === id).length;
 				const ns = (S.slots || []).filter((x) => x.videoId === id).length;
@@ -34888,6 +34975,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				if (!persist()) return;
 				const r = AC.planEdit(S, id);
 				if (!r.ok) return err(r.error);
+				AC.snapGen(S, id);
 				save();
 				render();
 				show();
@@ -34904,6 +34992,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				if (!persist()) return;
 				const r = AC.planEdit(S, id);
 				if (!r.ok) return err(r.error);
+				AC.snapGen(S, id);
 				save();
 				render();
 				show();

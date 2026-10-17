@@ -12,6 +12,8 @@ const dealFullWeek = (S, w, at) => { if (!AC.matrixDone(S, w)) AC.completeMatrix
 const dealFull = (S, w, at) => { if (!AC.matrixDone(S, w)) AC.completeMatrix(S, w, at); return AC.dealSlots(S, w, at); };
 // Mục 10.90: chia cảnh không tự duyệt kịch bản; test luồng cũ chia cảnh rồi Duyệt Kịch bản
 const planA = (S, id) => { const r = AC.planEdit(S, id); if (r.ok) AC.approveVidScript(S, id); return r; };
+// Mục 10.92: Xếp Slot cần Biên tập đã duyệt; thẻ dùng video Up ngoài app trong test cũ thì duyệt biên tập (thẻ giữ chỗ) trước
+const edOk = (S, id) => { const v = AC.byId(S.videos, id); if (!v.edit || !v.edit.scenes.length) planA(S, id); else if (AC.scriptOpen(v)) AC.approveVidScript(S, id); v.edit.scenes.forEach(s => AC.editScene(S, id, s.id, { ph: true })); const r = AC.completeEdit(S, id); assert.ok(r.ok, r.error); };
 const fileOf = (S, w) => AC.topicFileOf(S, w).md;
 const approveAll = (S, w) => AC.cellsOf(S, w).forEach(c => { const row = AC.byId(S.topics, c.topicId); const bv = c.byVersion[row.currentVersion]; if (bv && bv.state === 'DRAFT') bv.state = 'APPROVED'; });
 
@@ -2201,7 +2203,7 @@ test('10.75 · Đưa vào lịch: slot tự do có video trên các kênh video,
   const chans = AC.vidChannels(S); assert.deepEqual(chans.map(x => x.channel.id).sort(), ['ch-fb', 'ch-ig', 'ch-tt', 'ch-yt']);
   const v = AC.addFreeVideo(S, T2, { origin: 'script', script: 'Vì sao nói chậm giúp người nghe hiểu hơn?\n\nNão cần thời gian ghép âm thành nghĩa.\n\nTheo dõi kênh nhé.' }).video;
   assert.equal(AC.scheduleGate(S, v.id).ok, false, 'chưa có video');
-  AC.setVidFile(S, v.id, { src: VID, name: 'thanh-pham.webm', size: 3 }); AC.setVidSubs(S, v.id, [{ start: 0, end: 2, text: 'Xin chào' }], 'script');
+  AC.setVidFile(S, v.id, { src: VID, name: 'thanh-pham.webm', size: 3 }); assert.equal(AC.scheduleGate(S, v.id).ok, false, 'Biên tập chưa duyệt'); edOk(S, v.id); AC.setVidSubs(S, v.id, [{ start: 0, end: 2, text: 'Xin chào' }], 'script');
   const d = AC.suggestVidDates(S, T2, 2); assert.equal(d[0], '2026-10-12'); assert.equal(d[1], '2026-10-13');
   const n0 = S.slots.length; const deal0 = AC.dealPlan(S, T2).length;
   const r = AC.scheduleVideo(S, v.id, { date: '2026-10-14', time: '19:00', channelIds: chans.map(x => x.channel.id) });
@@ -2288,7 +2290,7 @@ test('10.76 · Xếp Slot theo ô Thứ × Kênh: mỗi kênh một ngày, cần
   const v = AC.addFreeVideo(S, T2, { origin: 'script', script: 'Vì sao nói chậm giúp người nghe hiểu hơn?\n\nNão cần thời gian ghép âm thành nghĩa.\n\nTheo dõi kênh nhé.' }).video;
   const w = AC.addFreeVideo(S, T2, { origin: 'script', script: 'Một câu khác.\n\nCâu thứ hai ở đây.\n\nTheo dõi kênh nhé.' }).video;
   assert.equal(AC.scheduleCells(S, v.id, { cells: [{ date: days[0], channelId: 'ch-tt' }], time: '19:00' }).ok, false, 'chưa có file video');
-  AC.setVidFile(S, v.id, { src: VID, name: 'a.webm', size: 3 }); AC.setVidFile(S, w.id, { src: VID, name: 'b.webm', size: 3 });
+  AC.setVidFile(S, v.id, { src: VID, name: 'a.webm', size: 3 }); AC.setVidFile(S, w.id, { src: VID, name: 'b.webm', size: 3 }); edOk(S, v.id); edOk(S, w.id);
   assert.equal(AC.scheduleCells(S, v.id, { cells: [], time: '19:00' }).ok, false);
   assert.equal(AC.scheduleCells(S, v.id, { cells: [{ date: days[0], channelId: 'ch-tt' }, { date: days[1], channelId: 'ch-tt' }], time: '19:00' }).ok, false, 'một kênh một ngày');
   assert.equal(AC.scheduleCells(S, v.id, { cells: [{ date: days[0], channelId: 'ch-xx' }], time: '19:00' }).ok, false);
@@ -2798,4 +2800,22 @@ test('10.91 · Xóa thẻ: thẻ chưa hoàn thành xóa nhanh; thẻ đã hoàn
   assert.equal(AC.byId(S.videos, v.id), undefined); assert.equal(AC.libraryOf(S).length, nLib, 'video ren vẫn ở Kho');
   assert.ok(/^data:video\//.test(s.assets[0].versions.find(x => x.n === s.assets[0].current).src), 'slot đã xếp giữ video');
   assert.equal(AC.deleteVid(S, 'nope').ok, false);
+});
+// ---------- Short Vid: Xếp Slot chỉ mở khi Biên tập đã duyệt, xóa cảnh, Hoàn tác về sau Tạo mới (mục 10.92) ----------
+test('10.92 · Xếp Slot chỉ mở khi Biên tập đã duyệt và có video (kể cả video Up ngoài app)', () => {
+  const S = seed(); const v = AC.addFreeVideo(S, T2, { origin: 'script', script: 'Câu một ở đây.\n\nCâu hai ở đây.\n\nTheo dõi kênh nhé.' }).video;
+  assert.equal(AC.vidStageGate(v).sl.ok, false);
+  AC.setVidFile(S, v.id, { src: VID, name: 'a.webm', size: 3 }); assert.equal(AC.vidFinal(v), true); assert.equal(AC.vidStageGate(v).sl.ok, false, 'video Up ngoài app chưa duyệt Biên tập'); assert.equal(AC.scheduleGate(S, v.id).ok, false);
+  edOk(S, v.id); assert.equal(AC.vidStageGate(v).sl.ok, true); assert.ok(AC.scheduleGate(S, v.id).ok);
+});
+test('10.92 · Xóa cảnh dồn STT; Hoàn tác đưa cảnh về bản ngay sau Tạo mới gần nhất; Kịch bản đã duyệt thì không Hoàn tác', () => {
+  const S = seed(); const v = AC.addFreeVideo(S, T2, { origin: 'script', script: 'Câu một ở đây.\n\nCâu hai ở đây.\n\nCâu ba ở đây.\n\nTheo dõi kênh nhé.' }).video;
+  assert.ok(AC.planEdit(S, v.id).ok); assert.equal(AC.canUndoGen(v), false); assert.equal(AC.undoGen(S, v.id).ok, false, 'chưa Tạo mới');
+  AC.snapGen(S, v.id); const ids = v.edit.scenes.map(s => s.id); const n = ids.length; assert.ok(n >= 3);
+  assert.equal(AC.canUndoGen(v), false, 'chưa đổi gì');
+  assert.ok(AC.removeScene(S, v.id, ids[1]).ok); assert.deepEqual(v.edit.scenes.map(s => s.id), [ids[0]].concat(ids.slice(2)), 'cảnh dưới dồn lên');
+  AC.editScene(S, v.id, ids[0], { text: 'Lời mới' }); assert.equal(AC.canUndoGen(v), true);
+  const r = AC.undoGen(S, v.id); assert.ok(r.ok); assert.equal(r.count, n); assert.deepEqual(v.edit.scenes.map(s => s.id), ids); assert.notEqual(v.edit.scenes[0].text, 'Lời mới');
+  assert.notEqual(v.edit, v.genSnap.edit, 'bản lưu tách rời'); AC.removeScene(S, v.id, ids[0]); assert.equal(v.genSnap.edit.scenes.length, n);
+  AC.approveVidScript(S, v.id); assert.equal(AC.undoGen(S, v.id).ok, false, 'Kịch bản đã duyệt');
 });

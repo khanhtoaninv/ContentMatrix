@@ -1490,3 +1490,9 @@ details.vp-src summary { cursor: pointer; font-size: var(--fs-2); color: var(--i
 .sv-x:hover, .sv-x:focus-visible { color: var(--bad, #c0392b); border-color: currentColor; }
 .sv-vx { top: -7px; right: -7px; width: 20px; height: 20px; }
 .sv-strong { font-weight: 600; }
+/* Phân cảnh: dấu x xóa cảnh ở góc ô STT (mục 10.92) */
+.vp-phc td.n { position: relative; }
+.sp-scx { top: 2px; right: 2px; width: 18px; height: 18px; }
+.sp-scx svg { width: 10px; height: 10px; }
+.sp-scx:disabled { display: none; }
+.vp-phc td.n { width: 58px; padding-right: 22px; }

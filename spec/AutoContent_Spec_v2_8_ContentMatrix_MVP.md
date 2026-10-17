@@ -1464,3 +1464,8 @@ Quyết định D178–D179. Áp dụng thử cho Short Vid trước; Matrix và
 - Xóa thẻ Vid: thẻ chưa hoàn thành (Biên tập chưa duyệt, chưa có video) có dấu x ở góc phải phía trên ô, bấm và xác nhận là xóa. Thẻ đã hoàn thành không xóa nhanh: mở thẻ, bấm Xóa thẻ cạnh Hủy thẻ. Xóa thẻ chỉ xóa nội dung đã biên tập; video đã ren vẫn ở Kho, slot đã xếp vẫn giữ video.
 - Bỏ mọi icon gắn với AI trong app (hình ngôi sao lấp lánh ✦, ✨).
 
+## 10.92. Short Vid: Xếp Slot khóa tới khi Biên tập duyệt, xóa cảnh, Hoàn tác (17/10/2026, bản 121)
+- Thẻ Xếp Slot mặc định tắt; chỉ mở khi Biên tập đã Duyệt và có video khớp bản biên tập.
+- Bảng Phân cảnh: dấu x ở góc phải phía trên ô STT để xóa cảnh; cảnh dưới tự dồn lên, STT đánh lại. Cảnh đã có hình hoặc VO thì hỏi trước khi xóa. Kịch bản đã duyệt thì không xóa được (bấm Sửa Kịch bản trước); luôn giữ ít nhất một cảnh.
+- Nút Hoàn tác bên phải Tạo mới: đưa trạng thái và nội dung các cảnh về đúng như ngay sau lần Tạo mới gần nhất. Tắt khi chưa Tạo mới lần nào hoặc cảnh chưa đổi.
+

@@ -268,10 +268,12 @@ function verBarHtml(v, G, GE, tab) {
   return `<button class="btn sm" data-x="vprev" ${vi > 0 ? '' : 'disabled'} title="Bản kịch bản trước" aria-label="Bản kịch bản trước">‹</button><span class="small vp-vn" id="sp-vn">Bản ${cv.n}/${N}${G ? ' · cũ' : cv.draft && hasScript ? ' · nháp' : ''}</span><button class="btn sm" data-x="vnext" ${G ? '' : 'disabled'} title="Bản kịch bản sau" aria-label="Bản kịch bản sau">›</button>${btn}`;
 }
 // Nút Tạo mới ở menu Phân cảnh (mục 10.90): viết kịch bản và chia cảnh trong một bước
+// Hoàn tác (mục 10.92): đưa các cảnh về bản ngay sau lần Tạo mới gần nhất
+const undoGenBtn = (v, off) => `<button class="btn sm" data-x="undo-gen" data-testid="sp-undo-gen" ${off || !AC.canUndoGen(v) ? 'disabled' : ''} title="${v.genSnap ? 'Đưa các cảnh về đúng như ngay sau lần Tạo mới gần nhất' : 'Chưa bấm Tạo mới lần nào'}">Hoàn tác</button>`;
 function writeBtnHtml(v, ro) {
   const o = AC.vidOrigin(v); const off = v.cancelled || ro || (!!String(v.script || '').trim() && v.status === 'APPROVED');
   if (o === 'audio' || o === 'talk') return `<button class="btn sm ${v.script ? '' : 'primary'}" data-x="stt" ${off || !sttOk() ? 'disabled' : ''} title="${sttOk() ? 'Gửi tệp tới API nhận giọng nói để chép lời' : 'Cần chọn OpenAI ở Setup → AI ảnh & video; hoặc dán lời vào ô Lời nói'}">Chép lời (API)</button>`;
-  return `<button class="btn sm primary" data-x="${o === 'script' ? 'resplit' : 'write'}" data-testid="sp-write" ${off ? 'disabled' : ''} title="${off ? 'Kịch bản đã duyệt. Bấm Sửa Kịch bản để tạo mới' : o === 'script' ? 'Chia cảnh lại theo kịch bản' : 'Viết kịch bản mới và chia cảnh; thay bản nháp đang có'}">Tạo mới</button>`;
+  return `<button class="btn sm primary" data-x="${o === 'script' ? 'resplit' : 'write'}" data-testid="sp-write" ${off ? 'disabled' : ''} title="${off ? 'Kịch bản đã duyệt. Bấm Sửa Kịch bản để tạo mới' : o === 'script' ? 'Chia cảnh lại theo kịch bản' : 'Viết kịch bản mới và chia cảnh; thay bản nháp đang có'}">Tạo mới</button>${undoGenBtn(v, off)}`;
 }
 function popHtml(v, G, GE) {
   const R = G || v; const ro = !!G;
@@ -361,12 +363,14 @@ const startTab = id => { const v = AC.byId(S.videos, id); return v && v.origin =
 const navOf = id => { const n = NAV[id] || (NAV[id] = { tab: startTab(id), ks: 'insight', ver: null }); if (n.ks === 'script') n.ks = 'scene'; return n; };
 const fmtS = x => String(Math.round(x * 10) / 10).replace('.', ',');
 // Bảng Phân cảnh (tab Kịch bản): đọc từ dữ liệu biên tập; sửa lời và mô tả hình ngay trong bảng
-function sceneListHtml(v) {
+function sceneListHtml(v, ro) {
   if (!v.edit || !v.edit.scenes.length) return `<section class="panel stack" style="gap:8px;margin-bottom:12px"><h3>Phân cảnh</h3><p class="small muted">${v.script || (v.media || []).length ? 'Chưa chia cảnh. Bấm Tạo mới để viết kịch bản và chia cảnh, hoặc Chia cảnh để chia kịch bản đang có thành các cảnh có lời, mô tả hình và thời lượng.' : 'Cần kịch bản hoặc tệp nguồn để chia cảnh.'}</p><div class="row"><button class="btn sm primary" data-x="plan-scenes" data-testid="sp-plan" ${!v.ro && !(v.status === 'APPROVED' && v.script) && (v.script || (v.media || []).length) ? '' : 'disabled'}>Chia cảnh theo kịch bản</button></div></section>`;
   const tl = AC.editTimeline(v);
+  // Mục 10.92: dấu x xóa cảnh ở góc phải phía trên ô STT; xóa xong cảnh dưới dồn lên, STT đánh lại
+  const lk = ro || v.cancelled || (!!String(v.script || '').trim() && v.status === 'APPROVED') || tl.items.length < 2;
   return `<section class="panel stack" style="gap:6px;margin-bottom:12px"><h3>Phân cảnh <span class="small muted">${tl.items.length} cảnh · ${fmtS(tl.total)} giây</span></h3>
     <div class="vp-phw"><table class="vp-phc"><thead><tr><th>STT</th><th>Timeline</th><th>Nội dung</th><th>Mô tả hình ảnh hoặc video minh hoạ</th></tr></thead><tbody>
-    ${tl.items.map((it, i) => { const s = it.scene; return `<tr data-testid="sp-scene-row"><td class="n">${i + 1}</td><td class="t">${fmtS(it.t0)}–${fmtS(it.t1)}s<br><span class="small muted">${s.items.length ? `${s.items.length} hình` : s.ph ? 'thẻ giữ chỗ' : ''}</span></td>
+    ${tl.items.map((it, i) => { const s = it.scene; return `<tr data-testid="sp-scene-row"><td class="n"><span class="sp-n">${i + 1}</span><button class="sv-x sp-scx" data-x="scene-del" data-sid="${esc(s.id)}" data-testid="sp-scene-del" ${lk ? 'disabled' : ''} aria-label="Xóa cảnh ${i + 1}" title="${lk ? (tl.items.length < 2 ? 'Giữ ít nhất một cảnh' : 'Kịch bản đã duyệt: bấm Sửa Kịch bản để xóa cảnh') : 'Xóa cảnh'}">${icon('close')}</button></td><td class="t">${fmtS(it.t0)}–${fmtS(it.t1)}s<br><span class="small muted">${s.items.length ? `${s.items.length} hình` : s.ph ? 'thẻ giữ chỗ' : ''}</span></td>
       <td><label class="sr" for="sp-pt-${esc(s.id)}">Lời cảnh ${i + 1}</label><textarea id="sp-pt-${esc(s.id)}" class="vp-ag" rows="1" data-pt="${esc(s.id)}">${esc(s.text)}</textarea></td>
       <td><label class="sr" for="sp-pp-${esc(s.id)}">Mô tả hình cảnh ${i + 1}</label><textarea id="sp-pp-${esc(s.id)}" class="vp-ag" rows="1" data-pp="${esc(s.id)}">${esc(s.prompt || '')}</textarea></td></tr>`; }).join('')}
     </tbody></table></div></section>`;
@@ -402,7 +406,7 @@ export function openVid(id) {
     { const ac = g('acts'); const can = n.tab === 'bt' && !G && !GE && !vv.cancelled && AC.canCancelEdit(vv); if (ac) { ac.hidden = !can; ac.innerHTML = can ? '<button class="btn ghost danger" data-x="ecancel" data-testid="sp-ecancel" title="Bỏ mọi thay đổi từ lần Duyệt Biên tập gần nhất, quay về bản đã duyệt">Hủy Biên tập</button>' : ''; } }
     if (mx) { const lk = vv.cancelled || !!G; if (n.tab === 'nap') g('nap').innerHTML = napPaneHtml(vv, lk); if (n.tab === 'dy') g('dy').innerHTML = dyPaneHtml(vv, lk); const lot = g('lot'); if (lot) lot.innerHTML = lotHtml(vv); }
     if (n.tab !== 'bt' && ED) ED.pause();
-    if (n.tab === 'ks' && n.ks === 'scene') { g('scenes').innerHTML = sceneListHtml(cur()); g('scenes').querySelectorAll('textarea.vp-ag').forEach(grow); stale(); }
+    if (n.tab === 'ks' && n.ks === 'scene') { g('scenes').innerHTML = sceneListHtml(cur(), !!G); g('scenes').querySelectorAll('textarea.vp-ag').forEach(grow); stale(); }
     // Danh sách cần quay nằm ngoài vùng khóa: nạp clip cho cảnh là việc dựng, không sửa lời (mục 10.89)
     { const sh = g('shoot'); if (sh) sh.innerHTML = n.tab === 'ks' && n.ks === 'scene' && !vv.cancelled ? shootBannerHtml(cur()) : ''; }
     if (!G) { const fs = g('ksfs'); if (fs) fs.disabled = !!vv.cancelled || sLk; const ta = g('script'); if (ta) ta.readOnly = !!vv.cancelled || sLk; }
@@ -451,7 +455,7 @@ export function openVid(id) {
   // Bảng Phân cảnh: sửa lời / mô tả hình ghi ngay vào cảnh
   box.addEventListener('change', e => {
     const el = e.target; const sid = el.dataset.pt || el.dataset.pp; if (!sid || G) return;
-    const r = AC.editScene(S, id, sid, el.dataset.pt ? { text: el.value } : { prompt: el.value }); if (!r.ok) return err(r.error); save();
+    const r = AC.editScene(S, id, sid, el.dataset.pt ? { text: el.value } : { prompt: el.value }); if (!r.ok) return err(r.error); save(); bar();
   });
   const addIn = g('addmedia');
   if (addIn) addIn.addEventListener('change', async e => {
@@ -489,8 +493,8 @@ export function openVid(id) {
       if ((v.script || has) && !(await confirmBox({ title: 'Tạo mới kịch bản và phân cảnh?', body: `<p>App viết lại kịch bản và chia lại cảnh. Bản nháp đang có bị thay; các bản đã duyệt vẫn xem lại được bằng nút ‹ ›.</p>${has ? '<p>Hình, VO cảnh và cue đã thêm ở Biên tập sẽ bị thay. Bản Biên tập đã duyệt vẫn giữ: bấm Hủy Biên tập hoặc ‹ › ở Biên tập để lấy lại.</p>' : ''}`, ok: 'Tạo mới' }))) return;
       if (!persist()) return;
       const r = await writeOne(id); if (!r.ok) { if (!r.stopped) err(r.error); return; }
-      if (v.origin === 'mix') { const p = AC.mixPlan(S, id); n.ver = null; n.tab = 'ks'; n.ks = 'scene'; reopen(p.ok ? `Đã viết kịch bản ${r.words} chữ và chia ${p.count} cảnh${p.shoot ? `, ${p.shoot} cảnh cần quay` : ''}.` : `Đã viết kịch bản ${r.words} chữ.`); return; }
-      const p = AC.planEdit(S, id);
+      if (v.origin === 'mix') { const p = AC.mixPlan(S, id); if (p.ok) AC.snapGen(S, id); n.ver = null; n.tab = 'ks'; n.ks = 'scene'; reopen(p.ok ? `Đã viết kịch bản ${r.words} chữ và chia ${p.count} cảnh${p.shoot ? `, ${p.shoot} cảnh cần quay` : ''}.` : `Đã viết kịch bản ${r.words} chữ.`); return; }
+      const p = AC.planEdit(S, id); if (p.ok) AC.snapGen(S, id);
       n.ver = null; n.tab = 'ks'; n.ks = 'scene'; reopen(p.ok ? `Đã viết kịch bản ${r.words} chữ và chia ${p.count} cảnh. Xem lại rồi bấm Duyệt Kịch bản.` : `Đã viết kịch bản ${r.words} chữ. ${p.error}`); return;
     }
     if (k === 'vslot-all') { const r = AC.updateVideoSlots(S, id); reopen(`Đã cập nhật ${r.updated} slot sang video mới${r.failed.length ? `, ${r.failed.length} slot không cập nhật được` : ''}. Duyệt lại ở Dashboard.`); return; }
@@ -504,6 +508,13 @@ export function openVid(id) {
       const r = AC.cancelEdit(S, id); if (!r.ok) return err(r.error); if (ED) ED.reset(); save(); render(); show(); toast(`Đã hủy Biên tập, quay về ${r.n ? `bản ${r.n}` : 'bản đã duyệt'}.`); return;
     }
     if (k === 'euse') { const from = GE.editVer; const r = AC.useEditVersion(S, id, from); if (!r.ok) return err(r.error); n.ever = null; if (ED) ED.reset(); reopen(`Đã nạp bản biên tập ${from} để sửa. Bấm Duyệt Biên tập để lưu thành bản mới.`); return; }
+    if (k === 'scene-del') {
+      const sc = v.edit && v.edit.scenes.find(z => z.id === x.dataset.sid); if (!sc) return; const i = v.edit.scenes.indexOf(sc);
+      const lost = [sc.items.length ? `${sc.items.length} hình` : '', sc.vo ? 'VO cảnh' : ''].filter(Boolean);
+      if (lost.length && !(await confirmBox({ title: `Xóa cảnh ${i + 1}?`, body: `<p>Cảnh này có ${esc(lost.join(', '))}. Xóa xong vẫn lấy lại được bằng Hoàn tác (về bản ngay sau lần Tạo mới gần nhất).</p>`, ok: 'Xóa cảnh', danger: true }))) return;
+      if (!persist()) return; const r = AC.removeScene(S, id, sc.id); if (!r.ok) return err(r.error); save(); render(); show(); toast(`Đã xóa cảnh ${i + 1}; các cảnh dưới dồn lên.`); return;
+    }
+    if (k === 'undo-gen') { if (!persist()) return; const r = AC.undoGen(S, id); if (!r.ok) return err(r.error); if (ED) ED.reset(); save(); render(); show(); toast(`Đã hoàn tác: ${r.count} cảnh như ngay sau lần Tạo mới gần nhất.`); return; }
     if (k === 'vid-delete') {
       const kept = (S.library || []).filter(x => x.kind === 'video' && x.vidId === id).length; const ns = (S.slots || []).filter(x => x.videoId === id).length;
       if (!(await confirmBox({ title: 'Xóa thẻ Vid?', body: `<p>Xóa kịch bản và phần biên tập của thẻ này.${kept ? ` Video đã ren vẫn ở Kho (${kept}).` : ''}${ns ? ` ${ns} slot đã xếp vẫn giữ video.` : ''}</p>`, ok: 'Xóa thẻ', danger: true }))) return;
@@ -511,11 +522,11 @@ export function openVid(id) {
     }
     if (k === 'cancel') { if (!v.cancelled && !persist()) return; const r = AC.toggleVidCancel(S, id); if (!r.ok) return err(r.error); reopen(r.cancelled ? 'Đã hủy thẻ: không tính KPI, không cần nộp video.' : 'Đã khôi phục thẻ.'); return; }
     if (k === 'file-del') { if (!(await confirmBox({ title: 'Bỏ video?', body: '<p>Video, ảnh bìa và phụ đề của thẻ này sẽ bị xóa khỏi app. Kịch bản giữ nguyên.</p>', ok: 'Bỏ video', danger: true }))) return; const r = AC.setVidFile(S, id, null); if (!r.ok) return err(r.error); reopen('Đã bỏ video.'); return; }
-    if (k === 'plan-scenes') { if (!persist()) return; const r = AC.planEdit(S, id); if (!r.ok) return err(r.error); save(); render(); show(); toast(`Đã chia ${r.count} cảnh. Xem lại rồi bấm Duyệt Kịch bản.`); return; }
+    if (k === 'plan-scenes') { if (!persist()) return; const r = AC.planEdit(S, id); if (!r.ok) return err(r.error); AC.snapGen(S, id); save(); render(); show(); toast(`Đã chia ${r.count} cảnh. Xem lại rồi bấm Duyệt Kịch bản.`); return; }
     if (k === 'resplit') {
       const ed = v.edit; const has = ed && (ed.scenes.some(s => s.items.length || s.vo) || (ed.cues || []).length);
       if (has && !(await confirmBox({ title: 'Chia lại cảnh?', body: '<p>Chia cảnh lại theo kịch bản mới: hình, VO cảnh và cue đã thêm sẽ bị xóa. VO toàn bài, kiểu caption, frame, nhạc giữ nguyên.</p>', ok: 'Chia lại cảnh' }))) return;
-      if (!persist()) return; const r = AC.planEdit(S, id); if (!r.ok) return err(r.error); save(); render(); show(); toast(`Đã chia lại ${r.count} cảnh.`); return;
+      if (!persist()) return; const r = AC.planEdit(S, id); if (!r.ok) return err(r.error); AC.snapGen(S, id); save(); render(); show(); toast(`Đã chia lại ${r.count} cảnh.`); return;
     }
     if (k === 'cell' || k === 'pick' || k === 'own') { await placeAt(x.dataset.k.split('|')[0], x.dataset.k.split('|')[1], k); return; }
     if (k === 'render') {

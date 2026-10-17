@@ -7,7 +7,7 @@ import { textCall } from './04k-aitext.js';
 
 const DOW = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
 const dayLabel = d => `${DOW[new Date(`${d}T00:00:00Z`).getUTCDay()]} ${AC.dmy(d)}`;
-export const readyToSchedule = (S2, weekId) => AC.vidsOf(S2, weekId).filter(v => !v.cancelled && v.file && !AC.vidSlotsOf(S2, v.id).length);
+export const readyToSchedule = (S2, weekId) => AC.vidsOf(S2, weekId).filter(v => !v.cancelled && v.file && AC.vidStageGate(v).sl.ok && !AC.vidSlotsOf(S2, v.id).length);
 export function openSchedule(ids) {
   const w = AC.weekOf(S, AC.weekIdOf(S.ui.weekStart)); if (!w) return;
   const list = readyToSchedule(S, w.id).filter(v => !ids || ids.includes(v.id));
