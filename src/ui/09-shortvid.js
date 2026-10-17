@@ -83,7 +83,7 @@ function matrixHtml(w, grid) {
   const rows = grid.map(g => `<div class="mc mrow" data-testid="sv-row">${rowHeadHtml(g.t, vsOf(g), g)}</div>${cellsOfRow(w, g, dupes, N).map(c => `<div class="mc">${c}</div>`).join('')}`).join('');
   const cards = grid.map(g => `<section class="panel mcard" data-testid="sv-row-card"><div>${rowHeadHtml(g.t, vsOf(g), g)}</div><div class="cells">${cellsOfRow(w, g, dupes).map((c, i) => `<div class="stack" style="gap:4px"><span class="small muted">Vid ${i + 1}</span>${c}</div>`).join('')}</div></section>`).join('');
   return `<div class="matrix-wrap"><div class="matrix" data-testid="sv-matrix" style="grid-template-columns:190px repeat(${N}, minmax(124px, 1fr))">${head}${rows}</div></div><div class="mcards">${cards}</div>
-    <div class="row"><button class="btn" data-act="sv-row-add" data-testid="sv-row-add" ${grid.length >= AC.VID_MAX_ROWS ? 'disabled' : ''}>${icon('plus')} Thêm hàng</button></div>`;
+    <div class="row sv-addrow"><button class="btn" data-act="sv-row-add" data-testid="sv-row-add" ${grid.length >= AC.VID_MAX_ROWS ? 'disabled' : ''}>${icon('plus')} Thêm hàng</button></div>`;
 }
 function countsHtml(w) {
   const all = AC.vidsOf(S, w.id); const k = AC.vidKpi(S, w.id);
@@ -273,7 +273,7 @@ function popHtml(v, G) {
   const hint = R.simulated ? 'Bản mô phỏng (chưa bật AI viết bài).' : R.ai ? `AI viết${R.ai.skill ? ` · Skill "${esc(R.ai.skill.name)}" v${R.ai.skill.version}` : ''}${v.edited && !ro ? ' · đã sửa tay' : ''}.` : '';
   const nav = navOf(v.id); const done = AC.vidEditDone(v); const mix = o === 'mix'; const hasScript = !!String(v.script || '').trim();
   // Mục 10.88: khóa kịch bản = Đã duyệt; khóa thì ô lời nói chỉ đọc, Biên tập mới làm được
-  const sLock = hasScript && v.status === 'APPROVED';
+  const sLock = hasScript && v.status === 'APPROVED'; const sg = AC.vidStageGate(v);
   const lockBtn = `<span id="sp-lockw">${ro ? '' : lockBtnHtml(v)}</span>`;
   const tab = (k, n, label, dis, title) => `<button role="tab" data-nav="tab:${k}" aria-selected="${nav.tab === k}" ${dis ? 'disabled' : ''} ${title ? `title="${esc(title)}"` : ''} data-testid="sp-tab-${k}"><span class="vp-step">${n}</span>${label}</button>`;
   const insightPane = `<section class="panel stack" style="gap:8px"><h3>Insight</h3>
@@ -303,19 +303,19 @@ function popHtml(v, G) {
   // Phiên bản kịch bản: ‹ Bản n/N › và Tạo Kịch bản (bản mới chưa có cảnh)
   const vers = AC.vidVersions(v); const N = vers[vers.length - 1].n; const vi = G ? vers.findIndex(x => x.n === G.verN) : vers.length - 1;
   const writeBtn = o === 'script' ? '' : o === 'audio' || o === 'talk'
-    ? `<button class="btn sm ${v.script ? '' : 'primary'}" data-x="stt" ${off || ro || idea || !sttOk() ? 'disabled' : ''} title="${sttOk() ? 'Gửi tệp tới API nhận giọng nói để chép lời' : 'Cần chọn OpenAI ở Setup → AI ảnh & video; hoặc dán lời vào ô Lời nói'}">Chép lời (API)</button>`
-    : `<button class="btn sm primary" data-x="write" ${off || ro || idea ? 'disabled' : ''} data-testid="sp-write" title="Viết kịch bản mới: bản đang có lùi vào danh sách bản cũ">Tạo Kịch bản</button>`;
+    ? `<button class="btn sm ${v.script ? '' : 'primary'}" data-x="stt" ${off || ro || idea || sLock || !sttOk() ? 'disabled' : ''} title="${sttOk() ? 'Gửi tệp tới API nhận giọng nói để chép lời' : 'Cần chọn OpenAI ở Setup → AI ảnh & video; hoặc dán lời vào ô Lời nói'}">Chép lời (API)</button>`
+    : `<button class="btn sm primary" data-x="write" ${off || ro || idea || sLock ? 'disabled' : ''} data-testid="sp-write" title="${sLock ? 'Kịch bản đang khóa. Mở khóa để tạo kịch bản mới' : 'Viết kịch bản mới: bản đang có lùi vào danh sách bản cũ'}">Tạo Kịch bản</button>`;
   const verHtml = `<span class="vp-ver" data-testid="sp-ver"><button class="btn sm" data-x="vprev" ${vi > 0 ? '' : 'disabled'} title="Bản kịch bản trước" aria-label="Bản kịch bản trước">‹</button><span class="small vp-vn" id="sp-vn">Bản ${vers[vi].n}/${N}${ro ? ' · cũ' : ''}</span><button class="btn sm" data-x="vnext" ${ro ? '' : 'disabled'} title="Bản kịch bản sau" aria-label="Bản kịch bản sau">›</button>${writeBtn}${lockBtn}</span>`;
   return `<header class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><span class="eyebrow">Thẻ Vid ${posOf(v)} · ${esc(tv ? tv.title : '?')}</span><h2>${esc(R.insight.title)}</h2>
       <div class="row" style="gap:8px">${stateChip(v)}<span class="small muted">${esc(free ? originName(v) : vfName(v.formatId))} · ${esc(kindName(v.kind))}</span><span class="small mono" id="sp-count" title="Số chữ lời nói, thời lượng ước tính">${R.script ? `${words} chữ · ≈ ${fmtSec(AC.vidDuration(S, words))}` : ''}</span><span class="small muted sv-busy" aria-live="polite">${view.svBusy ? esc(view.svBusy) : ''}</span></div></div>
       <div class="row" style="gap:6px;flex-wrap:nowrap"><button class="btn sm ${off ? 'primary' : 'ghost'}" data-x="cancel" data-testid="sp-cancel" aria-pressed="${off}" ${ro ? 'disabled' : ''}>${off ? 'Khôi phục' : 'Hủy thẻ'}</button><button class="btn icon ghost" data-act="close-layer" aria-label="Đóng">${icon('close')}</button></div></header>
-    <div class="vp-h1"><div class="vp-tabs tabs" role="tablist" aria-label="Các bước của thẻ Vid">${mix ? tab('nap', (v.inputs || []).length ? '✓' : '1', 'Nạp nguyên liệu', false) + tab('dy', v.dyOk ? '✓' : '2', 'Dàn ý', !(v.cells || []).length, 'Cần nguyên liệu để lập dàn ý') : ''}${tab('ks', v.script && v.status !== 'DRAFT' && v.status !== 'TODO' && !idea ? '✓' : mix ? '3' : '1', 'Kịch bản', mix && !hasScript, mix && !hasScript ? 'Nạp nguyên liệu rồi Dựng nhanh hoặc lập Dàn ý' : '')}${tab('bt', done ? '✓' : mix ? '4' : '2', 'Biên tập', idea || off || (mix && !hasScript), idea ? 'Duyệt Insight trước' : '')}${tab('sl', slots.length ? '✓' : mix ? '5' : '3', 'Xếp Slot', !done || off || idea || ro, ro ? 'Xếp Slot dùng bản đang dùng' : done ? '' : 'Cần video thành phẩm hoặc hoàn thành biên tập trước')}</div>${verHtml}</div>
+    <div class="vp-h1"><div class="vp-tabs tabs" role="tablist" aria-label="Các bước của thẻ Vid">${mix ? tab('nap', (v.inputs || []).length ? '✓' : '1', 'Nạp nguyên liệu', false) + tab('dy', v.dyOk ? '✓' : '2', 'Dàn ý', !(v.cells || []).length, 'Cần nguyên liệu để lập dàn ý') : ''}${tab('ks', v.script && v.status !== 'DRAFT' && v.status !== 'TODO' && !idea ? '✓' : mix ? '3' : '1', 'Kịch bản', mix && !hasScript, mix && !hasScript ? 'Nạp nguyên liệu rồi Dựng nhanh hoặc lập Dàn ý' : '')}${tab('bt', done ? '✓' : mix ? '4' : '2', 'Biên tập', !sg.bt.ok, sg.bt.why)}${tab('sl', slots.length ? '✓' : mix ? '5' : '3', 'Xếp Slot', !sg.sl.ok || ro, ro ? 'Xếp Slot dùng bản đang dùng' : sg.sl.why)}</div>${verHtml}</div>
     ${ro ? `<div class="vp-old" data-testid="sp-old">Đang xem bản ${G.verN}${G.verAt ? ` (${esc(G.verAt)})` : ''}: chỉ xem kịch bản và Insight của bản này. Phần biên tập có lịch sử riêng ở Biên tập.<button class="btn sm" data-x="usever" data-testid="sp-usever" ${off ? 'disabled' : ''}>Dùng bản này</button></div>` : ''}
     <div class="vp-bar" id="sp-bar">${barHtml(v, null)}</div>
     ${mix ? `<div id="sp-lot">${lotHtml(v)}</div>` : ''}
     <div class="sv-pop${off ? ' sv-off-pop' : ''}" style="display:block">
       ${mix ? '<div data-pane="nap" hidden id="sp-nap"></div><div data-pane="dy" hidden id="sp-dy"></div>' : ''}
-      <div data-pane="ks" hidden><fieldset class="vp-fs" ${ro ? 'disabled' : ''}>
+      <div data-pane="ks" hidden><div id="sp-shoot"></div><fieldset class="vp-fs" id="sp-ksfs" ${ro || sLock ? 'disabled' : ''}>
         <div data-sub="insight" hidden>${insightPane}</div>
         <div data-sub="scene" hidden><div id="sp-scenes"></div>${scriptSec}</div>
         ${mediaHtml ? `<div data-sub="nguon" hidden>${mediaHtml}</div>` : ''}
@@ -332,7 +332,8 @@ function popHtml(v, G) {
 // Nút khóa kịch bản (mục 10.88); show() vẽ lại khi trạng thái đổi (vd. sang Biên tập tự khóa)
 function lockBtnHtml(v) {
   const has = !!String(v.script || '').trim(); if (!has || v.status === 'IDEA') return ''; const off = v.cancelled ? 'disabled' : '';
-  return v.status === 'APPROVED' ? `<button class="btn sm slot-ok on" data-x="sunlock" data-testid="sp-sunlock" title="Kịch bản đã khóa. Mở khóa để sửa." ${off}>${icon('lock')} Mở khóa</button>` : `<button class="btn sm" data-x="slock" data-testid="sp-slock" title="Khóa kịch bản để biên tập" ${off}>${icon('lock')} Khóa Kịch bản</button>`;
+  // Icon là trạng thái (mục 10.89): khóa đóng = đang khóa, khóa mở = đang mở
+  return v.status === 'APPROVED' ? `<button class="btn sm slot-ok on" data-x="sunlock" data-testid="sp-sunlock" title="Kịch bản đang khóa: không sửa, không tạo kịch bản mới. Bấm để mở khóa." ${off}>${icon('lock')} Đã khóa · Mở khóa</button>` : `<button class="btn sm" data-x="slock" data-testid="sp-slock" title="Kịch bản đang mở. Bấm để khóa (xong Phân cảnh) rồi sang Biên tập" ${off}>${icon('unlock')} Khóa Kịch bản</button>`;
 }
 // Hàng menu phụ: Kịch bản → Insight / Phân cảnh (+ Nguồn vào); Biên tập → Trong app / Ngoài app (+ hoàn tác); Xếp Slot
 function barHtml(v, es) {
@@ -358,7 +359,7 @@ const fmtS = x => String(Math.round(x * 10) / 10).replace('.', ',');
 function sceneListHtml(v) {
   if (!v.edit || !v.edit.scenes.length) return `<section class="panel stack" style="gap:8px;margin-bottom:12px"><h3>Phân cảnh</h3><p class="small muted">${v.script || (v.media || []).length ? 'Chưa chia cảnh. Bấm Chia cảnh: app chia kịch bản thành các cảnh có lời, mô tả hình và thời lượng; kịch bản được coi là đã duyệt.' : 'Cần kịch bản hoặc tệp nguồn để chia cảnh.'}</p><div class="row"><button class="btn sm primary" data-x="plan-scenes" data-testid="sp-plan" ${!v.ro && (v.script || (v.media || []).length) ? '' : 'disabled'}>Chia cảnh theo kịch bản</button></div></section>`;
   const tl = AC.editTimeline(v);
-  return `${shootBannerHtml(v)}<section class="panel stack" style="gap:6px;margin-bottom:12px"><h3>Phân cảnh <span class="small muted">${tl.items.length} cảnh · ${fmtS(tl.total)} giây</span></h3>
+  return `<section class="panel stack" style="gap:6px;margin-bottom:12px"><h3>Phân cảnh <span class="small muted">${tl.items.length} cảnh · ${fmtS(tl.total)} giây</span></h3>
     <div class="vp-phw"><table class="vp-phc"><thead><tr><th>STT</th><th>Timeline</th><th>Nội dung</th><th>Mô tả hình ảnh hoặc video minh hoạ</th></tr></thead><tbody>
     ${tl.items.map((it, i) => { const s = it.scene; return `<tr data-testid="sp-scene-row"><td class="n">${i + 1}</td><td class="t">${fmtS(it.t0)}–${fmtS(it.t1)}s<br><span class="small muted">${s.items.length ? `${s.items.length} hình` : s.ph ? 'thẻ giữ chỗ' : ''}</span></td>
       <td><label class="sr" for="sp-pt-${esc(s.id)}">Lời cảnh ${i + 1}</label><textarea id="sp-pt-${esc(s.id)}" class="vp-r2" rows="2" data-pt="${esc(s.id)}">${esc(s.text)}</textarea></td>
@@ -383,16 +384,20 @@ export function openVid(id) {
     if (G && n.tab === 'sl') n.tab = 'ks';
     const done = AC.vidEditDone(vv); const mx = vv.origin === 'mix'; const hs = !!String(vv.script || '').trim();
     if (mx && !hs && n.tab !== 'nap' && n.tab !== 'dy') n.tab = 'nap';
-    box.querySelectorAll('.vp-tabs [data-nav]').forEach(b => { const k = b.dataset.nav.split(':')[1]; b.setAttribute('aria-selected', String(n.tab === k)); if (k === 'sl') { b.disabled = !done || vv.cancelled || vv.status === 'IDEA' || !!G; b.querySelector('.vp-step').textContent = AC.vidSlotsOf(S, id).length ? '✓' : mx ? '5' : '3'; } if (k === 'bt') { b.querySelector('.vp-step').textContent = done ? '✓' : mx ? '4' : '2'; if (mx) b.disabled = !hs || vv.cancelled; } if (k === 'ks') { b.querySelector('.vp-step').textContent = vv.script && vv.status !== 'DRAFT' && vv.status !== 'TODO' && vv.status !== 'IDEA' ? '✓' : mx ? '3' : '1'; if (mx) b.disabled = !hs; } if (k === 'nap') b.querySelector('.vp-step').textContent = (vv.inputs || []).length ? '✓' : '1'; if (k === 'dy') { b.querySelector('.vp-step').textContent = vv.dyOk ? '✓' : '2'; b.disabled = !(vv.cells || []).length || !!G; } });
+    // Mục 10.89: tab chỉ mở khi khâu trước đã xong và khóa
+    const sg = AC.vidStageGate(vv); if (!G && ((n.tab === 'bt' && !sg.bt.ok) || (n.tab === 'sl' && !sg.sl.ok))) n.tab = 'ks';
+    box.querySelectorAll('.vp-tabs [data-nav]').forEach(b => { const k = b.dataset.nav.split(':')[1]; b.setAttribute('aria-selected', String(n.tab === k)); if (k === 'sl') { b.disabled = !sg.sl.ok || !!G; b.title = sg.sl.why; b.querySelector('.vp-step').textContent = AC.vidSlotsOf(S, id).length ? '✓' : mx ? '5' : '3'; } if (k === 'bt') { b.querySelector('.vp-step').textContent = done ? '✓' : mx ? '4' : '2'; b.disabled = !sg.bt.ok; b.title = sg.bt.why; } if (k === 'ks') { b.querySelector('.vp-step').textContent = vv.script && vv.status !== 'DRAFT' && vv.status !== 'TODO' && vv.status !== 'IDEA' ? '✓' : mx ? '3' : '1'; if (mx) b.disabled = !hs; } if (k === 'nap') b.querySelector('.vp-step').textContent = (vv.inputs || []).length ? '✓' : '1'; if (k === 'dy') { b.querySelector('.vp-step').textContent = vv.dyOk ? '✓' : '2'; b.disabled = !(vv.cells || []).length || !!G; } });
     box.querySelectorAll('[data-pane]').forEach(e => { e.hidden = e.dataset.pane !== n.tab; });
     box.querySelectorAll('[data-sub]').forEach(e => { e.hidden = e.dataset.sub !== n.ks; });
     box.querySelectorAll('[data-bm]').forEach(e => { e.hidden = e.dataset.bm !== m; });
     if (mx) { const lk = vv.cancelled || !!G; if (n.tab === 'nap') g('nap').innerHTML = napPaneHtml(vv, lk); if (n.tab === 'dy') g('dy').innerHTML = dyPaneHtml(vv, lk); const lot = g('lot'); if (lot) lot.innerHTML = lotHtml(vv); }
     if (n.tab !== 'bt' && ED) ED.pause();
     if (n.tab === 'ks' && n.ks === 'scene') { g('scenes').innerHTML = sceneListHtml(cur()); stale(); }
-    if (!G) { const lw = g('lockw'); if (lw) lw.innerHTML = lockBtnHtml(vv); const ta = g('script'); if (ta) ta.readOnly = !!vv.cancelled || (!!String(vv.script || '').trim() && vv.status === 'APPROVED'); }
+    // Danh sách cần quay nằm ngoài vùng khóa: nạp clip cho cảnh là việc dựng, không sửa lời (mục 10.89)
+    { const sh = g('shoot'); if (sh) sh.innerHTML = n.tab === 'ks' && n.ks === 'scene' && !vv.cancelled ? shootBannerHtml(cur()) : ''; }
+    if (!G) { const sl2 = hs && vv.status === 'APPROVED'; const lw = g('lockw'); if (lw) lw.innerHTML = lockBtnHtml(vv); const fs = g('ksfs'); if (fs) fs.disabled = !!vv.cancelled || sl2; const ta = g('script'); if (ta) ta.readOnly = !!vv.cancelled || sl2; const wb = box.querySelector('[data-testid="sp-write"]'); if (wb) wb.disabled = !!vv.cancelled || sl2 || vv.status === 'IDEA'; }
     if (n.tab === 'sl') g('sl').innerHTML = slotPaneHtml(vv, sel);
-    if (n.tab === 'bt' && m === 'in' && !vv.cancelled && vv.status !== 'IDEA') { if (!ED) ED = mountEditor(g('ed'), id, { bar, view: G, done: () => { show(); toast('Đã hoàn thành biên tập. Bấm Ren Vid để tạo video.'); }, rendered: r => { n.tab = 'sl'; show(); toast(`Đã ren video ${r.video.file.dur} giây và lưu vào Kho. Chọn ngày giờ ở Xếp Slot.`); } }); else ED.render(); }
+    if (n.tab === 'bt' && m === 'in' && !vv.cancelled && vv.status !== 'IDEA') { if (!ED) ED = mountEditor(g('ed'), id, { bar, view: G, done: unlocked => { show(); if (!unlocked) toast('Đã hoàn thành: Biên tập đã khóa. Bấm Ren Vid để tạo video.'); }, rendered: r => { n.tab = 'sl'; show(); toast(`Đã ren video ${r.video.file.dur} giây và lưu vào Kho. Chọn ngày giờ ở Xếp Slot.`); } }); else ED.render(); }
     bar();
   };
   // Ghi các ô đang sửa vào dữ liệu; trả false nếu có lỗi. Đang xem bản cũ thì không ghi gì
@@ -460,8 +465,6 @@ export function openVid(id) {
     const nb = e.target.closest('[data-nav]'); if (!nb || nb.disabled) return; const [kind, val] = nb.dataset.nav.split(':'); const n = navOf(id);
     if (!persist()) return;
     if (kind === 'tab') n.tab = val; else if (kind === 'ks') { n.tab = 'ks'; n.ks = val; } else if (kind === 'mode') { if (!G) { AC.setEditMode(S, id, val); save(); } n.tab = 'bt'; }
-    // Sang Biên tập là khóa kịch bản (mục 10.88: biên tập chỉ làm khi kịch bản đã khóa)
-    const vv = AC.byId(S.videos, id); if (n.tab === 'bt' && !G && vv && vv.script && (vv.status === 'DRAFT' || vv.status === 'TODO')) { AC.approveVidScript(S, id); save(); render(); toast('Đã khóa Kịch bản để biên tập. Muốn sửa lời: Kịch bản → Mở khóa.'); }
     show();
   });
   box.addEventListener('click', async e => {

@@ -2737,3 +2737,14 @@ test('10.88 · Video → Slot video: ren lại hoặc Up tệp khác thì slot b
   // Dữ liệu cũ chưa có chữ ký: lấy chữ ký hiện tại, không báo
   delete a.vidSig; AC.migrateState(S); assert.equal(a.vidSig, null); assert.equal(AC.slotSrcState(S, a), null);
 });
+
+test('10.89 · Xong khâu nào khóa khâu đó: Biên tập mở khi Kịch bản khóa, Hoàn thành khóa Biên tập, Xếp Slot mở khi có video', () => {
+  const S = seed(); const v = AC.addFreeVideo(S, T2, { origin: 'script', script: 'Câu một rõ ràng.\n\nCâu hai ở giữa.\n\nTheo dõi kênh nhé.' }).video;
+  assert.equal(v.status, 'DRAFT'); let g = AC.vidStageGate(v); assert.equal(g.bt.ok, false); assert.match(g.bt.why, /Khóa Kịch bản/); assert.equal(g.sl.ok, false);
+  assert.ok(AC.approveVidScript(S, v.id).ok); assert.ok(AC.vidStageGate(v).bt.ok);
+  assert.ok(AC.planEdit(S, v.id).ok); v.edit.scenes.forEach(s => AC.editScene(S, v.id, s.id, { ph: true }));
+  assert.ok(AC.completeEdit(S, v.id).ok); assert.ok(AC.editLocked(v)); assert.equal(AC.vidStageGate(v).sl.ok, false, 'chưa ren thì Xếp Slot chưa mở');
+  assert.ok(AC.unlockEdit(S, v.id).changed); assert.equal(AC.editLocked(v), false); AC.completeEdit(S, v.id);
+  assert.ok(AC.renderVid(S, v.id).ok); assert.ok(AC.vidStageGate(v).sl.ok);
+  assert.ok(AC.planEdit(S, v.id).ok); assert.equal(AC.editLocked(v), false, 'chia lại cảnh thì Biên tập mở lại');
+});

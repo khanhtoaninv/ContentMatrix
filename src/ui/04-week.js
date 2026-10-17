@@ -91,7 +91,7 @@ function slotGearBtn(s) {
   const done = s.state === 'APPROVED';
   // Duyệt là khóa (mục 10.88): slot Đã duyệt hiện icon khóa, bấm để Mở khóa
   const why = locked ? 'Tuần đã chốt' : !s.text ? 'Chưa có bài' : done ? 'Đã duyệt, đang khóa. Bấm để mở khóa' : 'Duyệt slot';
-  return `<span class="slotbtns"><button class="slot-ok${done ? ' on' : ''}" data-act="${done ? 'slot-unlock' : 'slot-approve'}" data-id="${esc(s.id)}" ${locked || !s.text ? 'disabled' : ''} title="${esc(why)}" aria-label="${done ? 'Mở khóa slot' : 'Duyệt slot'}: ${esc(`${s.time} ${fmtName(s.formatId)}`)}">${done ? icon('lock') + ' ' : ''}Duyệt</button><button class="slot-view" data-act="slot-config" data-id="${esc(s.id)}" title="Cấu hình slot" aria-label="Cấu hình slot: ${esc(`${s.time} ${fmtName(s.formatId)}`)}">${icon('gear')}</button></span>`;
+  return `<span class="slotbtns"><button class="slot-ok${done ? ' on' : ''}" data-act="${done ? 'slot-unlock' : 'slot-approve'}" data-id="${esc(s.id)}" ${locked || !s.text ? 'disabled' : ''} title="${esc(why)}" aria-label="${done ? 'Mở khóa slot' : 'Duyệt slot'}: ${esc(`${s.time} ${fmtName(s.formatId)}`)}">${icon(done ? 'lock' : 'unlock')} Duyệt</button><button class="slot-view" data-act="slot-config" data-id="${esc(s.id)}" title="Cấu hình slot" aria-label="Cấu hình slot: ${esc(`${s.time} ${fmtName(s.formatId)}`)}">${icon('gear')}</button></span>`;
 }
 // Duyệt slot từ thẻ (hỏi lại khi có cảnh báo, như ở View)
 ACTIONS['slot-approve'] = async el => {
@@ -227,14 +227,14 @@ ACTIONS['month-step'] = el => {
 };
 
 function weekColumnsHtml(w) {
-  const locked = w.status === 'CONFIRMED';
+  const locked = w.status === 'CONFIRMED'; const mdone = AC.matrixDone(S, w.id); const mdis = mdone ? `disabled title="${esc(AC.MATRIX_LOCK_MSG)}"` : '';
   const inWeek = AC.weekLanes(S, w).filter(l => AC.byId(S.columns, l.colId));
   const avail = S.columns;
   return `<section class="panel quiet" aria-label="Cột của tuần">
     <header><div><span class="eyebrow">Cột của tuần</span><h2>${inWeek.length} Cột${AC.topicsOf(S, w.id).length ? ` · ma trận ${AC.topicsOf(S, w.id).length * inWeek.length} ô` : ' · ma trận có sau khi nạp Topic'}</h2></div><span class="small faint">Cột là chức năng nội dung; mặc định 5, thêm hoặc bớt được</span></header>
     <div class="colchips">
-      ${inWeek.map(l => `<span class="colchip">${esc(l.label)}${locked ? '' : `<button data-act="remove-col" data-col="${esc(l.colId)}" data-k="${l.k}" aria-label="Bớt Cột ${esc(l.label)}" title="Bớt Cột">×</button>`}</span>`).join('')}
-      ${!locked && avail.length ? `<button class="colchip add" data-act="add-col">${icon('plus')} Thêm Cột</button>` : ''}
+      ${inWeek.map(l => `<span class="colchip">${esc(l.label)}${locked ? '' : `<button data-act="remove-col" data-col="${esc(l.colId)}" data-k="${l.k}" aria-label="Bớt Cột ${esc(l.label)}" ${mdone ? mdis : 'title="Bớt Cột"'}>×</button>`}</span>`).join('')}
+      ${!locked && avail.length ? `<button class="colchip add" data-act="add-col" data-testid="add-col" ${mdis}>${icon('plus')} Thêm Cột</button>` : ''}
     </div>
   </section>`;
 }
@@ -246,7 +246,7 @@ ACTIONS['remove-col'] = async el => {
   const ok = await confirmBox({ title: `Bớt Cột "${lbl}"?`, danger: true, ok: 'Bớt Cột',
     body: `<p>Ma trận còn ${AC.topicsOf(S, w.id).length * (w.columnIds.length - 1)} ô.</p><ul>
       <li>${imp.cells} ô của Cột này bị loại khỏi tuần${imp.cellsWithContent ? ` (${imp.cellsWithContent} ô đã có bài, mất cả lịch sử)` : ''}.</li>
-      <li>${imp.slots} slot đang lấy bài từ Cột này chuyển "Chưa có bài".</li>
+      <li>${imp.slots} slot đang lấy bài từ Cột này giữ bài, tách khỏi ô nguồn.</li>
       ${fmtSlots ? `<li>${fmtSlots} slot dùng Format của Cột này sẽ không có ô nguồn cho tới khi bạn bật lại Cột hoặc đổi Format.</li>` : ''}</ul>` });
   if (!ok) return;
   const r = AC.removeWeekColumn(S, w.id, colId, k);
@@ -564,7 +564,7 @@ function cfgActionsHtml(s, locked) {
   if (!s.text) { const g = AC.slotWriteGate(S, s.id); return `<div class="row" id="slot-actions"><button class="btn primary" data-x="write" ${g.ok ? '' : 'disabled'} title="${esc(g.ok ? 'Viết bài và ảnh từ một ô Đã duyệt của Cột' : g.reason)}">Tạo bài</button><span class="small muted">${esc(g.ok ? 'Tạo bài lấy một ô Đã duyệt của Cột (ô ít slot dùng nhất), hoặc chọn ô cụ thể bên dưới.' : g.reason + '.')}</span></div>`; }
   // Ô → Slot một chiều (mục 10.88): bài slot không tự đổi theo ô; chỉ báo để biết
   const st = AC.slotSrcState(S, s); const lock = s.state === 'APPROVED';
-  const unlock = lock ? `<button class="btn" data-x="unlock">${icon('unlock')} Mở khóa</button>` : '';
+  const unlock = lock ? `<button class="btn" data-x="unlock" title="Đang khóa. Bấm để mở khóa">${icon('lock')} Mở khóa</button>` : '';
   if (st && st.kind === 'video') return `<div class="note warn srcnote" data-testid="slot-srcnote"><p><b>Video có bản mới.</b> ${esc(srcBangTitle(st))}</p><div class="row" id="slot-actions"><button class="btn primary" data-x="vid-upd">Cập nhật video</button><button class="btn" data-x="src-dismiss">Tắt cảnh báo</button></div></div>`;
   if (st) return `<div class="note warn srcnote" data-testid="slot-srcnote"><p><b>Ô nguồn đã có bản mới.</b> ${esc(srcBangTitle(st))}</p><div class="row" id="slot-actions">${unlock}${lock ? '' : '<button class="btn primary" data-x="regen">Tạo lại theo bản mới</button>'}<button class="btn" data-x="src-dismiss">Tắt cảnh báo</button></div></div>`;
   if (s.srcGone && !s.free) return `<div class="note srcnote" data-testid="slot-srcgone"><p>Ô nguồn đã bị xóa khỏi Matrix. Slot giữ bài hiện tại; Tạo lại sẽ viết từ một ô Đã duyệt khác cùng Cột.</p>${unlock ? `<div class="row" id="slot-actions">${unlock}</div>` : ''}</div>`;

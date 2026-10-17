@@ -546,6 +546,21 @@ export function scriptChanged(v) {
   const cur = normScript(v.script); return cur !== normScript(ed.splitFrom) && cur !== normScript(ed.splitAck);
 }
 export function ackScriptChange(S, id) { const v = vidGet(S, id); if (!v || !v.edit) return { ok: false, error: 'Chưa có phần biên tập.' }; v.edit.splitAck = v.script || ''; log(S, 'vid-split-ack', 'video', id); return { ok: true }; }
+// Xong khâu nào khóa khâu đó (mục 10.89): Biên tập bật khi Kịch bản đã khóa; Xếp Slot bật khi đã có video (Ren hoặc Up)
+export function vidStageGate(v) {
+  const has = !!String((v && v.script) || '').trim(); const idea = !v || v.status === 'IDEA'; const off = !v || v.cancelled; const mix = v && v.origin === 'mix';
+  const src = has || ((v && v.media) || []).length > 0 || !!(v && v.edit && (v.edit.scenes || []).length);
+  const bt = idea ? 'Duyệt Insight trước' : off ? 'Thẻ đã hủy' : mix && !has ? 'Nạp nguyên liệu rồi Dựng nhanh hoặc lập Dàn ý' : !src ? 'Chưa có kịch bản hoặc tệp nguồn' : scriptOpen(v) ? 'Khóa Kịch bản (xong Phân cảnh) trước khi biên tập' : '';
+  const sl = idea ? 'Duyệt Insight trước' : off ? 'Thẻ đã hủy' : !v.file ? 'Cần Ren Vid hoặc Up video trước' : '';
+  return { bt: { ok: !bt, why: bt }, sl: { ok: !sl, why: sl } };
+}
+// Biên tập đã Hoàn thành = khóa; Mở khóa để sửa tiếp (video đã ren thành lỗi thời khi biên tập đổi)
+export const editLocked = v => !!(v && v.edit && v.edit.doneAt);
+export function unlockEdit(S, id) {
+  const v = vidGet(S, id); if (!v || !v.edit) return { ok: false, error: 'Chưa có phần biên tập.' }; if (v.cancelled) return { ok: false, error: 'Thẻ đã hủy.' };
+  if (!v.edit.doneAt) return { ok: true, changed: false };
+  v.edit.doneAt = null; log(S, 'vid-edit-unlock', 'video', id); return { ok: true, changed: true };
+}
 export function approveVidScript(S, id) {
   const v = vidGet(S, id); if (!v) return { ok: false, error: 'Không thấy video.' };
   if (v.cancelled) return { ok: false, error: 'Kịch bản đã hủy.' };

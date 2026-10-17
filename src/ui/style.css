@@ -1474,3 +1474,5 @@ details.vp-src summary { cursor: pointer; font-size: var(--fs-2); color: var(--i
 .srcnote { display: grid; gap: 6px; }
 .slot-ok.on { background: var(--good-soft); border-color: var(--good); color: var(--good); }
 .btn.warnbtn { border-color: var(--warn); color: var(--warn); background: var(--warn-soft); }
+/* Short Vid: nút Thêm hàng cách bảng như các khối khác (mục 10.89) */
+.sv-addrow { margin-top: 16px; }

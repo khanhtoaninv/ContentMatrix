@@ -1479,6 +1479,8 @@ details.vp-src summary { cursor: pointer; font-size: var(--fs-2); color: var(--i
 .srcnote { display: grid; gap: 6px; }
 .slot-ok.on { background: var(--good-soft); border-color: var(--good); color: var(--good); }
 .btn.warnbtn { border-color: var(--warn); color: var(--warn); background: var(--warn-soft); }
+/* Short Vid: nút Thêm hàng cách bảng như các khối khác (mục 10.89) */
+.sv-addrow { margin-top: 16px; }
 
 </style>
 <div class="app" id="app">
@@ -8822,6 +8824,7 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		ed.cues = [];
 		ed.splitFrom = v.script || "";
 		ed.splitAck = null;
+		ed.doneAt = null;
 		if (v.script && (v.status === "DRAFT" || v.status === "TODO")) v.status = "APPROVED";
 		log(S, "vid-plan", "video", id, `${scenes.length} cảnh`);
 		return {
@@ -11107,6 +11110,47 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		v.edit.splitAck = v.script || "";
 		log(S, "vid-split-ack", "video", id);
 		return { ok: true };
+	}
+	function vidStageGate(v) {
+		const has = !!String(v && v.script || "").trim();
+		const idea = !v || v.status === "IDEA";
+		const off = !v || v.cancelled;
+		const mix = v && v.origin === "mix";
+		const src = has || (v && v.media || []).length > 0 || !!(v && v.edit && (v.edit.scenes || []).length);
+		const bt = idea ? "Duyệt Insight trước" : off ? "Thẻ đã hủy" : mix && !has ? "Nạp nguyên liệu rồi Dựng nhanh hoặc lập Dàn ý" : !src ? "Chưa có kịch bản hoặc tệp nguồn" : scriptOpen(v) ? "Khóa Kịch bản (xong Phân cảnh) trước khi biên tập" : "";
+		const sl = idea ? "Duyệt Insight trước" : off ? "Thẻ đã hủy" : !v.file ? "Cần Ren Vid hoặc Up video trước" : "";
+		return {
+			bt: {
+				ok: !bt,
+				why: bt
+			},
+			sl: {
+				ok: !sl,
+				why: sl
+			}
+		};
+	}
+	var editLocked = (v) => !!(v && v.edit && v.edit.doneAt);
+	function unlockEdit(S, id) {
+		const v = vidGet$3(S, id);
+		if (!v || !v.edit) return {
+			ok: false,
+			error: "Chưa có phần biên tập."
+		};
+		if (v.cancelled) return {
+			ok: false,
+			error: "Thẻ đã hủy."
+		};
+		if (!v.edit.doneAt) return {
+			ok: true,
+			changed: false
+		};
+		v.edit.doneAt = null;
+		log(S, "vid-edit-unlock", "video", id);
+		return {
+			ok: true,
+			changed: true
+		};
 	}
 	function approveVidScript(S, id) {
 		const v = vidGet$3(S, id);
@@ -20246,7 +20290,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		DATA_VERSION,
 		STORAGE_KEY,
 		RELEASE: "R4",
-		BUILD: 117,
+		BUILD: 118,
 		TEMPLATES,
 		STEP_NAMES,
 		STEP_COUNT,
@@ -20742,6 +20786,9 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		deleteSkill,
 		skillOwnerOf,
 		skillBlock,
+		vidStageGate,
+		editLocked,
+		unlockEdit,
 		SCRIPT_LOCK_MSG,
 		scriptOpen,
 		unlockVidScript,
@@ -23527,7 +23574,8 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		const rows = w ? AC.topicsOf(S, w.id) : [];
 		const locked = !!w && w.status === "CONFIRMED";
 		const wid = AC.weekIdOf(start);
-		const importBtn = locked ? "" : rows.length ? `<button class="btn primary" data-act="topic-import" data-mode="add">${icon("plus")} Nạp thêm Topic</button><button class="btn ghost" data-act="topic-import" data-mode="replace">Nạp lại tất cả</button>` : `<button class="btn primary" data-act="topic-import" data-mode="replace">${icon("plus")} Nạp Topic</button>`;
+		const mdis = !!w && AC.matrixDone(S, w.id) ? `disabled title="${esc(AC.MATRIX_LOCK_MSG)}"` : "";
+		const importBtn = locked ? "" : rows.length ? `<button class="btn primary" data-act="topic-import" data-mode="add" ${mdis}>${icon("plus")} Nạp thêm Topic</button><button class="btn ghost" data-act="topic-import" data-mode="replace" ${mdis}>Nạp lại tất cả</button>` : `<button class="btn primary" data-act="topic-import" data-mode="replace" ${mdis}>${icon("plus")} Nạp Topic</button>`;
 		const helpBtns = `<button class="btn ghost" data-act="show-template" data-t="topic">Xem tệp mẫu</button><button class="btn ghost" data-act="show-template" data-t="agentPrompt">Lệnh cho agent bên ngoài</button>`;
 		const head = `<div class="page-head"><div><span class="eyebrow">Matrix · ${esc(l.range)}</span><h1>${file && file.theme ? esc(file.theme) : "Ma trận Topic × Cột"}</h1></div></div>`;
 		const demo = demoBarHtml([
@@ -25137,7 +25185,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			const sst = AC.slotSrcState(S, s);
 			const srcBtn = sst ? sst.kind === "video" ? `<button class="btn sm warnbtn" data-pv="src" title="Thẻ Vid đã có video mới; slot không tự đổi">! Video có bản mới</button>` : `<button class="btn sm warnbtn" data-pv="src" title="Ô nguồn đã có bản mới; bài slot không tự đổi">! Ô nguồn có bản mới</button>` : "";
 			const common = `${s.text ? `<button class="btn sm" data-pv="repurpose" title="Viết lại bài này cho kênh khác thành slot mới (mô phỏng)">Chuyển kênh</button>` : ""}${pubButtonsHtml(s)}<button class="btn ghost sm" data-pv="detail">${icon("gear")} Cấu hình slot</button>${slotStateHtml(s)}`;
-			if (s.state === "APPROVED") return `<button class="btn sm" data-pv="unlock">${icon("unlock")} Mở khóa</button>${srcBtn}${common}`;
+			if (s.state === "APPROVED") return `<button class="btn sm" data-pv="unlock" title="Đang khóa. Bấm để mở khóa">${icon("lock")} Mở khóa</button>${srcBtn}${common}`;
 			const ok = s.state === "PUBLISHED";
 			return `<button class="btn sm" data-pv="edit">${icon("edit")} Sửa</button><button class="btn ${ok ? "" : "primary"} sm" data-pv="approve" ${ok || !s.text ? "disabled" : ""} ${!s.text ? "title=\"Viết nội dung trước\"" : ""}>${ok ? "Đã duyệt" : "Duyệt"}</button>${s.free ? "" : `<button class="btn sm" data-pv="regen" title="Viết lại bài và ảnh từ ô nguồn; bản cũ giữ trong lịch sử">Tạo lại</button>`}${srcBtn}${f.layout === "carousel" && s.text ? `<button class="btn sm" data-pv="carousel" title="Soạn từng slide: chữ, thứ tự, thêm bớt slide">Soạn carousel</button>` : ""}${s.text ? `<button class="btn sm" data-pv="repurpose" title="Viết lại bài này cho kênh khác thành slot mới (mô phỏng)">Chuyển kênh</button>` : ""}${s.undoN && (s.history || []).some((x) => x.n === s.undoN) ? `<button class="btn ghost sm" data-pv="undo">Hoàn tác</button>` : ""}${pubButtonsHtml(s)}<button class="btn ghost sm" data-pv="detail">${icon("gear")} Cấu hình slot</button>${slotStateHtml(s)}`;
 		};
@@ -27319,7 +27367,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		const locked = !!w && w.status === "CONFIRMED";
 		const done = s.state === "APPROVED";
 		const why = locked ? "Tuần đã chốt" : !s.text ? "Chưa có bài" : done ? "Đã duyệt, đang khóa. Bấm để mở khóa" : "Duyệt slot";
-		return `<span class="slotbtns"><button class="slot-ok${done ? " on" : ""}" data-act="${done ? "slot-unlock" : "slot-approve"}" data-id="${esc(s.id)}" ${locked || !s.text ? "disabled" : ""} title="${esc(why)}" aria-label="${done ? "Mở khóa slot" : "Duyệt slot"}: ${esc(`${s.time} ${fmtName(s.formatId)}`)}">${done ? icon("lock") + " " : ""}Duyệt</button><button class="slot-view" data-act="slot-config" data-id="${esc(s.id)}" title="Cấu hình slot" aria-label="Cấu hình slot: ${esc(`${s.time} ${fmtName(s.formatId)}`)}">${icon("gear")}</button></span>`;
+		return `<span class="slotbtns"><button class="slot-ok${done ? " on" : ""}" data-act="${done ? "slot-unlock" : "slot-approve"}" data-id="${esc(s.id)}" ${locked || !s.text ? "disabled" : ""} title="${esc(why)}" aria-label="${done ? "Mở khóa slot" : "Duyệt slot"}: ${esc(`${s.time} ${fmtName(s.formatId)}`)}">${icon(done ? "lock" : "unlock")} Duyệt</button><button class="slot-view" data-act="slot-config" data-id="${esc(s.id)}" title="Cấu hình slot" aria-label="Cấu hình slot: ${esc(`${s.time} ${fmtName(s.formatId)}`)}">${icon("gear")}</button></span>`;
 	}
 	ACTIONS["slot-approve"] = async (el) => {
 		const s = AC.byId(S.slots, el.dataset.id);
@@ -27534,13 +27582,15 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 	};
 	function weekColumnsHtml(w) {
 		const locked = w.status === "CONFIRMED";
+		const mdone = AC.matrixDone(S, w.id);
+		const mdis = mdone ? `disabled title="${esc(AC.MATRIX_LOCK_MSG)}"` : "";
 		const inWeek = AC.weekLanes(S, w).filter((l) => AC.byId(S.columns, l.colId));
 		const avail = S.columns;
 		return `<section class="panel quiet" aria-label="Cột của tuần">
     <header><div><span class="eyebrow">Cột của tuần</span><h2>${inWeek.length} Cột${AC.topicsOf(S, w.id).length ? ` · ma trận ${AC.topicsOf(S, w.id).length * inWeek.length} ô` : " · ma trận có sau khi nạp Topic"}</h2></div><span class="small faint">Cột là chức năng nội dung; mặc định 5, thêm hoặc bớt được</span></header>
     <div class="colchips">
-      ${inWeek.map((l) => `<span class="colchip">${esc(l.label)}${locked ? "" : `<button data-act="remove-col" data-col="${esc(l.colId)}" data-k="${l.k}" aria-label="Bớt Cột ${esc(l.label)}" title="Bớt Cột">×</button>`}</span>`).join("")}
-      ${!locked && avail.length ? `<button class="colchip add" data-act="add-col">${icon("plus")} Thêm Cột</button>` : ""}
+      ${inWeek.map((l) => `<span class="colchip">${esc(l.label)}${locked ? "" : `<button data-act="remove-col" data-col="${esc(l.colId)}" data-k="${l.k}" aria-label="Bớt Cột ${esc(l.label)}" ${mdone ? mdis : "title=\"Bớt Cột\""}>×</button>`}</span>`).join("")}
+      ${!locked && avail.length ? `<button class="colchip add" data-act="add-col" data-testid="add-col" ${mdis}>${icon("plus")} Thêm Cột</button>` : ""}
     </div>
   </section>`;
 	}
@@ -27561,7 +27611,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			ok: "Bớt Cột",
 			body: `<p>Ma trận còn ${AC.topicsOf(S, w.id).length * (w.columnIds.length - 1)} ô.</p><ul>
       <li>${imp.cells} ô của Cột này bị loại khỏi tuần${imp.cellsWithContent ? ` (${imp.cellsWithContent} ô đã có bài, mất cả lịch sử)` : ""}.</li>
-      <li>${imp.slots} slot đang lấy bài từ Cột này chuyển "Chưa có bài".</li>
+      <li>${imp.slots} slot đang lấy bài từ Cột này giữ bài, tách khỏi ô nguồn.</li>
       ${fmtSlots ? `<li>${fmtSlots} slot dùng Format của Cột này sẽ không có ô nguồn cho tới khi bạn bật lại Cột hoặc đổi Format.</li>` : ""}</ul>`
 		})) return;
 		const r = AC.removeWeekColumn(S, w.id, colId, k);
@@ -28041,7 +28091,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		}
 		const st = AC.slotSrcState(S, s);
 		const lock = s.state === "APPROVED";
-		const unlock = lock ? `<button class="btn" data-x="unlock">${icon("unlock")} Mở khóa</button>` : "";
+		const unlock = lock ? `<button class="btn" data-x="unlock" title="Đang khóa. Bấm để mở khóa">${icon("lock")} Mở khóa</button>` : "";
 		if (st && st.kind === "video") return `<div class="note warn srcnote" data-testid="slot-srcnote"><p><b>Video có bản mới.</b> ${esc(srcBangTitle(st))}</p><div class="row" id="slot-actions"><button class="btn primary" data-x="vid-upd">Cập nhật video</button><button class="btn" data-x="src-dismiss">Tắt cảnh báo</button></div></div>`;
 		if (st) return `<div class="note warn srcnote" data-testid="slot-srcnote"><p><b>Ô nguồn đã có bản mới.</b> ${esc(srcBangTitle(st))}</p><div class="row" id="slot-actions">${unlock}${lock ? "" : "<button class=\"btn primary\" data-x=\"regen\">Tạo lại theo bản mới</button>"}<button class="btn" data-x="src-dismiss">Tắt cảnh báo</button></div></div>`;
 		if (s.srcGone && !s.free) return `<div class="note srcnote" data-testid="slot-srcgone"><p>Ô nguồn đã bị xóa khỏi Matrix. Slot giữ bài hiện tại; Tạo lại sẽ viết từ một ô Đã duyệt khác cùng Cột.</p>${unlock ? `<div class="row" id="slot-actions">${unlock}</div>` : ""}</div>`;
@@ -30796,14 +30846,14 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		logo: "<span class=\"vp-fm-logo\"></span>",
 		band: "<span class=\"vp-fm-band\"></span>"
 	};
-	function settingsPane(v) {
+	function settingsPane(v, lk) {
 		const ed = v.edit, mus = ed.music;
 		const fr = [
 			["none", "Không frame"],
 			["logo", "Nhãn góc"],
 			["band", "Dải dưới"]
 		].concat(AC.vidFavFrames(S).filter((f) => f.kind === "png" && f.ratio === "9:16").map((f) => [f.id, f.name]));
-		return `<div class="vp-pane">${thumbGrp(v)}<div class="vp-grp"><div class="eyebrow">Caption <button class="btn sm" data-a="capopen" data-testid="ve-capopen">Quản lý caption →</button></div>
+		return `<div class="vp-pane">${thumbGrp(v)}${lk ? "<fieldset class=\"vp-fs\" disabled>" : ""}<div class="vp-grp"><div class="eyebrow">Caption <button class="btn sm" data-a="capopen" data-testid="ve-capopen">Quản lý caption →</button></div>
       <div class="vp-styles">${AC.VID_CAPTION_STYLES.map((n, i) => `<button class="vp-cs s${i}" data-a="cstyle" data-i="${i}" aria-pressed="${ed.captions.style === i}">Aa<small>${esc(n)}</small></button>`).join("")}</div>
       <div class="vp-tools small"><label>Kiểu <select id="ve-cap">${opt(AC.VID_CAPTION_MODES, ed.captions.mode)}</select></label><label>Vị trí <select id="ve-pos">${opt(AC.VID_CAPTION_POS, ed.captions.pos)}</select></label></div></div>
     <div class="vp-grp"><div class="eyebrow">Hiệu ứng <span class="small muted" style="text-transform:none;letter-spacing:0">áp dụng cho mọi scene chưa chỉnh riêng</span></div><div class="vp-fxg">
@@ -30821,7 +30871,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
     <div class="vp-grp"><div class="eyebrow">Nhạc nền <button class="btn sm" data-a="mulib" data-testid="ve-mulib">Thư viện nhạc →</button></div>${mus ? `<b class="small">${esc(mus.name)}</b> <button class="btn icon sm ghost" data-a="musx" aria-label="Gỡ nhạc">${icon("close")}</button>` : `<button class="btn sm" data-a="musup">${icon("up")} Up nhạc</button>`}
       ${mus ? `<div class="vp-tools small"><label>Âm lượng <input type="range" min="0" max="100" value="${Math.round(mus.vol * 100)}" data-a="musvol"></label><label><input type="checkbox" data-a="duck" ${mus.duck !== false ? "checked" : ""}> Tự hạ khi có giọng</label></div><div class="vp-tools"><input id="ve-lic" data-a="lic" placeholder="Nguồn / giấy phép (bắt buộc khi có nhạc)" value="${esc(mus.license || "")}"></div>` : "<p class=\"small muted\">Nhạc nền chưa chọn.</p>"}</div>
     <div class="vp-grp"><div class="eyebrow">Giọng</div><label class="sr" for="ve-voice">Nguồn giọng</label><select id="ve-voice" ${ed.voAll ? "disabled" : ""}>${opt(AC.VID_VOICES, ed.voice.mode)}</select>
-      <p class="small muted">${ed.voAll ? "Đang dùng VO toàn bài." : "Giọng máy đọc lời bằng giọng có sẵn của trình duyệt khi xem thử."}</p></div></div>`;
+      <p class="small muted">${ed.voAll ? "Đang dùng VO toàn bài." : "Giọng máy đọc lời bằng giọng có sẵn của trình duyệt khi xem thử."}</p></div>${lk ? "</fieldset>" : ""}</div>`;
 	}
 	function capPane(v, ro) {
 		const ed = v.edit;
@@ -30871,21 +30921,22 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		if (rs === "ext") return "";
 		return `<button class="btn primary" data-a="render" data-testid="ve-render" ${isRendering(v.id) ? "disabled" : ""}>${rs === "fresh" ? "Ren lại" : rs === "stale" ? "Ren lại" : "Ren Vid"}</button><span class="small muted" id="ve-prog" aria-live="polite"></span>`;
 	};
-	function bodyHtml(v, st, ro) {
-		const ed = v.edit;
+	function bodyHtml(v, st, ro, lockd) {
+		v.edit;
 		const dis = ro ? "disabled" : "";
-		const left = st.cap ? capPane(v, ro) : st.sub === "scene" ? scenePane(v, st) : settingsPane(v);
+		const left = st.cap ? capPane(v, ro) : st.sub === "scene" ? scenePane(v, st) : settingsPane(v, lockd);
+		const lfs = lockd && !st.cap && st.sub !== "scene" ? "" : dis;
 		const bl = AC.editBlockers(v);
 		const iss = ro ? [] : AC.editIssues(S, v);
-		const chg = !ro && AC.scriptChanged(v) ? `<div class="vp-stale" data-testid="ve-scrchg"><span><b>Kịch bản đã đổi.</b> Các cảnh vẫn theo kịch bản lúc chia cảnh.</span><button class="btn sm" data-a="scr-skip" data-testid="ve-scrskip">Bỏ qua</button><button class="btn sm primary" data-a="scr-upd" data-testid="ve-scrupd" title="Chia lại cảnh theo kịch bản mới; bản biên tập hiện tại lưu vào Lịch sử biên tập">Cập nhật theo kịch bản</button></div>` : "";
+		const chg = (!ro || lockd) && AC.scriptChanged(v) ? `<div class="vp-stale" data-testid="ve-scrchg"><span><b>Kịch bản đã đổi.</b> Các cảnh vẫn theo kịch bản lúc chia cảnh.${lockd ? " Mở khóa Biên tập để cập nhật." : ""}</span><button class="btn sm" data-a="scr-skip" data-testid="ve-scrskip" ${lockd ? "disabled" : ""}>Bỏ qua</button><button class="btn sm primary" ${lockd ? "disabled" : ""} data-a="scr-upd" data-testid="ve-scrupd" title="Chia lại cảnh theo kịch bản mới; bản biên tập hiện tại lưu vào Lịch sử biên tập">Cập nhật theo kịch bản</button></div>` : "";
 		const eh = ro ? [] : AC.editVersions(v);
 		const hist = eh.length ? `<label class="small" for="ve-ehist">Lịch sử biên tập</label><select id="ve-ehist" data-testid="ve-ehist">${eh.map((h) => `<option value="${h.n}">Bản ${h.n} · ${esc(h.at || "")}${h.why ? ` · ${esc(h.why)}` : ""}</option>`).join("")}</select><button class="btn sm" data-a="ehist-use" data-testid="ve-ehistuse" title="Dùng lại bản biên tập này; bản hiện tại lưu vào lịch sử">Dùng bản này</button>` : "";
-		return `${chg}<div class="vp-ed"><div class="vp-l"><div class="vp-mini" role="tablist" aria-label="Công cụ biên tập"><button role="tab" data-a="sub" data-k="scene" aria-selected="${st.sub === "scene" && !st.cap}" data-testid="ve-sub-scene">Scene</button><button role="tab" data-a="sub" data-k="set" aria-selected="${st.sub === "set" || st.cap}" data-testid="ve-sub-set">Cài đặt</button></div><fieldset class="vp-fs" ${dis}>${left}</fieldset></div>
+		return `${chg}<div class="vp-ed"><div class="vp-l"><div class="vp-mini" role="tablist" aria-label="Công cụ biên tập"><button role="tab" data-a="sub" data-k="scene" aria-selected="${st.sub === "scene" && !st.cap}" data-testid="ve-sub-scene">Scene</button><button role="tab" data-a="sub" data-k="set" aria-selected="${st.sub === "set" || st.cap}" data-testid="ve-sub-set">Cài đặt</button></div><fieldset class="vp-fs" ${lfs}>${left}</fieldset></div>
     <div class="vp-pv"><div class="vp-box" id="vp-box" data-testid="ve-stage"></div>${tbarHtml(v, st)}
       <div class="vp-pvbar"><button class="btn sm primary vp-ico" data-a="play" id="vp-play" data-testid="ve-play" title="Phát" aria-label="Phát">▶</button><button class="btn sm vp-ico" data-a="replay" data-testid="ve-replay" title="Phát lại từ đầu" aria-label="Phát lại từ đầu">↺</button><label class="small vp-safe-l"><input type="checkbox" data-a="safe" ${st.safe ? "checked" : ""}> Vùng an toàn</label></div></div></div>
     <fieldset class="vp-fs" ${dis}>${timelineHtml(v, st)}</fieldset>
-    ${ro ? "<div class=\"vp-foot\"><span class=\"small muted\">Bản cũ: chỉ xem. Bấm Dùng bản này để sửa tiếp.</span></div>" : `<div class="vp-foot"><span class="small ${bl.length ? "" : "muted"}" id="ve-issues">${bl.length ? bl.map((x) => `<a href="#" data-a="goto" data-i="${x.i}">Scene ${x.i + 1} chưa có hình</a>`).join(" · ") : renderNote(v)}${iss.filter((x) => !/chưa có hình/.test(x)).length ? `<br><span class="vp-warn">${iss.filter((x) => !/chưa có hình/.test(x)).map(esc).join(" · ")}</span>` : ""}</span>
-      ${hist}<button class="btn" data-a="export" data-testid="ve-export">Xuất lệnh dựng (JSON)</button><button class="btn ${ed.doneAt ? "" : "primary"}" data-a="done" data-testid="ve-done" ${bl.length ? "disabled" : ""}>${ed.doneAt ? "Đã hoàn thành ✓" : "Hoàn thành"}</button>${renderBtn(v, bl)}</div>`}
+    ${ro && !lockd ? "<div class=\"vp-foot\"><span class=\"small muted\">Bản cũ: chỉ xem. Bấm Dùng bản này để sửa tiếp.</span></div>" : `<div class="vp-foot"><span class="small ${bl.length ? "" : "muted"}" id="ve-issues">${bl.length ? bl.map((x) => `<a href="#" data-a="goto" data-i="${x.i}">Scene ${x.i + 1} chưa có hình</a>`).join(" · ") : renderNote(v)}${iss.filter((x) => !/chưa có hình/.test(x)).length ? `<br><span class="vp-warn">${iss.filter((x) => !/chưa có hình/.test(x)).map(esc).join(" · ")}</span>` : ""}</span>
+      ${lockd ? "" : hist}<button class="btn" data-a="export" data-testid="ve-export">Xuất lệnh dựng (JSON)</button>${lockd ? `<button class="btn slot-ok on" data-a="eunlock" data-testid="ve-unlock" ${isRendering(v.id) ? "disabled" : ""} title="Biên tập đã Hoàn thành nên đang khóa. Bấm để mở khóa và sửa tiếp">${icon("lock")} Đã khóa · Mở khóa</button>` : `<button class="btn primary" data-a="done" data-testid="ve-done" ${bl.length ? "disabled" : ""} title="Hoàn thành thì Biên tập khóa lại">${icon("unlock")} Hoàn thành</button>`}${renderBtn(v, bl)}</div>`}
     <input type="file" id="vp-file" accept="image/*,video/*" multiple class="sr" tabindex="-1"><input type="file" id="vp-fileA" accept="audio/*" class="sr" tabindex="-1"><input type="file" id="vp-fileM" accept="audio/*" class="sr" tabindex="-1">`;
 	}
 	function emptyHtml(v, ro) {
@@ -30939,8 +30990,10 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 	}
 	function mountEditor(host, id, hooks) {
 		const H = hooks || {};
-		const RO = !!H.view;
-		const key = RO ? `${id}#${H.view.verN}` : id;
+		const VIEWER = !!H.view;
+		let RO = VIEWER;
+		let LOCKD = false;
+		const key = VIEWER ? `${id}#${H.view.verN}` : id;
 		const st = ST[key] = ST[key] && ST[key].keep ? Object.assign(ST[key], {
 			play: false,
 			cue: null,
@@ -31830,6 +31883,8 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			if (!vv) return;
 			const keepScroll = host.querySelector(".vp-pane");
 			const sy = keepScroll ? keepScroll.scrollTop : 0;
+			LOCKD = !VIEWER && AC.editLocked(vv);
+			RO = VIEWER || LOCKD;
 			if (!st.play) stopAudio();
 			if (!vv.edit || !vv.edit.scenes.length) {
 				host.innerHTML = emptyHtml(vv, RO);
@@ -31837,7 +31892,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			}
 			if (!st.hist.length && !RO) st.hist.push(snapOf(vv.edit));
 			hideTip();
-			host.innerHTML = bodyHtml(vv, st, RO);
+			host.innerHTML = bodyHtml(vv, st, RO, LOCKD);
 			const p = host.querySelector(".vp-pane");
 			if (p) p.scrollTop = sy;
 			drawFx();
@@ -31941,7 +31996,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			const el = e.target;
 			const files = [...el.files || []];
 			el.value = "";
-			if (!files.length || RO) return;
+			if (!files.length || RO && !(LOCKD && el.id === "vp-fileT")) return;
 			try {
 				if (el.id === "vp-file") {
 					const sid = v().edit.scenes[upTarget].id;
@@ -32242,6 +32297,21 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			"pick",
 			"cb"
 		]);
+		const DONE_ACTS = /* @__PURE__ */ new Set([
+			"eunlock",
+			"render",
+			"export",
+			"thauto",
+			"thcrop",
+			"thdel",
+			"thdl",
+			"thgen",
+			"thlib",
+			"thsave",
+			"thscene",
+			"thstep",
+			"thup"
+		]);
 		host.addEventListener("click", async (e) => {
 			const b = e.target.closest("[data-a]");
 			if (!b || b.disabled || b.tagName === "SELECT" || b.tagName === "INPUT" && b.type !== "button") {
@@ -32264,7 +32334,16 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				return;
 			}
 			const a = b.dataset.a;
-			if (RO && !VIEW_ACTS.has(a)) return;
+			if (RO && !VIEW_ACTS.has(a) && !(LOCKD && DONE_ACTS.has(a))) return;
+			if (a === "eunlock") {
+				const r = AC.unlockEdit(S, id);
+				if (!r.ok) return toast(r.error, "bad");
+				save();
+				render();
+				if (H.bar) H.bar();
+				if (H.done) H.done(true);
+				return toast("Đã mở khóa Biên tập. Sửa xong bấm Hoàn thành để khóa lại.");
+			}
 			const i = Number(b.dataset.i);
 			const vv = v();
 			const ed = vv.edit;
@@ -33728,7 +33807,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		const N = Math.max(MAX, ...grid.map((g) => colsOf(w, g)));
 		const vsOf = (g) => g.t ? AC.vidsOf(S, w.id, g.t.row.id) : [];
 		return `<div class="matrix-wrap"><div class="matrix" data-testid="sv-matrix" style="grid-template-columns:190px repeat(${N}, minmax(124px, 1fr))">${`<div class="mc mhd">Topic \\ Thẻ Vid</div>${Array.from({ length: N }, (_, i) => `<div class="mc mhd">Vid ${i + 1}</div>`).join("")}`}${grid.map((g) => `<div class="mc mrow" data-testid="sv-row">${rowHeadHtml(g.t, vsOf(g), g)}</div>${cellsOfRow(w, g, dupes, N).map((c) => `<div class="mc">${c}</div>`).join("")}`).join("")}</div></div><div class="mcards">${grid.map((g) => `<section class="panel mcard" data-testid="sv-row-card"><div>${rowHeadHtml(g.t, vsOf(g), g)}</div><div class="cells">${cellsOfRow(w, g, dupes).map((c, i) => `<div class="stack" style="gap:4px"><span class="small muted">Vid ${i + 1}</span>${c}</div>`).join("")}</div></section>`).join("")}</div>
-    <div class="row"><button class="btn" data-act="sv-row-add" data-testid="sv-row-add" ${grid.length >= AC.VID_MAX_ROWS ? "disabled" : ""}>${icon("plus")} Thêm hàng</button></div>`;
+    <div class="row sv-addrow"><button class="btn" data-act="sv-row-add" data-testid="sv-row-add" ${grid.length >= AC.VID_MAX_ROWS ? "disabled" : ""}>${icon("plus")} Thêm hàng</button></div>`;
 	}
 	function countsHtml(w) {
 		const all = AC.vidsOf(S, w.id);
@@ -34078,6 +34157,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		const mix = o === "mix";
 		const hasScript = !!String(v.script || "").trim();
 		const sLock = hasScript && v.status === "APPROVED";
+		const sg = AC.vidStageGate(v);
 		const lockBtn = `<span id="sp-lockw">${ro ? "" : lockBtnHtml(v)}</span>`;
 		const tab = (k, n, label, dis, title) => `<button role="tab" data-nav="tab:${k}" aria-selected="${nav.tab === k}" ${dis ? "disabled" : ""} ${title ? `title="${esc(title)}"` : ""} data-testid="sp-tab-${k}"><span class="vp-step">${n}</span>${label}</button>`;
 		const insightPane = `<section class="panel stack" style="gap:8px"><h3>Insight</h3>
@@ -34106,18 +34186,18 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		const vers = AC.vidVersions(v);
 		const N = vers[vers.length - 1].n;
 		const vi = G ? vers.findIndex((x) => x.n === G.verN) : vers.length - 1;
-		const writeBtn = o === "script" ? "" : o === "audio" || o === "talk" ? `<button class="btn sm ${v.script ? "" : "primary"}" data-x="stt" ${off || ro || idea || !sttOk() ? "disabled" : ""} title="${sttOk() ? "Gửi tệp tới API nhận giọng nói để chép lời" : "Cần chọn OpenAI ở Setup → AI ảnh & video; hoặc dán lời vào ô Lời nói"}">Chép lời (API)</button>` : `<button class="btn sm primary" data-x="write" ${off || ro || idea ? "disabled" : ""} data-testid="sp-write" title="Viết kịch bản mới: bản đang có lùi vào danh sách bản cũ">Tạo Kịch bản</button>`;
+		const writeBtn = o === "script" ? "" : o === "audio" || o === "talk" ? `<button class="btn sm ${v.script ? "" : "primary"}" data-x="stt" ${off || ro || idea || sLock || !sttOk() ? "disabled" : ""} title="${sttOk() ? "Gửi tệp tới API nhận giọng nói để chép lời" : "Cần chọn OpenAI ở Setup → AI ảnh & video; hoặc dán lời vào ô Lời nói"}">Chép lời (API)</button>` : `<button class="btn sm primary" data-x="write" ${off || ro || idea || sLock ? "disabled" : ""} data-testid="sp-write" title="${sLock ? "Kịch bản đang khóa. Mở khóa để tạo kịch bản mới" : "Viết kịch bản mới: bản đang có lùi vào danh sách bản cũ"}">Tạo Kịch bản</button>`;
 		const verHtml = `<span class="vp-ver" data-testid="sp-ver"><button class="btn sm" data-x="vprev" ${vi > 0 ? "" : "disabled"} title="Bản kịch bản trước" aria-label="Bản kịch bản trước">‹</button><span class="small vp-vn" id="sp-vn">Bản ${vers[vi].n}/${N}${ro ? " · cũ" : ""}</span><button class="btn sm" data-x="vnext" ${ro ? "" : "disabled"} title="Bản kịch bản sau" aria-label="Bản kịch bản sau">›</button>${writeBtn}${lockBtn}</span>`;
 		return `<header class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><span class="eyebrow">Thẻ Vid ${posOf(v)} · ${esc(tv ? tv.title : "?")}</span><h2>${esc(R.insight.title)}</h2>
       <div class="row" style="gap:8px">${stateChip(v)}<span class="small muted">${esc(free ? originName(v) : vfName(v.formatId))} · ${esc(kindName(v.kind))}</span><span class="small mono" id="sp-count" title="Số chữ lời nói, thời lượng ước tính">${R.script ? `${words} chữ · ≈ ${fmtSec(AC.vidDuration(S, words))}` : ""}</span><span class="small muted sv-busy" aria-live="polite">${view.svBusy ? esc(view.svBusy) : ""}</span></div></div>
       <div class="row" style="gap:6px;flex-wrap:nowrap"><button class="btn sm ${off ? "primary" : "ghost"}" data-x="cancel" data-testid="sp-cancel" aria-pressed="${off}" ${ro ? "disabled" : ""}>${off ? "Khôi phục" : "Hủy thẻ"}</button><button class="btn icon ghost" data-act="close-layer" aria-label="Đóng">${icon("close")}</button></div></header>
-    <div class="vp-h1"><div class="vp-tabs tabs" role="tablist" aria-label="Các bước của thẻ Vid">${mix ? tab("nap", (v.inputs || []).length ? "✓" : "1", "Nạp nguyên liệu", false) + tab("dy", v.dyOk ? "✓" : "2", "Dàn ý", !(v.cells || []).length, "Cần nguyên liệu để lập dàn ý") : ""}${tab("ks", v.script && v.status !== "DRAFT" && v.status !== "TODO" && !idea ? "✓" : mix ? "3" : "1", "Kịch bản", mix && !hasScript, mix && !hasScript ? "Nạp nguyên liệu rồi Dựng nhanh hoặc lập Dàn ý" : "")}${tab("bt", done ? "✓" : mix ? "4" : "2", "Biên tập", idea || off || mix && !hasScript, idea ? "Duyệt Insight trước" : "")}${tab("sl", slots.length ? "✓" : mix ? "5" : "3", "Xếp Slot", !done || off || idea || ro, ro ? "Xếp Slot dùng bản đang dùng" : done ? "" : "Cần video thành phẩm hoặc hoàn thành biên tập trước")}</div>${verHtml}</div>
+    <div class="vp-h1"><div class="vp-tabs tabs" role="tablist" aria-label="Các bước của thẻ Vid">${mix ? tab("nap", (v.inputs || []).length ? "✓" : "1", "Nạp nguyên liệu", false) + tab("dy", v.dyOk ? "✓" : "2", "Dàn ý", !(v.cells || []).length, "Cần nguyên liệu để lập dàn ý") : ""}${tab("ks", v.script && v.status !== "DRAFT" && v.status !== "TODO" && !idea ? "✓" : mix ? "3" : "1", "Kịch bản", mix && !hasScript, mix && !hasScript ? "Nạp nguyên liệu rồi Dựng nhanh hoặc lập Dàn ý" : "")}${tab("bt", done ? "✓" : mix ? "4" : "2", "Biên tập", !sg.bt.ok, sg.bt.why)}${tab("sl", slots.length ? "✓" : mix ? "5" : "3", "Xếp Slot", !sg.sl.ok || ro, ro ? "Xếp Slot dùng bản đang dùng" : sg.sl.why)}</div>${verHtml}</div>
     ${ro ? `<div class="vp-old" data-testid="sp-old">Đang xem bản ${G.verN}${G.verAt ? ` (${esc(G.verAt)})` : ""}: chỉ xem kịch bản và Insight của bản này. Phần biên tập có lịch sử riêng ở Biên tập.<button class="btn sm" data-x="usever" data-testid="sp-usever" ${off ? "disabled" : ""}>Dùng bản này</button></div>` : ""}
     <div class="vp-bar" id="sp-bar">${barHtml(v, null)}</div>
     ${mix ? `<div id="sp-lot">${lotHtml(v)}</div>` : ""}
     <div class="sv-pop${off ? " sv-off-pop" : ""}" style="display:block">
       ${mix ? "<div data-pane=\"nap\" hidden id=\"sp-nap\"></div><div data-pane=\"dy\" hidden id=\"sp-dy\"></div>" : ""}
-      <div data-pane="ks" hidden><fieldset class="vp-fs" ${ro ? "disabled" : ""}>
+      <div data-pane="ks" hidden><div id="sp-shoot"></div><fieldset class="vp-fs" id="sp-ksfs" ${ro || sLock ? "disabled" : ""}>
         <div data-sub="insight" hidden>${insightPane}</div>
         <div data-sub="scene" hidden><div id="sp-scenes"></div>${scriptSec}</div>
         ${mediaHtml ? `<div data-sub="nguon" hidden>${mediaHtml}</div>` : ""}
@@ -34134,7 +34214,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 	function lockBtnHtml(v) {
 		if (!!!String(v.script || "").trim() || v.status === "IDEA") return "";
 		const off = v.cancelled ? "disabled" : "";
-		return v.status === "APPROVED" ? `<button class="btn sm slot-ok on" data-x="sunlock" data-testid="sp-sunlock" title="Kịch bản đã khóa. Mở khóa để sửa." ${off}>${icon("lock")} Mở khóa</button>` : `<button class="btn sm" data-x="slock" data-testid="sp-slock" title="Khóa kịch bản để biên tập" ${off}>${icon("lock")} Khóa Kịch bản</button>`;
+		return v.status === "APPROVED" ? `<button class="btn sm slot-ok on" data-x="sunlock" data-testid="sp-sunlock" title="Kịch bản đang khóa: không sửa, không tạo kịch bản mới. Bấm để mở khóa." ${off}>${icon("lock")} Đã khóa · Mở khóa</button>` : `<button class="btn sm" data-x="slock" data-testid="sp-slock" title="Kịch bản đang mở. Bấm để khóa (xong Phân cảnh) rồi sang Biên tập" ${off}>${icon("unlock")} Khóa Kịch bản</button>`;
 	}
 	function barHtml(v, es) {
 		const nav = navOf(v.id);
@@ -34170,7 +34250,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 	function sceneListHtml(v) {
 		if (!v.edit || !v.edit.scenes.length) return `<section class="panel stack" style="gap:8px;margin-bottom:12px"><h3>Phân cảnh</h3><p class="small muted">${v.script || (v.media || []).length ? "Chưa chia cảnh. Bấm Chia cảnh: app chia kịch bản thành các cảnh có lời, mô tả hình và thời lượng; kịch bản được coi là đã duyệt." : "Cần kịch bản hoặc tệp nguồn để chia cảnh."}</p><div class="row"><button class="btn sm primary" data-x="plan-scenes" data-testid="sp-plan" ${!v.ro && (v.script || (v.media || []).length) ? "" : "disabled"}>Chia cảnh theo kịch bản</button></div></section>`;
 		const tl = AC.editTimeline(v);
-		return `${shootBannerHtml(v)}<section class="panel stack" style="gap:6px;margin-bottom:12px"><h3>Phân cảnh <span class="small muted">${tl.items.length} cảnh · ${fmtS(tl.total)} giây</span></h3>
+		return `<section class="panel stack" style="gap:6px;margin-bottom:12px"><h3>Phân cảnh <span class="small muted">${tl.items.length} cảnh · ${fmtS(tl.total)} giây</span></h3>
     <div class="vp-phw"><table class="vp-phc"><thead><tr><th>STT</th><th>Timeline</th><th>Nội dung</th><th>Mô tả hình ảnh hoặc video minh hoạ</th></tr></thead><tbody>
     ${tl.items.map((it, i) => {
 			const s = it.scene;
@@ -34225,16 +34305,20 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			const mx = vv.origin === "mix";
 			const hs = !!String(vv.script || "").trim();
 			if (mx && !hs && n.tab !== "nap" && n.tab !== "dy") n.tab = "nap";
+			const sg = AC.vidStageGate(vv);
+			if (!G && (n.tab === "bt" && !sg.bt.ok || n.tab === "sl" && !sg.sl.ok)) n.tab = "ks";
 			box.querySelectorAll(".vp-tabs [data-nav]").forEach((b) => {
 				const k = b.dataset.nav.split(":")[1];
 				b.setAttribute("aria-selected", String(n.tab === k));
 				if (k === "sl") {
-					b.disabled = !done || vv.cancelled || vv.status === "IDEA" || !!G;
+					b.disabled = !sg.sl.ok || !!G;
+					b.title = sg.sl.why;
 					b.querySelector(".vp-step").textContent = AC.vidSlotsOf(S, id).length ? "✓" : mx ? "5" : "3";
 				}
 				if (k === "bt") {
 					b.querySelector(".vp-step").textContent = done ? "✓" : mx ? "4" : "2";
-					if (mx) b.disabled = !hs || vv.cancelled;
+					b.disabled = !sg.bt.ok;
+					b.title = sg.bt.why;
 				}
 				if (k === "ks") {
 					b.querySelector(".vp-step").textContent = vv.script && vv.status !== "DRAFT" && vv.status !== "TODO" && vv.status !== "IDEA" ? "✓" : mx ? "3" : "1";
@@ -34267,20 +34351,29 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				g("scenes").innerHTML = sceneListHtml(cur());
 				stale();
 			}
+			{
+				const sh = g("shoot");
+				if (sh) sh.innerHTML = n.tab === "ks" && n.ks === "scene" && !vv.cancelled ? shootBannerHtml(cur()) : "";
+			}
 			if (!G) {
+				const sl2 = hs && vv.status === "APPROVED";
 				const lw = g("lockw");
 				if (lw) lw.innerHTML = lockBtnHtml(vv);
+				const fs = g("ksfs");
+				if (fs) fs.disabled = !!vv.cancelled || sl2;
 				const ta = g("script");
-				if (ta) ta.readOnly = !!vv.cancelled || !!String(vv.script || "").trim() && vv.status === "APPROVED";
+				if (ta) ta.readOnly = !!vv.cancelled || sl2;
+				const wb = box.querySelector("[data-testid=\"sp-write\"]");
+				if (wb) wb.disabled = !!vv.cancelled || sl2 || vv.status === "IDEA";
 			}
 			if (n.tab === "sl") g("sl").innerHTML = slotPaneHtml(vv, sel);
 			if (n.tab === "bt" && m === "in" && !vv.cancelled && vv.status !== "IDEA") {
 				if (!ED) ED = mountEditor(g("ed"), id, {
 					bar,
 					view: G,
-					done: () => {
+					done: (unlocked) => {
 						show();
-						toast("Đã hoàn thành biên tập. Bấm Ren Vid để tạo video.");
+						if (!unlocked) toast("Đã hoàn thành: Biên tập đã khóa. Bấm Ren Vid để tạo video.");
 					},
 					rendered: (r) => {
 						n.tab = "sl";
@@ -34497,13 +34590,6 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 					save();
 				}
 				n.tab = "bt";
-			}
-			const vv = AC.byId(S.videos, id);
-			if (n.tab === "bt" && !G && vv && vv.script && (vv.status === "DRAFT" || vv.status === "TODO")) {
-				AC.approveVidScript(S, id);
-				save();
-				render();
-				toast("Đã khóa Kịch bản để biên tập. Muốn sửa lời: Kịch bản → Mở khóa.");
 			}
 			show();
 		});

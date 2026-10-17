@@ -412,7 +412,7 @@ export function planEdit(S, id) {
     } else { if (!ed.voice || ed.voice.mode === 'clip' || ed.voice.mode === 'file') ed.voice = { mode: 'tts' }; if (ed.voAll && ed.voAll.mediaId && !(v.media || []).some(x => x.id === ed.voAll.mediaId)) ed.voAll = null; }
   }
   scenes.forEach(sc => { if (sc.items.length) evenSplit(sc, sc.dur); sc.defDur = sc.dur; });
-  ed.scenes = scenes; ed.plannedAt = S.settings.demoNow; ed.simulated = true; ed.tpl = 'script'; ed.capStale = true; ed.segs = null; ed.cues = []; ed.splitFrom = v.script || ''; ed.splitAck = null;
+  ed.scenes = scenes; ed.plannedAt = S.settings.demoNow; ed.simulated = true; ed.tpl = 'script'; ed.capStale = true; ed.segs = null; ed.cues = []; ed.splitFrom = v.script || ''; ed.splitAck = null; ed.doneAt = null;
   // Chia cảnh là khóa kịch bản (mục 10.88: biên tập chỉ làm khi kịch bản đã khóa)
   if (v.script && (v.status === 'DRAFT' || v.status === 'TODO')) v.status = 'APPROVED';
   log(S, 'vid-plan', 'video', id, `${scenes.length} cảnh`);

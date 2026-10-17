@@ -267,10 +267,11 @@ function scenePane(v, st) {
     <button class="btn sm" data-a="add">${icon('plus')} Thêm cảnh</button></div>`;
 }
 const FRAME_TILE = { none: '', logo: '<span class="vp-fm-logo"></span>', band: '<span class="vp-fm-band"></span>' };
-function settingsPane(v) {
+// lk: Biên tập đã khóa (mục 10.89): Thumbnail vẫn đổi được (không phải ren lại), các mục khác chỉ xem
+function settingsPane(v, lk) {
   const ed = v.edit, mus = ed.music;
   const fr = [['none', 'Không frame'], ['logo', 'Nhãn góc'], ['band', 'Dải dưới']].concat(AC.vidFavFrames(S).filter(f => f.kind === 'png' && f.ratio === '9:16').map(f => [f.id, f.name]));
-  return `<div class="vp-pane">${thumbGrp(v)}<div class="vp-grp"><div class="eyebrow">Caption <button class="btn sm" data-a="capopen" data-testid="ve-capopen">Quản lý caption →</button></div>
+  return `<div class="vp-pane">${thumbGrp(v)}${lk ? '<fieldset class="vp-fs" disabled>' : ''}<div class="vp-grp"><div class="eyebrow">Caption <button class="btn sm" data-a="capopen" data-testid="ve-capopen">Quản lý caption →</button></div>
       <div class="vp-styles">${AC.VID_CAPTION_STYLES.map((n, i) => `<button class="vp-cs s${i}" data-a="cstyle" data-i="${i}" aria-pressed="${ed.captions.style === i}">Aa<small>${esc(n)}</small></button>`).join('')}</div>
       <div class="vp-tools small"><label>Kiểu <select id="ve-cap">${opt(AC.VID_CAPTION_MODES, ed.captions.mode)}</select></label><label>Vị trí <select id="ve-pos">${opt(AC.VID_CAPTION_POS, ed.captions.pos)}</select></label></div></div>
     <div class="vp-grp"><div class="eyebrow">Hiệu ứng <span class="small muted" style="text-transform:none;letter-spacing:0">áp dụng cho mọi scene chưa chỉnh riêng</span></div><div class="vp-fxg">
@@ -285,7 +286,7 @@ function settingsPane(v) {
     <div class="vp-grp"><div class="eyebrow">Nhạc nền <button class="btn sm" data-a="mulib" data-testid="ve-mulib">Thư viện nhạc →</button></div>${mus ? `<b class="small">${esc(mus.name)}</b> <button class="btn icon sm ghost" data-a="musx" aria-label="Gỡ nhạc">${icon('close')}</button>` : `<button class="btn sm" data-a="musup">${icon('up')} Up nhạc</button>`}
       ${mus ? `<div class="vp-tools small"><label>Âm lượng <input type="range" min="0" max="100" value="${Math.round(mus.vol * 100)}" data-a="musvol"></label><label><input type="checkbox" data-a="duck" ${mus.duck !== false ? 'checked' : ''}> Tự hạ khi có giọng</label></div><div class="vp-tools"><input id="ve-lic" data-a="lic" placeholder="Nguồn / giấy phép (bắt buộc khi có nhạc)" value="${esc(mus.license || '')}"></div>` : '<p class="small muted">Nhạc nền chưa chọn.</p>'}</div>
     <div class="vp-grp"><div class="eyebrow">Giọng</div><label class="sr" for="ve-voice">Nguồn giọng</label><select id="ve-voice" ${ed.voAll ? 'disabled' : ''}>${opt(AC.VID_VOICES, ed.voice.mode)}</select>
-      <p class="small muted">${ed.voAll ? 'Đang dùng VO toàn bài.' : 'Giọng máy đọc lời bằng giọng có sẵn của trình duyệt khi xem thử.'}</p></div></div>`;
+      <p class="small muted">${ed.voAll ? 'Đang dùng VO toàn bài.' : 'Giọng máy đọc lời bằng giọng có sẵn của trình duyệt khi xem thử.'}</p></div>${lk ? '</fieldset>' : ''}</div>`;
 }
 function capPane(v, ro) {
   const ed = v.edit; if (!ed.segs && !ro) AC.genCaptions(S, v.id, { full: true });
@@ -315,20 +316,22 @@ function waveHtml(v) {
 }
 const renderNote = v => { const ed = v.edit; const rs = AC.renderState(v); return !ed.doneAt ? (rs === 'ext' ? 'Thẻ đang dùng video Up ngoài app.' : 'Đủ hình cho mọi cảnh') : rs === 'fresh' ? 'Đã ren video và lưu vào Kho. Sang Xếp Slot để chọn ngày giờ.' : rs === 'stale' ? 'Biên tập đã đổi sau lần ren cuối: ren lại để video khớp.' : rs === 'ext' ? 'Đã hoàn thành. Thẻ đang dùng video Up ngoài app.' : 'Đã hoàn thành. Bấm Ren Vid để tạo video.'; };
 const renderBtn = (v, bl) => { const ed = v.edit; if (!ed.doneAt || bl.length) return ''; const rs = AC.renderState(v); if (rs === 'ext') return ''; return `<button class="btn primary" data-a="render" data-testid="ve-render" ${isRendering(v.id) ? 'disabled' : ''}>${rs === 'fresh' ? 'Ren lại' : rs === 'stale' ? 'Ren lại' : 'Ren Vid'}</button><span class="small muted" id="ve-prog" aria-live="polite"></span>`; };
-function bodyHtml(v, st, ro) {
+// ro: chỉ xem (bản cũ, hoặc Biên tập đã Hoàn thành = khóa); lockd: khóa vì Hoàn thành (mục 10.89), còn Ren / Xuất / Mở khóa
+function bodyHtml(v, st, ro, lockd) {
   const ed = v.edit; const dis = ro ? 'disabled' : '';
-  const left = st.cap ? capPane(v, ro) : st.sub === 'scene' ? scenePane(v, st) : settingsPane(v);
+  const left = st.cap ? capPane(v, ro) : st.sub === 'scene' ? scenePane(v, st) : settingsPane(v, lockd);
+  const lfs = lockd && !st.cap && st.sub !== 'scene' ? '' : dis;
   const bl = AC.editBlockers(v); const iss = ro ? [] : AC.editIssues(S, v);
   // Mục 10.88: kịch bản đổi sau khi chia cảnh → Cập nhật (chia lại, bản cũ vào lịch sử) hoặc Bỏ qua
-  const chg = !ro && AC.scriptChanged(v) ? `<div class="vp-stale" data-testid="ve-scrchg"><span><b>Kịch bản đã đổi.</b> Các cảnh vẫn theo kịch bản lúc chia cảnh.</span><button class="btn sm" data-a="scr-skip" data-testid="ve-scrskip">Bỏ qua</button><button class="btn sm primary" data-a="scr-upd" data-testid="ve-scrupd" title="Chia lại cảnh theo kịch bản mới; bản biên tập hiện tại lưu vào Lịch sử biên tập">Cập nhật theo kịch bản</button></div>` : '';
+  const chg = (!ro || lockd) && AC.scriptChanged(v) ? `<div class="vp-stale" data-testid="ve-scrchg"><span><b>Kịch bản đã đổi.</b> Các cảnh vẫn theo kịch bản lúc chia cảnh.${lockd ? ' Mở khóa Biên tập để cập nhật.' : ''}</span><button class="btn sm" data-a="scr-skip" data-testid="ve-scrskip" ${lockd ? 'disabled' : ''}>Bỏ qua</button><button class="btn sm primary" ${lockd ? 'disabled' : ''} data-a="scr-upd" data-testid="ve-scrupd" title="Chia lại cảnh theo kịch bản mới; bản biên tập hiện tại lưu vào Lịch sử biên tập">Cập nhật theo kịch bản</button></div>` : '';
   const eh = ro ? [] : AC.editVersions(v);
   const hist = eh.length ? `<label class="small" for="ve-ehist">Lịch sử biên tập</label><select id="ve-ehist" data-testid="ve-ehist">${eh.map(h => `<option value="${h.n}">Bản ${h.n} · ${esc(h.at || '')}${h.why ? ` · ${esc(h.why)}` : ''}</option>`).join('')}</select><button class="btn sm" data-a="ehist-use" data-testid="ve-ehistuse" title="Dùng lại bản biên tập này; bản hiện tại lưu vào lịch sử">Dùng bản này</button>` : '';
-  return `${chg}<div class="vp-ed"><div class="vp-l"><div class="vp-mini" role="tablist" aria-label="Công cụ biên tập"><button role="tab" data-a="sub" data-k="scene" aria-selected="${st.sub === 'scene' && !st.cap}" data-testid="ve-sub-scene">Scene</button><button role="tab" data-a="sub" data-k="set" aria-selected="${st.sub === 'set' || st.cap}" data-testid="ve-sub-set">Cài đặt</button></div><fieldset class="vp-fs" ${dis}>${left}</fieldset></div>
+  return `${chg}<div class="vp-ed"><div class="vp-l"><div class="vp-mini" role="tablist" aria-label="Công cụ biên tập"><button role="tab" data-a="sub" data-k="scene" aria-selected="${st.sub === 'scene' && !st.cap}" data-testid="ve-sub-scene">Scene</button><button role="tab" data-a="sub" data-k="set" aria-selected="${st.sub === 'set' || st.cap}" data-testid="ve-sub-set">Cài đặt</button></div><fieldset class="vp-fs" ${lfs}>${left}</fieldset></div>
     <div class="vp-pv"><div class="vp-box" id="vp-box" data-testid="ve-stage"></div>${tbarHtml(v, st)}
       <div class="vp-pvbar"><button class="btn sm primary vp-ico" data-a="play" id="vp-play" data-testid="ve-play" title="Phát" aria-label="Phát">▶</button><button class="btn sm vp-ico" data-a="replay" data-testid="ve-replay" title="Phát lại từ đầu" aria-label="Phát lại từ đầu">↺</button><label class="small vp-safe-l"><input type="checkbox" data-a="safe" ${st.safe ? 'checked' : ''}> Vùng an toàn</label></div></div></div>
     <fieldset class="vp-fs" ${dis}>${timelineHtml(v, st)}</fieldset>
-    ${ro ? '<div class="vp-foot"><span class="small muted">Bản cũ: chỉ xem. Bấm Dùng bản này để sửa tiếp.</span></div>' : `<div class="vp-foot"><span class="small ${bl.length ? '' : 'muted'}" id="ve-issues">${bl.length ? bl.map(x => `<a href="#" data-a="goto" data-i="${x.i}">Scene ${x.i + 1} chưa có hình</a>`).join(' · ') : renderNote(v)}${iss.filter(x => !/chưa có hình/.test(x)).length ? `<br><span class="vp-warn">${iss.filter(x => !/chưa có hình/.test(x)).map(esc).join(' · ')}</span>` : ''}</span>
-      ${hist}<button class="btn" data-a="export" data-testid="ve-export">Xuất lệnh dựng (JSON)</button><button class="btn ${ed.doneAt ? '' : 'primary'}" data-a="done" data-testid="ve-done" ${bl.length ? 'disabled' : ''}>${ed.doneAt ? 'Đã hoàn thành ✓' : 'Hoàn thành'}</button>${renderBtn(v, bl)}</div>`}
+    ${ro && !lockd ? '<div class="vp-foot"><span class="small muted">Bản cũ: chỉ xem. Bấm Dùng bản này để sửa tiếp.</span></div>' : `<div class="vp-foot"><span class="small ${bl.length ? '' : 'muted'}" id="ve-issues">${bl.length ? bl.map(x => `<a href="#" data-a="goto" data-i="${x.i}">Scene ${x.i + 1} chưa có hình</a>`).join(' · ') : renderNote(v)}${iss.filter(x => !/chưa có hình/.test(x)).length ? `<br><span class="vp-warn">${iss.filter(x => !/chưa có hình/.test(x)).map(esc).join(' · ')}</span>` : ''}</span>
+      ${lockd ? '' : hist}<button class="btn" data-a="export" data-testid="ve-export">Xuất lệnh dựng (JSON)</button>${lockd ? `<button class="btn slot-ok on" data-a="eunlock" data-testid="ve-unlock" ${isRendering(v.id) ? 'disabled' : ''} title="Biên tập đã Hoàn thành nên đang khóa. Bấm để mở khóa và sửa tiếp">${icon('lock')} Đã khóa · Mở khóa</button>` : `<button class="btn primary" data-a="done" data-testid="ve-done" ${bl.length ? 'disabled' : ''} title="Hoàn thành thì Biên tập khóa lại">${icon('unlock')} Hoàn thành</button>`}${renderBtn(v, bl)}</div>`}
     <input type="file" id="vp-file" accept="image/*,video/*" multiple class="sr" tabindex="-1"><input type="file" id="vp-fileA" accept="audio/*" class="sr" tabindex="-1"><input type="file" id="vp-fileM" accept="audio/*" class="sr" tabindex="-1">`;
 }
 function emptyHtml(v, ro) {
@@ -372,7 +375,7 @@ function cueHtml(v, c, st, ro) {
 // ---- Gắn vào popup ----
 // hooks.view: bản kịch bản cũ (chỉ xem); khi có, mọi thao tác ghi dữ liệu bị chặn
 export function mountEditor(host, id, hooks) {
-  const H = hooks || {}; const RO = !!H.view; const key = RO ? `${id}#${H.view.verN}` : id;
+  const H = hooks || {}; const VIEWER = !!H.view; let RO = VIEWER; let LOCKD = false; const key = VIEWER ? `${id}#${H.view.verN}` : id;
   const st = ST[key] = ST[key] && ST[key].keep ? Object.assign(ST[key], { play: false, cue: null, reCue: null, fx: null, scrub: false }) : { cur: 0, t: 0, play: false, sub: 'scene', cap: false, safe: false, hist: [], fut: [], saved: '', keep: true, cue: null };
   let timer = 0; const au = { list: [], music: null }; let drag = false;
   const v = () => H.view || vOf(id);
@@ -589,10 +592,11 @@ export function mountEditor(host, id, hooks) {
 
   function render() {
     const vv = v(); if (!vv) return; const keepScroll = host.querySelector('.vp-pane'); const sy = keepScroll ? keepScroll.scrollTop : 0;
+    LOCKD = !VIEWER && AC.editLocked(vv); RO = VIEWER || LOCKD;
     if (!st.play) stopAudio();
     if (!vv.edit || !vv.edit.scenes.length) { host.innerHTML = emptyHtml(vv, RO); return; }
     if (!st.hist.length && !RO) st.hist.push(snapOf(vv.edit));
-    hideTip(); host.innerHTML = bodyHtml(vv, st, RO); const p = host.querySelector('.vp-pane'); if (p) p.scrollTop = sy;
+    hideTip(); host.innerHTML = bodyHtml(vv, st, RO, LOCKD); const p = host.querySelector('.vp-pane'); if (p) p.scrollTop = sy;
     drawFx(); bindTl(); paint();
     if (st.cue) { if (cueById(st.cue)) drawCue(); else closeCue(); }
   }
@@ -629,7 +633,7 @@ export function mountEditor(host, id, hooks) {
   let upTarget = null;
   const pick = (sel, target) => { upTarget = target; const f = host.querySelector(sel); if (f) f.click(); };
   async function onFiles(e) {
-    const el = e.target; const files = [...(el.files || [])]; el.value = ''; if (!files.length || RO) return;
+    const el = e.target; const files = [...(el.files || [])]; el.value = ''; if (!files.length || (RO && !(LOCKD && el.id === 'vp-fileT'))) return;
     try {
       if (el.id === 'vp-file') { const sid = v().edit.scenes[upTarget].id; const ms = await readMediaList(files); act(AC.addSceneItems(S, id, sid, ms.map(m => ({ src: m.src, name: m.name, dur: m.dur, thumb: m.thumb }))), `Đã thêm ${ms.length} hình vào cảnh ${upTarget + 1}.`); return; }
       if (el.id === 'vp-fileT') { const m = await readMedia(files[0]); const r = AC.addVidThumb(S, id, { src: m.src, kind: 'up', name: m.name }); thDone(r, 'Đã thêm thumbnail Up'); return; }
@@ -691,13 +695,15 @@ export function mountEditor(host, id, hooks) {
   host.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('.vp-add')) { e.preventDefault(); e.target.click(); } });
   // Thao tác chỉ xem, dùng được cả ở bản cũ
   const VIEW_ACTS = new Set(['sub', 'capopen', 'capback', 'play', 'replay', 'seek', 'goto', 'pick', 'cb']);
+  const DONE_ACTS = new Set(['eunlock', 'render', 'export', 'thauto', 'thcrop', 'thdel', 'thdl', 'thgen', 'thlib', 'thsave', 'thscene', 'thstep', 'thup']);   // Biên tập đã khóa vẫn Ren, Xuất lệnh dựng, Mở khóa
   host.addEventListener('click', async e => {
     const b = e.target.closest('[data-a]'); if (!b || b.disabled || b.tagName === 'SELECT' || b.tagName === 'INPUT' && b.type !== 'button') {
       const c = e.target.closest('.vp-sc'); if (c && !e.target.closest('button,select,input,textarea,.vp-add,.vp-th,summary,a')) { seekScene(Number(c.dataset.c)); flashBlk(Number(c.dataset.c)); }
       const blk = e.target.closest('.vp-blk'); if (blk && !e.target.closest('.vp-hdl,.vp-ih')) { const bi = Number(blk.dataset.i); if (st.sub !== 'scene' || st.cap) { st.sub = 'scene'; st.cap = false; seekScene(bi); render(); } else seekScene(bi); revealScene(bi, true); }
       return;
     }
-    const a = b.dataset.a; if (RO && !VIEW_ACTS.has(a)) return;
+    const a = b.dataset.a; if (RO && !VIEW_ACTS.has(a) && !(LOCKD && DONE_ACTS.has(a))) return;
+    if (a === 'eunlock') { const r = AC.unlockEdit(S, id); if (!r.ok) return toast(r.error, 'bad'); save(); render(); if (H.bar) H.bar(); if (H.done) H.done(true); return toast('Đã mở khóa Biên tập. Sửa xong bấm Hoàn thành để khóa lại.'); }
     const i = Number(b.dataset.i); const vv = v(); const ed = vv.edit; const sc = ed && ed.scenes[i];
     if (a === 'plan') { const r = AC.planEdit(S, id); if (!r.ok) return toast(r.error, 'bad'); st.hist = []; st.cur = 0; st.t = 0; commit(); render(); return toast(`Đã chia ${r.count} cảnh. Kịch bản đã khóa.`); }
     if (a === 'sub') { st.sub = b.dataset.k; st.cap = false; render(); return; }

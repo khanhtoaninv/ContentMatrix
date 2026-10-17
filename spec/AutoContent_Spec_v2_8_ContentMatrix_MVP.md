@@ -107,6 +107,8 @@
 | D173 | **Xóa ở tầng trên không xóa bài slot**: xóa ô, Topic, Cột, cả Matrix, hay đổi Format/Cột của slot thì slot giữ bài (nhãn "Ô nguồn đã bị xóa"); Tạo lại sẽ viết từ một ô Đã duyệt khác cùng Cột. | 17/10/2026 |
 | D174 | **Kịch bản → Biên tập một chiều**: khóa kịch bản = Đã duyệt (nút Khóa Kịch bản / Mở khóa, icon khóa, ô lời nói chỉ đọc khi khóa). Chia cảnh, Hoàn thành, Ren, đổi mẫu dựng, dùng bản biên tập cũ chỉ làm khi kịch bản đã khóa; sang tab Biên tập tự khóa. Tạo Kịch bản mới, dùng bản kịch bản cũ, sửa lời không xóa phần biên tập; Biên tập báo **"Kịch bản đã đổi"** với Cập nhật theo kịch bản (chia lại cảnh, bản cũ vào lịch sử) hoặc Bỏ qua. Lịch sử kịch bản và **lịch sử biên tập** tách riêng, mỗi loại 5 bản. Thẻ ghi phiên bản Topic đã dùng; Topic đổi thì báo "Topic đã đổi". | 17/10/2026 |
 | D175 | **Video → Slot video**: slot chép video lúc xếp; xóa ở Kho hay Bỏ video ở thẻ không ảnh hưởng slot. Ren lại hoặc Up tệp khác thì slot chưa đăng hiện dấu "!" vàng: Cập nhật video (chép video, phụ đề mới; caption giữ; slot Đã duyệt về Chưa duyệt để duyệt lại), Cập nhật cả các slot của thẻ, hoặc Tắt cảnh báo. Thumbnail vẫn tự sang bìa slot như 10.87. | 17/10/2026 |
+| D176 | **Icon khóa là trạng thái**: khóa đóng = đang khóa (không sửa nội dung, không Tạo Kịch bản mới), khóa mở = đang mở. Áp dụng cho slot (Duyệt), Matrix, Kịch bản, Biên tập. | 17/10/2026 |
+| D177 | **Xong khâu nào khóa khâu đó**: tab Biên tập chỉ mở khi Kịch bản đã khóa (xong Phân cảnh; bỏ việc tự khóa khi sang Biên tập); Hoàn thành = Biên tập khóa (Ren, Xuất lệnh dựng, Thumbnail vẫn làm được; Mở khóa để sửa); tab Xếp Slot chỉ mở khi đã Ren hoặc Up video. Matrix khóa thì Nạp Topic, Nạp lại, Thêm/Bớt Cột mờ. Nút Lưu giữ nguyên (tự lưu làm sau). | 17/10/2026 |
 
 ## 0.4. Mặc định (đổi được ở Setup)
 
@@ -1432,3 +1434,13 @@ Phân tích và sơ đồ: `notes/phan-tich-tao-lai-noi-dung.md`, `notes/so-do-t
 - **Kịch bản → Biên tập**: `scriptOpen`, `unlockVidScript`, `SCRIPT_LOCK_MSG` chặn `applyTemplate`, `completeEdit`, `renderBlockers`, `useEditVersion`; `planEdit` (Chia cảnh) tự khóa. `v.editHist` (5 bản, `snapEdit` trước chia lại cảnh, đổi mẫu, dùng bản cũ, lúc Ren; `useEditVersion`); bản kịch bản (`v.history`) không còn chứa phần biên tập, dữ liệu cũ chuyển sang `editHist`. `scriptChanged` / `ackScriptChange` (`ed.splitAck`) cho băng "Kịch bản đã đổi" trong Biên tập; ô "Lịch sử biên tập" ở chân Biên tập. `v.topicVer`, `vidTopicChanged`.
 - **Video → Slot video**: `vidOutSig` (tệp + phụ đề), slot ghi `s.vidSig` lúc xếp; `slotSrcState` trả `{kind:'video'}` khi khác; `updateVideoSlot`, `updateVideoSlots`, `vidSlotsPending`; tab Xếp Slot của thẻ báo "N slot đang dùng video cũ". Slot đã đăng, tuần đã chốt không báo/không cập nhật.
 - **Kiểm thử**: logic 148 (thêm 3 test 10.88), UI thêm khối 10.88 (16 kiểm tra).
+
+## 10.89. Khóa từng khâu, icon khóa theo trạng thái (17/10/2026, bản 118)
+Quyết định D176–D177.
+- **Icon**: `icon('lock')` khi đang khóa, `icon('unlock')` khi đang mở: nút Duyệt của slot, Mở khóa slot (Cấu hình, View), nút khóa Kịch bản (`Đã khóa · Mở khóa` / `Khóa Kịch bản`), nút Biên tập (`Hoàn thành` / `Đã khóa · Mở khóa`); Matrix đã đúng từ trước.
+- **Kịch bản khóa** (`status APPROVED`): cả vùng Kịch bản (Insight, Độ dài, Phân cảnh, Lời nói, Nguồn vào) chỉ xem; Tạo Kịch bản, Chép lời mờ. Danh sách Cần quay (thẻ Vid tự do) nằm ngoài vùng khóa vì là nạp clip cho cảnh.
+- **Cổng từng tab**: `AC.vidStageGate(v)` → `{bt, sl}` kèm lý do; tab mờ kèm tooltip; đang ở tab bị khóa thì quay về Kịch bản.
+- **Biên tập khóa**: `AC.editLocked(v)` (= `edit.doneAt`), `AC.unlockEdit`; trình biên tập chỉ xem khi khóa (băng "Kịch bản đã đổi" nhắc Mở khóa để cập nhật); `planEdit` / đổi mẫu mở khóa lại (`doneAt = null`).
+- **Matrix khóa**: nút Nạp Topic / Nạp thêm / Nạp lại tất cả, Thêm Cột, × Bớt Cột mờ, tooltip `MATRIX_LOCK_MSG`. Hộp Bớt Cột nói slot giữ bài, tách khỏi ô nguồn.
+- Short Vid: nút Thêm hàng cách bảng 16px (`.sv-addrow`).
+- **Kiểm thử**: logic 149, UI 653.

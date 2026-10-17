@@ -65,9 +65,11 @@ RENDERERS.matrix = () => {
   const rows = w ? AC.topicsOf(S, w.id) : [];
   const locked = !!w && w.status === 'CONFIRMED';
   const wid = AC.weekIdOf(start);
+  // Matrix đã khóa (mục 10.89): không nạp Topic được, nút mờ kèm lý do
+  const mdone = !!w && AC.matrixDone(S, w.id); const mdis = mdone ? `disabled title="${esc(AC.MATRIX_LOCK_MSG)}"` : '';
   const importBtn = locked ? '' : rows.length
-    ? `<button class="btn primary" data-act="topic-import" data-mode="add">${icon('plus')} Nạp thêm Topic</button><button class="btn ghost" data-act="topic-import" data-mode="replace">Nạp lại tất cả</button>`
-    : `<button class="btn primary" data-act="topic-import" data-mode="replace">${icon('plus')} Nạp Topic</button>`;
+    ? `<button class="btn primary" data-act="topic-import" data-mode="add" ${mdis}>${icon('plus')} Nạp thêm Topic</button><button class="btn ghost" data-act="topic-import" data-mode="replace" ${mdis}>Nạp lại tất cả</button>`
+    : `<button class="btn primary" data-act="topic-import" data-mode="replace" ${mdis}>${icon('plus')} Nạp Topic</button>`;
   const helpBtns = `<button class="btn ghost" data-act="show-template" data-t="topic">Xem tệp mẫu</button><button class="btn ghost" data-act="show-template" data-t="agentPrompt">Lệnh cho agent bên ngoài</button>`;
   const head = `<div class="page-head"><div><span class="eyebrow">Matrix · ${esc(l.range)}</span><h1>${file && file.theme ? esc(file.theme) : 'Ma trận Topic × Cột'}</h1></div></div>`;
   const demo = demoBarHtml(['topics', 'write', 'approve', 'deal', 'clear']);
