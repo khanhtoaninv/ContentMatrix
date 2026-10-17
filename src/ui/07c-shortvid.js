@@ -16,6 +16,7 @@ export function shortVidTab() {
         ${num('sv-target', 'Video mỗi tuần', c.weekTarget, 'min="1" max="28" step="1"')}
         ${num('sv-min', 'Tối thiểu mỗi tuần', c.weekMin, 'min="0" max="28" step="1"', 'Dưới mức này KPI hiện màu cảnh báo.')}
         <div class="field"><label for="sv-ratio">Khung hình</label><select id="sv-ratio">${RATIOS.map(r => `<option ${r === c.ratio ? 'selected' : ''}>${r}</option>`).join('')}</select></div>
+        ${num('sv-len', 'Độ dài video mặc định (giây)', c.lenSec, `min="${AC.VID_LEN_MIN}" max="${AC.VID_LEN_MAX}" step="1" list="sv-len-list"`, 'Gợi ý 30, 60, 90 hoặc tùy chọn 15–300. Đổi thì số chữ bên dưới tự tính lại (±15%); mỗi thẻ Vid vẫn chọn độ dài riêng.')}<datalist id="sv-len-list">${AC.VID_LEN_PICKS.map(x => `<option value="${x}">`).join('')}</datalist>
         ${num('sv-bantin', 'Tỉ lệ Bản tin', c.mix.bantin, 'min="0" max="28" step="1"', 'Người dẫn mở đầu, phần sau giọng máy.')}
         ${num('sv-noihet', 'Tỉ lệ Người nói hết', c.mix.noihet, 'min="0" max="28" step="1"')}
         ${num('sv-wps', 'Tốc độ nói (chữ/giây)', c.wps, 'min="1" max="5" step="0.1"', 'Dùng để ước tính thời lượng.')}
@@ -45,7 +46,7 @@ export function shortVidTab() {
 }
 ACTIONS['sv-set-save'] = () => {
   const v = id => $(`#${id}`).value;
-  const r = AC.setVidSettings(S, { weekTarget: v('sv-target'), weekMin: v('sv-min'), ratio: v('sv-ratio'), wps: v('sv-wps'), wordMin: v('sv-wmin'), wordTarget: v('sv-wtarget'), wordMax: v('sv-wmax'),
+  const r = AC.setVidSettings(S, { weekTarget: v('sv-target'), weekMin: v('sv-min'), ratio: v('sv-ratio'), lenSec: v('sv-len'), wps: v('sv-wps'), wordMin: v('sv-wmin'), wordTarget: v('sv-wtarget'), wordMax: v('sv-wmax'),
     mix: { bantin: v('sv-bantin'), noihet: v('sv-noihet') }, brand: { opener: v('sv-opener'), closer: v('sv-closer'), visual: v('sv-visual') } });
   if (!r.ok) { $('#sv-set-err').textContent = r.error; return; }
   commit('Đã lưu cài đặt Short Vid.');

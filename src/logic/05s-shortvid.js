@@ -33,11 +33,17 @@ export function defaultVidFormats() {
   ];
 }
 export function defaultVidSettings() {
-  return { weekTarget: 7, weekMin: 3, mix: { bantin: 3, noihet: 4 }, wordMin: 140, wordMax: 200, wordTarget: 150, wps: 2.5, ratio: '9:16', brand: { opener: '', closer: '', visual: '' } };
+  return { weekTarget: 7, weekMin: 3, mix: { bantin: 3, noihet: 4 }, lenSec: 90, wordMin: 190, wordMax: 260, wordTarget: 225, wps: 2.5, ratio: '9:16', brand: { opener: '', closer: '', visual: '' } };
 }
-export function vidSettingsOf(S) {
+// Độ dài video (giây) → khoảng chữ: nhắm giây × tốc độ nói, chấp nhận ±15%
+export const VID_LEN_MIN = 15, VID_LEN_MAX = 300, VID_LEN_PICKS = [30, 60, 90];
+export const lenWords = (sec, wps) => { const t = Math.round(Number(sec) * Number(wps || 2.5)); return { target: t, min: Math.round(t * 0.85), max: Math.round(t * 1.15) }; };
+// v (không bắt buộc): thẻ có độ dài riêng `lenSec` thì khoảng chữ theo độ dài đó
+export function vidSettingsOf(S, v) {
   const d = defaultVidSettings(); const c = S.vidSettings || {};
-  return Object.assign(d, c, { mix: Object.assign(d.mix, c.mix || {}), brand: Object.assign(d.brand, c.brand || {}) });
+  const o = Object.assign(d, c, { mix: Object.assign(d.mix, c.mix || {}), brand: Object.assign(d.brand, c.brand || {}) });
+  if (v && v.lenSec >= VID_LEN_MIN && v.lenSec <= VID_LEN_MAX) { const w = lenWords(v.lenSec, o.wps); Object.assign(o, { lenSec: v.lenSec, wordMin: w.min, wordMax: w.max, wordTarget: w.target }); }
+  return o;
 }
 export function ensureShortVid(S) {
   if (!Array.isArray(S.vidFormats)) S.vidFormats = defaultVidFormats();
@@ -46,6 +52,8 @@ export function ensureShortVid(S) {
   if (!Array.isArray(S.vidAnalyses)) S.vidAnalyses = [];
   if (!Array.isArray(S.vidHidden)) S.vidHidden = [];
   if (!S.vidSettings || typeof S.vidSettings !== 'object') S.vidSettings = defaultVidSettings();
+  // Dữ liệu cũ chưa có độ dài (giây): còn đúng mức mặc định cũ 140–200 chữ thì đổi sang 90 giây; đã tự chỉnh thì giữ và suy ra số giây
+  if (S.vidSettings.lenSec == null) { const c = S.vidSettings; const wps = Number(c.wps) || 2.5; if (c.wordMin === 140 && c.wordMax === 200 && c.wordTarget === 150) Object.assign(c, { lenSec: 90 }, (({ min, max, target }) => ({ wordMin: min, wordMax: max, wordTarget: target }))(lenWords(90, wps))); else c.lenSec = Math.max(VID_LEN_MIN, Math.min(VID_LEN_MAX, Math.round((Number(c.wordTarget) || 225) / wps))); }
   S.videos.forEach(v => { if (v.edit) migrateEdit(v.edit); });   // mục 10.76: cảnh nhiều hình, VO toàn bài
   return S;
 }
@@ -54,14 +62,17 @@ export function setVidSettings(S, patch) {
   const n = (v, d) => v == null || v === '' ? d : Number(v);
   const out = Object.assign({}, c, {
     weekTarget: n(P.weekTarget, c.weekTarget), weekMin: n(P.weekMin, c.weekMin), wordMin: n(P.wordMin, c.wordMin), wordMax: n(P.wordMax, c.wordMax),
-    wordTarget: n(P.wordTarget, c.wordTarget), wps: n(P.wps, c.wps), ratio: P.ratio || c.ratio,
+    wordTarget: n(P.wordTarget, c.wordTarget), wps: n(P.wps, c.wps), ratio: P.ratio || c.ratio, lenSec: n(P.lenSec, c.lenSec),
     mix: { bantin: n(P.mix && P.mix.bantin, c.mix.bantin), noihet: n(P.mix && P.mix.noihet, c.mix.noihet) },
     brand: Object.assign({}, c.brand, P.brand || {}),
   });
   const int = v => Number.isInteger(v);
+  if (!int(out.lenSec) || out.lenSec < VID_LEN_MIN || out.lenSec > VID_LEN_MAX) return { ok: false, error: `Độ dài video phải là số nguyên ${VID_LEN_MIN}–${VID_LEN_MAX} giây.` };
+  // Đổi độ dài (giây) thì khoảng chữ tính lại theo độ dài đó
+  if (P.lenSec != null && P.lenSec !== '' && out.lenSec !== c.lenSec && out.wps > 0) { const w = lenWords(out.lenSec, out.wps); Object.assign(out, { wordMin: w.min, wordMax: w.max, wordTarget: w.target }); }
   if (!int(out.weekTarget) || out.weekTarget < 1 || out.weekTarget > 28) return { ok: false, error: 'Số video mỗi tuần phải là số nguyên 1–28.' };
   if (!int(out.weekMin) || out.weekMin < 0 || out.weekMin > out.weekTarget) return { ok: false, error: 'Mức tối thiểu phải từ 0 đến số video mỗi tuần.' };
-  if (!int(out.wordMin) || !int(out.wordMax) || out.wordMin < 40 || out.wordMax > 600 || out.wordMin > out.wordMax) return { ok: false, error: 'Độ dài chữ không hợp lệ (40–600, tối thiểu ≤ tối đa).' };
+  if (!int(out.wordMin) || !int(out.wordMax) || out.wordMin < 40 || out.wordMax > 900 || out.wordMin > out.wordMax) return { ok: false, error: 'Độ dài chữ không hợp lệ (40–900, tối thiểu ≤ tối đa).' };
   if (!int(out.wordTarget) || out.wordTarget < out.wordMin || out.wordTarget > out.wordMax) return { ok: false, error: 'Độ dài mục tiêu phải nằm trong khoảng tối thiểu–tối đa.' };
   if (!(out.wps >= 1 && out.wps <= 5)) return { ok: false, error: 'Tốc độ nói phải từ 1 đến 5 chữ/giây.' };
   if (!int(out.mix.bantin) || !int(out.mix.noihet) || out.mix.bantin < 0 || out.mix.noihet < 0) return { ok: false, error: 'Tỉ lệ Bản tin / Người nói phải là số nguyên ≥ 0.' };
@@ -180,7 +191,7 @@ export function vidSections(text) {
   return out.map(s => ({ label: s.label, text: s.text.trim() })).filter(s => s.label || s.text);
 }
 export function vidIssues(S, v) {
-  const c = vidSettingsOf(S); const out = []; if (!v.script) return out;
+  const c = vidSettingsOf(S, v); const out = []; if (!v.script) return out;
   const w = vidWords(v.script);
   if (w < c.wordMin) out.push(`Kịch bản ${w} chữ, ngắn hơn ${c.wordMin} chữ (≈ ${vidDuration(S, w)} giây).`);
   if (w > c.wordMax) out.push(`Kịch bản ${w} chữ, dài hơn ${c.wordMax} chữ (≈ ${vidDuration(S, w)} giây).`);
@@ -335,7 +346,7 @@ function pickFill(pool, used, target, max, start) {
 }
 function mockScript(S, v) {
   if (v.origin && v.origin !== 'topic') return freeMockScript(S, v);
-  const c = vidSettingsOf(S); const f = byId(S.vidFormats, v.formatId) || vidFormatsOf(S)[0];
+  const c = vidSettingsOf(S, v); const f = byId(S.vidFormats, v.formatId) || vidFormatsOf(S)[0];
   const row = vidTopicRow(S, v.topicId); const iv = row && topicCurrent(row); if (!iv) return null;
   const M = topicMaterial(iv);
   const othersSrc = new Set(); vidsOf(S, v.weekId, v.topicId).filter(x => x.id !== v.id && !x.cancelled).forEach(x => splitSentences(String(x.source || '').replace(/\n/g, ' ')).concat(splitSentences(vidBody(x.script).replace(/\n/g, ' '))).forEach(s => othersSrc.add(s.replace(/^(Thực tế|Đáp án):\s*/i, '').trim())));
@@ -375,7 +386,7 @@ function imagePromptOf(S, v, iv) {
 export function vidScriptJob(S, id) {
   const v = vidGet(S, id); if (!v) return null;
   if (v.origin && v.origin !== 'topic') return freeScriptJob(S, v);
-  const c = vidSettingsOf(S); const f = byId(S.vidFormats, v.formatId) || vidFormatsOf(S)[0];
+  const c = vidSettingsOf(S, v); const f = byId(S.vidFormats, v.formatId) || vidFormatsOf(S)[0];
   const row = vidTopicRow(S, v.topicId); const iv = row && topicCurrent(row); if (!iv) return null;
   const sk = skillBlock(f, `Chỉ dẫn viết cho Format video "${f.name}"`);
   const layout = v.kind === 'bantin' ? BANTIN_LAYOUT : f.structure;
@@ -385,7 +396,7 @@ export function vidScriptJob(S, id) {
     `# Việc: viết kịch bản video ngắn dọc ${c.ratio}, Format "${f.name}", kiểu ${VID_KINDS[v.kind]}`,
     sk || f.guideMd,
     `Bố cục: ${layout.join(' → ')}. Mỗi phần mở bằng nhãn trong ngoặc vuông trên một dòng riêng, ví dụ "[${layout[0]}]".`,
-    `Độ dài lời nói: ${c.wordMin}–${c.wordMax} chữ, nhắm ${c.wordTarget} chữ (đọc ${c.wps} chữ/giây). Câu ngắn, dễ nói, mở bằng hook trong 3 giây đầu.`,
+    `Độ dài lời nói: video ${c.lenSec} giây = ${c.wordMin}–${c.wordMax} chữ, nhắm ${c.wordTarget} chữ (đọc ${c.wps} chữ/giây). Câu ngắn, dễ nói, mở bằng hook trong 3 giây đầu.`,
     v.kind === 'bantin' ? 'Kiểu Bản tin: [Người dẫn] 15–25 chữ do người thật nói; [Giọng máy] là phần tin do giọng máy đọc, đưa nguyên văn phần này vào "audio"; [Chốt] một câu và lời kêu gọi.' : 'Kiểu Người nói hết: một người nói toàn bộ, xưng hô gần gũi.',
     [c.brand.opener ? `Câu mở thương hiệu (dùng ở đầu): ${c.brand.opener}` : '', c.brand.closer ? `Câu chốt/CTA chung (dùng ở cuối): ${c.brand.closer}` : '', c.brand.visual ? `Ghi chú hình ảnh thương hiệu: ${c.brand.visual}` : ''].filter(Boolean).join('\n'),
     `# Insight\nTiêu đề: ${v.insight.title}\nÝ chính: ${v.insight.idea}\nĐoạn căn cứ trong Topic:\n${v.source}`,

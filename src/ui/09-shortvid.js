@@ -7,7 +7,8 @@ import { downloadBytes } from './06-export.js';
 import { vidMax } from './04-week.js';
 import { coverDialog, subsDialog } from './04j-media.js';
 import { textCall } from './04k-aitext.js';
-import { findCuts, openFreeCreate, readMediaList, sttOk, transcribe } from './09b-vidfree.js';
+import { findCuts, readMediaList, sttOk, transcribe } from './09b-vidfree.js';
+import { bindMix, dyPaneHtml, lenRowHtml, lotHtml, mixBarExtras, mixSubOf, napPaneHtml, shootBannerHtml } from './09e-vidmix.js';
 import { mountEditor, openGenImage } from './09c-videdit.js';
 import { openSchedule, readyToSchedule, scheduleSelected, slotPaneHtml } from './09d-vidsched.js';
 
@@ -48,8 +49,8 @@ function cellHtml(v, dupes, pos) {
   </button>`;
 }
 function rowHeadHtml(t, vs) {
-  if (t.row.free) return `<b>Video tự do</b> <span class="small faint">${vs.length}/${MAX} thẻ</span><br><span class="small muted">Không đi từ Topic: kịch bản, giọng đọc, bài Matrix, quay người nói, b-roll.</span><br>
-    <button class="linkbtn small" data-act="sv-free-new" ${vs.length >= MAX ? 'disabled' : ''}>Tạo Vid tự do</button>${vs.length ? '' : ` · <button class="linkbtn small danger" data-act="sv-topic-remove" data-id="${esc(t.row.id)}">Bỏ hàng</button>`}`;
+  if (t.row.free) return `<b>Video tự do</b> <span class="small faint">${vs.length}/${AC.VID_MAX_FREE} thẻ</span><br><span class="small muted">Không đi từ Topic: nạp ý tưởng, kịch bản, bài Matrix, giọng, clip, ảnh, số liệu… rồi lập dàn ý.</span><br>
+    <button class="linkbtn small" data-act="sv-free-new" ${vs.length >= AC.VID_MAX_FREE ? 'disabled' : ''}>Tạo Vid tự do</button>${vs.length ? '' : ` · <button class="linkbtn small danger" data-act="sv-topic-remove" data-id="${esc(t.row.id)}">Bỏ hàng</button>`}`;
   const live = vs.filter(v => !v.cancelled && v.status !== 'IDEA').length; const an = AC.vidAnalysisOf(S, t.row.weekId, t.row.id);
   const busy = view.svBusy;
   return `<b>${t.videoOnly ? 'Chủ đề riêng' : `Topic ${t.row.order}`}</b> <span class="small faint">${vs.length}/${MAX} thẻ</span><br>
@@ -59,9 +60,11 @@ function rowHeadHtml(t, vs) {
     ${t.videoOnly ? `<button class="linkbtn small danger" data-act="sv-topic-remove" data-id="${esc(t.row.id)}">Xóa</button>` : `<button class="linkbtn small" data-act="sv-topic-hide" data-id="${esc(t.row.id)}" title="Bỏ Topic này khỏi Short Vid (vẫn ở Matrix)">Ẩn</button>`}
     ${an ? `<details class="small"><summary class="small muted">Lý do đề xuất</summary><span class="small" data-testid="sv-reason">${esc(an.reason)}</span></details>` : ''}`;
 }
-function cellsOfRow(w, t, dupes) {
+// Hàng Video tự do chứa tới VID_MAX_FREE thẻ (một video dài tách thành nhiều Short): thêm cột cho vừa số thẻ
+const colsOf = (w, t) => t.row.free ? Math.max(MAX, Math.min(AC.VID_MAX_FREE, AC.vidsOf(S, w.id, t.row.id).length + 1)) : MAX;
+function cellsOfRow(w, t, dupes, n) {
   const vs = AC.vidsOf(S, w.id, t.row.id); const out = [];
-  for (let i = 0; i < MAX; i++) {
+  for (let i = 0; i < (n || colsOf(w, t)); i++) {
     if (vs[i]) out.push(cellHtml(vs[i], dupes, i + 1));
     else if (i === vs.length) out.push(t.row.free ? `<button class="cellbtn sv-add" data-act="sv-free-new" aria-label="Tạo Vid tự do">${icon('plus')}<span class="small muted">Tạo Vid tự do</span></button>` : `<button class="cellbtn sv-add" data-act="sv-add" data-id="${esc(t.row.id)}" aria-label="Thêm Insight cho Topic ${esc(t.v.title)}">${icon('plus')}<span class="small muted">Thêm Insight</span></button>`);
     else out.push('<span class="faint small">—</span>');
@@ -70,10 +73,11 @@ function cellsOfRow(w, t, dupes) {
 }
 function matrixHtml(w, tps) {
   const dupes = AC.vidDupes(S, w.id);
-  const head = `<div class="mc mhd">Topic \\ Thẻ Vid</div>${Array.from({ length: MAX }, (_, i) => `<div class="mc mhd">Vid ${i + 1}</div>`).join('')}`;
-  const rows = tps.map(t => { const vs = AC.vidsOf(S, w.id, t.row.id); return `<div class="mc mrow">${rowHeadHtml(t, vs)}</div>${cellsOfRow(w, t, dupes).map(c => `<div class="mc">${c}</div>`).join('')}`; }).join('');
+  const N = Math.max(MAX, ...tps.map(t => colsOf(w, t)));
+  const head = `<div class="mc mhd">Topic \\ Thẻ Vid</div>${Array.from({ length: N }, (_, i) => `<div class="mc mhd">Vid ${i + 1}</div>`).join('')}`;
+  const rows = tps.map(t => { const vs = AC.vidsOf(S, w.id, t.row.id); return `<div class="mc mrow">${rowHeadHtml(t, vs)}</div>${cellsOfRow(w, t, dupes, N).map(c => `<div class="mc">${c}</div>`).join('')}`; }).join('');
   const cards = tps.map(t => { const vs = AC.vidsOf(S, w.id, t.row.id); return `<section class="panel mcard"><div>${rowHeadHtml(t, vs)}</div><div class="cells">${cellsOfRow(w, t, dupes).map((c, i) => `<div class="stack" style="gap:4px"><span class="small muted">Vid ${i + 1}</span>${c}</div>`).join('')}</div></section>`; }).join('');
-  return `<div class="matrix-wrap"><div class="matrix" data-testid="sv-matrix" style="grid-template-columns:190px repeat(${MAX}, minmax(124px, 1fr))">${head}${rows}</div></div><div class="mcards">${cards}</div>`;
+  return `<div class="matrix-wrap"><div class="matrix" data-testid="sv-matrix" style="grid-template-columns:190px repeat(${N}, minmax(124px, 1fr))">${head}${rows}</div></div><div class="mcards">${cards}</div>`;
 }
 function countsHtml(w) {
   const all = AC.vidsOf(S, w.id); const k = AC.vidKpi(S, w.id);
@@ -223,13 +227,13 @@ function ghostOf(v, n) {
 function popHtml(v, G) {
   const R = G || v; const ro = !!G;
   const row = AC.vidTopicRow(S, v.topicId); const tv = row && AC.topicCurrent(row);
-  const idea = v.status === 'IDEA'; const off = v.cancelled; const lock = off || ro; const c = AC.vidSettingsOf(S); const f = v.file; const words = AC.vidWords(R.script);
+  const idea = v.status === 'IDEA'; const off = v.cancelled; const lock = off || ro; const c = AC.vidSettingsOf(S, v); const f = v.file; const words = AC.vidWords(R.script);
   const issues = ro ? [] : AC.vidIssues(S, v).concat(AC.vidDupes(S, v.weekId)[v.id] || []);
   const fs = AC.vidFormatsOf(S, true); const kopt = Object.entries(AC.VID_KINDS).map(([k, l]) => `<option value="${k}" ${k === v.kind ? 'selected' : ''}>${esc(l)}</option>`).join('');
   const others = idea ? AC.vidsOf(S, v.weekId, v.topicId).filter(x => x.id !== v.id && x.status === 'IDEA') : [];
   const upOff = off || idea || ro;
   const o = AC.vidOrigin(v); const free = o !== 'topic'; const media = v.media || []; const slots = AC.vidSlotsOf(S, v.id);
-  const mediaHtml = !free || o === 'script' || o === 'post' ? '' : `<section class="panel stack" style="gap:8px" data-testid="sp-media"><h3>Nguồn vào · ${esc(originName(v))}</h3>
+  const mediaHtml = !free || o === 'script' || o === 'post' || o === 'mix' ? '' : `<section class="panel stack" style="gap:8px" data-testid="sp-media"><h3>Nguồn vào · ${esc(originName(v))}</h3>
     ${media.length ? media.map(m => `<div class="citem stack" style="gap:6px"><div class="row" style="gap:8px;align-items:flex-start;flex-wrap:nowrap">
         ${m.kind === 'audio' ? `<audio src="${esc(m.src)}" controls preload="none" style="max-width:100%"></audio>` : `<img class="sv-mthumb" src="${esc(m.thumb || '')}" alt="" ${m.thumb ? '' : 'style="visibility:hidden"'}>`}
         <div class="stack" style="gap:2px;min-width:0;flex:1"><span class="small"><b>${esc(m.name)}</b>${m.dur ? ` · ${AC.fmtClock(m.dur)}` : ''}</span>
@@ -246,7 +250,7 @@ function popHtml(v, G) {
         <div class="stack" style="gap:4px;min-width:0"><span class="small"><b>${esc(f.name)}</b> · ${fmtMb(f.size || AC.dataUrlBytes(f.src).length)}</span>
         <span class="small faint">${[f.cover ? 'có ảnh bìa' : 'chưa có ảnh bìa', f.subs ? `phụ đề ${f.subs.cues.length} dòng` : 'chưa có phụ đề'].join(' · ')}</span></div></div>` : '';
   const hint = R.simulated ? 'Bản mô phỏng (chưa bật AI viết bài).' : R.ai ? `AI viết${R.ai.skill ? ` · Skill "${esc(R.ai.skill.name)}" v${R.ai.skill.version}` : ''}${v.edited && !ro ? ' · đã sửa tay' : ''}.` : '';
-  const nav = navOf(v.id); const done = AC.vidEditDone(v);
+  const nav = navOf(v.id); const done = AC.vidEditDone(v); const mix = o === 'mix'; const hasScript = !!String(v.script || '').trim();
   const tab = (k, n, label, dis, title) => `<button role="tab" data-nav="tab:${k}" aria-selected="${nav.tab === k}" ${dis ? 'disabled' : ''} ${title ? `title="${esc(title)}"` : ''} data-testid="sp-tab-${k}"><span class="vp-step">${n}</span>${label}</button>`;
   const insightPane = `<section class="panel stack" style="gap:8px"><h3>Insight</h3>
           <div class="field"><label for="sp-title">Tiêu đề</label><input id="sp-title" value="${esc(R.insight.title)}" maxlength="160" ${lock ? 'readonly' : ''}></div>
@@ -254,6 +258,7 @@ function popHtml(v, G) {
           <div class="field"><label for="sp-reason">Lý do làm video này</label><textarea id="sp-reason" class="vp-r2" rows="2" ${lock ? 'readonly' : ''}>${esc(R.insight.reason)}</textarea></div>
           <div class="row"><div class="field"><label for="sp-format">Format</label><select id="sp-format" ${lock ? 'disabled' : ''}>${fs.map(x => `<option value="${esc(x.id)}" ${x.id === v.formatId ? 'selected' : ''}>${esc(x.name)}${x.active === false ? ' (đang tắt)' : ''}</option>`).join('')}</select></div>
             <div class="field"><label for="sp-kind">Kiểu</label><select id="sp-kind" ${lock ? 'disabled' : ''}>${kopt}</select></div></div>
+          ${idea ? '' : lenRowHtml(R, lock)}
           <details ${idea ? 'open' : ''}><summary class="small">${free ? 'Nội dung nguồn' : 'Đoạn căn cứ trong Topic'}</summary><div class="field" style="margin-top:6px"><label class="sr" for="sp-source">Đoạn căn cứ</label><textarea id="sp-source" class="vp-r2" rows="2" ${lock ? 'readonly' : ''}>${esc(R.insight.source || v.source)}</textarea></div></details>
           ${others.length ? `<div class="row" style="gap:6px"><label class="sr" for="sp-merge">Gộp với</label><select id="sp-merge">${others.map(o2 => `<option value="${esc(o2.id)}">${esc(clamp(o2.insight.title, 50))}</option>`).join('')}</select><button class="btn sm" data-x="merge">Gộp vào thẻ này</button></div>` : ''}
         </section>`;
@@ -276,12 +281,14 @@ function popHtml(v, G) {
     : `<button class="btn sm primary" data-x="write" ${off || ro || idea ? 'disabled' : ''} data-testid="sp-write" title="Viết kịch bản mới: bản đang có lùi vào danh sách bản cũ">Tạo Kịch bản</button>`;
   const verHtml = `<span class="vp-ver" data-testid="sp-ver"><button class="btn sm" data-x="vprev" ${vi > 0 ? '' : 'disabled'} title="Bản kịch bản trước" aria-label="Bản kịch bản trước">‹</button><span class="small vp-vn" id="sp-vn">Bản ${vers[vi].n}/${N}${ro ? ' · cũ' : ''}</span><button class="btn sm" data-x="vnext" ${ro ? '' : 'disabled'} title="Bản kịch bản sau" aria-label="Bản kịch bản sau">›</button>${writeBtn}</span>`;
   return `<header class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><span class="eyebrow">Thẻ Vid ${posOf(v)} · ${esc(tv ? tv.title : '?')}</span><h2>${esc(R.insight.title)}</h2>
-      <div class="row" style="gap:8px">${stateChip(v)}<span class="small muted">${esc(vfName(v.formatId))} · ${esc(kindName(v.kind))}</span><span class="small mono" id="sp-count" title="Số chữ lời nói, thời lượng ước tính">${R.script ? `${words} chữ · ≈ ${fmtSec(AC.vidDuration(S, words))}` : ''}</span><span class="small muted sv-busy" aria-live="polite">${view.svBusy ? esc(view.svBusy) : ''}</span></div></div>
+      <div class="row" style="gap:8px">${stateChip(v)}<span class="small muted">${esc(free ? originName(v) : vfName(v.formatId))} · ${esc(kindName(v.kind))}</span><span class="small mono" id="sp-count" title="Số chữ lời nói, thời lượng ước tính">${R.script ? `${words} chữ · ≈ ${fmtSec(AC.vidDuration(S, words))}` : ''}</span><span class="small muted sv-busy" aria-live="polite">${view.svBusy ? esc(view.svBusy) : ''}</span></div></div>
       <div class="row" style="gap:6px;flex-wrap:nowrap"><button class="btn sm ${off ? 'primary' : 'ghost'}" data-x="cancel" data-testid="sp-cancel" aria-pressed="${off}" ${ro ? 'disabled' : ''}>${off ? 'Khôi phục' : 'Hủy thẻ'}</button><button class="btn icon ghost" data-act="close-layer" aria-label="Đóng">${icon('close')}</button></div></header>
-    <div class="vp-h1"><div class="vp-tabs tabs" role="tablist" aria-label="Các bước của thẻ Vid">${tab('ks', v.script && v.status !== 'DRAFT' && v.status !== 'TODO' && !idea ? '✓' : '1', 'Kịch bản', false)}${tab('bt', done ? '✓' : '2', 'Biên tập', idea || off, idea ? 'Duyệt Insight trước' : '')}${tab('sl', slots.length ? '✓' : '3', 'Xếp Slot', !done || off || idea || ro, ro ? 'Xếp Slot dùng bản đang dùng' : done ? '' : 'Cần video thành phẩm hoặc hoàn thành biên tập trước')}</div>${verHtml}</div>
+    <div class="vp-h1"><div class="vp-tabs tabs" role="tablist" aria-label="Các bước của thẻ Vid">${mix ? tab('nap', (v.inputs || []).length ? '✓' : '1', 'Nạp nguyên liệu', false) + tab('dy', v.dyOk ? '✓' : '2', 'Dàn ý', !(v.cells || []).length, 'Cần nguyên liệu để lập dàn ý') : ''}${tab('ks', v.script && v.status !== 'DRAFT' && v.status !== 'TODO' && !idea ? '✓' : mix ? '3' : '1', 'Kịch bản', mix && !hasScript, mix && !hasScript ? 'Nạp nguyên liệu rồi Dựng nhanh hoặc lập Dàn ý' : '')}${tab('bt', done ? '✓' : mix ? '4' : '2', 'Biên tập', idea || off || (mix && !hasScript), idea ? 'Duyệt Insight trước' : '')}${tab('sl', slots.length ? '✓' : mix ? '5' : '3', 'Xếp Slot', !done || off || idea || ro, ro ? 'Xếp Slot dùng bản đang dùng' : done ? '' : 'Cần video thành phẩm hoặc hoàn thành biên tập trước')}</div>${verHtml}</div>
     ${ro ? `<div class="vp-old" data-testid="sp-old">Đang xem bản ${G.verN}${G.verAt ? ` (${esc(G.verAt)})` : ''}: chỉ xem, gồm kịch bản và phần biên tập của bản này.<button class="btn sm" data-x="usever" data-testid="sp-usever" ${off ? 'disabled' : ''}>Dùng bản này</button></div>` : ''}
     <div class="vp-bar" id="sp-bar">${barHtml(v, null)}</div>
+    ${mix ? `<div id="sp-lot">${lotHtml(v)}</div>` : ''}
     <div class="sv-pop${off ? ' sv-off-pop' : ''}" style="display:block">
+      ${mix ? '<div data-pane="nap" hidden id="sp-nap"></div><div data-pane="dy" hidden id="sp-dy"></div>' : ''}
       <div data-pane="ks" hidden><fieldset class="vp-fs" ${ro ? 'disabled' : ''}>
         <div data-sub="insight" hidden>${insightPane}</div>
         <div data-sub="scene" hidden><div id="sp-scenes"></div>${scriptSec}</div>
@@ -299,25 +306,28 @@ function popHtml(v, G) {
 // Hàng menu phụ: Kịch bản → Insight / Phân cảnh (+ Nguồn vào); Biên tập → Trong app / Ngoài app (+ hoàn tác); Xếp Slot
 function barHtml(v, es) {
   const nav = navOf(v.id); const idea = v.status === 'IDEA'; const o = AC.vidOrigin(v); const free = o !== 'topic';
-  const media = !(!free || o === 'script' || o === 'post');
+  const media = !(!free || o === 'script' || o === 'post' || o === 'mix');
   const b = (k, l, cur) => `<button data-nav="${k}" aria-selected="${cur === k.split(':')[1]}" data-testid="sp-sub-${k.split(':')[1]}">${l}</button>`;
+  if (nav.tab === 'nap') return `<span class="small muted">Nạp mọi nguyên liệu của một video; app tự nhận diện loại${o === 'mix' && AC.lenSecOf(S, v) ? ` · video ${AC.lenSecOf(S, v)} giây` : ''}</span>`;
+  if (nav.tab === 'dy') return '<span class="small muted">Duyệt các ô dùng cho kịch bản: kéo sang cột Dàn ý hoặc bấm ＋</span>';
   if (nav.tab === 'bt') {
     const m = AC.editModeOf(v);
-    return `${b('mode:in', 'Biên tập trong app', m)}${b('mode:out', 'Biên tập ngoài app', m)}${m === 'out' ? '<span class="small muted">Tự dựng ở phần mềm khác rồi Up thành phẩm</span>' : ''}
+    return `${b('mode:in', 'Biên tập trong app', m)}${b('mode:out', 'Biên tập ngoài app', m)}${m === 'out' ? '<span class="small muted">Tự dựng ở phần mềm khác rồi Up thành phẩm</span>' : ''}${mixBarExtras(v, 'bt')}
       ${m === 'in' && es && es.active && !es.ro ? `<span class="vp-sp"><span class="small muted" id="sp-saved">${esc(es.saved || '')}</span><button class="btn sm" data-x="undo" ${es.canUndo ? '' : 'disabled'} data-testid="ve-undo">↶ Hoàn tác</button><button class="btn sm" data-x="redo" ${es.canRedo ? '' : 'disabled'}>↷ Làm lại</button></span>` : ''}`;
   }
-  if (nav.tab === 'sl') return '<span class="small muted">Lưới Thứ × Kênh: mỗi ô là một slot của video này</span>';
+  if (nav.tab === 'sl') return `<span class="small muted">Lưới Thứ × Kênh: mỗi ô là một slot của video này</span>${mixBarExtras(v, 'sl')}`;
   const subs = [['insight', 'Insight'], ['scene', 'Phân cảnh']].concat(media ? [['nguon', 'Nguồn vào']] : []);
   return `${subs.map(([k, l]) => b(`ks:${k}`, l, nav.ks)).join('')}${idea ? `<span class="vp-sp"><button class="btn sm primary" data-x="approve-idea">Duyệt Insight</button><button class="btn sm ghost danger" data-x="drop-idea">Bỏ đề xuất</button></span>` : ''}`;
 }
 const NAV = {};
-const navOf = id => { const n = NAV[id] || (NAV[id] = { tab: 'ks', ks: 'insight', ver: null }); if (n.ks === 'script') n.ks = 'scene'; return n; };
+const startTab = id => { const v = AC.byId(S.videos, id); return v && v.origin === 'mix' && !String(v.script || '').trim() ? 'nap' : 'ks'; };
+const navOf = id => { const n = NAV[id] || (NAV[id] = { tab: startTab(id), ks: 'insight', ver: null }); if (n.ks === 'script') n.ks = 'scene'; return n; };
 const fmtS = x => String(Math.round(x * 10) / 10).replace('.', ',');
 // Bảng Phân cảnh (tab Kịch bản): đọc từ dữ liệu biên tập; sửa lời và mô tả hình ngay trong bảng
 function sceneListHtml(v) {
   if (!v.edit || !v.edit.scenes.length) return `<section class="panel stack" style="gap:8px;margin-bottom:12px"><h3>Phân cảnh</h3><p class="small muted">${v.script || (v.media || []).length ? 'Chưa chia cảnh. Bấm Chia cảnh: app chia kịch bản thành các cảnh có lời, mô tả hình và thời lượng; kịch bản được coi là đã duyệt.' : 'Cần kịch bản hoặc tệp nguồn để chia cảnh.'}</p><div class="row"><button class="btn sm primary" data-x="plan-scenes" data-testid="sp-plan" ${!v.ro && (v.script || (v.media || []).length) ? '' : 'disabled'}>Chia cảnh theo kịch bản</button></div></section>`;
   const tl = AC.editTimeline(v);
-  return `<section class="panel stack" style="gap:6px;margin-bottom:12px"><h3>Phân cảnh <span class="small muted">${tl.items.length} cảnh · ${fmtS(tl.total)} giây</span></h3>
+  return `${shootBannerHtml(v)}<section class="panel stack" style="gap:6px;margin-bottom:12px"><h3>Phân cảnh <span class="small muted">${tl.items.length} cảnh · ${fmtS(tl.total)} giây</span></h3>
     <div class="vp-phw"><table class="vp-phc"><thead><tr><th>STT</th><th>Timeline</th><th>Nội dung</th><th>Mô tả hình ảnh hoặc video minh hoạ</th></tr></thead><tbody>
     ${tl.items.map((it, i) => { const s = it.scene; return `<tr data-testid="sp-scene-row"><td class="n">${i + 1}</td><td class="t">${fmtS(it.t0)}–${fmtS(it.t1)}s<br><span class="small muted">${s.items.length ? `${s.items.length} hình` : s.ph ? 'thẻ giữ chỗ' : 'chưa có hình'}</span></td>
       <td><label class="sr" for="sp-pt-${esc(s.id)}">Lời cảnh ${i + 1}</label><textarea id="sp-pt-${esc(s.id)}" class="vp-r2" rows="2" data-pt="${esc(s.id)}">${esc(s.text)}</textarea></td>
@@ -340,11 +350,13 @@ export function openVid(id) {
     const vv = AC.byId(S.videos, id); if (!vv) return; const n = navOf(id); const m = AC.editModeOf(vv);
     if (n.tab === 'ks' && n.ks === 'nguon' && !box.querySelector('[data-sub="nguon"]')) n.ks = 'insight';
     if (G && n.tab === 'sl') n.tab = 'ks';
-    const done = AC.vidEditDone(vv);
-    box.querySelectorAll('.vp-tabs [data-nav]').forEach(b => { const k = b.dataset.nav.split(':')[1]; b.setAttribute('aria-selected', String(n.tab === k)); if (k === 'sl') { b.disabled = !done || vv.cancelled || vv.status === 'IDEA' || !!G; b.querySelector('.vp-step').textContent = AC.vidSlotsOf(S, id).length ? '✓' : '3'; } if (k === 'bt') b.querySelector('.vp-step').textContent = done ? '✓' : '2'; if (k === 'ks') b.querySelector('.vp-step').textContent = vv.script && vv.status !== 'DRAFT' && vv.status !== 'TODO' && vv.status !== 'IDEA' ? '✓' : '1'; });
+    const done = AC.vidEditDone(vv); const mx = vv.origin === 'mix'; const hs = !!String(vv.script || '').trim();
+    if (mx && !hs && n.tab !== 'nap' && n.tab !== 'dy') n.tab = 'nap';
+    box.querySelectorAll('.vp-tabs [data-nav]').forEach(b => { const k = b.dataset.nav.split(':')[1]; b.setAttribute('aria-selected', String(n.tab === k)); if (k === 'sl') { b.disabled = !done || vv.cancelled || vv.status === 'IDEA' || !!G; b.querySelector('.vp-step').textContent = AC.vidSlotsOf(S, id).length ? '✓' : mx ? '5' : '3'; } if (k === 'bt') { b.querySelector('.vp-step').textContent = done ? '✓' : mx ? '4' : '2'; if (mx) b.disabled = !hs || vv.cancelled; } if (k === 'ks') { b.querySelector('.vp-step').textContent = vv.script && vv.status !== 'DRAFT' && vv.status !== 'TODO' && vv.status !== 'IDEA' ? '✓' : mx ? '3' : '1'; if (mx) b.disabled = !hs; } if (k === 'nap') b.querySelector('.vp-step').textContent = (vv.inputs || []).length ? '✓' : '1'; if (k === 'dy') { b.querySelector('.vp-step').textContent = vv.dyOk ? '✓' : '2'; b.disabled = !(vv.cells || []).length || !!G; } });
     box.querySelectorAll('[data-pane]').forEach(e => { e.hidden = e.dataset.pane !== n.tab; });
     box.querySelectorAll('[data-sub]').forEach(e => { e.hidden = e.dataset.sub !== n.ks; });
     box.querySelectorAll('[data-bm]').forEach(e => { e.hidden = e.dataset.bm !== m; });
+    if (mx) { const lk = vv.cancelled || !!G; if (n.tab === 'nap') g('nap').innerHTML = napPaneHtml(vv, lk); if (n.tab === 'dy') g('dy').innerHTML = dyPaneHtml(vv, lk); const lot = g('lot'); if (lot) lot.innerHTML = lotHtml(vv); }
     if (n.tab !== 'bt' && ED) ED.pause();
     if (n.tab === 'ks' && n.ks === 'scene') { g('scenes').innerHTML = sceneListHtml(cur()); stale(); }
     if (n.tab === 'sl') g('sl').innerHTML = slotPaneHtml(vv, sel);
@@ -368,7 +380,7 @@ export function openVid(id) {
     return true;
   };
   if (g('script')) {
-    const ta = g('script'); const c = AC.vidSettingsOf(S);
+    const ta = g('script'); const c = AC.vidSettingsOf(S, v0);
     const cnt = () => { const n = AC.vidWords(ta.value); const t = ta.value.trim() ? `${n} chữ · ≈ ${fmtSec(AC.vidDuration(S, n))}` : ''; g('count').textContent = t; if (g('scrc')) g('scrc').textContent = t || '0 chữ'; g('count').style.color = n && (n < c.wordMin || n > c.wordMax) ? 'var(--warn)' : ''; stale(); };
     cnt(); ta.addEventListener('input', cnt);
   }
@@ -424,6 +436,7 @@ export function openVid(id) {
       if (v.script && !(await confirmBox({ title: 'Tạo Kịch bản mới?', body: `<p>Bản đang có (kịch bản, Insight và phần biên tập) lùi vào danh sách bản cũ, xem lại bằng nút ‹ ›. App giữ ${AC.VID_KEEP_VERSIONS} bản gần nhất. Bản mới chưa có cảnh.</p>`, ok: 'Tạo Kịch bản' }))) return;
       if (!persist()) return;
       const r = await writeOne(id); if (!r.ok) { if (!r.stopped) err(r.error); return; }
+      if (v.origin === 'mix') { const p = AC.mixPlan(S, id); n.ver = null; n.tab = 'ks'; n.ks = 'scene'; reopen(p.ok ? `Đã viết kịch bản ${r.words} chữ và chia ${p.count} cảnh${p.shoot ? `, ${p.shoot} cảnh cần quay` : ''}.` : `Đã viết kịch bản ${r.words} chữ.`); return; }
       n.ver = null; n.tab = 'ks'; n.ks = 'scene'; reopen(`Đã viết kịch bản ${r.words} chữ. Bấm Chia cảnh để duyệt.`); return;
     }
     if (k === 'cancel') { if (!v.cancelled && !persist()) return; const r = AC.toggleVidCancel(S, id); if (!r.ok) return err(r.error); reopen(r.cancelled ? 'Đã hủy thẻ: không tính KPI, không cần nộp video.' : 'Đã khôi phục thẻ.'); return; }
@@ -461,9 +474,23 @@ export function openVid(id) {
       if (k === 'cover') coverDialog(Object.assign(T, { save: c => AC.setVidCover(S, id, c) })); else subsDialog(Object.assign(T, { save: (c, src) => AC.setVidSubs(S, id, c, src) }));
     }
   });
+  bindMix(box, id, {
+    show, reopen, err, persist, setBusy, nav: n0, ro: !!G, write: writeOne,
+    open: oid => { closeAllLayers(); save(); render(); openVid(oid); },
+    openNew: (oid, msg) => { closeAllLayers(); save(); render(); openVid(oid); if (msg) toast(msg); },
+  });
+  // Đóng popup thẻ Vid tự do mà chưa nạp gì: bỏ thẻ rỗng
+  if (v0.origin === 'mix') {
+    const mo = new MutationObserver(() => { if (box.isConnected) return; mo.disconnect(); if (AC.purgeEmptyMix(S)) { save(); render(); } });
+    mo.observe($('#layer'), { childList: true, subtree: true });
+  }
   show();
   return box;
 }
 ACTIONS['sv-open'] = el => openVid(el.dataset.id);
-ACTIONS['sv-free-new'] = () => openFreeCreate(id => openVid(id));
+ACTIONS['sv-free-new'] = () => {
+  const w = weekId(); if (!w) return; AC.purgeEmptyMix(S);
+  const r = AC.newMixVideo(S, w); if (!r.ok) return toast(r.error, 'bad');
+  save(); render(); openVid(r.video.id);
+};
 ACTIONS['sv-schedule'] = () => openSchedule();

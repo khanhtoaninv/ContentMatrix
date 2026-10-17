@@ -9,15 +9,19 @@ import { VID_MAX_PER_TOPIC, ensureShortVid, newVideo, vidBody, vidSections, vidS
 // chữ phủ; kèm giọng đọc, caption, frame, nhạc nền và danh sách cắt. Bản HTML chỉ xem trước trong trình duyệt và xuất lệnh dựng (JSON);
 // xuất video thật để dành cho bộ xuất (ffmpeg trên PC app hoặc máy chủ của web app).
 
+export const VID_MAX_FREE = 30;   // hàng Video tự do chứa được nhiều hơn Topic (một video dài tách thành nhiều Short)
 export const VID_ORIGINS = {
   topic: { name: 'Từ Topic', hint: 'AI tách Insight từ Topic rồi viết kịch bản.' },
+  mix: { name: 'Vid tự do', hint: 'Nạp nhiều nguyên liệu (ý tưởng, kịch bản, bài Matrix, giọng, clip, ảnh, số liệu…), lập dàn ý rồi viết kịch bản.' },
   script: { name: 'Có sẵn kịch bản', hint: 'Dán kịch bản. Bàn dựng chia cảnh, gợi ý hình cho từng cảnh, đọc bằng giọng máy, tạo caption.' },
   audio: { name: 'Có sẵn giọng đọc', hint: 'Nạp file giọng nói (MP3, M4A, WAV). Dán lời hoặc chép lời bằng API; bàn dựng chia cảnh theo lời, gợi ý hình.' },
   talk: { name: 'Quay người nói', hint: 'Nạp clip quay thô. App đo âm lượng để tìm khoảng lặng cần cắt, rồi tạo caption theo lời.' },
-  post: { name: 'Từ bài Matrix', hint: 'Chọn một ô đã duyệt ở Matrix của tuần; app rút thành kịch bản khoảng 60 giây.' },
+  post: { name: 'Từ bài Matrix', hint: 'Chọn một ô đã duyệt ở Matrix của tuần; app rút thành kịch bản theo độ dài đã chọn (mặc định 90 giây).' },
   broll: { name: 'B-roll ngắn', hint: 'Nạp vài clip ngắn. App mô tả từng clip (mô phỏng) và viết lời dẫn theo yêu cầu của bạn.' },
   longroll: { name: 'B-roll dài', hint: 'Nạp một clip dài. App tách thành các đoạn ngắn (mô phỏng), đề xuất ý tưởng rồi viết lời dẫn.' },
 };
+// Cách nạp do 05v-vidmix.js đăng ký (mock, job)
+export const FREE_HOOKS = {};
 export const VID_VOICES = { tts: 'Giọng máy đọc lời', file: 'File giọng đã nạp', clip: 'Tiếng trong clip', self: 'Tự thu sau', none: 'Không lời' };
 export const VID_CAPTION_MODES = { full: 'Phụ đề đầy đủ', key: 'Chữ nhấn ý', off: 'Không caption' };
 export const VID_CAPTION_POS = { bottom: 'Dưới', middle: 'Giữa', top: 'Trên' };
@@ -178,7 +182,7 @@ export function addFreeVideo(S, weekId, p) {
   if (!weekOf(S, weekId)) return { ok: false, error: 'Không tìm thấy tuần.' };
   const origin = P.origin; if (!VID_ORIGINS[origin] || origin === 'topic') return { ok: false, error: 'Chọn cách nạp nội dung.' };
   const row = ensureFreeTopic(S, weekId);
-  if (vidsOf(S, weekId, row.id).length >= VID_MAX_PER_TOPIC) return { ok: false, error: `Hàng Video tự do đã đủ ${VID_MAX_PER_TOPIC} thẻ.` };
+  if (vidsOf(S, weekId, row.id).length >= VID_MAX_FREE) return { ok: false, error: `Hàng Video tự do đã đủ ${VID_MAX_FREE} thẻ.` };
   const media = (P.media || []).filter(m => m && MEDIA_RE.test(m.src || ''));
   let script = String(P.script || '').replace(/\r/g, '').trim(); let source = ''; let title = String(P.title || '').trim();
   if (origin === 'script') { if (!script) return { ok: false, error: 'Dán kịch bản trước.' }; if (!looksLabeled(script)) script = labelParas(script); source = vidBody(script); }
@@ -207,7 +211,8 @@ function writeFreeNow(S, v) { const m = freeMockScript(S, v); if (m && m.script)
 const CONNECT = ['Đầu tiên,', 'Tiếp theo,', 'Bạn để ý:', 'Ở cảnh này,', 'Rồi đến', 'Sau đó,', 'Cuối cùng,'];
 function fillSentences(pool, target, max) { const out = []; let w = 0; for (const s of pool) { const n = countWords(s); if (w + n > max) continue; out.push(s); w += n; if (w >= target) break; } return out; }
 export function freeMockScript(S, v) {
-  const c = vidSettingsOf(S); const o = vidOrigin(v); const brandOpen = c.brand.opener, brandClose = c.brand.closer;
+  if (v.origin === 'mix' && FREE_HOOKS.mix) return FREE_HOOKS.mix.mock(S, v);
+  const c = vidSettingsOf(S, v); const o = vidOrigin(v); const brandOpen = c.brand.opener, brandClose = c.brand.closer;
   const cta = [o === 'post' ? 'Đọc bài đầy đủ ở trang của kênh nhé.' : 'Lưu video lại và theo dõi kênh để xem phần tiếp theo.', brandClose].filter(Boolean).join(' ');
   if (o === 'script') return { error: 'Kịch bản do bạn nạp: sửa trực tiếp trong ô Lời nói.' };
   if (o === 'audio' || o === 'talk') return { error: 'Thẻ này lấy lời từ giọng nói: dán lời vào ô Lời nói hoặc bấm Chép lời (cần API nhận giọng nói ở Setup → AI ảnh & video).' };
@@ -231,12 +236,13 @@ export function freeMockScript(S, v) {
   return { script: [`[Hook]\n${hook}`].concat(parts, [`[CTA]\n${cta}`]).join('\n\n'), audio: '', image: '' };
 }
 export function freeScriptJob(S, v) {
-  const c = vidSettingsOf(S); const o = vidOrigin(v);
+  if (v.origin === 'mix' && FREE_HOOKS.mix) return FREE_HOOKS.mix.job(S, v);
+  const c = vidSettingsOf(S, v); const o = vidOrigin(v);
   if (o === 'script' || o === 'audio' || o === 'talk') return null;
   const brand = [c.brand.opener ? `Câu mở thương hiệu: ${c.brand.opener}` : '', c.brand.closer ? `Câu chốt/CTA chung: ${c.brand.closer}` : ''].filter(Boolean).join('\n');
-  const head = `# Việc: viết kịch bản video ngắn dọc ${c.ratio}, ${c.wordMin}–${c.wordMax} chữ (đọc ${c.wps} chữ/giây). Mỗi phần mở bằng nhãn trong ngoặc vuông trên một dòng riêng.`;
+  const head = `# Việc: viết kịch bản video ngắn dọc ${c.ratio}, dài ${c.lenSec} giây: ${c.wordMin}–${c.wordMax} chữ (đọc ${c.wps} chữ/giây). Mỗi phần mở bằng nhãn trong ngoặc vuông trên một dòng riêng.`;
   let body;
-  if (o === 'post') body = `Rút bài dưới đây thành kịch bản nói 60 giây: [Hook] → [Nội dung] → [Ý chính] → [CTA]. Giữ đúng sự thật trong bài, không thêm số liệu.\n\n# Bài nguồn\n${v.source}`;
+  if (o === 'post') body = `Rút bài dưới đây thành kịch bản nói ${c.lenSec} giây: [Hook] → [Nội dung] → [Ý chính] → [CTA]. Giữ đúng sự thật trong bài, không thêm số liệu.\n\n# Bài nguồn\n${v.source}`;
   else {
     const units = brollUnits(v);
     body = `Viết lời dẫn cho các cảnh b-roll theo đúng thứ tự: [Hook], rồi mỗi cảnh một nhãn [Cảnh k], rồi [CTA]. Lời mỗi cảnh vừa thời lượng cảnh đó.\n${v.request ? `Yêu cầu của người dùng: ${v.request}\n` : ''}${v.insight.idea ? `Ý tưởng: ${v.insight.idea}\n` : ''}\n# Cảnh\n${units.map((u, i) => `- Cảnh ${i + 1} (${r1(u.dur || 3)} giây): ${u.desc}`).join('\n')}`;
@@ -397,7 +403,7 @@ export function planEdit(S, id) {
       if (v.kind === 'bantin' && /dẫn/i.test(sc.label)) sc.prompt = 'Người dẫn nói trước camera, khung dọc, nền thương hiệu.';
     });
     const audio = (v.media || []).find(x => x.kind === 'audio');
-    if (o === 'audio' && audio) {
+    if ((o === 'audio' || o === 'mix') && audio) {
       ed.voice = { mode: 'file', mediaId: audio.id }; ed.voAll = { kind: 'up', name: audio.name, mediaId: audio.id, dur: audio.dur || 0, peaks: null };
       const sum = scenes.reduce((a, s) => a + s.dur, 0); if (audio.dur > 0 && sum > 0) scenes.forEach(s => { s.dur = r1(s.dur * audio.dur / sum); if (s.items.length) evenSplit(s, s.dur); s.defDur = s.dur; });
     } else { if (!ed.voice || ed.voice.mode === 'clip' || ed.voice.mode === 'file') ed.voice = { mode: 'tts' }; if (ed.voAll && ed.voAll.mediaId && !(v.media || []).some(x => x.id === ed.voAll.mediaId)) ed.voAll = null; }

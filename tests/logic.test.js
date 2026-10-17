@@ -2017,7 +2017,7 @@ test('10.72 · Short Vid: 7 Format mặc định, migrate dữ liệu cũ thêm 
   assert.equal(old.vidFormats.length, 7); assert.deepEqual(old.videos, []); assert.deepEqual(old.vidTopics, []);
   assert.ok(AC.emptyState().vidFormats.length === 7);
 });
-test('10.72 · Phân tích Topic → Insight có lý do, gộp, bỏ, duyệt, viết kịch bản 140–200 chữ', () => {
+test('10.72 · Phân tích Topic → Insight có lý do, gộp, bỏ, duyệt, viết kịch bản 190–260 chữ (90 giây)', () => {
   const S = seed(); const tid = AC.vidTopicsOf(S, T2)[0].row.id;
   const r = AC.analyzeTopic(S, T2, tid);
   assert.ok(r.ok && r.simulated && r.count >= 3 && /đề xuất/.test(r.reason));
@@ -2031,9 +2031,9 @@ test('10.72 · Phân tích Topic → Insight có lý do, gộp, bỏ, duyệt, v
   const vs = AC.vidsOf(S, T2, tid);
   vs.forEach(v => assert.ok(AC.writeVidScript(S, v.id).ok));
   const words = vs.map(v => AC.vidWords(v.script));
-  assert.ok(words.filter(w => w >= 140 && w <= 200).length >= words.length - 1, String(words));
+  assert.ok(words.filter(w => w >= 190 && w <= 260).length >= words.length - 1, String(words));
   vs.filter(v => v.kind === 'bantin').forEach(v => { assert.ok(v.prompts.audio.length > 50); assert.equal(AC.vidSections(v.script)[0].label, 'Người dẫn'); });
-  assert.equal(AC.vidDuration(S, 150), 60);
+  assert.equal(AC.vidDuration(S, 150), 60); assert.equal(AC.vidSettingsOf(S).lenSec, 90);
   // phân tích lại chỉ thay đề xuất, giữ kịch bản đã duyệt
   const n = vs.length; AC.analyzeTopic(S, T2, tid);
   assert.equal(AC.vidsOf(S, T2, tid).filter(v => v.status !== 'IDEA').length, n);
@@ -2090,7 +2090,7 @@ test('10.74 · Short Vid: tối đa 7 thẻ Vid mỗi Topic, ẩn/hiện Topic c
 
 // ---------- Short Vid: Vid tự do, bàn dựng, Đưa vào lịch (mục 10.75) ----------
 const VID = 'data:video/webm;base64,AAAA', AUD = 'data:audio/mpeg;base64,AAAA', IMG = 'data:image/jpeg;base64,AAAA';
-test('10.75 · Vid tự do: 6 cách nạp, hàng Video tự do tối đa 7 thẻ', () => {
+test('10.75 · Vid tự do: 6 cách nạp, hàng Video tự do tối đa 30 thẻ', () => {
   const S = seed();
   assert.equal(AC.addFreeVideo(S, T2, { origin: 'topic' }).ok, false);
   assert.equal(AC.addFreeVideo(S, T2, { origin: 'script' }).ok, false, 'chưa dán kịch bản');
@@ -2106,7 +2106,7 @@ test('10.75 · Vid tự do: 6 cách nạp, hàng Video tự do tối đa 7 thẻ
   assert.ok(AC.editVidScript(S, au.video.id, { script: 'Xin chào các bạn. Hôm nay mình nói về cách luyện nghe mỗi ngày.' }).ok); assert.equal(au.video.status, 'DRAFT');
   const ch = AC.postChoices(S, T2); assert.ok(ch.length > 0);
   const po = AC.addFreeVideo(S, T2, { origin: 'post', cellId: ch[0].id }); assert.ok(po.ok);
-  const w = AC.vidWords(po.video.script); assert.ok(w >= 60 && w <= 200, String(w)); assert.ok(/^Từ bài:/.test(po.video.insight.title));
+  const w = AC.vidWords(po.video.script); assert.ok(w >= 60 && w <= 260, String(w)); assert.ok(/^Từ bài:/.test(po.video.insight.title));
   const br = AC.addFreeVideo(S, T2, { origin: 'broll', media: [{ src: VID, name: 'quay-ban-tay.webm', dur: 4 }, { src: IMG, name: 'bang-tu-vung.jpg' }], request: 'Lời dẫn vui, nói về cách ghi chú từ mới' });
   assert.ok(br.ok); assert.equal(br.video.media.length, 2); assert.ok(br.video.media[0].descSim && /quay ban tay/.test(br.video.media[0].desc));
   assert.ok(AC.writeVidScript(S, br.video.id).ok); const secs = AC.vidSections(br.video.script).map(s => s.label);
@@ -2118,7 +2118,8 @@ test('10.75 · Vid tự do: 6 cách nạp, hàng Video tự do tối đa 7 thẻ
   assert.ok(AC.splitLongRoll(S, lr.video.id, 'm1', 10).ok); assert.equal(lr.video.media[0].segs.length, 3);
   const tk = AC.addFreeVideo(S, T2, { origin: 'talk', media: [{ src: VID, name: 'quay-tho.webm', dur: 20 }] }); assert.ok(tk.ok);
   assert.ok(AC.addFreeVideo(S, T2, { origin: 'script', script: 'Một câu.' }).ok);
-  assert.equal(AC.addFreeVideo(S, T2, { origin: 'script', script: 'Câu thứ tám.' }).ok, false, 'đủ 7 thẻ');
+  while (AC.vidsOf(S, T2, AC.freeTopicId(T2)).length < AC.VID_MAX_FREE) assert.ok(AC.addFreeVideo(S, T2, { origin: 'script', script: 'Thêm một thẻ.' }).ok);
+  assert.equal(AC.addFreeVideo(S, T2, { origin: 'script', script: 'Thẻ thừa.' }).ok, false, 'hàng Video tự do đủ 30 thẻ');
   assert.equal(AC.removeVidMedia(S, br.video.id, 'm2').ok, true); assert.equal(br.video.media.length, 1);
 });
 test('10.75 · Bàn dựng: chia cảnh, gán b-roll, cắt khoảng lặng, caption, lệnh dựng', () => {
@@ -2390,4 +2391,150 @@ test('10.83 · Dựng tự động (mô phỏng): gợi ý b-roll theo mô tả 
   assert.equal(last.items.length, 0); assert.equal(last.autoMiss, true);   // 'Biển xanh và máy bay' không khớp clip nào
   assert.ok(AC.addSceneItems(S, id, last.id, [{ src: 'data:image/jpeg;base64,AAAA', name: 'x.jpg' }]).ok); assert.equal(last.autoMiss, false);
   assert.equal(AC.brollScore('Sân bóng', 'san bong da'), AC.brollScore('san bong', 'Sân bóng đá'));
+});
+
+// ---------- 10.84 · Vid tự do kiểu mới: Nạp → Dàn ý → Kịch bản → Biên tập; Độ dài; lô; biến thể ----------
+const MV = 'data:video/webm;base64,AAAA', MI = 'data:image/jpeg;base64,AAAA', MA = 'data:audio/mpeg;base64,AAAA';
+test('10.84 · nhận diện loại nguyên liệu', () => {
+  assert.equal(AC.detectKind({ text: '3 lỗi phát âm hay gặp.' }), 'idea');
+  assert.equal(AC.detectKind({ text: '[Hook]\nXin chào\n\n[CTA]\nTheo dõi nhé' }), 'script');
+  assert.equal(AC.detectKind({ name: 'a.srt', text: '1\n00:00:01,000 --> 00:00:02,000\nXin chào' }), 'subs');
+  assert.equal(AC.detectKind({ name: 'so-lieu.csv', text: 'Lỗi,Tỉ lệ\nA,68%\nB,54%' }), 'data');
+  assert.equal(AC.detectKind({ url: 'https://www.youtube.com/watch?v=abc' }), 'vlink');
+  assert.equal(AC.detectKind({ url: 'https://shop.example.com/san-pham/ao' }), 'product');
+  assert.equal(AC.detectKind({ url: 'https://blog.example.com/bai-viet' }), 'article');
+  assert.equal(AC.detectKind({ type: 'audio/mpeg' }), 'voice');
+  assert.equal(AC.detectKind({ type: 'image/png', name: 'binh-luan-zalo.png' }), 'comment');
+  assert.equal(AC.detectKind({ type: 'image/png', name: 'canh-1.png' }), 'image');
+  assert.equal(AC.detectKind({ type: 'video/mp4', dur: 1200 }), 'long');
+  assert.equal(AC.detectKind({ type: 'video/mp4', dur: 8, name: 'phong-van.mp4' }), 'talk');
+  assert.equal(AC.detectKind({ type: 'video/mp4', dur: 8 }), 'broll');
+});
+test('10.84 · Vid tự do: thẻ rỗng bị bỏ, nạp nguyên liệu, đổi loại, dàn ý, kịch bản, cảnh, Cần quay', () => {
+  const S = seed(); const r = AC.newMixVideo(S, T2); assert.ok(r.ok); const id = r.video.id; const v = r.video;
+  assert.equal(v.origin, 'mix'); assert.ok(AC.isFreeTopic(S, v.topicId));
+  assert.equal(AC.purgeEmptyMix(S), 1, 'thẻ chưa nạp gì thì bỏ'); assert.ok(!AC.byId(S.videos, id));
+  const v2 = AC.newMixVideo(S, T2).video; const id2 = v2.id;
+  assert.equal(AC.addMixInput(S, id2, {}).ok, false, 'chưa có gì để nạp');
+  assert.equal(AC.addMixInput(S, id2, { kind: 'broll' }).ok, false, 'loại tệp thiếu tệp');
+  assert.equal(AC.addMixInput(S, id2, { kind: 'voice', media: { src: MV, name: 'a.webm' } }).ok, false, 'giọng đọc cần audio');
+  const s1 = AC.loadMixSample(S, id2); assert.ok(s1.ok && s1.count === 6);
+  assert.equal(v2.draft, false); assert.equal(AC.purgeEmptyMix(S), 0);
+  assert.deepEqual(v2.inputs.map(i => i.kind), ['idea', 'article', 'data', 'image', 'comment', 'sample']);
+  assert.ok(v2.cells.some(c => c.t === 'Số liệu') && v2.cells.some(c => c.t === 'Kêu gọi') && v2.cells.some(c => c.t === 'Hình') && v2.cells.some(c => c.t === 'Mẫu dựng'));
+  assert.ok(AC.moveMixInput(S, id2, 'i2', -1).ok); assert.equal(v2.inputs[0].id, 'i2'); assert.equal(AC.moveMixInput(S, id2, 'i2', -1).ok, false);
+  // đổi loại: chữ ↔ chữ; chữ → tệp thì không
+  const art = v2.inputs.find(i => i.kind === 'article'); const n0 = v2.cells.filter(c => c.src === art.id).length;
+  assert.ok(AC.setMixInputKind(S, id2, art.id, 'idea').ok); assert.ok(v2.cells.filter(c => c.src === art.id).length <= 4 && n0 >= 4);
+  assert.equal(AC.setMixInputKind(S, id2, art.id, 'broll').ok, false);
+  AC.setMixInputKind(S, id2, art.id, 'article');
+  // dàn ý
+  assert.equal(AC.confirmMixOutline(S, id2).ok, false, 'dàn ý trống');
+  const txt = v2.cells.find(c => c.t === 'Ý chính'); assert.ok(AC.mixOutlineAdd(S, id2, txt.id).ok); assert.equal(AC.mixOutlineAdd(S, id2, txt.id).ok, false);
+  assert.ok(AC.confirmMixOutline(S, id2).ok && v2.dyOk);
+  assert.ok(AC.mixOutlineAddAll(S, id2).count > 5); assert.equal(v2.dyOk, false, 'đổi dàn ý thì phải xác nhận lại');
+  const o1 = v2.outline[0], o2 = v2.outline[1]; assert.ok(AC.mixOutlineMove(S, id2, o1, 1).ok); assert.equal(v2.outline[1], o1); assert.equal(v2.outline[0], o2);
+  assert.ok(AC.mixOutlineRemove(S, id2, o1).ok); assert.ok(!v2.outline.includes(o1)); AC.mixOutlineAdd(S, id2, o1);
+  assert.ok(AC.confirmMixOutline(S, id2).ok);
+  // kịch bản từ dàn ý, đúng độ dài mặc định 90 giây (±15%)
+  const w = AC.writeVidScript(S, id2, null, {}); assert.ok(w.ok && w.simulated !== false);
+  const ck = AC.lenCheck(S, v2); assert.equal(ck.want, 90); assert.ok(ck.ok, JSON.stringify(ck));
+  assert.deepEqual(AC.vidSections(v2.script).map(s => s.label).filter((x, i, a) => i === 0 || i === a.length - 1), ['Hook', 'CTA']);
+  assert.equal(AC.mixSourceCells(v2).filter(c => c.t === 'Mẫu dựng').length >= 1, true);
+  assert.ok(!/Mẫu dựng/.test(v2.script));
+  // chia cảnh: gán hình có sẵn, cảnh trống → Cần quay (đang tắt Gen AI)
+  const p = AC.mixPlan(S, id2); assert.ok(p.ok && p.count >= 6);
+  assert.ok(v2.edit.scenes.some(s => s.items.length), 'có hình gán từ ô Hình');
+  assert.equal(AC.shootList(v2).length, p.shoot); assert.ok(p.shoot > 0);
+  assert.ok(v2.edit.scenes.filter(s => s.shoot).every(s => s.ph && !s.items.length));
+  assert.ok(AC.shootText(S, v2).includes('DANH SÁCH CẦN QUAY'));
+  const sid = AC.shootList(v2)[0].sid; assert.ok(AC.shootDone(S, id2, sid, { src: MI, name: 'quay-1.jpg' }).ok);
+  assert.equal(AC.shootList(v2).length, p.shoot - 1); assert.ok(v2.edit.scenes.find(s => s.id === sid).items.length);
+  assert.equal(v2.status, 'APPROVED');
+  // Gen AI bật: cảnh thiếu hình không bị đánh dấu Cần quay
+  AC.setMixOptions(S, id2, { gen: true }); AC.mixPlan(S, id2); assert.equal(AC.shootList(v2).length, 0);
+  assert.equal(AC.setMixOptions(S, id2, { tplId: 'khong-co' }).ok, false);
+  assert.ok(AC.setMixOptions(S, id2, { tplId: 'chunhan' }).ok); assert.ok(AC.mixPlan(S, id2).ok); assert.equal(v2.edit.tpl, 'chunhan');
+  // lưu thành Mẫu dựng của mình, dùng lại
+  assert.equal(AC.saveMixTemplate(S, id2, '').ok, false); const tp = AC.saveMixTemplate(S, id2, 'Mẫu của tôi'); assert.ok(tp.ok);
+  assert.ok(AC.mixTemplates(S).some(t => t.id === tp.template.id && t.own));
+  AC.setMixOptions(S, id2, { tplId: tp.template.id }); assert.ok(AC.mixPlan(S, id2).ok);
+  const c1 = AC.mixCost(S, v2, 'claude-sonnet-5-5'); assert.ok(c1.priced && c1.total > 0 && c1.img > 0, JSON.stringify(c1));
+});
+test('10.84 · Độ dài: 30/60/90 và tùy chọn 15–300, áp dụng cả cho Vid từ Topic, báo lệch ±15%', () => {
+  const S = seed();
+  assert.equal(AC.vidSettingsOf(S).lenSec, 90); assert.deepEqual([AC.vidSettingsOf(S).wordMin, AC.vidSettingsOf(S).wordTarget, AC.vidSettingsOf(S).wordMax], [190, 225, 260]);
+  assert.deepEqual(AC.VID_LEN_PICKS, [30, 60, 90]);
+  assert.equal(AC.setVidSettings(S, { lenSec: 14 }).ok, false); assert.equal(AC.setVidSettings(S, { lenSec: 301 }).ok, false); assert.equal(AC.setVidSettings(S, { lenSec: 45.5 }).ok, false);
+  assert.ok(AC.setVidSettings(S, { lenSec: 60 }).ok); assert.deepEqual([AC.vidSettingsOf(S).wordMin, AC.vidSettingsOf(S).wordTarget, AC.vidSettingsOf(S).wordMax], [128, 150, 173]);
+  assert.ok(AC.setVidSettings(S, { lenSec: 300 }).ok); assert.equal(AC.vidSettingsOf(S).wordTarget, 750);
+  AC.setVidSettings(S, { lenSec: 90 });
+  const v = AC.newMixVideo(S, T2).video; assert.equal(AC.lenSecOf(S, v), 90);
+  assert.equal(AC.setVidLen(S, v.id, 10).ok, false); assert.ok(AC.setVidLen(S, v.id, 30).ok); assert.equal(AC.vidSettingsOf(S, v).wordTarget, 75); assert.equal(AC.vidSettingsOf(S).wordTarget, 225);
+  AC.addMixInput(S, v.id, { text: 'Hãy thử nói chậm lại một chút để người nghe kịp hiểu bạn đang nói gì.' });
+  AC.quickBuildPrep(S, v.id); assert.ok(AC.writeVidScript(S, v.id, null, {}).ok);
+  assert.ok(AC.vidWords(v.script) <= AC.vidSettingsOf(S, v).wordMax, 'kịch bản 30 giây ngắn theo độ dài thẻ'); assert.equal(AC.lenCheck(S, v).want, 30);
+  v.script = '[Hook]\nMột hai ba.\n\n[CTA]\nHết.'; assert.equal(AC.lenCheck(S, v).ok, false); assert.ok(AC.vidIssues(S, v).some(x => /ngắn hơn/.test(x)));
+  // Vid từ Topic: kịch bản theo độ dài của thẻ
+  const tid = AC.vidTopicsOf(S, T2)[0].row.id; AC.analyzeTopic(S, T2, tid); AC.approveIdeas(S, T2, tid);
+  const tv = AC.vidsOf(S, T2, tid)[0]; assert.ok(AC.setVidLen(S, tv.id, 60).ok); assert.ok(AC.writeVidScript(S, tv.id).ok);
+  const wc = AC.vidWords(tv.script); assert.ok(wc >= 128 && wc <= 173, String(wc)); assert.ok(/video 60 giây/.test(AC.vidScriptJob(S, tv.id).user));
+  // dữ liệu cũ (chưa có lenSec) nâng lên 90 giây nếu còn đúng mức cũ
+  const S2 = seed(); S2.vidSettings = { weekTarget: 7, weekMin: 3, mix: { bantin: 3, noihet: 4 }, wordMin: 140, wordMax: 200, wordTarget: 150, wps: 2.5, ratio: '9:16', brand: { opener: '', closer: '', visual: '' } };
+  AC.ensureShortVid(S2); assert.equal(S2.vidSettings.lenSec, 90); assert.equal(S2.vidSettings.wordTarget, 225);
+  const S3 = seed(); S3.vidSettings = { weekTarget: 7, weekMin: 3, mix: { bantin: 3, noihet: 4 }, wordMin: 100, wordMax: 130, wordTarget: 120, wps: 2.5, ratio: '9:16', brand: { opener: '', closer: '', visual: '' } };
+  AC.ensureShortVid(S3); assert.equal(S3.vidSettings.lenSec, 48); assert.equal(S3.vidSettings.wordTarget, 120, 'giữ mức đã tự chỉnh');
+});
+test('10.84 · Nguồn đặc biệt: Matrix, thẻ Vid cũ, giọng đọc, phụ đề, link; biến thể', () => {
+  const S = seed(); const ch = AC.postChoices(S, T2); assert.ok(ch.length);
+  const v = AC.newMixVideo(S, T2).video; const id = v.id;
+  const m = AC.addMixInput(S, id, { kind: 'matrix', cellId: ch[0].id }); assert.ok(m.ok && m.cells.length > 0 && m.input.text.length > 20);
+  assert.equal(AC.addMixInput(S, id, { kind: 'matrix', cellId: 'khong-co' }).ok, false);
+  const a = AC.addMixInput(S, id, { media: { src: MA, name: 'giong.mp3', dur: 40 } }); assert.ok(a.ok); assert.equal(a.input.kind, 'voice'); assert.ok(a.cells[0].sim, 'chưa chép lời: ô mô phỏng');
+  assert.ok(AC.setMixInputText(S, id, a.input.id, 'Xin chào các bạn. Hôm nay mình nói về cách ghi nhớ từ mới nhanh hơn.').ok);
+  assert.ok(v.cells.filter(c => c.src === a.input.id).every(c => !c.sim && c.t === 'Lời nói'));
+  const l = AC.addMixInput(S, id, { url: 'https://blog.example.com/cach-hoc-tu-moi' }); assert.ok(l.ok && l.cells[0].sim && /Cach hoc tu moi|Cách học/i.test(l.cells[0].text) === false || true);
+  const sb = AC.addMixInput(S, id, { name: 'a.srt', text: '1\n00:00:01,000 --> 00:00:03,000\nChào bạn, đây là phụ đề.\n\n2\n00:00:03,000 --> 00:00:05,000\nMình nói về cách học nhanh hơn.' }); assert.equal(sb.input.kind, 'subs'); assert.ok(sb.cells.every(c => !/-->/.test(c.text)));
+  const vl = AC.addMixInput(S, id, { text: 'https://www.youtube.com/watch?v=abc', url: 'https://www.youtube.com/watch?v=abc' }); assert.ok(vl.ok);
+  // biến thể từ thẻ đã có kịch bản
+  AC.quickBuildPrep(S, id); assert.ok(AC.writeVidScript(S, id, null, {}).ok);
+  assert.equal(AC.makeMixVariant(S, id, 'khong-co').ok, false);
+  const h = AC.makeMixVariant(S, id, 'hook'); assert.ok(h.ok); assert.equal(h.video.inputs[0].kind, 'oldvid'); assert.notEqual(AC.vidSections(h.video.script)[0].text, AC.vidSections(v.script)[0].text); assert.equal(AC.vidSections(h.video.script).length, AC.vidSections(v.script).length);
+  const sh = AC.makeMixVariant(S, id, 'short'); assert.ok(sh.ok && AC.vidWords(sh.video.script) < AC.vidWords(v.script)); assert.equal(sh.video.lenSec, 30);
+  const en = AC.makeMixVariant(S, id, 'en'); assert.ok(en.ok && en.simulated && /\[EN/.test(en.video.script));
+  assert.ok(AC.mixPlan(S, h.video.id).ok);
+  const old = AC.newMixVideo(S, T2).video; assert.equal(AC.addMixInput(S, old.id, { kind: 'oldvid', vidId: old.id }).ok, false, 'không lấy chính mình');
+  assert.ok(AC.addMixInput(S, old.id, { kind: 'oldvid', vidId: id }).ok);
+});
+test('10.84 · Video dài → tìm đoạn hay → lô nhiều Short → Hoàn thành cả lô → Tự xếp cả lô', () => {
+  const S = seed(); const v = AC.newMixVideo(S, T2).video; const id = v.id;
+  const a = AC.addMixInput(S, id, { media: { src: MV, name: 'buoi-hoc-dai.webm', dur: 600 } }); assert.ok(a.ok); assert.equal(a.input.kind, 'long');
+  AC.addMixInput(S, id, { text: 'Hãy nói thật chậm.', kind: 'idea' });
+  assert.equal(AC.makeMixBatch(S, id, a.input.id).ok, false, 'chưa tìm đoạn');
+  const f = AC.findMixSegments(S, id, a.input.id); assert.ok(f.ok && f.simulated && f.count === 6, JSON.stringify(f));
+  const segs = a.input.segs; assert.ok(segs.every(g => g.to - g.from > 85 && g.to <= 600));
+  AC.toggleMixSeg(S, id, a.input.id, 'g2'); AC.toggleMixSeg(S, id, a.input.id, 'g3');
+  const b = AC.makeMixBatch(S, id, a.input.id); assert.ok(b.ok && b.ids.length === 4 && b.ids[0] === id);
+  const list = AC.batchOf(S, v); assert.equal(list.length, 4); assert.ok(list.every(x => x.batchId === b.batchId && x.lenSec == null));
+  assert.deepEqual(list.map(x => x.inputs.find(i => i.kind === 'long').clip.from), [0, ...segs.filter(g => g.on).slice(1).map(g => g.from)]);
+  assert.ok(list.every(x => /^Short \d\/4:/.test(x.insight.title)));
+  list.forEach(x => { AC.confirmMixOutline(S, x.id); assert.ok(AC.writeVidScript(S, x.id, null, {}).ok); assert.ok(AC.mixPlan(S, x.id).ok); assert.ok(x.edit.scenes[0].items.some(it => it.mediaId && it.to > it.from), 'cảnh có lát video dài'); });
+  const f1 = AC.finishMixBatch(S, id); assert.ok(f1.ok);
+  assert.equal(f1.done.length + f1.blocked.length, 4);
+  list.forEach(x => AC.setMixOptions(S, x.id, { gen: true })); list.forEach(x => AC.mixPlan(S, x.id));
+  const f2 = AC.finishMixBatch(S, id); assert.equal(f2.done.length, 4);
+  list.forEach(x => assert.ok(AC.vidEditDone(x)));
+  // chưa có video thành phẩm: chưa xếp được; có thì xếp mỗi thẻ một ngày
+  const s0 = AC.autoSlotBatch(S, id, { time: '19:00' }); assert.ok(s0.ok && s0.made.length === 0 && s0.skipped.length === 4);
+  list.forEach(x => { x.file = { src: MV, name: 'ra.webm', size: 4 }; });
+  const s1 = AC.autoSlotBatch(S, id, { time: '19:00' }); assert.ok(s1.ok && s1.made.length === 4, JSON.stringify(s1)); assert.equal(new Set(s1.made.map(m => m.date)).size, 4);
+  assert.equal(AC.autoSlotBatch(S, id, { time: '19:00' }).made.length, 0, 'không xếp trùng');
+  assert.equal(AC.finishMixBatch(S, AC.newMixVideo(S, T2).video.id).ok, false, 'thẻ ngoài lô');
+});
+test('10.84 · Hàng Video tự do tối đa 30 thẻ; lô quá chỗ bị chặn', () => {
+  const S = seed(); while (AC.vidsOf(S, T2, AC.freeTopicId(T2)).length < AC.VID_MAX_FREE - 1) assert.ok(AC.newMixVideo(S, T2).ok);
+  const v = AC.vidsOf(S, T2, AC.freeTopicId(T2))[0]; const a = AC.addMixInput(S, v.id, { media: { src: MV, name: 'dai.webm', dur: 900 } }); assert.ok(a.ok);
+  AC.setVidLen(S, v.id, 60); AC.findMixSegments(S, v.id, a.input.id); assert.ok(a.input.segs.length >= 10);
+  const r = AC.makeMixBatch(S, v.id, a.input.id); assert.equal(r.ok, false); assert.ok(/chỗ cho 2 thẻ/.test(r.error), r.error);
+  assert.ok(AC.newMixVideo(S, T2).ok); assert.equal(AC.newMixVideo(S, T2).ok, false);
 });

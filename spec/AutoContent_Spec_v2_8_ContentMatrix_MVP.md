@@ -1406,3 +1406,6 @@ Bảng Phân cảnh: ô nội dung và mô tả hình rộng đủ ô, bỏ nút
 
 ## 10.83. Short Vid: Dựng tự động, bản mô phỏng (16/10/2026, bản 112)
 Hai cách: dựng cả video (điền scene trống) và gợi ý hình theo từng scene. Khớp theo chữ giữa mô tả hình/lời scene và mô tả đoạn b-roll trong Nguồn vào; clip dài tự cắt khoảng giữa đúng độ dài scene; không đè hình đã có; scene không khớp đánh dấu. Chạy mô phỏng, chưa dùng AI xem hình. Hướng tiếp theo: hồ sơ mô tả `.json` do agent ngoài tạo, đồng bộ qua thư mục Drive, tìm trong kho asset chung. Kiểm thử: logic 131, UI 523.
+
+## 10.84. Short Vid: Vid tự do "thả vào là dựng" (17/10/2026, bản 113)
+Thẻ Vid tự do (`origin:'mix'`) có 5 tab: Nạp nguyên liệu, Dàn ý, Kịch bản, Biên tập, Xếp Slot. Nạp tối đa 20 nguồn (16 loại, tự nhận, chỉ đổi loại trong cùng họ), trích thành ô theo luật; Dàn ý chọn và sắp ô; Dựng nhanh đi thẳng tới Biên tập. Cảnh thiếu hình đánh dấu Cần quay và có danh sách quay. Độ dài video 30/60/90 giây hoặc 15–300 giây, mặc định 90 giây (áp cả Vid từ Topic); số chữ = giây × tốc độ đọc, ±15%. Mẫu dựng của người dùng lưu ở `S.vidLib.tpls`. Video dài: Tìm đoạn hay, Làm cả lô, Hoàn thành cả lô, Tự xếp cả lô (cần file video). Tối đa 30 thẻ Vid tự do mỗi tuần. Mô phỏng: trích ô, đọc link, tìm đoạn hay, dịch biến thể, xuất video. Chi tiết: HANDOFF mục 10.84, `notes/ke-hoach-vid-tu-do.md`.
