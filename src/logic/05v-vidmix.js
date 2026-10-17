@@ -3,7 +3,7 @@ import { countWords, splitSentences } from './01-util.js';
 import { byId, cellView, log } from './05-model.js';
 import { aiSystem } from './05o-aitext.js';
 import { fmtClock } from './05n-media.js';
-import { VID_LEN_MAX, VID_LEN_MIN, lenWords, newVideo, vidBody, vidSections, vidSettingsOf, vidWords, vidsOf } from './05s-shortvid.js';
+import { VID_LEN_MAX, VID_LEN_MIN, lenWords, newVideo, vidTopicRow, vidBody, vidSections, vidSettingsOf, vidWords, vidsOf } from './05s-shortvid.js';
 import { FREE_HOOKS, VID_MAX_FREE, addSceneItems, addVidMedia, autoBuild, editOf, ensureFreeTopic, planEdit, scheduleVideo, suggestVidDates, vidChannels, vidSlotsOf } from './05t-videdit.js';
 import { VID_TEMPLATES, applyTemplate, completeEdit, vidLibOf } from './05u-vidpop.js';
 // Một Vid tự do = nhiều nguyên liệu (v.inputs) → các ô trích ra (v.cells) → dàn ý đã duyệt (v.outline) → kịch bản → cảnh (v.edit).
@@ -105,7 +105,7 @@ function dropCells(v, inputId) { const ids = new Set(v.cells.filter(c => c.src =
 
 // ---- Thẻ Vid tự do mới ----
 export function newMixVideo(S, weekId, P) {
-  const row = ensureFreeTopic(S, weekId);
+  const own = P && P.topicId && vidTopicRow(S, P.topicId); const row = own && own.free ? own : ensureFreeTopic(S, weekId, P && P.rowId);
   if (vidsOf(S, weekId, row.id).length >= VID_MAX_FREE) return { ok: false, error: `Hàng Video tự do đã đủ ${VID_MAX_FREE} thẻ.` };
   const v = newVideo(S, weekId, row.id, { title: String((P && P.title) || 'Vid tự do mới'), idea: '', reason: 'Nạp nguyên liệu, lập dàn ý rồi viết kịch bản.', source: '', kind: 'noihet', status: 'TODO', simulated: true });
   Object.assign(v, { origin: 'mix', media: [], inputs: [], cells: [], outline: [], dyOk: false, draft: true, lenSec: null, gen: false, tplId: 'script', request: '', cellSeq: 1, inputSeq: 1 });
@@ -363,14 +363,14 @@ export const batchOf = (S, v) => v && v.batchId ? (S.videos || []).filter(x => x
 export function makeMixBatch(S, id, iid) {
   const v = vidGet(S, id); const inp = v && (v.inputs || []).find(x => x.id === iid && x.kind === 'long'); if (!inp || !(inp.segs || []).length) return { ok: false, error: 'Bấm Tìm đoạn hay trước.' };
   const segs = inp.segs.filter(g => g.on); if (!segs.length) return { ok: false, error: 'Chọn ít nhất một đoạn.' };
-  const row = ensureFreeTopic(S, v.weekId); const room = VID_MAX_FREE - vidsOf(S, v.weekId, row.id).length + 1;
+  const room = VID_MAX_FREE - vidsOf(S, v.weekId, v.topicId).length + 1;
   if (segs.length > room) return { ok: false, error: `Hàng Video tự do chỉ còn chỗ cho ${room} thẻ. Bỏ bớt đoạn.` };
   const m = v.media.find(x => x.id === inp.mediaId); v.batchId = v.batchId || `b${S.seq++}`; const ids = [];
   const others = v.inputs.filter(x => x !== inp);
   segs.forEach((g, k) => {
     let t = v;
     if (k > 0) {
-      const r = newMixVideo(S, v.weekId); if (!r.ok) return; t = r.video; t.batchId = v.batchId; t.lenSec = v.lenSec; t.tplId = v.tplId; t.gen = v.gen; t.request = v.request;
+      const r = newMixVideo(S, v.weekId, { topicId: v.topicId }); if (!r.ok) return; t = r.video; t.batchId = v.batchId; t.lenSec = v.lenSec; t.tplId = v.tplId; t.gen = v.gen; t.request = v.request;
       const a = addMixInput(S, t.id, { kind: 'long', name: inp.name, media: { src: m.src, name: m.name, size: m.size, dur: m.dur, thumb: m.thumb } });
       if (!a.ok) return; a.input.clip = { from: g.from, to: g.to };
       others.filter(x => x.kind === 'sample' || x.kind === 'vlink' || x.kind === 'idea').forEach(x => addMixInput(S, t.id, { kind: x.kind, name: x.name, text: x.text, url: x.url }));
@@ -403,7 +403,7 @@ export function makeMixVariant(S, id, type) {
   const o = vidGet(S, id); if (!o) return { ok: false, error: 'Không thấy thẻ Vid.' };
   if (!MIX_VARIANTS[type]) return { ok: false, error: 'Loại biến thể không hợp lệ.' };
   if (!String(o.script || '').trim()) return { ok: false, error: 'Thẻ gốc chưa có kịch bản.' };
-  const r = newMixVideo(S, o.weekId); if (!r.ok) return r; const t = r.video;
+  const r = newMixVideo(S, o.weekId, { topicId: o.topicId }); if (!r.ok) return r; const t = r.video;
   const a = addMixInput(S, t.id, { kind: 'oldvid', vidId: id }); if (!a.ok) { S.videos = S.videos.filter(x => x !== t); return a; }
   t.lenSec = type === 'short' ? 30 : o.lenSec; t.tplId = o.tplId || 'script'; t.insight.title = short(`${MIX_VARIANTS[type]}: ${o.insight.title.replace(/^[^:]{2,30}:\s*/, '')}`, 120);
   const c = vidSettingsOf(S, t); const secs = vidSections(o.script); let out;

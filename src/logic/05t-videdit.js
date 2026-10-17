@@ -4,7 +4,7 @@ import { addSlot, addSlotAsset, byId, cellLabel, cellView, cellsOf, deleteSlot, 
 import { editSlot } from './05c-slots.js';
 import { fmtClock, setVideoCover, setVideoSubs } from './05n-media.js';
 import { aiSystem, extractJson } from './05o-aitext.js';
-import { VID_MAX_PER_TOPIC, ensureShortVid, newVideo, vidBody, vidSections, vidSettingsOf, vidTopicRow, vidsOf } from './05s-shortvid.js';
+import { VID_MAX_PER_TOPIC, attachVidRow, ensureShortVid, newVideo, vidGridOf, vidBody, vidSections, vidSettingsOf, vidTopicRow, vidsOf } from './05s-shortvid.js';
 // Mọi cách vào cùng đổ về một "dự án dựng" (v.edit): danh sách cảnh, mỗi cảnh có lời, thời lượng, tài nguyên (clip, ảnh hoặc prompt),
 // chữ phủ; kèm giọng đọc, caption, frame, nhạc nền và danh sách cắt. Bản HTML chỉ xem trước trong trình duyệt và xuất lệnh dựng (JSON);
 // xuất video thật để dành cho bộ xuất (ffmpeg trên PC app hoặc máy chủ của web app).
@@ -80,13 +80,14 @@ const vidGet = (S, id) => byId(S.videos || [], id);
 
 // ---- Hàng "Video tự do" của tuần: thẻ không đi từ Topic ----
 export const freeTopicId = weekId => `${weekId}-FREE`;
-export function ensureFreeTopic(S, weekId) {
-  ensureShortVid(S); const id = freeTopicId(weekId);
-  let row = byId(S.vidTopics, id);
-  if (!row) {
-    row = { id, weekId, order: 9999, videoOnly: true, free: true, currentVersion: 1, versions: [{ n: 1, title: 'Video tự do', text: '', fields: {}, words: 0, hasCase: false, createdAt: S.settings.demoNow, reason: 'free' }] };
-    S.vidTopics.push(row);
-  }
+export function ensureFreeTopic(S, weekId, gridId) {
+  ensureShortVid(S); const grid = vidGridOf(S, weekId);
+  let g = gridId && grid.find(x => x.id === gridId); if (g && g.t && !g.t.row.free) g = null;   // hàng Topic không nhận Vid tự do
+  g = g || grid.find(x => x.t && x.t.row.free) || grid.find(x => !x.t);
+  if (g && g.t) return g.t.row;
+  let id = freeTopicId(weekId), k = 1; while (byId(S.vidTopics, id)) id = `${freeTopicId(weekId)}${++k}`;
+  const row = { id, weekId, order: 9999, videoOnly: true, free: true, currentVersion: 1, versions: [{ n: 1, title: 'Video tự do', text: '', fields: {}, words: 0, hasCase: false, createdAt: S.settings.demoNow, reason: 'free' }] };
+  S.vidTopics.push(row); attachVidRow(S, weekId, id, g && g.id);
   return row;
 }
 export const isFreeTopic = (S, topicId) => { const r = byId(S.vidTopics || [], topicId); return !!(r && r.free); };
@@ -181,7 +182,7 @@ export function addFreeVideo(S, weekId, p) {
   ensureShortVid(S); const P = p || {};
   if (!weekOf(S, weekId)) return { ok: false, error: 'Không tìm thấy tuần.' };
   const origin = P.origin; if (!VID_ORIGINS[origin] || origin === 'topic') return { ok: false, error: 'Chọn cách nạp nội dung.' };
-  const row = ensureFreeTopic(S, weekId);
+  const row = ensureFreeTopic(S, weekId, P.rowId);
   if (vidsOf(S, weekId, row.id).length >= VID_MAX_FREE) return { ok: false, error: `Hàng Video tự do đã đủ ${VID_MAX_FREE} thẻ.` };
   const media = (P.media || []).filter(m => m && MEDIA_RE.test(m.src || ''));
   let script = String(P.script || '').replace(/\r/g, '').trim(); let source = ''; let title = String(P.title || '').trim();

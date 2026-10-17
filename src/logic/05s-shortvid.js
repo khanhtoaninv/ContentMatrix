@@ -51,6 +51,12 @@ export function ensureShortVid(S) {
   if (!Array.isArray(S.vidTopics)) S.vidTopics = [];
   if (!Array.isArray(S.vidAnalyses)) S.vidAnalyses = [];
   if (!Array.isArray(S.vidHidden)) S.vidHidden = [];
+  if (!Array.isArray(S.vidRows)) {   // mục 10.85: bảng gồm các hàng người dùng tự thêm; dữ liệu cũ: mỗi Topic đã có thẻ / chủ đề riêng / hàng tự do thành một hàng
+    S.vidRows = []; const seen = new Set();
+    const add = (weekId, topicId) => { if (seen.has(topicId)) return; seen.add(topicId); S.vidRows.push({ id: `vr-${S.vidRows.length + 1}`, weekId, topicId }); };
+    (S.topics || []).forEach(r => { if (!(S.vidHidden || []).includes(r.id) && S.videos.some(v => v.topicId === r.id)) add(r.weekId, r.id); });
+    (S.vidTopics || []).slice().sort((a, b) => a.order - b.order).forEach(r => add(r.weekId, r.id));
+  }
   if (!S.vidSettings || typeof S.vidSettings !== 'object') S.vidSettings = defaultVidSettings();
   // Dữ liệu cũ chưa có độ dài (giây): còn đúng mức mặc định cũ 140–200 chữ thì đổi sang 90 giây; đã tự chỉnh thì giữ và suy ra số giây
   if (S.vidSettings.lenSec == null) { const c = S.vidSettings; const wps = Number(c.wps) || 2.5; if (c.wordMin === 140 && c.wordMax === 200 && c.wordTarget === 150) Object.assign(c, { lenSec: 90 }, (({ min, max, target }) => ({ wordMin: min, wordMax: max, wordTarget: target }))(lenWords(90, wps))); else c.lenSec = Math.max(VID_LEN_MIN, Math.min(VID_LEN_MAX, Math.round((Number(c.wordTarget) || 225) / wps))); }
@@ -119,37 +125,69 @@ export function resetVidFormats(S) { S.vidFormats = defaultVidFormats(); return 
 
 // ---- Topic cho video: dùng chung kho Topic của tuần (Matrix) + chủ đề chỉ cho video ----
 export function vidTopicRow(S, id) { return byId(S.topics, id) || byId(S.vidTopics || [], id) || null; }
-export function vidTopicsOf(S, weekId) {
-  const hid = new Set(S.vidHidden || []);
-  const a = topicsOf(S, weekId).map(r => ({ row: r, v: topicCurrent(r), videoOnly: false }));
-  const b = (S.vidTopics || []).filter(r => r.weekId === weekId).sort((x, y) => x.order - y.order).map(r => ({ row: r, v: topicCurrent(r), videoOnly: true }));
-  return a.concat(b).filter(x => x.v && !hid.has(x.row.id));
+// ---- Hàng của bảng (mục 10.85): người dùng tự thêm; hàng trống chỉ có dấu +; chọn Topic từ Matrix hoặc nạp Topic ngoài (Khác); chưa chọn Topic thì dấu + ở ô tạo Vid tự do ----
+export const VID_MAX_ROWS = 12;
+const gridRows = (S, weekId) => (S.vidRows || []).filter(r => r.weekId === weekId);
+function newGridRow(S, weekId, topicId) {
+  let k = S.vidRows.length + 1; while (S.vidRows.some(r => r.id === `vr-${k}`)) k++;
+  const r = { id: `vr-${k}`, weekId, topicId: topicId || null }; S.vidRows.push(r); return r;
 }
-// Ẩn Topic của Matrix khỏi Short Vid ("bớt"); Topic đã có thẻ Vid đã duyệt thì không ẩn được
-export const vidHiddenOf = (S, weekId) => topicsOf(S, weekId).filter(r => (S.vidHidden || []).includes(r.id));
-export function hideVidTopic(S, id) {
-  ensureShortVid(S); const row = byId(S.topics, id); if (!row) return { ok: false, error: 'Chủ đề nạp riêng cho video thì dùng Xóa.' };
-  if (S.videos.some(v => v.topicId === id && v.status !== 'IDEA')) return { ok: false, error: 'Topic đã có thẻ Vid đã duyệt. Hủy từng thẻ nếu không dùng.' };
-  S.videos = S.videos.filter(v => v.topicId !== id); S.vidAnalyses = S.vidAnalyses.filter(a => a.topicId !== id);
-  if (!S.vidHidden.includes(id)) S.vidHidden.push(id); log(S, 'vid-topic', 'topic', id, 'ẩn khỏi Short Vid');
-  return { ok: true };
+// Hàng của tuần (luôn có ít nhất một hàng); t = null nếu hàng trống
+export function vidGridOf(S, weekId) {
+  ensureShortVid(S);
+  gridRows(S, weekId).forEach(g => { if (g.topicId && !vidTopicRow(S, g.topicId)) g.topicId = null; });
+  if (!gridRows(S, weekId).length) newGridRow(S, weekId);
+  return gridRows(S, weekId).map(g => { const row = g.topicId ? vidTopicRow(S, g.topicId) : null; const v = row && topicCurrent(row); return { id: g.id, t: v ? { row, v, videoOnly: !byId(S.topics, row.id) } : null }; });
 }
-export function showVidTopics(S, weekId) {
-  const ids = vidHiddenOf(S, weekId).map(r => r.id); S.vidHidden = (S.vidHidden || []).filter(x => !ids.includes(x)); return ids.length;
+export const vidTopicsOf = (S, weekId) => vidGridOf(S, weekId).filter(g => g.t).map(g => g.t);
+// Thẻ mới của Topic nào thì Topic đó phải có hàng: dùng hàng trống đầu tiên, không có thì thêm hàng
+export function attachVidRow(S, weekId, topicId, gridId) {
+  ensureShortVid(S); if (gridRows(S, weekId).some(g => g.topicId === topicId)) return;
+  const g = (gridId && gridRows(S, weekId).find(x => x.id === gridId && !x.topicId)) || gridRows(S, weekId).find(x => !x.topicId);
+  if (g) g.topicId = topicId; else newGridRow(S, weekId, topicId);
 }
-export function addVidTopics(S, startDate, md) {
+export function vidTopicChoices(S, weekId) {
+  const used = new Set(gridRows(S, weekId).map(g => g.topicId));
+  return topicsOf(S, weekId).filter(r => !used.has(r.id)).map(r => { const v = topicCurrent(r); return { id: r.id, order: r.order, title: v.title, words: v.words }; });
+}
+export function setRowTopic(S, weekId, gridId, topicId) {
+  vidGridOf(S, weekId); const g = gridRows(S, weekId).find(x => x.id === gridId);
+  if (!g) return { ok: false, error: 'Không thấy hàng.' }; if (g.topicId) return { ok: false, error: 'Hàng này đã có Topic.' };
+  if (!vidTopicChoices(S, weekId).some(c => c.id === topicId)) return { ok: false, error: 'Topic không có trong tuần hoặc đã nằm ở hàng khác.' };
+  g.topicId = topicId; log(S, 'vid-row', 'topic', topicId, 'chọn Topic cho hàng'); return { ok: true };
+}
+export function addVidRow(S, weekId) {
+  const rows = vidGridOf(S, weekId); if (rows.length >= VID_MAX_ROWS) return { ok: false, error: `Tối đa ${VID_MAX_ROWS} hàng.` };
+  return { ok: true, row: newGridRow(S, weekId) };
+}
+// Bỏ hàng: Topic của Matrix chỉ rời bảng (vẫn ở Matrix); chủ đề nạp riêng bị xóa cùng thẻ; hàng tự do chỉ bỏ khi chưa có thẻ
+export function removeVidRow(S, weekId, gridId) {
+  vidGridOf(S, weekId); const g = gridRows(S, weekId).find(x => x.id === gridId); if (!g) return { ok: false, error: 'Không thấy hàng.' };
+  const id = g.topicId;
+  if (id) {
+    const row = vidTopicRow(S, id);
+    if (row && row.free) { if (S.videos.some(v => v.topicId === id)) return { ok: false, error: 'Hàng Vid tự do còn thẻ. Hủy hoặc xóa từng thẻ trước.' }; S.vidTopics = S.vidTopics.filter(x => x.id !== id); }
+    else if (row && !byId(S.topics, id)) return removeVidTopic(S, id);
+    else {
+      if (S.videos.some(v => v.topicId === id && v.status !== 'IDEA')) return { ok: false, error: 'Topic đã có thẻ Vid đã duyệt. Hủy từng thẻ nếu không dùng.' };
+      S.videos = S.videos.filter(v => v.topicId !== id); S.vidAnalyses = S.vidAnalyses.filter(a => a.topicId !== id);
+    }
+  }
+  S.vidRows = S.vidRows.filter(x => x !== g); log(S, 'vid-row', 'week', weekId, 'bỏ hàng'); return { ok: true };
+}
+export function addVidTopics(S, startDate, md, gridId) {
   ensureShortVid(S);
   const n = normalizeTopicMd(S, md); const r = parseTopics(n.md);
   if (r.errors.length) return { ok: false, errors: r.errors };
   const wk = ensureWeek(S, startDate); if (!wk.ok) return { ok: false, errors: [{ text: wk.error }] };
-  const w = wk.week; const now = S.settings.demoNow; const have = vidTopicsOf(S, w.id);
+  const w = wk.week; const now = S.settings.demoNow; const have = vidTopicsOf(S, w.id).concat(topicsOf(S, w.id).map(r => ({ v: topicCurrent(r) })));
   const added = [], skipped = [];
   r.topics.forEach(p => {
     if (have.some(h => fold(h.v.title) === fold(p.title) && h.v.text === p.text)) { skipped.push(p.title); return; }
     const order = S.vidTopics.filter(x => x.weekId === w.id).length + 1;
     let k = order; while (S.vidTopics.some(x => x.id === `${w.id}-V${k}`)) k++;
     const row = { id: `${w.id}-V${k}`, weekId: w.id, order, videoOnly: true, currentVersion: 1, versions: [{ n: 1, title: p.title, text: p.text, fields: clone(p.fields || {}), words: p.words, hasCase: p.hasCase, createdAt: now, reason: 'imported' }] };
-    S.vidTopics.push(row); added.push(row);
+    S.vidTopics.push(row); added.push(row); attachVidRow(S, w.id, row.id, gridId);
   });
   if (!added.length) return { ok: false, errors: [{ text: 'Mọi chủ đề trong tệp đã có trong tuần, không có gì để thêm.' }] };
   log(S, 'vid-topic', 'week', w.id, `thêm ${added.length} chủ đề cho video`);
@@ -159,7 +197,7 @@ export function removeVidTopic(S, id) {
   const row = byId(S.vidTopics || [], id); if (!row) return { ok: false, error: 'Chỉ xóa được chủ đề nạp riêng cho video.' };
   const n = S.videos.filter(v => v.topicId === id).length;
   S.vidTopics = S.vidTopics.filter(x => x.id !== id); S.videos = S.videos.filter(v => v.topicId !== id);
-  S.vidAnalyses = S.vidAnalyses.filter(a => a.topicId !== id);
+  S.vidAnalyses = S.vidAnalyses.filter(a => a.topicId !== id); S.vidRows = (S.vidRows || []).filter(g => g.topicId !== id);
   log(S, 'vid-topic', 'topic', id, `xóa · ${n} video`);
   return { ok: true, removed: n };
 }
@@ -203,6 +241,7 @@ export function vidIssues(S, v) {
   return out;
 }
 export function newVideo(S, weekId, topicId, p) {
+  attachVidRow(S, weekId, topicId);
   const order = S.videos.filter(v => v.weekId === weekId).reduce((m, v) => Math.max(m, v.order), 0) + 1;
   return {
     id: `vid-${S.seq++}`, weekId, topicId, order, status: p.status || 'IDEA', cancelled: false,

@@ -2017,8 +2017,9 @@ test('10.72 · Short Vid: 7 Format mặc định, migrate dữ liệu cũ thêm 
   assert.equal(old.vidFormats.length, 7); assert.deepEqual(old.videos, []); assert.deepEqual(old.vidTopics, []);
   assert.ok(AC.emptyState().vidFormats.length === 7);
 });
+const MT = (S, i = 0) => AC.topicsOf(S, T2)[i].id;   // Topic của Matrix (10.85: Short Vid không tự nạp, hàng được tạo khi có thẻ)
 test('10.72 · Phân tích Topic → Insight có lý do, gộp, bỏ, duyệt, viết kịch bản 190–260 chữ (90 giây)', () => {
-  const S = seed(); const tid = AC.vidTopicsOf(S, T2)[0].row.id;
+  const S = seed(); const tid = MT(S);
   const r = AC.analyzeTopic(S, T2, tid);
   assert.ok(r.ok && r.simulated && r.count >= 3 && /đề xuất/.test(r.reason));
   const ideas = AC.vidsOf(S, T2, tid); assert.ok(ideas.every(v => v.status === 'IDEA' && v.insight.reason && v.source));
@@ -2039,7 +2040,7 @@ test('10.72 · Phân tích Topic → Insight có lý do, gộp, bỏ, duyệt, v
   assert.equal(AC.vidsOf(S, T2, tid).filter(v => v.status !== 'IDEA').length, n);
 });
 test('10.72 · Hủy/Khôi phục, KPI, Up video, kiểm trùng', () => {
-  const S = seed(); const tid = AC.vidTopicsOf(S, T2)[0].row.id;
+  const S = seed(); const tid = MT(S);
   AC.analyzeTopic(S, T2, tid); AC.approveIdeas(S, T2, tid);
   const vs = AC.vidsOf(S, T2, tid); vs.forEach(v => AC.writeVidScript(S, v.id));
   const k0 = AC.vidKpi(S, T2); assert.equal(k0.planned, vs.length); assert.equal(k0.ready, 0);
@@ -2060,7 +2061,7 @@ test('10.72 · Chủ đề chỉ cho video không vào Matrix; cài đặt và F
   const S = seed(); const before = S.topics.length;
   const md = '## Chủ đề video\n\n' + 'Người học thường nghĩ phải thuộc thật nhiều từ mới dám nói, nhưng nói câu ngắn mỗi ngày giúp tự tin hơn. '.repeat(12);
   const r = AC.addVidTopics(S, '2026-10-12', md); assert.ok(r.ok, JSON.stringify(r.errors));
-  assert.equal(S.topics.length, before); assert.equal(AC.vidTopicsOf(S, T2).length, 4);
+  assert.equal(S.topics.length, before); assert.equal(AC.vidTopicsOf(S, T2).length, 1, 'chủ đề nạp riêng tự vào hàng trống');
   assert.ok(AC.analyzeTopic(S, T2, r.added[0].id).count >= 1);
   assert.ok(AC.removeVidTopic(S, r.added[0].id).ok); assert.equal(AC.vidsOf(S, T2).length, 0);
   assert.equal(AC.setVidSettings(S, { wordMin: 300 }).ok, false);
@@ -2068,23 +2069,20 @@ test('10.72 · Chủ đề chỉ cho video không vào Matrix; cài đặt và F
   assert.equal(AC.saveVidFormat(S, null, { name: 'Giải thích nhanh', kind: 'noihet', structure: ['A', 'B'] }).ok, false);
   assert.ok(AC.saveVidFormat(S, null, { name: 'Phỏng vấn nhanh', kind: 'noihet', structure: ['Hỏi', 'Đáp'] }).ok);
   assert.equal(AC.vidFormatsOf(S).length, 8);
-  const job = AC.vidAnalyzeJob(S, T2, AC.vidTopicsOf(S, T2)[0].row.id); assert.ok(/insights/.test(job.user) && /Phỏng vấn nhanh/.test(job.user));
+  const job = AC.vidAnalyzeJob(S, T2, MT(S)); assert.ok(/insights/.test(job.user) && /Phỏng vấn nhanh/.test(job.user));
   const p = AC.parseVidInsights(S, '```json\n{"total":1,"reason":"x","insights":[{"title":"A","idea":"b","source":"c","formatId":"vf-bantin","kind":"bantin","reason":"d"}]}\n```');
   assert.ok(p.ok && p.items[0].kind === 'bantin');
   assert.ok(AC.parseVidScript('{"script":"[Hook]\\nXin chào","audio":"","image":"ảnh"}').ok);
 });
 
-test('10.74 · Short Vid: tối đa 7 thẻ Vid mỗi Topic, ẩn/hiện Topic của Matrix', () => {
-  const S = seed(); const tid = AC.vidTopicsOf(S, T2)[0].row.id;
+test('10.74 · Short Vid: tối đa 7 thẻ Vid mỗi Topic, không bỏ hàng khi đã duyệt', () => {
+  const S = seed(); const tid = MT(S);
   const r = AC.analyzeTopic(S, T2, tid); assert.ok(r.count <= 7);
   AC.approveIdeas(S, T2, tid);
   while (AC.vidsOf(S, T2, tid).length < 7) assert.ok(AC.addVideo(S, T2, tid, { title: `Insight ${AC.vidsOf(S, T2, tid).length}` }).ok);
   assert.equal(AC.addVideo(S, T2, tid, { title: 'Thừa' }).ok, false);
   assert.equal(AC.analyzeTopic(S, T2, tid).ok, false, 'đủ 7 thẻ đã duyệt thì không phân tích thêm');
-  assert.equal(AC.hideVidTopic(S, tid).ok, false, 'Topic có thẻ đã duyệt không ẩn được');
-  const t2 = AC.vidTopicsOf(S, T2)[1].row.id; assert.ok(AC.hideVidTopic(S, t2).ok);
-  assert.equal(AC.vidTopicsOf(S, T2).length, 2); assert.equal(AC.vidHiddenOf(S, T2).length, 1);
-  assert.equal(AC.showVidTopics(S, T2), 1); assert.equal(AC.vidTopicsOf(S, T2).length, 3);
+  assert.equal(AC.removeVidRow(S, T2, AC.vidGridOf(S, T2).find(g => g.t && g.t.row.id === tid).id).ok, false, 'Topic có thẻ đã duyệt không bỏ hàng được');
   assert.equal(AC.approveIdeas(S, T2, null).ok, false, 'không còn đề xuất');
 });
 
@@ -2476,7 +2474,7 @@ test('10.84 · Độ dài: 30/60/90 và tùy chọn 15–300, áp dụng cả ch
   assert.ok(AC.vidWords(v.script) <= AC.vidSettingsOf(S, v).wordMax, 'kịch bản 30 giây ngắn theo độ dài thẻ'); assert.equal(AC.lenCheck(S, v).want, 30);
   v.script = '[Hook]\nMột hai ba.\n\n[CTA]\nHết.'; assert.equal(AC.lenCheck(S, v).ok, false); assert.ok(AC.vidIssues(S, v).some(x => /ngắn hơn/.test(x)));
   // Vid từ Topic: kịch bản theo độ dài của thẻ
-  const tid = AC.vidTopicsOf(S, T2)[0].row.id; AC.analyzeTopic(S, T2, tid); AC.approveIdeas(S, T2, tid);
+  const tid = MT(S); AC.analyzeTopic(S, T2, tid); AC.approveIdeas(S, T2, tid);
   const tv = AC.vidsOf(S, T2, tid)[0]; assert.ok(AC.setVidLen(S, tv.id, 60).ok); assert.ok(AC.writeVidScript(S, tv.id).ok);
   const wc = AC.vidWords(tv.script); assert.ok(wc >= 128 && wc <= 173, String(wc)); assert.ok(/video 60 giây/.test(AC.vidScriptJob(S, tv.id).user));
   // dữ liệu cũ (chưa có lenSec) nâng lên 90 giây nếu còn đúng mức cũ
@@ -2537,4 +2535,40 @@ test('10.84 · Hàng Video tự do tối đa 30 thẻ; lô quá chỗ bị chặ
   AC.setVidLen(S, v.id, 60); AC.findMixSegments(S, v.id, a.input.id); assert.ok(a.input.segs.length >= 10);
   const r = AC.makeMixBatch(S, v.id, a.input.id); assert.equal(r.ok, false); assert.ok(/chỗ cho 2 thẻ/.test(r.error), r.error);
   assert.ok(AC.newMixVideo(S, T2).ok); assert.equal(AC.newMixVideo(S, T2).ok, false);
+});
+
+// ---------- Short Vid: bảng do người dùng dựng (mục 10.85) ----------
+test('10.85 · Bảng Short Vid: mặc định 1 hàng trống, chọn Topic từ Matrix hoặc nạp ngoài, hàng Vid tự do, bỏ hàng', () => {
+  const S = seed();
+  let g = AC.vidGridOf(S, T2); assert.equal(g.length, 1); assert.equal(g[0].t, null, 'không tự nạp Topic của Matrix');
+  assert.equal(AC.vidTopicsOf(S, T2).length, 0); assert.equal(AC.vidsOf(S, T2).length, 0);
+  const ch = AC.vidTopicChoices(S, T2); assert.equal(ch.length, 3);
+  assert.ok(AC.setRowTopic(S, T2, g[0].id, ch[0].id).ok);
+  assert.equal(AC.setRowTopic(S, T2, g[0].id, ch[1].id).ok, false, 'hàng đã có Topic');
+  assert.equal(AC.vidTopicChoices(S, T2).length, 2, 'Topic đã dùng không còn trong danh sách');
+  const r2 = AC.addVidRow(S, T2); assert.ok(r2.ok);
+  assert.equal(AC.setRowTopic(S, T2, r2.row.id, ch[0].id).ok, false, 'Topic đã nằm ở hàng khác');
+  // Vid tự do ở hàng trống: hàng thành hàng Vid tự do; hàng Topic không nhận Vid tự do
+  const f = AC.newMixVideo(S, T2, { rowId: r2.row.id }); assert.ok(f.ok);
+  assert.ok(AC.isFreeTopic(S, f.video.topicId)); assert.equal(AC.vidGridOf(S, T2)[1].t.row.id, f.video.topicId);
+  const f2 = AC.newMixVideo(S, T2, { rowId: g[0].id }); assert.ok(f2.ok); assert.equal(f2.video.topicId, f.video.topicId, 'hàng Topic không nhận Vid tự do: dùng hàng tự do có sẵn');
+  assert.equal(AC.removeVidRow(S, T2, r2.row.id).ok, false, 'hàng tự do còn thẻ');
+  // Phân tích Topic ở hàng đã chọn
+  assert.ok(AC.analyzeTopic(S, T2, ch[0].id).ok); assert.equal(AC.vidGridOf(S, T2).length, 2, 'không thêm hàng thừa');
+  // Nạp Topic ngoài (Khác) vào hàng trống
+  const r3 = AC.addVidRow(S, T2); const md = '## Chủ đề ngoài\n\n' + 'Người học thường nghĩ phải thuộc thật nhiều từ mới dám nói, nhưng nói câu ngắn mỗi ngày giúp tự tin hơn. '.repeat(12);
+  const add = AC.addVidTopics(S, '2026-10-12', md, r3.row.id); assert.ok(add.ok);
+  assert.equal(AC.vidGridOf(S, T2).find(x => x.id === r3.row.id).t.row.id, add.added[0].id); assert.equal(AC.vidGridOf(S, T2).find(x => x.id === r3.row.id).t.videoOnly, true);
+  assert.ok(AC.removeVidRow(S, T2, r3.row.id).ok); assert.ok(!S.vidTopics.some(x => x.id === add.added[0].id), 'xóa chủ đề riêng cùng hàng');
+  // Bỏ hàng Topic của Matrix: Topic quay lại danh sách chọn
+  const gid = AC.vidGridOf(S, T2).find(x => x.t && x.t.row.id === ch[0].id).id;
+  assert.ok(AC.removeVidRow(S, T2, gid).ok); assert.equal(AC.vidsOf(S, T2, ch[0].id).length, 0); assert.ok(AC.vidTopicChoices(S, T2).some(c => c.id === ch[0].id));
+  while (AC.vidGridOf(S, T2).length < AC.VID_MAX_ROWS) assert.ok(AC.addVidRow(S, T2).ok);
+  assert.equal(AC.addVidRow(S, T2).ok, false, 'tối đa số hàng');
+});
+test('10.85 · Dữ liệu cũ: Topic đã có thẻ và hàng Vid tự do thành hàng của bảng', () => {
+  const S = seed(); const tid = AC.topicsOf(S, T2)[0].id;
+  AC.analyzeTopic(S, T2, tid); AC.addFreeVideo(S, T2, { origin: 'script', script: 'Một kịch bản đủ dài để thử. '.repeat(10) });
+  delete S.vidRows; AC.ensureShortVid(S);
+  const g = AC.vidGridOf(S, T2); assert.equal(g.length, 2); assert.ok(g.every(x => x.t));
 });
