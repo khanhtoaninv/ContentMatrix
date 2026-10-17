@@ -69,7 +69,7 @@ RENDERERS.matrix = () => {
     ? `<button class="btn primary" data-act="topic-import" data-mode="add">${icon('plus')} Nạp thêm Topic</button><button class="btn ghost" data-act="topic-import" data-mode="replace">Nạp lại tất cả</button>`
     : `<button class="btn primary" data-act="topic-import" data-mode="replace">${icon('plus')} Nạp Topic</button>`;
   const helpBtns = `<button class="btn ghost" data-act="show-template" data-t="topic">Xem tệp mẫu</button><button class="btn ghost" data-act="show-template" data-t="agentPrompt">Lệnh cho agent bên ngoài</button>`;
-  const head = `<div class="page-head"><div><span class="eyebrow">Matrix · ${esc(l.range)}</span><h1>${file && file.theme ? esc(file.theme) : 'Ma trận Topic × Cột'}</h1><p class="sub">Matrix đi theo tuần đang chọn ở Dashboard. Hàng là Topic, cột là Cột nội dung; mỗi ô viết một lần, duyệt xong bấm ổ khóa rồi viết slot ở Dashboard.</p></div></div>`;
+  const head = `<div class="page-head"><div><span class="eyebrow">Matrix · ${esc(l.range)}</span><h1>${file && file.theme ? esc(file.theme) : 'Ma trận Topic × Cột'}</h1></div></div>`;
   const demo = demoBarHtml(['topics', 'write', 'approve', 'deal', 'clear']);
   if (!rows.length) return `${head}${lockBannerHtml(w)}${demo}<section class="focus">${progressHtml(wid)}</section>
     <div class="empty"><p>Tuần này chưa có Topic. Nạp một tệp .md gồm Bối cảnh chung và các Topic (mỗi Topic một đề mục ##, khoảng 2.000 chữ), do bạn hoặc agent bên ngoài chuẩn bị. Số Topic tùy bạn.${w ? '' : ' Tuần chưa có slot nhưng bạn vẫn nạp Topic trước được; Lập tuần ở Dashboard.'}</p><div class="row">${importBtn}${helpBtns}</div></div>`;
@@ -104,7 +104,7 @@ function mxToolsHtml(w) {
       ${bulk && !run && !done ? `<button class="btn" data-act="mx-bulk">Duyệt tất cả (${bulk} ô)</button>` : ''}
       ${lockBtn}
     </div>
-    <p class="small faint" id="deal-why">${done ? `${AC.MATRIX_LOCK_MSG} Qua Dashboard bấm "Viết tất cả".` : cg.ok ? 'Mọi ô đã xử lý: bấm Khóa Matrix, rồi Viết tất cả ở Dashboard.' : `${!wg.ok && !run ? `Viết ma trận: ${esc(wg.reasons.join('; '))}. ` : ''}Chưa khóa được: ${esc(cg.reasons.join('; '))}.`}</p>`;
+    <p class="${done ? 'sr' : 'small faint'}" id="deal-why">${done ? `${AC.MATRIX_LOCK_MSG} Qua Dashboard bấm "Viết tất cả".` : cg.ok ? 'Mọi ô đã xử lý: bấm Khóa Matrix, rồi Viết tất cả ở Dashboard.' : `${!wg.ok && !run ? `Viết ma trận: ${esc(wg.reasons.join('; '))}. ` : ''}Chưa khóa được: ${esc(cg.reasons.join('; '))}.`}</p>`;
 }
 ACTIONS['mx-lock'] = () => {
   const w = curWeek(); if (!w) return;

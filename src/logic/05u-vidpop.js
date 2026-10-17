@@ -215,23 +215,22 @@ export function weekDays(S, weekId) { const w = weekOf(S, weekId); return w ? Ar
 export function busyCells(S, weekId, vidId) {
   const m = {}; (S.slots || []).filter(s => s.weekId === weekId && s.videoId && s.videoId !== vidId).forEach(s => { m[`${s.date}|${s.channelId}`] = s.videoId; }); return m;
 }
-// Mỗi kênh tối đa một slot cho một video; chọn ô khác trên cùng kênh là đổi ngày
+// Mỗi kênh tối đa một slot cho một video; chọn ô khác trên cùng kênh là đổi ngày. Mỗi ô có thể có giờ riêng (c.time), không có thì dùng P.time
 export function scheduleCells(S, vidId, p) {
   const g = scheduleGate(S, vidId); if (!g.ok) return g; const v = g.video; const P = p || {};
-  const chIds = new Set(vidChannels(S).map(x => x.channel.id)); const byDate = {}; const seenCh = new Set();
+  const chIds = new Set(vidChannels(S).map(x => x.channel.id)); const seenCh = new Set();
   for (const c of P.cells || []) {
     if (!chIds.has(c.channelId)) return { ok: false, error: 'Kênh không phải kênh video ngắn.' };
     if (seenCh.has(c.channelId)) return { ok: false, error: 'Mỗi kênh một ngày cho mỗi video.' }; seenCh.add(c.channelId);
-    (byDate[c.date] = byDate[c.date] || []).push(c.channelId);
   }
-  if (!Object.keys(byDate).length) return { ok: false, error: 'Chọn ít nhất một ô ngày × kênh.' };
-  const made = [], skipped = [];
-  for (const date of Object.keys(byDate).sort()) {
-    const r = scheduleVideo(S, vidId, { date, time: P.time, channelIds: byDate[date], captions: P.captions });
+  if (!(P.cells || []).length) return { ok: false, error: 'Chọn ít nhất một ô ngày × kênh.' };
+  const made = [], skipped = [], shifted = [];
+  for (const c of [...P.cells].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))) {
+    const r = scheduleVideo(S, vidId, { date: c.date, time: c.time || P.time, channelIds: [c.channelId], captions: P.captions });
     if (!r.ok) { made.forEach(s => deleteSlot(S, s.id)); return r; }
-    made.push(...r.slots); skipped.push(...r.skipped);
+    made.push(...r.slots); skipped.push(...r.skipped); shifted.push(...r.shifted);
   }
-  return { ok: true, slots: made, skipped };
+  return { ok: true, slots: made, skipped, shifted };
 }
 
 // ---- Cue (bản 4, mục 10.77): mỗi cue bám một từ trong lời cảnh; Icon / Text / SFX hiện hoặc phát ở giây của từ đó trong VO ----

@@ -1412,3 +1412,6 @@ Thẻ Vid tự do (`origin:'mix'`) có 5 tab: Nạp nguyên liệu, Dàn ý, K�
 
 ## 10.85. Short Vid: bảng do người dùng dựng (17/10/2026, bản 114)
 Màn Short Vid mở ra chỉ có một hàng trống, mọi ô là dấu +. Dấu + ở cột Topic mở hộp chọn Topic của Matrix (chưa dùng) và mục Khác để nạp Topic ngoài; chọn xong, hệ thống tự đề xuất số Vid (tối đa 7) vào các ô, ô còn lại là dấu + tạo Vid Topic. Hàng chưa có Topic: dấu + tạo Vid tự do. Nút Thêm hàng (tối đa 12 hàng) và Bỏ hàng. Header chỉ còn Viết tất cả Vid Topic (đề xuất, duyệt, viết kịch bản cho mọi Topic trong bảng) và Đưa video vào lịch. Dữ liệu: `S.vidRows`. Chi tiết: HANDOFF mục 10.85.
+
+## 10.86. Short Vid: Ren Vid, Kho và Xếp Slot (17/10/2026, bản 115)
+Mọi thẻ Vid (Topic và tự do) đi chung một quy trình: Biên tập → Hoàn thành → Ren Vid → tự lưu Kho → Xếp Slot. Ren Vid hiện là bản mô phỏng (video giữ chỗ); biên tập đổi sau khi ren thì video lỗi thời và nút thành Ren lại. Kho nhận thêm video (kèm ảnh bìa, độ dài, thẻ Vid ren). Xếp Slot là bảng Kênh × Ngày đều cột: bấm ô chọn giờ đăng (hộp kèm ảnh nhỏ các bài của kênh trong ngày), bấm ô để sửa, kéo ô trong cùng kênh sang ngày khác rồi xác nhận. Trùng lịch (cùng kênh, cùng ngày, dưới 30 phút) tự đẩy +30 phút kèm cảnh báo. Ren cả hàng, Ren cả lô. Chi tiết: HANDOFF mục 10.86, `notes/phan-tich-ren-vid-xep-slot.md`.

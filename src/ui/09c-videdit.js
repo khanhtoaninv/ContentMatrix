@@ -8,6 +8,14 @@ import { downloadBytes } from './06-export.js';
 import { imageApiCall, providerLabel } from './04j-media.js';
 import { findCuts, readMedia, readMediaList } from './09b-vidfree.js';
 
+// Ren Vid (mô phỏng): chạy thanh tiến độ vài nhịp rồi ren; dùng chung cho nút ở Biên tập, Xếp Slot và ren cả hàng / cả lô
+const RENDERING = new Set();
+export const isRendering = id => RENDERING.has(id);
+export async function renderOne(id, onPct) {
+  RENDERING.add(id);
+  try { for (let i = 1; i <= 5; i++) { if (onPct) onPct(i * 20); await new Promise(r => setTimeout(r, 140)); } return AC.renderVid(S, id); }
+  finally { RENDERING.delete(id); }
+}
 const fmt = t => AC.fmtClock(t).replace(/\.\d$/, '');
 const r1 = x => Math.round(x * 10) / 10;
 const f1 = x => String(r1(x)).replace('.', ',');
@@ -237,6 +245,8 @@ function waveHtml(v) {
   if (ed.voAll) return `<div class="vp-wv" style="left:0;width:100%">${bars(peaksOf(ed.voAll, 7))}</div>`;
   return tl.items.map((it, i) => it.scene.vo ? `<div class="vp-wv" style="left:${it.t0 / T * 100}%;width:${Math.min(it.scene.vo.dur, it.scene.dur) / T * 100}%">${bars(peaksOf(it.scene.vo, i + 1))}</div>` : '').join('');
 }
+const renderNote = v => { const ed = v.edit; const rs = AC.renderState(v); return !ed.doneAt ? (rs === 'ext' ? 'Thẻ đang dùng video Up ngoài app.' : 'Đủ hình cho mọi cảnh') : rs === 'fresh' ? 'Đã ren video và lưu vào Kho. Sang Xếp Slot để chọn ngày giờ.' : rs === 'stale' ? 'Biên tập đã đổi sau lần ren cuối: ren lại để video khớp.' : rs === 'ext' ? 'Đã hoàn thành. Thẻ đang dùng video Up ngoài app.' : 'Đã hoàn thành. Bấm Ren Vid để tạo video.'; };
+const renderBtn = (v, bl) => { const ed = v.edit; if (!ed.doneAt || bl.length) return ''; const rs = AC.renderState(v); if (rs === 'ext') return ''; return `<button class="btn primary" data-a="render" data-testid="ve-render" ${isRendering(v.id) ? 'disabled' : ''}>${rs === 'fresh' ? 'Ren lại' : rs === 'stale' ? 'Ren lại' : 'Ren Vid'}</button><span class="small muted" id="ve-prog" aria-live="polite"></span>`; };
 function bodyHtml(v, st, ro) {
   const ed = v.edit; const dis = ro ? 'disabled' : '';
   const left = st.cap ? capPane(v, ro) : st.sub === 'scene' ? scenePane(v, st) : settingsPane(v);
@@ -245,8 +255,8 @@ function bodyHtml(v, st, ro) {
     <div class="vp-pv"><div class="vp-box" id="vp-box" data-testid="ve-stage"></div>${tbarHtml(v, st)}
       <div class="vp-pvbar"><button class="btn sm primary vp-ico" data-a="play" id="vp-play" data-testid="ve-play" title="Phát" aria-label="Phát">▶</button><button class="btn sm vp-ico" data-a="replay" data-testid="ve-replay" title="Phát lại từ đầu" aria-label="Phát lại từ đầu">↺</button><label class="small vp-safe-l"><input type="checkbox" data-a="safe" ${st.safe ? 'checked' : ''}> Vùng an toàn</label></div></div></div>
     <fieldset class="vp-fs" ${dis}>${timelineHtml(v, st)}</fieldset>
-    ${ro ? '<div class="vp-foot"><span class="small muted">Bản cũ: chỉ xem. Bấm Dùng bản này để sửa tiếp.</span></div>' : `<div class="vp-foot"><span class="small ${bl.length ? '' : 'muted'}" id="ve-issues">${bl.length ? bl.map(x => `<a href="#" data-a="goto" data-i="${x.i}">Scene ${x.i + 1} chưa có hình</a>`).join(' · ') : ed.doneAt ? 'Đã hoàn thành. Lệnh dựng đã lưu; file video có khi bộ xuất chạy.' : 'Đủ hình cho mọi cảnh'}${iss.filter(x => !/chưa có hình/.test(x)).length ? `<br><span class="vp-warn">${iss.filter(x => !/chưa có hình/.test(x)).map(esc).join(' · ')}</span>` : ''}</span>
-      <button class="btn" data-a="export" data-testid="ve-export">Xuất lệnh dựng (JSON)</button><button class="btn primary" data-a="done" data-testid="ve-done" ${bl.length ? 'disabled' : ''}>${ed.doneAt ? 'Đã hoàn thành ✓' : 'Hoàn thành'}</button></div>`}
+    ${ro ? '<div class="vp-foot"><span class="small muted">Bản cũ: chỉ xem. Bấm Dùng bản này để sửa tiếp.</span></div>' : `<div class="vp-foot"><span class="small ${bl.length ? '' : 'muted'}" id="ve-issues">${bl.length ? bl.map(x => `<a href="#" data-a="goto" data-i="${x.i}">Scene ${x.i + 1} chưa có hình</a>`).join(' · ') : renderNote(v)}${iss.filter(x => !/chưa có hình/.test(x)).length ? `<br><span class="vp-warn">${iss.filter(x => !/chưa có hình/.test(x)).map(esc).join(' · ')}</span>` : ''}</span>
+      <button class="btn" data-a="export" data-testid="ve-export">Xuất lệnh dựng (JSON)</button><button class="btn ${ed.doneAt ? '' : 'primary'}" data-a="done" data-testid="ve-done" ${bl.length ? 'disabled' : ''}>${ed.doneAt ? 'Đã hoàn thành ✓' : 'Hoàn thành'}</button>${renderBtn(v, bl)}</div>`}
     <input type="file" id="vp-file" accept="image/*,video/*" multiple class="sr" tabindex="-1"><input type="file" id="vp-fileA" accept="audio/*" class="sr" tabindex="-1"><input type="file" id="vp-fileM" accept="audio/*" class="sr" tabindex="-1">`;
 }
 function emptyHtml(v, ro) {
@@ -671,6 +681,12 @@ export function mountEditor(host, id, hooks) {
     if (a === 'goto') { e.preventDefault(); st.sub = 'scene'; st.cap = false; st.cur = i; render(); const el = host.querySelectorAll('.vp-sc')[i]; if (el) el.scrollIntoView({ block: 'center' }); return; }
     if (a === 'remeasure') { b.disabled = true; const r = await findCuts(id); if (!r.ok) { toast(r.error, 'bad'); return render(); } AC.planEdit(S, id); st.cur = 0; act({ ok: true }, `${r.count} chỗ đề xuất cắt${r.simulated ? ' (mô phỏng)' : ''}.`); return; }
     if (a === 'export') { const cmd = AC.editCommands(S, vv); ed.exportedAt = S.settings.demoNow; save(); downloadBytes(`${AC.slugOf(vv.insight.title) || 'video'}-lenh-dung.json`, new TextEncoder().encode(JSON.stringify(cmd, null, 2)), 'application/json'); return toast('Đã xuất lệnh dựng (JSON). Bộ xuất của PC app/web app sẽ đọc tệp này để dựng video.'); }
+    if (a === 'render') {
+      if (isRendering(id)) return; const prog = host.querySelector('#ve-prog'); host.querySelectorAll('.vp-foot button').forEach(x => { x.disabled = true; });
+      const r = await renderOne(id, p => { if (prog) prog.textContent = `Đang ren… ${p}%`; });
+      if (!r.ok) { toast(r.error, 'bad'); render(); return; }
+      save(); render(); if (H.rendered) H.rendered(r); return;
+    }
     if (a === 'done') { const r = AC.completeEdit(S, id); if (!r.ok) return toast(r.error, 'bad'); commit(); render(); if (H.done) H.done(); }
   });
 

@@ -19,6 +19,16 @@ export function addLibraryItem(S, it, at) {
   S.library = libraryOf(S).concat([item]); log(S, 'add', 'library', item.id, name);
   return { ok: true, item };
 }
+// Video đã ren (Ren Vid) tự vào Kho; ren lại thì thay đúng mục cũ (replaceId). Bộ chọn ảnh của slot không thấy video.
+export function addLibraryVideo(S, it, at) {
+  const name = String((it && it.name) || '').trim().slice(0, 80) || 'Video';
+  if (!/^data:video\//.test((it && it.src) || '')) return { ok: false, error: 'Kho chỉ nhận video MP4, WebM hoặc MOV.' };
+  const old = it.replaceId && libraryOf(S).find(x => x.id === it.replaceId && x.kind === 'video');
+  if (old) { Object.assign(old, { name, src: it.src, cover: it.cover || '', dur: it.dur || 0, addedAt: at || S.settings.demoNow }); return { ok: true, item: old, updated: true }; }
+  const item = { id: nextId(S, 'lib'), kind: 'video', name, src: it.src, cover: it.cover || '', dur: it.dur || 0, vidId: it.vidId || null, tags: normTags(it.tags || ['Vid ren']), addedAt: at || S.settings.demoNow };
+  S.library = libraryOf(S).concat([item]); log(S, 'add', 'library', item.id, name);
+  return { ok: true, item };
+}
 function normTags(t) {
   const arr = Array.isArray(t) ? t : String(t || '').split(',');
   return arr.map(x => String(x).trim().replace(/^#/, '')).filter(Boolean).filter((x, i, a) => a.indexOf(x) === i).slice(0, 8);
@@ -33,15 +43,15 @@ export function deleteLibraryItem(S, id) {
   const n = libraryOf(S).length; S.library = libraryOf(S).filter(x => x.id !== id);
   return n === S.library.length ? { ok: false, error: 'Không tìm thấy ảnh trong kho.' } : { ok: true };
 }
-export function libraryFind(S, q, tag) {
+export function libraryFind(S, q, tag, all) {
   const f = fold(q || '');
-  return libraryOf(S).filter(x => (!tag || x.tags.includes(tag)) && (!f || fold(x.name + ' ' + x.tags.join(' ')).includes(f)));
+  return libraryOf(S).filter(x => (all || x.kind !== 'video') && (!tag || x.tags.includes(tag)) && (!f || fold(x.name + ' ' + x.tags.join(' ')).includes(f)));
 }
-export function libraryTags(S) { return [...new Set(libraryOf(S).flatMap(x => x.tags))].sort(); }
+export function libraryTags(S, all) { return [...new Set(libraryOf(S).filter(x => all || x.kind !== 'video').flatMap(x => x.tags))].sort(); }
 // Số lần ảnh trong kho đã được dùng ở slot
 export function libraryUses(S, id) { let n = 0; S.slots.forEach(s => s.assets.forEach(a => a.versions.forEach(v => { if (v.lib && v.lib.id === id) n++; }))); return n; }
 export function useLibraryItem(S, slotId, idx, libId, at) {
-  const it = libraryOf(S).find(x => x.id === libId); if (!it) return { ok: false, error: 'Không tìm thấy ảnh trong kho.' };
+  const it = libraryOf(S).find(x => x.id === libId); if (!it || it.kind === 'video') return { ok: false, error: 'Không tìm thấy ảnh trong kho.' };
   const m = /^data:image\/(\w+);/.exec(it.src); const ext = m ? (m[1] === 'jpeg' ? 'jpg' : m[1]) : 'jpg';
   return addSlotImageVersion(S, slotId, idx, { src: it.src, ext, lib: { id: it.id, name: it.name } }, at);
 }

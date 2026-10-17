@@ -2572,3 +2572,57 @@ test('10.85 · Dữ liệu cũ: Topic đã có thẻ và hàng Vid tự do thàn
   delete S.vidRows; AC.ensureShortVid(S);
   const g = AC.vidGridOf(S, T2); assert.equal(g.length, 2); assert.ok(g.every(x => x.t));
 });
+
+// ---------- Short Vid: Ren Vid, Kho, giờ đăng và đổi lịch (mục 10.86) ----------
+function readyCard(S, origin) {   // thẻ đã có cảnh, mọi cảnh có thẻ giữ chỗ
+  const v = origin === 'topic'
+    ? (() => { const tid = AC.topicsOf(S, T2)[0].id; AC.analyzeTopic(S, T2, tid); AC.approveIdeas(S, T2, tid); const x = AC.vidsOf(S, T2, tid)[0]; AC.writeVidScript(S, x.id, null, {}); return x; })()
+    : AC.addFreeVideo(S, T2, { origin: 'script', script: 'Vì sao nói chậm giúp người nghe hiểu hơn?\n\nNão cần thời gian ghép âm thành nghĩa.\n\nTheo dõi kênh nhé.' }).video;
+  assert.ok(AC.planEdit(S, v.id).ok); v.edit.scenes.forEach(s => AC.editScene(S, v.id, s.id, { ph: true })); return v;
+}
+for (const origin of ['topic', 'free']) {
+  test(`10.86 · Ren Vid (${origin}): cần Hoàn thành biên tập, ren xong tự lưu Kho, đổi biên tập thì lỗi thời, ren lại thay đúng mục Kho`, () => {
+    const S = seed(); const v = readyCard(S, origin);
+    assert.equal(AC.renderState(v), 'none'); assert.match(AC.renderBlockers(v), /Hoàn thành biên tập/); assert.equal(AC.renderVid(S, v.id).ok, false);
+    assert.ok(AC.completeEdit(S, v.id).ok); assert.equal(AC.renderBlockers(v), '');
+    const nImg = AC.libraryFind(S, '', '').length;
+    const r = AC.renderVid(S, v.id); assert.ok(r.ok, r.error);
+    assert.equal(AC.renderState(v), 'fresh'); assert.ok(v.file.rendered && v.file.sim && /^data:video\//.test(v.file.src)); assert.equal(AC.vidState(v, S), 'READY');
+    const lib = AC.libraryOf(S).find(x => x.id === v.file.libId); assert.ok(lib && lib.kind === 'video' && lib.vidId === v.id && lib.tags.includes('Vid ren') && /^data:image\//.test(lib.cover));
+    assert.equal(AC.libraryFind(S, '', '').length, nImg, 'bộ chọn ảnh không thấy video'); assert.ok(AC.libraryFind(S, '', '', true).some(x => x.id === lib.id)); assert.equal(AC.useLibraryItem(S, 'slot-1', 0, lib.id).ok, false);
+    v.edit.scenes[0].text += ' thêm một ý.'; assert.equal(AC.renderState(v), 'stale');
+    const n = AC.libraryOf(S).length; const r2 = AC.renderVid(S, v.id); assert.ok(r2.ok && r2.updated); assert.equal(AC.libraryOf(S).length, n, 'ren lại thay mục cũ, không thêm'); assert.equal(AC.renderState(v), 'fresh');
+    // Video Up ngoài app: không ren đè
+    const w = readyCard(S, 'free'); AC.completeEdit(S, w.id); AC.setVidFile(S, w.id, { src: 'data:video/webm;base64,AAAA', name: 'x.webm' }); assert.equal(AC.renderState(w), 'ext'); assert.match(AC.renderBlockers(w), /Up ngoài app/);
+    // Có video ren thì Xếp Slot mở được
+    assert.ok(AC.scheduleCells(S, v.id, { cells: [{ date: '2026-10-14', channelId: 'ch-tt', time: '19:00' }] }).ok);
+  });
+}
+test('10.86 · Ren cả hàng / cả lô: chỉ ren thẻ đã Hoàn thành biên tập, báo thẻ bị bỏ qua', () => {
+  const S = seed(); const a = readyCard(S, 'free'); const b = AC.addFreeVideo(S, T2, { origin: 'script', script: 'Một câu khác.\n\nCâu thứ hai ở đây.\n\nTheo dõi kênh nhé.' }).video;
+  AC.planEdit(S, b.id); AC.completeEdit(S, a.id);
+  const t = AC.renderTargets(S, [a.id, b.id]); assert.deepEqual(t.todo, [a.id]); assert.equal(t.skipped.length, 1); assert.equal(t.skipped[0].id, b.id);
+  AC.renderVid(S, a.id); assert.deepEqual(AC.renderTargets(S, [a.id]).todo, [], 'đã ren thì không ren lại');
+  assert.deepEqual(AC.rowRenderTargets(S, T2, a.topicId).todo, []);
+});
+test('10.86 · Giờ đăng: trùng lịch (cùng kênh, cùng ngày, cách dưới 30 phút) tự đẩy +30 phút kèm cảnh báo', () => {
+  const S = seed(); const v = readyCard(S, 'free'); AC.completeEdit(S, v.id); AC.renderVid(S, v.id);
+  const w = readyCard(S, 'free'); AC.completeEdit(S, w.id); AC.renderVid(S, w.id);
+  const a = AC.scheduleVideo(S, v.id, { date: '2026-10-14', time: '19:00', channelIds: ['ch-tt'] }); assert.ok(a.ok); assert.deepEqual(a.shifted, []); assert.equal(a.slots[0].time, '19:00');
+  const b = AC.scheduleVideo(S, w.id, { date: '2026-10-14', time: '19:10', channelIds: ['ch-tt'] }); assert.ok(b.ok); assert.equal(b.slots[0].time, '19:30'); assert.equal(b.shifted.length, 1); assert.match(b.shifted[0], /đã có bài lúc 19:00.*từ 19:10 sang 19:30/);
+  const f = AC.freeSlotTime(S, 'w-2026-10-12', 'ch-tt', '2026-10-14', '19:20', []); assert.equal(f.time, '20:00', 'đẩy tiếp khi giờ mới lại trùng'); assert.equal(AC.freeSlotTime(S, 'w-2026-10-12', 'ch-tt', '2026-10-14', '20:30', []).shifted, false, 'đúng 30 phút thì không trùng');
+  assert.equal(AC.freeSlotTime(S, 'w-2026-10-12', 'ch-yt', '2026-10-14', '19:00', []).shifted, false, 'kênh khác không trùng');
+  assert.equal(AC.freeSlotTime(S, 'w-2026-10-12', 'ch-tt', '2026-10-14', 'xx', []).ok, false);
+  // hết giờ trong ngày
+  const s2 = seed(); const x = readyCard(s2, 'free'); AC.completeEdit(s2, x.id); AC.renderVid(s2, x.id); assert.ok(AC.scheduleVideo(s2, x.id, { date: '2026-10-14', time: '23:50', channelIds: ['ch-tt'] }).ok);
+  const y = readyCard(s2, 'free'); AC.completeEdit(s2, y.id); AC.renderVid(s2, y.id); assert.equal(AC.scheduleVideo(s2, y.id, { date: '2026-10-14', time: '23:40', channelIds: ['ch-tt'] }).ok, false);
+});
+test('10.86 · Đổi lịch slot video: đổi ngày / giờ trong cùng kênh, trùng thì đẩy giờ; slot đã đăng hoặc tuần đã chốt không sửa', () => {
+  const S = seed(); const v = readyCard(S, 'free'); AC.completeEdit(S, v.id); AC.renderVid(S, v.id);
+  const w = readyCard(S, 'free'); AC.completeEdit(S, w.id); AC.renderVid(S, w.id);
+  const s1 = AC.scheduleVideo(S, v.id, { date: '2026-10-14', time: '19:00', channelIds: ['ch-tt'] }).slots[0]; const s2 = AC.scheduleVideo(S, w.id, { date: '2026-10-15', time: '19:00', channelIds: ['ch-tt'] }).slots[0];
+  const m = AC.moveVideoSlot(S, s2.id, { date: '2026-10-14' }); assert.ok(m.ok); assert.equal(s2.date, '2026-10-14'); assert.equal(s2.time, '19:30'); assert.equal(m.shifted.length, 1); assert.equal(m.from.date, '2026-10-15');
+  assert.ok(AC.moveVideoSlot(S, s2.id, { time: '21:00' }).ok); assert.equal(s2.time, '21:00');
+  assert.equal(AC.moveVideoSlot(S, s2.id, { date: '2026-10-25' }).ok, false, 'ngoài tuần'); assert.equal(AC.moveVideoSlot(S, 'slot-1', { date: '2026-10-14' }).ok, false, 'không phải slot video');
+  s1.state = 'PUBLISHED'; assert.equal(AC.moveVideoSlot(S, s1.id, { date: '2026-10-16' }).ok, false, 'đã đăng');
+});

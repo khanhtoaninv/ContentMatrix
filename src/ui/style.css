@@ -1434,3 +1434,19 @@ details.vp-src summary { cursor: pointer; font-size: var(--fs-2); color: var(--i
 @media (max-width: 560px) { .vp-tabs button { padding-left: 8px; padding-right: 8px; gap: 5px; font-size: var(--fs-2); } }
 .dialog.wide.sv-dlg { grid-template-columns: minmax(0, 1fr); }
 .dialog.sv-dlg > * { min-width: 0; }
+
+/* Xếp Slot (10.86): bảng Kênh × Ngày đều cột, ô giờ, kéo thả trong cùng kênh */
+.vp-sl { table-layout: fixed; min-width: 680px; }
+.vp-sl th, .vp-sl td { height: 48px; vertical-align: middle; }
+.vp-sl thead th { height: 36px; text-align: center; }
+.vp-sl th.ch { width: 128px; box-sizing: border-box; text-align: left; padding: 0 10px; position: sticky; left: 0; z-index: 1; white-space: normal; line-height: 1.25; overflow: hidden; }
+.vp-sl td { padding: 2px; }
+.vp-slc { position: relative; height: 42px; border-radius: var(--r-s); font-variant-numeric: tabular-nums; }
+.vp-slc[draggable="true"] { cursor: grab; }
+.vp-sl td.over { background: var(--accent-soft); outline: 2px dashed var(--accent); outline-offset: -3px; }
+.vp-slc .vp-n { position: absolute; top: 2px; right: 3px; font-style: normal; font-size: 10px; line-height: 1; padding: 2px 4px; border-radius: 8px; background: var(--surface-2); color: var(--ink-2); }
+.vp-slc.pick { font-size: 13px; }
+.td-list { display: flex; flex-wrap: wrap; gap: 8px; max-height: 190px; overflow-y: auto; }
+.td-it { display: grid; grid-template-columns: 40px auto; grid-template-rows: auto auto; column-gap: 8px; align-items: center; padding: 4px 8px 4px 4px; border: 1px solid var(--line); border-radius: var(--r-s); background: var(--surface); min-width: 150px; max-width: 220px; }
+.td-it img, .td-it .td-ph { grid-row: 1 / span 2; width: 40px; height: 40px; border-radius: 6px; object-fit: cover; background: var(--surface-2); display: grid; place-items: center; font-size: 12px; color: var(--ink-3); }
+.td-it.clash { border-color: var(--warn); background: color-mix(in srgb, var(--warn) 12%, var(--surface)); }

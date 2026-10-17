@@ -222,7 +222,6 @@ RENDERERS.week = () => {
         ${view.chFilter.length ? '<button class="linkbtn small" data-act="ch-filter-clear">Bỏ lọc</button>' : ''}
       </div>
     </div>
-    ${!gate.ok && slots.length ? `<p class="small faint">Nút Tuần mẫu khóa vì ${esc(gate.reason.charAt(0).toLowerCase() + gate.reason.slice(1))}</p>` : ''}
     ${!w && gate.ok ? `<div class="note">Tuần này chưa có slot. Chọn <b>Lập tuần</b> để sao các slot từ một Tuần mẫu, hoặc bấm dấu + ở từng ngày để thêm từng slot.</div>` : ''}
     ${view.weekMode === 'month' ? monthHtml(start) : weekGridHtml(start, w)}
     </section>

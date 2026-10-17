@@ -4,6 +4,7 @@ import { S } from './00-state.js';
 import { $, closeLayer, confirmBox, esc, icon, openLayer, save, toast } from './01-core.js';
 import { downloadBytes } from './06-export.js';
 import { readMedia, sttOk, transcribe } from './09b-vidfree.js';
+import { renderOne } from './09c-videdit.js';
 
 const GL = { idea: 'Ý', script: 'KB', matrix: 'MX', voice: '♪', talk: 'Nói', broll: 'Clip', image: 'Ảnh', long: 'Dài', subs: 'Sub', article: 'Bài', product: 'SP', vlink: 'Link', sample: 'Mẫu', data: 'Số', comment: 'BL', oldvid: 'Vid' };
 const TG = { 'Ý chính': '', 'Số liệu': 'so', 'Lời nói': '', 'Ví dụ': '', 'Kêu gọi': 'kg', 'Hình': 'hinh', 'Mẫu dựng': 'mau' };
@@ -127,7 +128,7 @@ export const mixSubOf = id => SUB[id] || 'in';
 // ---- Thanh lô, Cần quay ----
 export function lotHtml(v) {
   const list = AC.batchOf(S, v); if (list.length < 2) return '';
-  return `<div class="vm-lot" data-testid="vm-lot"><b>Lô ${list.length} thẻ:</b>${list.map((x, i) => `<button type="button" class="it" data-mx="cur" data-id="${esc(x.id)}" aria-pressed="${x.id === v.id}" title="${esc(x.insight.title)}">${AC.vidEditDone(x) ? '✓ ' : ''}${i + 1} · ${esc(x.insight.title.replace(/^Short \d+\/\d+:\s*/, '').slice(0, 24))}</button>`).join('')}<span class="r"><button type="button" class="btn sm" data-mx="doneAll" data-testid="vm-doneall">Hoàn thành cả lô</button></span></div>`;
+  return `<div class="vm-lot" data-testid="vm-lot"><b>Lô ${list.length} thẻ:</b>${list.map((x, i) => `<button type="button" class="it" data-mx="cur" data-id="${esc(x.id)}" aria-pressed="${x.id === v.id}" title="${esc(x.insight.title)}">${AC.vidEditDone(x) ? '✓ ' : ''}${i + 1} · ${esc(x.insight.title.replace(/^Short \d+\/\d+:\s*/, '').slice(0, 24))}</button>`).join('')}<span class="r"><button type="button" class="btn sm" data-mx="doneAll" data-testid="vm-doneall">Hoàn thành cả lô</button><button type="button" class="btn sm" data-mx="renderAll" data-testid="vm-renderall">Ren cả lô</button></span></div>`;
 }
 export function shootBannerHtml(v) {
   const l = AC.shootList(v); if (!l.length) return '';
@@ -289,6 +290,13 @@ export function bindMix(box, id, ctx) {
       if (!ctx.persist()) return;
       const r = AC.finishMixBatch(S, id); if (!r.ok) return ctx.err(r.error); save(); show();
       toast(`Hoàn thành ${r.done.length} thẻ.${r.blocked.length ? ` ${r.blocked.length} thẻ chưa xong (${r.blocked.map(x => x.why).join('; ')}).` : ''}`, r.blocked.length ? 'bad' : ''); return;
+    }
+    if (k === 'renderAll') {
+      if (!ctx.persist()) return;
+      const { todo, skipped } = AC.renderTargets(S, AC.batchOf(S, AC.byId(S.videos, id)).map(x => x.id));
+      if (!todo.length) return toast(skipped.length ? `Chưa ren được: ${skipped.length} thẻ chưa sẵn sàng (${[...new Set(skipped.map(x => x.why))].join('; ')}).` : 'Mọi thẻ trong lô đã có video ren.', skipped.length ? 'bad' : '');
+      let n = 0; for (const vid of todo) { ctx.setBusy(`Đang ren ${n + 1}/${todo.length}…`); const r = await renderOne(vid, null); if (!r.ok) { ctx.setBusy(''); return ctx.err(r.error); } n++; save(); }
+      ctx.setBusy(''); show(); toast(`Đã ren ${n} video, lưu vào Kho.${skipped.length ? ` ${skipped.length} thẻ bỏ qua (${[...new Set(skipped.map(x => x.why))].join('; ')}).` : ''}`); return;
     }
     if (k === 'autoslot') {
       if (!ctx.persist()) return;

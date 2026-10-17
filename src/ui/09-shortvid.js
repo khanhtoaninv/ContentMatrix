@@ -9,8 +9,8 @@ import { coverDialog, subsDialog } from './04j-media.js';
 import { textCall } from './04k-aitext.js';
 import { findCuts, readMediaList, sttOk, transcribe } from './09b-vidfree.js';
 import { bindMix, dyPaneHtml, lenRowHtml, lotHtml, mixBarExtras, mixSubOf, napPaneHtml, shootBannerHtml } from './09e-vidmix.js';
-import { mountEditor, openGenImage } from './09c-videdit.js';
-import { openSchedule, readyToSchedule, scheduleSelected, slotPaneHtml } from './09d-vidsched.js';
+import { isRendering, mountEditor, openGenImage, renderOne } from './09c-videdit.js';
+import { openSchedule, readyToSchedule, scheduleSelected, slotPaneHtml, timeDialog } from './09d-vidsched.js';
 
 const kindName = k => AC.VID_KINDS[k] || k;
 const vfName = id => { const f = AC.byId(S.vidFormats || [], id); return f ? f.name : 'Format đã xóa'; };
@@ -52,14 +52,15 @@ function rowHeadHtml(t, vs, g) {
   const nRows = AC.vidGridOf(S, weekId()).length;
   const del = (label, cls) => `<button class="linkbtn small${cls ? ' ' + cls : ''}" data-act="sv-row-del" data-row="${esc(g.id)}">${label}</button>`;
   if (!t) return `<button class="btn" data-act="sv-row-topic" data-row="${esc(g.id)}" data-testid="sv-row-topic" aria-label="Thêm Topic cho hàng này" title="Chọn Topic từ Matrix hoặc nạp Topic ngoài">${icon('plus')}</button><br><span class="small muted">Thêm Topic. Hoặc bấm + ở ô bên cạnh để tạo Vid tự do.</span>${nRows > 1 ? `<br>${del('Bỏ hàng')}` : ''}`;
-  if (t.row.free) return `<b>Video tự do</b> <span class="small faint">${vs.length}/${AC.VID_MAX_FREE} thẻ</span><br><span class="small muted">Không đi từ Topic: nạp ý tưởng, kịch bản, bài Matrix, giọng, clip, ảnh, số liệu… rồi lập dàn ý.</span>${vs.length ? '' : `<br>${del('Bỏ hàng', 'danger')}`}`;
+  const rr = vs.length ? `<button class="linkbtn small" data-act="sv-render-row" data-id="${esc(t.row.id)}" data-testid="sv-render-row" title="Ren Vid cho mọi thẻ đã Hoàn thành biên tập trong hàng, tự lưu vào Kho">Ren cả hàng</button>` : '';
+  if (t.row.free) return `<b>Video tự do</b> <span class="small faint">${vs.length}/${AC.VID_MAX_FREE} thẻ</span><br><span class="small muted">Không đi từ Topic: nạp ý tưởng, kịch bản, bài Matrix, giọng, clip, ảnh, số liệu… rồi lập dàn ý.</span>${vs.length ? `<br>${rr}` : `<br>${del('Bỏ hàng', 'danger')}`}`;
   const live = vs.filter(v => !v.cancelled && v.status !== 'IDEA').length; const an = AC.vidAnalysisOf(S, t.row.weekId, t.row.id);
   const busy = view.svBusy;
   return `<b>${t.videoOnly ? 'Chủ đề riêng' : `Topic ${t.row.order}`}</b> <span class="small faint">${vs.length}/${MAX} thẻ</span><br>
     <button class="linkbtn small" data-act="sv-topic-view" data-id="${esc(t.row.id)}">${esc(t.v.title)}</button><br>
     <span class="small muted">${t.v.words.toLocaleString('vi-VN')} chữ · ${live} video</span><br>
     <button class="linkbtn small" data-act="sv-analyze" data-id="${esc(t.row.id)}" data-testid="sv-analyze" ${busy ? 'disabled' : ''} title="${AC.textApiOn(S) ? 'AI đọc Topic, đề xuất số video kèm lý do' : 'Chưa bật AI viết bài: dùng bản mô phỏng (tách theo mục của Topic)'}">${vs.length ? 'Phân tích lại' : 'Phân tích'}</button> ·
-    ${del('Bỏ hàng', t.videoOnly ? 'danger' : '')}
+    ${rr ? rr + ' · ' : ''}${del('Bỏ hàng', t.videoOnly ? 'danger' : '')}
     ${an ? `<details class="small"><summary class="small muted">Lý do đề xuất</summary><span class="small" data-testid="sv-reason">${esc(an.reason)}</span></details>` : ''}`;
 }
 // Hàng Video tự do chứa tới VID_MAX_FREE thẻ (một video dài tách thành nhiều Short): thêm cột cho vừa số thẻ
@@ -93,8 +94,7 @@ function countsHtml(w) {
 RENDERERS.shortvid = () => {
   AC.ensureShortVid(S);
   const start = curStart(); const w = curWeek(); const l = AC.weekLabelOf(start);
-  const head = `<div class="page-head"><div><span class="eyebrow">Short Vid · ${esc(l.range)}</span><h1>Video ngắn</h1>
-      <p class="sub">Short Vid đi theo tuần đang chọn ở Dashboard. Bảng bắt đầu trống: dấu + ở cột Topic để thêm Topic (chọn từ Matrix hoặc nạp ngoài), mỗi Topic tối đa ${MAX} thẻ Vid; dấu + ở ô để tạo Vid. Bấm thẻ để viết kịch bản, mở Bàn dựng, tải video thành phẩm rồi Đưa vào lịch.</p></div>
+  const head = `<div class="page-head"><div><span class="eyebrow">Short Vid · ${esc(l.range)}</span><h1>Video ngắn</h1></div>
       ${w ? kpiBarHtml(w) : ''}</div>`;
   const grid = w ? AC.vidGridOf(S, w.id) : [];
   const tops = grid.filter(g => g.t && !g.t.row.free).map(g => g.t);
@@ -106,7 +106,6 @@ RENDERERS.shortvid = () => {
         <button class="btn ${work ? 'primary' : ''}" data-act="sv-write-all" data-testid="sv-write-all" ${work && !busy ? '' : 'disabled'} title="Với mỗi Topic trong bảng: đề xuất Vid (nếu chưa có), duyệt và viết kịch bản. Muốn viết riêng thì bấm từng ô Vid Topic.">${icon('spark')} Viết tất cả Vid Topic${aiOn ? '' : ' (mô phỏng)'}</button>
         ${(() => { const n = readyToSchedule(S, w.id).length; return `<button class="btn ${n ? 'primary' : ''}" data-act="sv-schedule" data-testid="sv-schedule" ${n ? '' : 'disabled'} title="Xếp video thành phẩm vào lịch tuần, mỗi kênh video một slot">${icon('week')} Đưa ${n ? `${n} ` : ''}video vào lịch</button>`; })()}
         <span class="small muted sv-busy" aria-live="polite">${busy ? esc(busy) : ''}</span></div>
-      <p class="small faint">Dấu + ở cột Topic: thêm Topic (chọn từ Matrix hoặc nạp ngoài). Dấu + ở ô: tạo Vid tự do khi hàng chưa có Topic, hoặc Vid Topic khi đã có. Thẻ viền cam: cần xử lý. Thẻ mờ: đã hủy, không tính KPI.</p>
       <div id="sv-table">${matrixHtml(w, grid)}</div>
     </section>`;
 };
@@ -154,6 +153,12 @@ ACTIONS['sv-write-all'] = async () => {
 };
 
 // ---- Hàng của bảng: thêm Topic (Matrix hoặc Khác), thêm hàng, bỏ hàng ----
+ACTIONS['sv-render-row'] = async el => {
+  const w = weekId(); if (!w || view.svBusy) return; const { todo, skipped } = AC.rowRenderTargets(S, w, el.dataset.id); const why = [...new Set(skipped.map(x => x.why))].join('; ');
+  if (!todo.length) return toast(skipped.length ? `Chưa ren được: ${skipped.length} thẻ chưa sẵn sàng (${why}).` : 'Mọi thẻ trong hàng đã có video ren.', skipped.length ? 'bad' : '');
+  let n = 0; for (const id of todo) { setBusy(`Đang ren ${n + 1}/${todo.length}…`); const r = await renderOne(id, null); if (!r.ok) { setBusy(null); return toast(r.error, 'bad'); } n++; save(); }
+  setBusy(null); commit(`Đã ren ${n} video, lưu vào Kho.${skipped.length ? ` ${skipped.length} thẻ bỏ qua (${why}).` : ''}`);
+};
 ACTIONS['sv-row-add'] = () => { const r = AC.addVidRow(S, weekId()); if (!r.ok) return toast(r.error, 'bad'); commit('Đã thêm hàng. Chưa có Topic thì dấu + ở ô tạo Vid tự do.'); };
 ACTIONS['sv-row-del'] = async el => {
   const w = weekId(); const g = AC.vidGridOf(S, w).find(x => x.id === el.dataset.row); if (!g) return;
@@ -345,7 +350,7 @@ function sceneListHtml(v) {
   const tl = AC.editTimeline(v);
   return `${shootBannerHtml(v)}<section class="panel stack" style="gap:6px;margin-bottom:12px"><h3>Phân cảnh <span class="small muted">${tl.items.length} cảnh · ${fmtS(tl.total)} giây</span></h3>
     <div class="vp-phw"><table class="vp-phc"><thead><tr><th>STT</th><th>Timeline</th><th>Nội dung</th><th>Mô tả hình ảnh hoặc video minh hoạ</th></tr></thead><tbody>
-    ${tl.items.map((it, i) => { const s = it.scene; return `<tr data-testid="sp-scene-row"><td class="n">${i + 1}</td><td class="t">${fmtS(it.t0)}–${fmtS(it.t1)}s<br><span class="small muted">${s.items.length ? `${s.items.length} hình` : s.ph ? 'thẻ giữ chỗ' : 'chưa có hình'}</span></td>
+    ${tl.items.map((it, i) => { const s = it.scene; return `<tr data-testid="sp-scene-row"><td class="n">${i + 1}</td><td class="t">${fmtS(it.t0)}–${fmtS(it.t1)}s<br><span class="small muted">${s.items.length ? `${s.items.length} hình` : s.ph ? 'thẻ giữ chỗ' : ''}</span></td>
       <td><label class="sr" for="sp-pt-${esc(s.id)}">Lời cảnh ${i + 1}</label><textarea id="sp-pt-${esc(s.id)}" class="vp-r2" rows="2" data-pt="${esc(s.id)}">${esc(s.text)}</textarea></td>
       <td><label class="sr" for="sp-pp-${esc(s.id)}">Mô tả hình cảnh ${i + 1}</label><textarea id="sp-pp-${esc(s.id)}" class="vp-r2" rows="2" data-pp="${esc(s.id)}">${esc(s.prompt || '')}</textarea></td></tr>`; }).join('')}
     </tbody></table></div></section>`;
@@ -376,10 +381,26 @@ export function openVid(id) {
     if (n.tab !== 'bt' && ED) ED.pause();
     if (n.tab === 'ks' && n.ks === 'scene') { g('scenes').innerHTML = sceneListHtml(cur()); stale(); }
     if (n.tab === 'sl') g('sl').innerHTML = slotPaneHtml(vv, sel);
-    if (n.tab === 'bt' && m === 'in' && !vv.cancelled && vv.status !== 'IDEA') { if (!ED) ED = mountEditor(g('ed'), id, { bar, view: G, done: () => { n.tab = 'sl'; show(); toast('Đã hoàn thành biên tập. Chọn ngày và kênh ở Xếp Slot.'); } }); else ED.render(); }
+    if (n.tab === 'bt' && m === 'in' && !vv.cancelled && vv.status !== 'IDEA') { if (!ED) ED = mountEditor(g('ed'), id, { bar, view: G, done: () => { show(); toast('Đã hoàn thành biên tập. Bấm Ren Vid để tạo video.'); }, rendered: r => { n.tab = 'sl'; show(); toast(`Đã ren video ${r.video.file.dur} giây và lưu vào Kho. Chọn ngày giờ ở Xếp Slot.`); } }); else ED.render(); }
     bar();
   };
   // Ghi các ô đang sửa vào dữ liệu; trả false nếu có lỗi. Đang xem bản cũ thì không ghi gì
+  // Xếp Slot: bấm ô trống / ô đã chọn / ô đã xếp, hoặc thả ô kéo vào ngày khác của cùng kênh → hộp chọn giờ chờ xác nhận
+  async function placeAt(date, chId, kind) {
+    if (G) return; const vd = AC.byId(S.videos, id); const own = AC.vidSlotsOf(S, id).find(s => s.channelId === chId); const pick = sel[chId];
+    if (own && own.state === 'PUBLISHED') return toast('Slot đã đăng, không sửa lịch được.', 'bad');
+    const r = await timeDialog({ weekId: vd.weekId, channelId: chId, date, time: own ? own.time : pick ? pick.time : '19:00', except: own ? [own.id] : [], canRemove: kind !== 'cell', title: own || pick ? 'Sửa giờ đăng' : 'Chọn giờ đăng' });
+    if (!r) return;
+    if (r.remove) { if (own) { AC.deleteSlot(S, own.id); save(); render(); } else delete sel[chId]; show(); return; }
+    if (own) { const m = AC.moveVideoSlot(S, own.id, { date, time: r.time }); if (!m.ok) return toast(m.error, 'bad'); save(); render(); show(); toast(`Đã đổi lịch sang ${AC.dmy(date)} lúc ${r.time}.`); return; }
+    sel[chId] = { date, time: r.time }; show();
+  }
+  let dragSrc = null;
+  box.addEventListener('dragstart', e => { const c = e.target.closest && e.target.closest('.vp-slc[draggable="true"]'); if (!c) return; dragSrc = { k: c.dataset.k, kind: c.dataset.x, ch: c.dataset.k.split('|')[1] }; e.dataTransfer.setData('text/x-slc', c.dataset.k); e.dataTransfer.effectAllowed = 'move'; });
+  box.addEventListener('dragover', e => { const td = e.target.closest && e.target.closest('td[data-drop]'); if (td && dragSrc && td.dataset.drop.split('|')[1] === dragSrc.ch && td.dataset.drop !== dragSrc.k) { e.preventDefault(); td.classList.add('over'); } });
+  box.addEventListener('dragleave', e => { const td = e.target.closest && e.target.closest('td[data-drop]'); if (td) td.classList.remove('over'); });
+  box.addEventListener('drop', e => { const td = e.target.closest && e.target.closest('td[data-drop]'); if (!td || !dragSrc) return; td.classList.remove('over'); const [d, ch] = td.dataset.drop.split('|'); const s = dragSrc; dragSrc = null; if (ch !== s.ch || td.dataset.drop === s.k) return; e.preventDefault(); placeAt(d, ch, s.kind); });
+  box.addEventListener('dragend', () => { dragSrc = null; box.querySelectorAll('td.over').forEach(e => e.classList.remove('over')); });
   const persist = () => {
     const v = AC.byId(S.videos, id); if (!v || v.cancelled || G) return true;
     if (g('request')) AC.setVidRequest(S, id, g('request').value);
@@ -463,13 +484,20 @@ export function openVid(id) {
       if (has && !(await confirmBox({ title: 'Chia lại cảnh?', body: '<p>Chia cảnh lại theo kịch bản mới: hình, VO cảnh và cue đã thêm sẽ bị xóa. VO toàn bài, kiểu caption, frame, nhạc giữ nguyên.</p>', ok: 'Chia lại cảnh' }))) return;
       if (!persist()) return; const r = AC.planEdit(S, id); if (!r.ok) return err(r.error); save(); render(); show(); toast(`Đã chia lại ${r.count} cảnh.`); return;
     }
-    if (k === 'cell') { const [d, ch] = x.dataset.k.split('|'); if (sel[ch] === d) delete sel[ch]; else sel[ch] = d; show(); return; }
+    if (k === 'cell' || k === 'pick' || k === 'own') { await placeAt(x.dataset.k.split('|')[0], x.dataset.k.split('|')[1], k); return; }
+    if (k === 'render') {
+      if (isRendering(id)) return; if (!persist()) return; x.disabled = true;
+      const r = await renderOne(id, p => setBusy(`Đang ren… ${p}%`)); setBusy('');
+      if (!r.ok) { x.disabled = false; return err(r.error); }
+      save(); render(); const n2 = navOf(id); n2.tab = 'sl'; show(); toast(`Đã ren video ${r.video.file.dur} giây và lưu vào Kho. Chọn ngày giờ ở Xếp Slot.`); return;
+    }
     if (k === 'export-cmd') { if (!v.edit || !v.edit.scenes.length) return; downloadBytes(`${AC.slugOf(v.insight.title) || 'video'}-lenh-dung.json`, new TextEncoder().encode(JSON.stringify(AC.editCommands(S, v), null, 2)), 'application/json'); return toast('Đã xuất lệnh dựng (JSON).'); }
     if (k === 'slot-go') {
       if (!persist()) return; x.disabled = true;
-      const r = await scheduleSelected(id, sel, g('sltime').value, setBusy); x.disabled = false;
+      const r = await scheduleSelected(id, sel, setBusy); x.disabled = false;
       if (!r.ok) return err(r.error);
       closeAllLayers(); commit(`Đã đưa video vào lịch (${r.slots.length} slot${r.skipped.length ? `, bỏ qua ${r.skipped.join(', ')}: đã có slot` : ''}).`);
+      if (r.shifted.length) toast(`Trùng lịch, đã tự đẩy giờ: ${r.shifted.join(' ')}`, 'bad');
       toast('Xem và duyệt caption ở Dashboard.', '', { label: 'Mở Dashboard', fn: () => go({ screen: 'week' }) }); return;
     }
     if (k === 'sched') { if (!persist()) return; save(); closeAllLayers(); render(); openSchedule([id]); return; }

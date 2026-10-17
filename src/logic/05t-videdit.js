@@ -1,5 +1,5 @@
 // ---------- 05t · Short Vid: Vid tự do, nguồn vào, bàn dựng mô phỏng, Đưa vào lịch (mục 10.75) ----------
-import { countWords, fold, splitSentences } from './01-util.js';
+import { countWords, dmy, fold, isValidTime, splitSentences } from './01-util.js';
 import { addSlot, addSlotAsset, byId, cellLabel, cellView, cellsOf, deleteSlot, isLocked, log, topicCurrent, topicsOf, uploadSlotImage, weekOf } from './05-model.js';
 import { editSlot } from './05c-slots.js';
 import { fmtClock, setVideoCover, setVideoSubs } from './05n-media.js';
@@ -629,14 +629,33 @@ export function suggestVidDates(S, weekId, n) {
   const free = days.filter(d => !used.has(d)).concat(days.filter(d => used.has(d)));
   return Array.from({ length: n }, (_, i) => free[i % 7]);
 }
+// ---- Giờ đăng: cùng kênh, cùng ngày, hai bài cách nhau dưới SLOT_GAP_MIN phút là trùng lịch; trùng thì tự đẩy lên (cộng 30 phút một lần) và báo ----
+export const SLOT_GAP_MIN = 30;
+const tMin = t => Number(String(t).slice(0, 2)) * 60 + Number(String(t).slice(3, 5));
+const tStr = m => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+export const channelDaySlots = (S, weekId, channelId, date, except) => (S.slots || []).filter(s => s.weekId === weekId && s.channelId === channelId && s.date === date && !(except || []).includes(s.id)).sort((a, b) => (a.time < b.time ? -1 : a.time > b.time ? 1 : 0));
+export function freeSlotTime(S, weekId, channelId, date, time, except) {
+  if (!isValidTime(time)) return { ok: false, error: 'Giờ không hợp lệ.' };
+  const others = channelDaySlots(S, weekId, channelId, date, except).map(s => ({ m: tMin(s.time), s })); let m = tMin(time); let clash = null;
+  for (;;) {
+    const c = others.find(o => Math.abs(o.m - m) < SLOT_GAP_MIN); if (!c) break;
+    clash = clash || c.s; m = c.m + SLOT_GAP_MIN;
+    if (m > 23 * 60 + 59) return { ok: false, error: `Ngày ${dmy(date)} không còn giờ trống trên kênh này (mỗi bài cách nhau ${SLOT_GAP_MIN} phút). Chọn ngày khác.` };
+  }
+  const out = tStr(m); return { ok: true, time: out, from: time, shifted: out !== time, clash };
+}
+export const shiftMsg = (S, channelId, date, r) => `Kênh ${(byId(S.channels, channelId) || {}).name || channelId} ngày ${dmy(date)} đã có bài lúc ${r.clash.time}: giờ đăng đẩy từ ${r.from} sang ${r.time}.`;
 export function scheduleVideo(S, vidId, p) {
   const g = scheduleGate(S, vidId); if (!g.ok) return g; const v = g.video; const P = p || {};
   const chans = vidChannels(S).filter(x => (P.channelIds || []).includes(x.channel.id)); if (!chans.length) return { ok: false, error: 'Chọn ít nhất một kênh.' };
-  const have = new Set(vidSlotsOf(S, vidId).map(s => s.channelId)); const made = [], skipped = [];
+  const have = new Set(vidSlotsOf(S, vidId).map(s => s.channelId)); const made = [], skipped = [], shifted = [];
   for (const x of chans) {
     if (have.has(x.channel.id)) { skipped.push(x.channel.name); continue; }
-    const r = addSlot(S, v.weekId, { date: P.date, time: P.time, channelId: x.channel.id, formatId: x.format.id, free: true, columnId: null });
+    const ft = freeSlotTime(S, v.weekId, x.channel.id, P.date, P.time || '19:00', []);
+    if (!ft.ok) { made.forEach(s => deleteSlot(S, s.id)); return { ok: false, error: ft.error }; }
+    const r = addSlot(S, v.weekId, { date: P.date, time: ft.time, channelId: x.channel.id, formatId: x.format.id, free: true, columnId: null });
     if (!r.ok) { made.forEach(s => deleteSlot(S, s.id)); return { ok: false, error: r.error }; }
+    if (ft.shifted) shifted.push(shiftMsg(S, x.channel.id, P.date, ft));
     const s = r.slot; s.videoId = v.id; s.assets = [];
     const ai = addSlotAsset(S, s.id, 'video'); s.assets[ai.index].name = 'Video Short Vid';
     const up = uploadSlotImage(S, s.id, ai.index, { src: v.file.src, name: v.file.name });
@@ -648,7 +667,19 @@ export function scheduleVideo(S, vidId, p) {
     made.push(s);
   }
   if (made.length) log(S, 'vid-schedule', 'video', vidId, `${made.length} slot ${P.date} ${P.time}`);
-  return { ok: true, slots: made, skipped };
+  return { ok: true, slots: made, skipped, shifted };
+}
+// Sửa lịch của slot video đã xếp: đổi ngày (kéo ô) hoặc giờ, chỉ trong cùng kênh; trùng lịch thì tự đẩy giờ
+export function moveVideoSlot(S, slotId, p) {
+  const s = byId(S.slots, slotId); const P = p || {}; if (!s || !s.videoId) return { ok: false, error: 'Không thấy slot video.' };
+  if (s.state === 'PUBLISHED') return { ok: false, error: 'Slot đã đăng, không sửa lịch được.' };
+  if (isLocked(S, s.weekId)) return { ok: false, error: 'Tuần đã chốt. Bấm "Mở lại để sửa" ở Dashboard trước.' };
+  const w = weekOf(S, s.weekId); const date = P.date || s.date; const time = P.time || s.time;
+  const end = new Date(`${w.startDate}T00:00:00Z`); end.setUTCDate(end.getUTCDate() + 6);
+  if (date < w.startDate || date > end.toISOString().slice(0, 10)) return { ok: false, error: 'Chỉ đổi được trong cùng tuần.' };
+  const ft = freeSlotTime(S, s.weekId, s.channelId, date, time, [s.id]); if (!ft.ok) return ft;
+  const from = { date: s.date, time: s.time }; s.date = date; s.time = ft.time; log(S, 'vid-schedule', 'slot', s.id, `${from.date} ${from.time} → ${date} ${ft.time}`);
+  return { ok: true, slot: s, from, shifted: ft.shifted ? [shiftMsg(S, s.channelId, date, ft)] : [] };
 }
 export function unscheduleVideo(S, vidId) {
   const list = vidSlotsOf(S, vidId); let n = 0, kept = 0;
