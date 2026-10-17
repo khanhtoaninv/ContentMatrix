@@ -1,7 +1,7 @@
 // ---------- 05b · R2′: Viết ma trận, thao tác ô, sửa Topic (MTX-01..08, TPC-08) ----------
 import { countWords } from './01-util.js';
 import { topicHasCase } from './02-parse.js';
-import { MATRIX_LOCK_MSG, byId, cellAt, cellView, cellWarnings, cellsOf, isLocked, log, matrixDone, matrixCounts, refreshSlotFlags, sameTopicContent, slotsUsingCell, topicCurrent, topicsOf, weekLanes, weekOf, weekSlots } from './05-model.js';
+import { MATRIX_LOCK_MSG, byId, cellAt, cellView, cellWarnings, cellsOf, isLocked, log, matrixDone, matrixCounts, sameTopicContent, slotsUsingCell, topicCurrent, topicsOf, weekLanes, weekOf, weekSlots } from './05-model.js';
 import { addCellGen, cancelCell } from './06-seed.js';
 // Ô Câu chuyện của Topic không có trường hợp cụ thể thì không viết (D100, MTX-07)
 export function cellNoCase(S, cell) {
@@ -70,7 +70,6 @@ export function writeCellNow(S, cellId, at) {
   const row = byId(S.topics, cell.topicId);
   const gen = addCellGen(S, cell, row.currentVersion, 'DRAFT', at || S.settings.demoNow);
   if (!gen) return { ok: false, error: 'Không viết được ô này.' };
-  refreshSlotFlags(S, cell.weekId);
   return { ok: true, gen };
 }
 // Viết toàn bộ hàng đợi (dùng cho test; giao diện viết từng ô để có nút Dừng)
@@ -102,7 +101,6 @@ export function regenCell(S, cellId, at) {
   const row = byId(S.topics, cell.topicId);
   const gen = addCellGen(S, cell, row.currentVersion, 'DRAFT', at || S.settings.demoNow);
   if (!gen) return { ok: false, error: 'Không viết được ô này.' };
-  refreshSlotFlags(S, cell.weekId);
   log(S, 'regen', 'cell', cellId, `bản ${gen.n}`);
   return { ok: true, gen };
 }
@@ -119,7 +117,6 @@ export function editCell(S, cellId, text, imagePrompt, at) {
   const rev = lastEditRev(v.gen) + 1;
   v.gen.edits.push({ rev, text: t, imagePrompt: p, at: at || S.settings.demoNow });
   cell.byVersion[v.topicVersion] = { state: 'DRAFT', currentRef: { genN: v.gen.n, editRev: rev }, approvedAt: null };
-  refreshSlotFlags(S, cell.weekId);
   log(S, 'edit', 'cell', cellId, `bản ${v.gen.n} · sửa ${rev}`);
   return { ok: true, rev };
 }
@@ -129,7 +126,6 @@ export function cancelCellNow(S, cellId) {
   const v = cellView(S, cell);
   if (v.state === 'CANCELLED') return { ok: false, error: 'Ô đã hủy.' };
   cancelCell(cell, v.topicVersion);
-  refreshSlotFlags(S, cell.weekId);
   log(S, 'cancel', 'cell', cellId);
   return { ok: true, slots: slotsUsingCell(S, cellId).length };
 }
@@ -143,7 +139,6 @@ export function useCellGen(S, cellId, genN) {
   const editRev = lastEditRev(gen);
   if (v.gen && v.gen.n === genN && v.editRev === editRev && v.state !== 'CANCELLED') return { ok: false, error: 'Đây đã là bản hiện hành.' };
   cell.byVersion[v.topicVersion] = { state: 'DRAFT', currentRef: { genN, editRev }, approvedAt: null };
-  refreshSlotFlags(S, cell.weekId);
   log(S, 'use-gen', 'cell', cellId, `bản ${genN}`);
   return { ok: true };
 }
@@ -193,7 +188,6 @@ export function editTopic(S, topicId, input, at) {
   const words = countWords(text.replace(/^#{1,6}\s+/gm, ''));
   row.versions.push({ n, title, text, fields, words, hasCase: topicHasCase(text), createdAt: at || S.settings.demoNow, reason: 'edited' });
   row.currentVersion = n;
-  refreshSlotFlags(S, row.weekId);
   log(S, 'edit', 'topic', topicId, `v${n}`);
   return { ok: true, version: n, impact };
 }
@@ -206,7 +200,6 @@ export function useTopicVersion(S, topicId, n) {
   if (row.currentVersion === n) return { ok: false, error: 'Đây đã là phiên bản hiện hành.' };
   const impact = topicVersionImpact(S, topicId);
   row.currentVersion = n;
-  refreshSlotFlags(S, row.weekId);
   log(S, 'use-version', 'topic', topicId, `v${n}`);
   return { ok: true, impact };
 }

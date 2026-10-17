@@ -15,7 +15,7 @@ export function slotRowHtml(s, showDate) {
 export function dashHeaderHtml(start, w, file) {
   const l = AC.weekLabelOf(start); const date = nowDate();
   const k = w ? AC.weekKpi(S, w.id) : { total: 0, ready: 0, due: 0, published: 0, asConfirmed: 0, late: [], tracking: false };
-  const sc = w ? AC.slotCounts(S, w.id) : { total: 0, EMPTY: 0, APPROVED: 0, PUBLISHED: 0, needsUpdate: 0 };
+  const sc = w ? AC.slotCounts(S, w.id) : { total: 0, EMPTY: 0, APPROVED: 0, PUBLISHED: 0, srcNew: 0 };
   const chip = (v, label, title) => `<span class="kchip" title="${esc(title)}"><b>${esc(v)}</b> ${esc(label)}</span>`;
   const chips = [
     chip(`${k.ready}/${k.total}`, 'sẵn sàng', 'Sẵn sàng: đã duyệt hoặc đã đăng'),
@@ -26,7 +26,7 @@ export function dashHeaderHtml(start, w, file) {
     k.late.length ? `<span class="kchip late" title="Slot đã quá giờ mà chưa đăng được"><b>${k.late.length}</b> đăng lỗi</span>` : '',
     w ? (() => { const v = AC.vidKpi(S, w.id); return `<button class="kchip${v.planned < v.min ? ' late' : ''}" data-act="nav" data-screen="shortvid" data-testid="dash-vid-kpi" title="Video ngắn có thành phẩm / kịch bản không hủy (mục tiêu ${v.target}, tối thiểu ${v.min}). Bấm để mở Short Vid."><b>${v.ready}/${v.planned}</b> video ngắn</button>`; })() : '',
   ].join('');
-  const sub = sc.total ? `${sc.total} slot · ${sc.EMPTY} chưa có bài · ${sc.APPROVED + sc.PUBLISHED} sẵn sàng${sc.needsUpdate ? ` · ${sc.needsUpdate} cần cập nhật` : ''}` : 'Tuần chưa có slot. Bấm "Lập tuần" để chọn Tuần mẫu.';
+  const sub = sc.total ? `${sc.total} slot · ${sc.EMPTY} chưa có bài · ${sc.APPROVED + sc.PUBLISHED} sẵn sàng${sc.srcNew ? ` · ${sc.srcNew} slot có nguồn bản mới (dấu !)` : ''}` : 'Tuần chưa có slot. Bấm "Lập tuần" để chọn Tuần mẫu.';
   return `<div class="page-head dash-head"><div><span class="eyebrow">Dashboard · Tuần ${esc(l.iso.split('-W')[1])} · ${esc(l.range)}</span><h1>${file && file.theme ? esc(file.theme) : esc(l.short)}</h1>
       <p class="sub">${esc(sub)}</p>
       <p class="small faint mono">Hôm nay ${AC.WEEKDAY_LONG[AC.weekdayOf(date)].toLowerCase()}, ${esc(AC.dmyFull(date))} · ${esc(nowTime())} giờ demo</p></div>

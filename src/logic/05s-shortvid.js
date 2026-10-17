@@ -60,7 +60,11 @@ export function ensureShortVid(S) {
   if (!S.vidSettings || typeof S.vidSettings !== 'object') S.vidSettings = defaultVidSettings();
   // Dữ liệu cũ chưa có độ dài (giây): còn đúng mức mặc định cũ 140–200 chữ thì đổi sang 90 giây; đã tự chỉnh thì giữ và suy ra số giây
   if (S.vidSettings.lenSec == null) { const c = S.vidSettings; const wps = Number(c.wps) || 2.5; if (c.wordMin === 140 && c.wordMax === 200 && c.wordTarget === 150) Object.assign(c, { lenSec: 90 }, (({ min, max, target }) => ({ wordMin: min, wordMax: max, wordTarget: target }))(lenWords(90, wps))); else c.lenSec = Math.max(VID_LEN_MIN, Math.min(VID_LEN_MAX, Math.round((Number(c.wordTarget) || 225) / wps))); }
-  S.videos.forEach(v => { if (v.edit) migrateEdit(v.edit); });   // mục 10.76: cảnh nhiều hình, VO toàn bài
+  S.videos.forEach(v => {
+    if (v.edit) migrateEdit(v.edit);   // mục 10.76: cảnh nhiều hình, VO toàn bài
+    // Mục 10.88: phần biên tập trong bản kịch bản cũ chuyển sang lịch sử biên tập riêng
+    if ((v.history || []).some(h => h.edit)) { const H = v.editHist = v.editHist || []; v.history.forEach(h => { if (h.edit && (h.edit.scenes || []).length && H.length < EDIT_KEEP) { v.editN = (v.editN || 0) + 1; H.push({ n: v.editN, edit: migrateEdit(h.edit), at: h.at || '', why: `Theo kịch bản bản ${h.n}` }); } delete h.edit; }); }
+  });
   return S;
 }
 export function setVidSettings(S, patch) {
@@ -461,9 +465,10 @@ export function writeVidScript(S, id, res, meta) {
   if (!r) { const m = mockScript(S, v); if (!m) return { ok: false, error: 'Không thấy Topic của video.' }; if (m.error) return { ok: false, error: m.error }; r = Object.assign({ simulated: true }, m); }
   const f = byId(S.vidFormats, v.formatId);
   // Tạo Kịch bản = bản mới: bản đang có (kịch bản, Insight, phần biên tập) lùi vào danh sách bản cũ; bản mới chưa có cảnh
-  if (v.script) { pushVersion(v); const cuts = v.edit && v.edit.cuts; v.edit = null; if (cuts && cuts.length) { migrateEdit(v.edit = { scenes: [], voice: { mode: 'tts' }, voAll: null, captions: { mode: 'full', pos: 'bottom', style: 0 }, segs: null, capStale: false, frame: 'logo', music: null, cuts: clone(cuts), seq: 1, plannedAt: null, tpl: 'script', doneAt: null }); } }
+  // Mục 10.88: phần biên tập không bị xóa; Biên tập báo "Kịch bản đã đổi" để người dùng chọn Cập nhật hoặc Bỏ qua
+  if (v.script) pushVersion(v);
   v.script = r.script; v.prompts = { audio: r.audio || (v.kind === 'bantin' ? ((vidSections(r.script).find(s => /máy/i.test(s.label)) || {}).text || '') : ''), image: r.image || '' };
-  v.status = 'DRAFT'; v.writtenAt = S.settings.demoNow; v.simulated = !!r.simulated;
+  v.status = 'DRAFT'; v.writtenAt = S.settings.demoNow; v.simulated = !!r.simulated; v.topicVer = vidTopicVer(S, v);
   v.ai = r.simulated ? null : Object.assign({ provider: (meta || {}).provider || '', model: (meta || {}).model || '' }, f && skillRefOf(f) ? { skill: skillRefOf(f) } : {});
   log(S, 'vid-script', 'video', id, r.simulated ? 'mô phỏng' : 'AI');
   return { ok: true, video: v, words: vidWords(v.script) };
@@ -482,16 +487,16 @@ export function editVidScript(S, id, patch) {
   v.writtenAt = S.settings.demoNow; log(S, 'vid-edit', 'video', id);
   return { ok: true, changed: true };
 }
-// ---- Phiên bản kịch bản (bản 4, mục 10.77): mỗi bản gồm kịch bản, Insight và phần biên tập; giữ 5 bản gần nhất (bản đang dùng + 4 bản cũ trong v.history, mới nhất đứng đầu) ----
+// ---- Phiên bản kịch bản (bản 4, mục 10.77; mục 10.88 tách phần biên tập ra lịch sử riêng): mỗi bản gồm kịch bản và Insight; giữ 5 bản gần nhất (bản đang dùng + 4 bản cũ trong v.history, mới nhất đứng đầu) ----
 export const VID_KEEP_VERSIONS = 5;
 export function vidVersions(v) {
   const H = v.history = v.history || []; if (!(v.verN > 0)) v.verN = H.length + 1;
   H.forEach((h, i) => { if (!(h.n > 0)) h.n = Math.max(1, v.verN - 1 - i); });
-  return H.slice().reverse().concat([{ n: v.verN, current: true, script: v.script, prompts: v.prompts, insight: v.insight, edit: v.edit || null, at: v.writtenAt || '', ai: v.ai || null }]);
+  return H.slice().reverse().concat([{ n: v.verN, current: true, script: v.script, prompts: v.prompts, insight: v.insight, at: v.writtenAt || '', ai: v.ai || null }]);
 }
 function pushVersion(v) {
   vidVersions(v);
-  v.history = [{ n: v.verN, script: v.script, prompts: clone(v.prompts), insight: clone(v.insight), edit: v.edit ? clone(v.edit) : null, at: v.writtenAt || '', ai: v.ai || null }].concat(v.history).slice(0, VID_KEEP_VERSIONS - 1);
+  v.history = [{ n: v.verN, script: v.script, prompts: clone(v.prompts), insight: clone(v.insight), at: v.writtenAt || '', ai: v.ai || null, topicVer: v.topicVer == null ? null : v.topicVer }].concat(v.history).slice(0, VID_KEEP_VERSIONS - 1);
   v.verN = Math.max(v.verN, ...v.history.map(h => h.n)) + 1;
 }
 // Dùng một bản cũ: chép bản đó thành bản mới nhất (bản đang dùng lùi vào danh sách bản cũ)
@@ -499,10 +504,48 @@ export function useVidVersion(S, id, n) {
   const v = vidGet(S, id); if (!v) return { ok: false, error: 'Không thấy video.' }; if (v.cancelled) return { ok: false, error: 'Kịch bản đã hủy. Bấm Khôi phục trước.' };
   vidVersions(v); const h = v.history.find(x => x.n === Number(n)); if (!h) return { ok: false, error: 'Không thấy bản này.' };
   const src = clone(h); pushVersion(v);
-  v.script = src.script || ''; v.prompts = src.prompts || { audio: '', image: '' }; if (src.insight) v.insight = Object.assign({}, v.insight, src.insight); v.edit = src.edit ? migrateEdit(src.edit) : null; v.ai = src.ai || null;
-  v.status = v.edit && v.edit.scenes.length ? 'APPROVED' : 'DRAFT'; v.writtenAt = S.settings.demoNow; log(S, 'vid-version', 'video', id, `từ bản ${h.n}`);
+  v.script = src.script || ''; v.prompts = src.prompts || { audio: '', image: '' }; if (src.insight) v.insight = Object.assign({}, v.insight, src.insight); v.ai = src.ai || null; v.topicVer = src.topicVer == null ? null : src.topicVer;
+  v.status = 'DRAFT'; v.writtenAt = S.settings.demoNow; log(S, 'vid-version', 'video', id, `từ bản ${h.n}`);
   return { ok: true, n: v.verN, from: h.n };
 }
+// ---- Khóa kịch bản (mục 10.88): khóa = trạng thái Đã duyệt. Biên tập, Hoàn thành, Ren chỉ làm khi kịch bản đã khóa ----
+export const SCRIPT_LOCK_MSG = 'Vui lòng khóa Kịch bản trước khi biên tập.';
+export const scriptOpen = v => !!(v && String(v.script || '').trim() && v.status !== 'APPROVED');
+export function unlockVidScript(S, id) {
+  const v = vidGet(S, id); if (!v) return { ok: false, error: 'Không thấy video.' }; if (v.cancelled) return { ok: false, error: 'Kịch bản đã hủy.' };
+  if (v.status !== 'APPROVED') return { ok: true, changed: false };
+  v.status = 'DRAFT'; log(S, 'vid-unlock', 'video', id); return { ok: true, changed: true };
+}
+// Phiên bản Topic lúc viết kịch bản; Topic đổi sau đó thì thẻ báo "Topic đã đổi"
+export function vidTopicVer(S, v) { if (v.origin && v.origin !== 'topic') return null; const row = byId(S.topics || [], v.topicId); return row && row.currentVersion != null ? row.currentVersion : null; }
+export function vidTopicChanged(S, v) {
+  if (!v || v.topicVer == null || !v.script) return null; const now = vidTopicVer(S, v);
+  return now != null && now !== v.topicVer ? { from: v.topicVer, to: now } : null;
+}
+// ---- Lịch sử biên tập (mục 10.88): giữ 5 bản, chụp trước khi chia lại cảnh, đổi mẫu dựng, dùng bản cũ, và lúc Ren ----
+export const EDIT_KEEP = 5;
+const normScript = t => String(t || '').replace(/\s+/g, ' ').trim();
+export function snapEdit(S, v, why) {
+  const ed = v && v.edit; if (!ed || !(ed.scenes || []).length) return null;
+  const H = v.editHist = v.editHist || []; const j = JSON.stringify(ed);
+  if (H[0] && JSON.stringify(H[0].edit) === j) return H[0];
+  const n = (v.editN = Math.max(v.editN || 0, ...H.map(h => h.n)) + 1);
+  const h = { n, edit: JSON.parse(j), at: S.settings.demoNow, why: String(why || '') }; v.editHist = [h].concat(H).slice(0, EDIT_KEEP); return h;
+}
+export const editVersions = v => (v && v.editHist) || [];
+export function useEditVersion(S, id, n) {
+  const v = vidGet(S, id); if (!v) return { ok: false, error: 'Không thấy video.' }; if (v.cancelled) return { ok: false, error: 'Thẻ đã hủy.' };
+  if (scriptOpen(v)) return { ok: false, error: SCRIPT_LOCK_MSG };
+  const h = editVersions(v).find(x => x.n === Number(n)); if (!h) return { ok: false, error: 'Không thấy bản biên tập này.' };
+  const src = clone(h.edit); snapEdit(S, v, `Trước khi dùng lại bản ${h.n}`); v.edit = migrateEdit(src); log(S, 'vid-edit-version', 'video', id, `từ bản ${h.n}`);
+  return { ok: true, from: h.n };
+}
+// Kịch bản đã đổi sau khi chia cảnh (và người dùng chưa bấm Bỏ qua cho đúng bản này)
+export function scriptChanged(v) {
+  const ed = v && v.edit; if (!ed || !(ed.scenes || []).length || ed.splitFrom == null) return false;
+  const cur = normScript(v.script); return cur !== normScript(ed.splitFrom) && cur !== normScript(ed.splitAck);
+}
+export function ackScriptChange(S, id) { const v = vidGet(S, id); if (!v || !v.edit) return { ok: false, error: 'Chưa có phần biên tập.' }; v.edit.splitAck = v.script || ''; log(S, 'vid-split-ack', 'video', id); return { ok: true }; }
 export function approveVidScript(S, id) {
   const v = vidGet(S, id); if (!v) return { ok: false, error: 'Không thấy video.' };
   if (v.cancelled) return { ok: false, error: 'Kịch bản đã hủy.' };

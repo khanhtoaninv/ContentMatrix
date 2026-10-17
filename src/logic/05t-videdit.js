@@ -1,11 +1,11 @@
 // ---------- 05t · Short Vid: Vid tự do, nguồn vào, bàn dựng mô phỏng, Đưa vào lịch (mục 10.75) ----------
 import { countWords, dmy, fold, isValidTime, splitSentences } from './01-util.js';
-import { addSlot, addSlotAsset, byId, cellLabel, cellView, cellsOf, deleteSlot, isLocked, log, topicCurrent, topicsOf, uploadSlotImage, weekOf } from './05-model.js';
+import { addSlot, addSlotAsset, byId, cellLabel, cellView, cellsOf, deleteSlot, isLocked, log, slotLockMsg, slotSrcState, topicCurrent, topicsOf, uploadSlotImage, vidOutSig, weekOf } from './05-model.js';
 import { editSlot } from './05c-slots.js';
 import { fmtClock, setVideoSubs } from './05n-media.js';
 import { vidThumbOf } from './05x-vidthumb.js';
 import { aiSystem, extractJson } from './05o-aitext.js';
-import { VID_MAX_PER_TOPIC, attachVidRow, ensureShortVid, newVideo, vidGridOf, vidBody, vidSections, vidSettingsOf, vidTopicRow, vidsOf } from './05s-shortvid.js';
+import { VID_MAX_PER_TOPIC, attachVidRow, ensureShortVid, newVideo, vidGridOf, vidBody, vidSections, vidSettingsOf, vidTopicRow, vidsOf, snapEdit } from './05s-shortvid.js';
 // Mọi cách vào cùng đổ về một "dự án dựng" (v.edit): danh sách cảnh, mỗi cảnh có lời, thời lượng, tài nguyên (clip, ảnh hoặc prompt),
 // chữ phủ; kèm giọng đọc, caption, frame, nhạc nền và danh sách cắt. Bản HTML chỉ xem trước trong trình duyệt và xuất lệnh dựng (JSON);
 // xuất video thật để dành cho bộ xuất (ffmpeg trên PC app hoặc máy chủ của web app).
@@ -380,6 +380,7 @@ export function planEdit(S, id) {
   const v = vidGet(S, id); if (!v) return { ok: false, error: 'Không thấy thẻ Vid.' };
   if (v.cancelled) return { ok: false, error: 'Thẻ đã hủy.' };
   const c = vidSettingsOf(S); const o = vidOrigin(v); const ed = editOf(v); ed.seq = ed.seq || 1;
+  snapEdit(S, v, 'Trước khi chia lại cảnh');
   const dur = t => Math.max(1.5, r1(countWords(t) / c.wps));
   const scenes = [];
   if (o === 'talk') {
@@ -411,8 +412,8 @@ export function planEdit(S, id) {
     } else { if (!ed.voice || ed.voice.mode === 'clip' || ed.voice.mode === 'file') ed.voice = { mode: 'tts' }; if (ed.voAll && ed.voAll.mediaId && !(v.media || []).some(x => x.id === ed.voAll.mediaId)) ed.voAll = null; }
   }
   scenes.forEach(sc => { if (sc.items.length) evenSplit(sc, sc.dur); sc.defDur = sc.dur; });
-  ed.scenes = scenes; ed.plannedAt = S.settings.demoNow; ed.simulated = true; ed.tpl = 'script'; ed.capStale = true; ed.segs = null; ed.cues = []; ed.splitFrom = v.script || '';
-  // Chia cảnh là duyệt kịch bản (bản 4 bỏ nút Duyệt kịch bản)
+  ed.scenes = scenes; ed.plannedAt = S.settings.demoNow; ed.simulated = true; ed.tpl = 'script'; ed.capStale = true; ed.segs = null; ed.cues = []; ed.splitFrom = v.script || ''; ed.splitAck = null;
+  // Chia cảnh là khóa kịch bản (mục 10.88: biên tập chỉ làm khi kịch bản đã khóa)
   if (v.script && (v.status === 'DRAFT' || v.status === 'TODO')) v.status = 'APPROVED';
   log(S, 'vid-plan', 'video', id, `${scenes.length} cảnh`);
   return { ok: true, count: scenes.length };
@@ -663,12 +664,35 @@ export function scheduleVideo(S, vidId, p) {
     if (!up.ok) { made.concat([s]).forEach(z => deleteSlot(S, z.id)); return { ok: false, error: up.error }; }
     { const th = vidThumbOf(v); const ver = s.assets[ai.index].versions.find(z => z.n === s.assets[ai.index].current); if (ver) ver.cover = { src: th.src, t: null, at: S.settings.demoNow, thumb: th.kind }; }
     if (v.file.subs) setVideoSubs(S, s.id, ai.index, v.file.subs.cues, v.file.subs.source);
+    s.vidSig = vidOutSig(v); s.srcAck = null;
     editSlot(S, s.id, (P.captions && P.captions[x.channel.id]) || mockCaption(S, v, x.channel));
     s.vidCaptionSim = !(P.captions && P.captions[x.channel.id]);
     made.push(s);
   }
   if (made.length) log(S, 'vid-schedule', 'video', vidId, `${made.length} slot ${P.date} ${P.time}`);
   return { ok: true, slots: made, skipped, shifted };
+}
+// ---- Video → Slot video (mục 10.88): slot giữ bản chép; thẻ ren lại, Up tệp khác hay đổi Thumbnail thì slot hiện "!" ----
+// Cập nhật = chép video, bìa, phụ đề mới vào slot; caption giữ nguyên; slot Đã duyệt về Chưa duyệt để duyệt lại
+export function updateVideoSlot(S, slotId) {
+  const s = byId(S.slots, slotId); if (!s || !s.videoId) return { ok: false, error: 'Không thấy slot video.' };
+  { const e = slotLockMsg(S, s); if (e) return { ok: false, error: e }; }
+  const v = vidGet(S, s.videoId); if (!v || !v.file) return { ok: false, error: 'Thẻ Vid không còn video để cập nhật.' };
+  let ai = (s.assets || []).findIndex(a => a.kind === 'video');
+  if (ai < 0) { const r = addSlotAsset(S, s.id, 'video'); if (!r.ok) return r; ai = r.index; s.assets[ai].name = 'Video Short Vid'; }
+  const up = uploadSlotImage(S, s.id, ai, { src: v.file.src, name: v.file.name }); if (!up.ok) return up;
+  { const th = vidThumbOf(v); const ver = s.assets[ai].versions.find(z => z.n === s.assets[ai].current); if (ver) ver.cover = { src: th.src, t: null, at: S.settings.demoNow, thumb: th.kind }; }
+  if (v.file.subs) setVideoSubs(S, s.id, ai, v.file.subs.cues, v.file.subs.source);
+  if (s.state === 'APPROVED') { s.state = 'DRAFT'; s.approvedAt = null; }
+  s.vidSig = vidOutSig(v); s.srcAck = null; log(S, 'vid-slot-update', 'slot', s.id, v.id);
+  return { ok: true, slot: s };
+}
+// Các slot của thẻ đang báo "!" (chưa đăng, tuần chưa chốt)
+export const vidSlotsPending = (S, vidId) => vidSlotsOf(S, vidId).filter(s => slotSrcState(S, s) && !slotLockMsg(S, s));
+export function updateVideoSlots(S, vidId) {
+  const list = vidSlotsPending(S, vidId); const done = [], failed = [];
+  list.forEach(s => { const r = updateVideoSlot(S, s.id); if (r.ok) done.push(s.id); else failed.push({ id: s.id, why: r.error }); });
+  return { ok: true, updated: done.length, failed };
 }
 // Sửa lịch của slot video đã xếp: đổi ngày (kéo ô) hoặc giờ, chỉ trong cùng kênh; trùng lịch thì tự đẩy giờ
 export function moveVideoSlot(S, slotId, p) {

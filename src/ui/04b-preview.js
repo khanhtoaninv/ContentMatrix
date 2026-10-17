@@ -3,7 +3,7 @@ import { AC } from '../logic/99-export.js';
 import { ACTIONS, S } from './00-state.js';
 import { assetKind, chName, confirmBox, esc, fmtFull, fmtName, fmtPct, icon, imgThumb, imgVisual, mdSegLast, mdToolbarHtml, openLayer, richText, save, scoreHtml, setMdSegLast, slotStateHtml, toast, tsLabel, warningsHtml } from './01-core.js';
 import { render } from './02-shell.js';
-import { lockNote, openSlot, slotImageAction, slotImageRowsHtml, vidMax } from './04-week.js';
+import { lockNote, openSlot, regenFlow, slotImageAction, slotImageRowsHtml, srcDialog, unlockFlow, vidMax } from './04-week.js';
 import { liveMs, pubButtonsHtml, pubSectionsHtml, publishDialog } from './04d-publish.js';
 import { slotImageDialog } from './04e-frame.js';
 import { openCarouselEditor, openRepurposeDialog } from './04i-studio.js';
@@ -278,8 +278,12 @@ export function openPreview(id, n, opts) {
     if (old) return `<span class="small muted">Đang xem bản cũ, chỉ xem.</span>`;
     if (locked()) return `${pubButtonsHtml(s)}${s.text ? `<button class="btn sm" data-pv="repurpose" title="Viết lại bài này cho kênh khác thành slot mới (mô phỏng)">Chuyển kênh</button>` : ''}${slotStateHtml(s)}<span class="small muted">${esc(s.state === 'PUBLISHED' ? lockNote(s) : 'Tuần đã chốt: muốn sửa nội dung thì bấm "Mở lại để sửa".')}</span>`;
     if (st.edit) return `<button class="btn primary sm" data-pv="save">Lưu bản sửa</button><button class="btn ghost sm" data-pv="cancel">Hủy</button><span class="small muted">${s.free ? 'Sửa chữ trong khung bài; ảnh, video và quy tắc ở các mục bên dưới.' : 'Sửa chữ và thao tác ảnh ngay trong khung bài; quy tắc và điểm ở bên dưới.'}</span>`;
-    const ok = s.state === 'APPROVED' || s.state === 'PUBLISHED';
-    return `<button class="btn sm" data-pv="edit">${icon('edit')} Sửa</button><button class="btn ${ok ? '' : 'primary'} sm" data-pv="approve" ${ok || !s.text ? 'disabled' : ''} ${!s.text ? 'title="Viết nội dung trước"' : ''}>${ok ? 'Đã duyệt' : 'Duyệt'}</button>${s.free ? '' : `<button class="btn sm" data-pv="regen" title="Viết lại bài và ảnh từ ô nguồn; bản cũ giữ trong lịch sử">Tạo lại</button>`}${f.layout === 'carousel' && s.text ? `<button class="btn sm" data-pv="carousel" title="Soạn từng slide: chữ, thứ tự, thêm bớt slide">Soạn carousel</button>` : ''}${s.text ? `<button class="btn sm" data-pv="repurpose" title="Viết lại bài này cho kênh khác thành slot mới (mô phỏng)">Chuyển kênh</button>` : ''}${s.undoN && (s.history || []).some(x => x.n === s.undoN) ? `<button class="btn ghost sm" data-pv="undo">Hoàn tác</button>` : ''}${pubButtonsHtml(s)}<button class="btn ghost sm" data-pv="detail">${icon('gear')} Cấu hình slot</button>${slotStateHtml(s)}`;
+    // Duyệt là khóa (mục 10.88): slot Đã duyệt chỉ còn Mở khóa và các việc không đổi bài
+    const sst = AC.slotSrcState(S, s); const srcBtn = sst ? (sst.kind === 'video' ? `<button class="btn sm warnbtn" data-pv="src" title="Thẻ Vid đã có video mới; slot không tự đổi">! Video có bản mới</button>` : `<button class="btn sm warnbtn" data-pv="src" title="Ô nguồn đã có bản mới; bài slot không tự đổi">! Ô nguồn có bản mới</button>`) : '';
+    const common = `${s.text ? `<button class="btn sm" data-pv="repurpose" title="Viết lại bài này cho kênh khác thành slot mới (mô phỏng)">Chuyển kênh</button>` : ''}${pubButtonsHtml(s)}<button class="btn ghost sm" data-pv="detail">${icon('gear')} Cấu hình slot</button>${slotStateHtml(s)}`;
+    if (s.state === 'APPROVED') return `<button class="btn sm" data-pv="unlock">${icon('unlock')} Mở khóa</button>${srcBtn}${common}`;
+    const ok = s.state === 'PUBLISHED';
+    return `<button class="btn sm" data-pv="edit">${icon('edit')} Sửa</button><button class="btn ${ok ? '' : 'primary'} sm" data-pv="approve" ${ok || !s.text ? 'disabled' : ''} ${!s.text ? 'title="Viết nội dung trước"' : ''}>${ok ? 'Đã duyệt' : 'Duyệt'}</button>${s.free ? '' : `<button class="btn sm" data-pv="regen" title="Viết lại bài và ảnh từ ô nguồn; bản cũ giữ trong lịch sử">Tạo lại</button>`}${srcBtn}${f.layout === 'carousel' && s.text ? `<button class="btn sm" data-pv="carousel" title="Soạn từng slide: chữ, thứ tự, thêm bớt slide">Soạn carousel</button>` : ''}${s.text ? `<button class="btn sm" data-pv="repurpose" title="Viết lại bài này cho kênh khác thành slot mới (mô phỏng)">Chuyển kênh</button>` : ''}${s.undoN && (s.history || []).some(x => x.n === s.undoN) ? `<button class="btn ghost sm" data-pv="undo">Hoàn tác</button>` : ''}${pubButtonsHtml(s)}<button class="btn ghost sm" data-pv="detail">${icon('gear')} Cấu hình slot</button>${slotStateHtml(s)}`;
   };
   // Phần dưới khung bài khi sửa: độ dài và quy tắc kênh theo chữ đang sửa, ảnh, điểm AI
   const live = () => {
@@ -353,7 +357,9 @@ export function openPreview(id, n, opts) {
       if (st.hookKind) { AC.setSlotHookKind(S, s.id, st.hookKind); st.hookKind = null; }
       st.edit = false; save(); render(); paint(); toast('Đã lưu bản sửa. Slot chờ duyệt lại.'); return;
     }
-    if (k === 'regen') { const r = await withAiText(C => AC.regenSlot(C, s.id)); if (!r.ok) return toast(r.error, 'bad'); st.slide = 0; st.more = false; save(); render(); paint(); toast(`Đã tạo bản ${r.n}. Bấm Hoàn tác để quay lại bản trước.`); return; }
+    if (k === 'regen') { const r = await regenFlow(s); if (!r) return; st.slide = 0; st.more = false; paint(); toast(`Đã tạo bản ${r.n}. Bấm Hoàn tác để quay lại bản trước.`); return; }
+    if (k === 'unlock') { if (await unlockFlow(s)) paint(); return; }
+    if (k === 'src') { srcDialog(s, msg => { save(); render(); st.slide = 0; paint(); if (msg) toast(msg); }); return; }
     if (k === 'undo') { const r = AC.useSlotVersion(S, s.id, s.undoN); if (!r.ok) return toast(r.error, 'bad'); st.slide = 0; save(); render(); paint(); toast('Đã quay lại bản trước.'); return; }
     if (k === 'approve') {
       const nw = AC.slotWarnings(S, s).length;

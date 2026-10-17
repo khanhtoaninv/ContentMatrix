@@ -32,7 +32,7 @@ test('7.3 · seed khớp số kiểm thử cố định', () => {
   assert.equal(c1.filter(c => c.byVersion[1]).length, 4); assert.equal(c1.filter(c => c.byVersion[2]).length, 5);
   assert.deepEqual(['APPROVED', 'DRAFT', 'EMPTY', 'CANCELLED'].map(k => AC.matrixCounts(S, T1)[k]), [15, 0, 0, 0]);
   const m2 = AC.matrixCounts(S, T2); assert.deepEqual([m2.APPROVED, m2.DRAFT, m2.EMPTY, m2.CANCELLED], [15, 0, 0, 0]);
-  assert.deepEqual(AC.slotCounts(S, T2), { EMPTY: 0, DRAFT: 9, APPROVED: 0, PUBLISHED: 0, needsUpdate: 0, total: 9 });
+  assert.deepEqual(AC.slotCounts(S, T2), { EMPTY: 0, DRAFT: 9, APPROVED: 0, PUBLISHED: 0, srcNew: 0, total: 9 });
   const mc = AC.matrixCounts(S, T3);
   assert.deepEqual([mc.APPROVED, mc.CANCELLED, mc.DRAFT, mc.EMPTY], [11, 1, 3, 0]);
   assert.equal(AC.slotCounts(S, T3).EMPTY, 17);
@@ -221,11 +221,12 @@ test('V4 · bớt rồi thêm Cột: số ô = số Topic × số Cột', () => 
   assert.equal(AC.matrixCounts(S, T3).EMPTY, 3);
 });
 
-test('Bớt Cột ở tuần đã phân bổ: slot liên quan về chưa có bài', () => {
+test('Bớt Cột ở tuần đã phân bổ: slot liên quan giữ bài, mất liên kết ô (10.88)', () => {
   const S = seed(); AC.reopenWeek(S, T1); AC.reopenMatrix(S, T1);
   const r = AC.removeWeekColumn(S, T1, 'col-giaithich');
   assert.equal(r.impact.slots, 3);
-  assert.ok(AC.weekSlots(S, T1).filter(s => ['f-blog-explain', 'f-yt-explain', 'f-fb-infographic'].includes(s.formatId)).every(s => !s.sourceCellId && !s.text));
+  const hit = AC.weekSlots(S, T1).filter(s => ['f-blog-explain', 'f-yt-explain', 'f-fb-infographic'].includes(s.formatId));
+  assert.ok(hit.every(s => !s.sourceCellId && s.text)); assert.ok(hit.filter(s => s.state !== 'PUBLISHED').every(s => s.srcGone));
 });
 
 test('Tuần đã chốt chỉ đọc; Mở lại để sửa', () => {
@@ -243,10 +244,10 @@ test('Đổi Format sang Cột khác làm slot mất ô nguồn', () => {
   AC.weekSlots(S, T1).forEach(x => { x.state = 'APPROVED'; x.pub = null; }); // giả lập bài chưa đăng (bài đã đăng chỉ xem)
   const s = AC.weekSlots(S, T1).find(x => x.formatId === 'f-fb-howto');
   AC.updateSlot(S, s.id, { formatId: 'f-tt-howto', channelId: 'ch-tt' });
-  assert.ok(s.sourceCellId); assert.equal(s.needsUpdate, true); // cùng Cột Hướng dẫn
+  assert.ok(s.sourceCellId && s.text); assert.equal(s.state, 'DRAFT'); // cùng Cột Hướng dẫn: giữ bài, về Chưa duyệt (10.88)
   const s2 = AC.weekSlots(S, T1).find(x => x.formatId === 'f-fb-story');
-  AC.updateSlot(S, s2.id, { formatId: 'f-fb-howto' });
-  assert.equal(s2.sourceCellId, null);
+  const t2 = s2.text; const r2 = AC.updateSlot(S, s2.id, { formatId: 'f-fb-howto' });
+  assert.ok(r2.colChanged); assert.equal(s2.text, t2); // Cột khác: giữ bài, lần Tạo lại sau lấy ô Cột mới
 });
 
 test('Chia bài (DST) · cổng điều kiện, T3 sau khi duyệt đủ: 17/17, đúng Cột, xen kẽ, bỏ qua ô hủy', () => {
@@ -333,7 +334,7 @@ test('Ảnh của slot (mô phỏng): cần prompt; Gen thêm phiên bản; < > 
   const ic = AC.imageCounts(S, T2); assert.equal(ic.done, ic.boxes);
 });
 
-test('Hủy Topic: bỏ hàng và ô, slot dùng ô về chưa có bài; tuần chốt bị chặn', () => {
+test('Hủy Topic: bỏ hàng và ô, slot dùng ô giữ bài (10.88); tuần chốt bị chặn', () => {
   const S = seed(); AC.reopenMatrix(S, T2);
   const row = AC.topicsOf(S, T2)[2];
   const imp = AC.topicImpact(S, T2, row.id);
@@ -341,7 +342,8 @@ test('Hủy Topic: bỏ hàng và ô, slot dùng ô về chưa có bài; tuần 
   const r = AC.removeTopic(S, T2, row.id);
   assert.equal(r.ok, true);
   assert.equal(AC.topicsOf(S, T2).length, 2); assert.equal(AC.cellsOf(S, T2).length, 10);
-  assert.equal(AC.weekSlots(S, T2).filter(x => x.state === 'EMPTY').length, imp.slots);
+  assert.equal(AC.weekSlots(S, T2).filter(x => x.srcGone && x.text && !x.sourceCellId).length, imp.slots);
+  assert.equal(AC.weekSlots(S, T2).filter(x => x.state === 'EMPTY').length, 0);
   assert.equal(AC.removeTopic(S, T1, AC.topicsOf(S, T1)[0].id).ok, false);
 });
 
@@ -462,7 +464,7 @@ test('10.12 Tạo bài ngay trong slot: thêm slot sau Chia bài, viết từ ô
   assert.equal(use(w.cellId), minUse);
   // tuần chưa có ô Đã duyệt: không tạo được, có lý do
   const e = AC.addSlotToStart(S, '2026-10-26', { date: '2026-10-27', time: '09:00', channelId: 'ch-fb', formatId: 'f-fb-quote' });
-  const g = AC.slotWriteGate(S, e.slot.id); assert.equal(g.ok, false); assert.match(g.reason, /Matrix chưa khóa/);
+  const g = AC.slotWriteGate(S, e.slot.id); assert.equal(g.ok, false); assert.match(g.reason, /Vui lòng đóng khóa Matrix/);
   assert.equal(AC.writeSlotNow(S, e.slot.id).ok, false);
   // tuần đã chốt
   assert.equal(AC.slotWriteGate(S, AC.weekSlots(S, T1)[0].id).ok, false);
@@ -480,6 +482,8 @@ test('10.18 Slot tự do: không lấy nguồn từ Matrix, tự viết bài, t�
   const e = AC.editSlot(S, s.id, '“Nói trước, hoàn hảo sau.”\n\nMột câu tự viết, không lấy từ Matrix.');
   assert.ok(e.ok && s.state === 'DRAFT' && s.history.length === 1 && s.sourceCellId === null && s.total != null);
   assert.ok(AC.approveSlot(S, s.id).ok);
+  assert.equal(AC.editSlot(S, s.id, 'Bài đã sửa tay.').error, AC.APPROVED_LOCK); // Duyệt là khóa (10.88)
+  assert.ok(AC.unlockSlot(S, s.id).ok); assert.equal(s.state, 'DRAFT');
   assert.ok(AC.editSlot(S, s.id, 'Bài đã sửa tay.').ok); assert.equal(s.state, 'DRAFT');
   // ảnh/video
   const img = AC.uploadSlotImage(S, s.id, 0, { src: 'data:image/jpeg;base64,AAAA', name: 'a.jpg' }); assert.ok(img.ok);
@@ -735,7 +739,7 @@ test('MTX-08 · Duyệt hàng loạt chỉ duyệt ô không cảnh báo', () =>
   assert.equal(AC.bulkApprovable(S, T1).length, 0); // tuần đã chốt
 });
 
-test('MTX-03/05 · Tạo lại, Sửa, Hủy, back/next và Dùng bản này; slot dùng ô thì cần cập nhật', () => {
+test('MTX-03/05 · Tạo lại, Sửa, Hủy, back/next và Dùng bản này; slot dùng ô không đổi, chỉ có dấu ! (10.88)', () => {
   const S = seed(); AC.reopenMatrix(S, T2);
   const slot = AC.weekSlots(S, T2).find(s => s.sourceCellId);
   const cellId = slot.sourceCellId; const cell = AC.byId(S.cells, cellId);
@@ -744,7 +748,11 @@ test('MTX-03/05 · Tạo lại, Sửa, Hủy, back/next và Dùng bản này; sl
   assert.ok(r.ok); assert.equal(cell.gens.length, 2);
   const v = AC.cellView(S, cell);
   assert.equal(v.state, 'DRAFT'); assert.equal(v.gen.n, 2); assert.notEqual(v.text, before);
-  assert.equal(AC.byId(S.slots, slot.id).needsUpdate, true);
+  const st0 = slot.text;
+  assert.equal(AC.slotSrcState(S, slot), null); // ô bản mới chưa duyệt: chưa báo
+  assert.ok(AC.approveCell(S, cellId).ok);
+  const ss = AC.slotSrcState(S, slot); assert.equal(ss.kind, 'new'); assert.equal(ss.to.genN, 2); assert.equal(slot.text, st0);
+  assert.equal(AC.slotCounts(S, T2).srcNew, AC.slotsUsingCell(S, cellId).filter(x => x.state !== 'PUBLISHED').length);
   // Sửa cả bài và gợi ý ảnh
   assert.equal(AC.editCell(S, cellId, v.text, v.imagePrompt).ok, false); // chưa đổi
   const e = AC.editCell(S, cellId, v.text + '\nThêm một câu.', 'Ảnh mới: lớp học nhỏ');
@@ -773,7 +781,7 @@ test('R2′ · tuần đã chốt khóa mọi thao tác ô và Topic', () => {
   assert.equal(AC.writeGate(S, T1).ok, false);
 });
 
-test('TPC-08 · Sửa Topic tạo phiên bản mới (ô Trống, slot cần cập nhật); Dùng phiên bản cũ khôi phục ô', () => {
+test('TPC-08 · Sửa Topic tạo phiên bản mới (ô Trống, slot giữ bài); Dùng phiên bản cũ khôi phục ô', () => {
   const S = seed(); AC.reopenMatrix(S, T2);
   const row = AC.topicsOf(S, T2)[0]; const v1 = AC.topicCurrent(row);
   assert.equal(AC.editTopic(S, row.id, { title: v1.title, text: v1.text, fields: v1.fields }).ok, false); // chưa đổi
@@ -784,7 +792,7 @@ test('TPC-08 · Sửa Topic tạo phiên bản mới (ô Trống, slot cần c�
   assert.equal(row.currentVersion, 2); assert.equal(AC.topicCurrent(row).reason, 'edited');
   assert.equal(AC.matrixCounts(S, T2).EMPTY, 5);
   const used = AC.weekSlots(S, T2).filter(s => s.sourceCellId && AC.byId(S.cells, s.sourceCellId).topicId === row.id);
-  assert.ok(used.length > 0); used.forEach(s => assert.equal(s.needsUpdate, true));
+  assert.ok(used.length > 0); used.forEach(s => { assert.ok(s.text); assert.equal(AC.slotSrcState(S, s), null); });
   assert.equal(AC.writeGate(S, T2).count, 5);
   // Dùng phiên bản 1: ô lấy lại trạng thái Đã duyệt của v1
   assert.ok(AC.useTopicVersion(S, row.id, 1).ok);
@@ -849,6 +857,8 @@ test('CAL-13 · Duyệt, Tạo lại, Hoàn tác (dùng bản trước), Sửa, 
   const s = AC.weekSlots(S, T2)[0];
   const t1 = s.text;
   assert.ok(AC.approveSlot(S, s.id).ok); assert.equal(s.state, 'APPROVED');
+  assert.equal(AC.regenSlot(S, s.id).error, AC.APPROVED_LOCK); // Duyệt là khóa (10.88)
+  assert.ok(AC.unlockSlot(S, s.id).ok);
   const r = AC.regenSlot(S, s.id);
   assert.ok(r.ok); assert.equal(s.state, 'DRAFT'); assert.equal(s.history.length, 2); assert.notEqual(s.text, t1);
   assert.ok(AC.useSlotVersion(S, s.id, s.undoN).ok);
@@ -859,23 +869,39 @@ test('CAL-13 · Duyệt, Tạo lại, Hoàn tác (dùng bản trước), Sửa, 
   assert.ok(AC.useSlotVersion(S, s.id, 2).ok); assert.equal(s.curN, 2);
 });
 
-test('Cần cập nhật: ô đổi → slot cần cập nhật, không duyệt được; Cập nhật từ ô / Giữ bản (có lý do)', () => {
+test('10.88 Ô → Slot một chiều: ô đổi không đụng slot; dấu ! (Tắt / Tạo lại); Tạo lại cần Matrix khóa, báo nguồn đổi; giữ 5 bản', () => {
   const S = seed(); AC.reopenMatrix(S, T2);
-  const s = AC.weekSlots(S, T2)[0]; const cellId = s.sourceCellId;
-  AC.regenCell(S, cellId);
-  assert.equal(s.needsUpdate, true);
-  assert.equal(AC.approveSlot(S, s.id).ok, false);
-  assert.equal(AC.updateSlotFromCell(S, s.id).ok, false); // ô chưa duyệt lại
-  assert.equal(AC.keepSlotVersion(S, s.id, '').ok, false);
-  assert.ok(AC.keepSlotVersion(S, s.id, 'Bản cũ đã gửi duyệt nội bộ').ok);
-  assert.equal(s.needsUpdate, false);
-  AC.refreshSlotFlags(S, T2); assert.equal(s.needsUpdate, false);
-  AC.approveCell(S, cellId); AC.regenCell(S, cellId); // ô đổi lần nữa
-  assert.equal(s.needsUpdate, true);
-  AC.approveCell(S, cellId);
-  assert.ok(AC.updateSlotFromCell(S, s.id).ok);
-  assert.equal(s.needsUpdate, false); assert.equal(s.state, 'DRAFT');
-  assert.ok(AC.approveSlot(S, s.id).ok);
+  const s = AC.weekSlots(S, T2)[0]; const cellId = s.sourceCellId; const t0 = s.text;
+  AC.regenCell(S, cellId); AC.approveCell(S, cellId);
+  assert.equal(s.text, t0); assert.equal(s.state, 'DRAFT');
+  assert.ok(AC.approveSlot(S, s.id).ok); // ô đổi không chặn Duyệt
+  assert.equal(AC.slotSrcState(S, s).kind, 'new');
+  // Tắt cảnh báo: giữ bài; ô đổi lần nữa thì dấu ! hiện lại
+  assert.ok(AC.dismissSlotSrc(S, s.id).ok); assert.equal(AC.slotSrcState(S, s), null); assert.equal(AC.dismissSlotSrc(S, s.id).ok, false);
+  AC.regenCell(S, cellId); AC.approveCell(S, cellId);
+  assert.equal(AC.slotSrcState(S, s).to.genN, 3);
+  // Tạo lại: slot đã duyệt thì khóa; Matrix chưa khóa thì báo
+  assert.equal(AC.slotRegenInfo(S, s.id).error, AC.APPROVED_LOCK);
+  assert.ok(AC.unlockSlot(S, s.id).ok); assert.equal(AC.unlockSlot(S, s.id).ok, false);
+  assert.match(AC.regenSlot(S, s.id).error, /Vui lòng đóng khóa Matrix/);
+  assert.ok(AC.completeMatrix(S, T2).ok);
+  const info = AC.slotRegenInfo(S, s.id); assert.ok(info.ok && info.changed && !info.gone); assert.equal(info.to.genN, 3);
+  assert.ok(AC.regenSlot(S, s.id).ok); assert.equal(s.sourceStamp.genN, 3); assert.equal(AC.slotSrcState(S, s), null);
+  assert.equal(AC.slotRegenInfo(S, s.id).changed, false);
+  // Chốt lịch không bị chặn vì nguồn
+  assert.ok(!AC.confirmGate(S, T2).blockers.some(b => /cập nhật/i.test(b.why)));
+  // Lịch sử giữ 5 bản gần nhất
+  for (let i = 0; i < 6; i++) AC.regenSlot(S, s.id);
+  assert.equal(s.history.length, AC.SLOT_KEEP); assert.equal(s.history[s.history.length - 1].n, s.curN);
+  // Xóa cả Matrix (hủy mọi Topic): slot vẫn giữ bài
+  AC.reopenMatrix(S, T2); const keep = AC.weekSlots(S, T2).map(x => [x.id, x.text]);
+  AC.topicsOf(S, T2).slice().forEach(r => AC.removeTopic(S, T2, r.id));
+  assert.equal(AC.cellsOf(S, T2).length, 0);
+  keep.forEach(([id, tx]) => { const x = AC.byId(S.slots, id); assert.equal(x.text, tx); assert.ok(x.srcGone && !x.sourceCellId); });
+  assert.equal(AC.regenSlot(S, s.id).ok, false); // không còn ô để viết lại
+  // Dữ liệu cũ có cờ needsUpdate: migrate bỏ cờ
+  const old = AC.weekSlots(S, T2)[1]; old.needsUpdate = true; old.keepReason = 'x';
+  AC.migrateState(S); assert.equal('needsUpdate' in old, false); assert.equal('keepReason' in old, false);
 });
 
 test('C3/V8-15 · Gen ảnh: phiên bản 1, 2; < quay lại 1; giữ ảnh khi slot viết lại (CAL-15)', () => {
@@ -996,7 +1022,10 @@ test('10.20 Slot lấy từ Matrix chọn được Cột khác Cột đề xuấ
   dealFullWeek(S, T2);
   if (b.sourceCellId) assert.equal(AC.byId(S.cells, b.sourceCellId).columnId, other.id); // Chia bài theo Cột của slot
   const w = AC.writeSlotNow(S, a.id); // slot a theo Cột đề xuất
-  if (w.ok) { assert.ok(AC.updateSlot(S, a.id, { columnId: other.id }).ok); assert.equal(a.sourceCellId, null); assert.equal(a.text, ''); } // đổi Cột thì mất ô nguồn
+  if (w.ok) { // đổi Cột: giữ bài (10.88); lần Tạo lại sau lấy ô của Cột mới, có báo nguồn đổi
+    const t = a.text; assert.ok(AC.updateSlot(S, a.id, { columnId: other.id }).ok); assert.equal(a.text, t);
+    const ri = AC.slotRegenInfo(S, a.id); if (ri.ok) { assert.equal(ri.cell.columnId, other.id); assert.ok(ri.changed); }
+  }
   assert.equal(AC.updateSlot(S, a.id, { columnId: '' }).ok, false);
 });
 
@@ -1576,6 +1605,7 @@ test('10.39 AI viết bài: chạy thử để lấy việc, dùng kết quả A
   // Chia bài: mỗi slot trống một việc, khoá theo slot và lượt viết
   const E = seed(); const w = E.weeks.find(x => AC.weekSlots(E, x.id).some(s => s.state === 'EMPTY' && !s.free) && x.status !== 'CONFIRMED');
   if (w) { const j2 = AC.aiPlan(E, C => AC.dealWeek(C, w.id)); assert.ok(j2.every(j => /^slot:/.test(j.key) && /# Bài gốc/.test(j.user))); }
+  AC.weekOf(S, T2).matrixDoneAt = S.settings.demoNow; // Tạo lại slot cần Matrix khóa (10.88)
   const s = AC.weekSlots(S, T2).find(x => x.text && !x.free && x.state !== 'PUBLISHED');
   const js = AC.aiPlan(S, C => AC.regenSlot(C, s.id)); assert.equal(js[0].key, `slot:${s.id}:${s.genN + 1}`);
   AC.setAiText(js[0].key, { text: 'Slot AI', provider: 'openai', model: 'g', score: null });
@@ -1799,6 +1829,7 @@ test('10.49 · Skill gắn theo Cột/Format: chỉ dùng 1 Skill, thay guideMd 
   assert.ok(AC.skillWarnings('x'.repeat(7000)).length >= 2);
   assert.equal(AC.skillWarnings('<example>1</example><example>2</example><example>3</example>').length, 0);
   // Format: slot dùng Skill của Format, sửa đoạn/hook/caption dùng Skill của Format của slot
+  AC.weekOf(S, T2).matrixDoneAt = S.settings.demoNow; // Tạo lại slot cần Matrix khóa (10.88)
   const s = AC.weekSlots(S, T2).find(x => x.text && !x.free && x.state !== 'PUBLISHED'); const f = AC.byId(S.formats, s.formatId);
   AC.addSkill(S, f, { name: 'F1', body: 'CHỈ DẪN FORMAT' });
   const js = AC.aiPlan(S, C => AC.regenSlot(C, s.id))[0]; assert.match(js.user, /CHỈ DẪN FORMAT/); assert.doesNotMatch(js.user, /Bản nháp máy/);
@@ -1807,6 +1838,7 @@ test('10.49 · Skill gắn theo Cột/Format: chỉ dùng 1 Skill, thay guideMd 
   assert.match(AC.hooksJob(S, 'đoạn', ctx).system, /CHỈ DẪN FORMAT/); assert.match(AC.captionsJob(S, 'đoạn', ctx).system, /CHỈ DẪN FORMAT/);
   assert.doesNotMatch(AC.rewriteJob(S, 'đoạn', 'shorter', '').system, /CHỈ DẪN FORMAT/);
   // Quy tắc viết chung
+  AC.weekOf(S, T2).matrixDoneAt = null;
   S.settings.writingRules = 'KHÔNG MỞ BÀI BẰNG CÂU HỎI'; assert.match(AC.aiPlan(S, C => AC.regenCell(C, c.id))[0].system, /Quy tắc viết chung[\s\S]*KHÔNG MỞ BÀI/);
   // Skill đi theo Sao lưu (nằm trong Cột/Format)
   assert.ok(JSON.stringify(S).includes('CHỈ DẪN FORMAT'));
@@ -2317,7 +2349,7 @@ test('10.77 · Popup bản 4: độ dài từng hình, VO, cue bám từ trong V
   // phiên bản: Tạo Kịch bản = bản mới chưa có cảnh; tối đa 5 bản; Dùng bản này chép bản cũ thành bản mới nhất
   assert.equal(AC.vidVersions(v).length, 1); const scenes1 = ed.scenes.length;
   assert.ok(AC.writeVidScript(S, id, { ok: true, script: '[Hook]\nBản hai của kịch bản.\n\n[CTA]\nTheo dõi nhé.' }).ok);
-  assert.equal(v.edit, null); assert.equal(v.verN, 2); assert.equal(v.history[0].n, 1); assert.equal(v.history[0].edit.scenes.length, scenes1); assert.equal(v.status, 'DRAFT');
+  assert.equal(v.edit.scenes.length, scenes1, 'mục 10.88: Tạo Kịch bản mới không xóa phần biên tập'); assert.equal(v.verN, 2); assert.equal(v.history[0].n, 1); assert.equal(v.history[0].edit, undefined); assert.equal(v.status, 'DRAFT'); assert.ok(AC.scriptChanged(v));
   for (let i = 3; i <= 6; i++) assert.ok(AC.writeVidScript(S, id, { ok: true, script: `[Hook]\nBản ${i}.` }).ok);
   assert.equal(AC.vidVersions(v).length, AC.VID_KEEP_VERSIONS); assert.deepEqual(AC.vidVersions(v).map(x => x.n), [2, 3, 4, 5, 6]);
   assert.ok(AC.editVidScript(S, id, { script: '[Hook]\nSửa tay.' }).ok); assert.equal(AC.vidVersions(v).length, 5, 'sửa tay không tạo bản mới');
@@ -2651,3 +2683,57 @@ for (const origin of ['topic', 'free']) {
     s.state = 'PUBLISHED'; AC.addVidThumb(S, v.id, { src: PNG1, kind: 'up' }); assert.equal(vidCover(s).thumb, 'auto', 'slot đã đăng giữ bìa cũ');
   });
 }
+
+test('10.88 · Kịch bản → Biên tập: khóa kịch bản, lịch sử biên tập riêng, báo Kịch bản đã đổi, Topic đã đổi', () => {
+  const S = seed(); const tid = MT(S); const tp = AC.byId(S.topics, tid);
+  AC.analyzeTopic(S, T2, tid); const v0 = AC.vidsOf(S, T2, tid)[0];
+  AC.approveIdeas(S, T2, tid, [v0.id]); const id = v0.id; const v = AC.byId(S.videos, id);
+  assert.ok(AC.writeVidScript(S, id, { ok: true, script: '[Hook]\nCâu một. Câu hai rõ ràng.\n\n[Thân]\nCâu ba. Câu bốn.\n\n[CTA]\nTheo dõi nhé.' }).ok);
+  assert.equal(v.topicVer, tp.currentVersion, 'thẻ ghi phiên bản Topic đã dùng'); assert.equal(AC.vidTopicChanged(S, v), null);
+  assert.ok(AC.scriptOpen(v)); assert.match(AC.applyTemplate(S, id, 'script').error, /khóa Kịch bản/); assert.ok(AC.planEdit(S, id).ok, 'Chia cảnh = khóa kịch bản');
+  assert.equal(v.status, 'APPROVED'); assert.equal(AC.scriptOpen(v), false); assert.equal(AC.editVersions(v).length, 0);
+  assert.ok(AC.unlockVidScript(S, id).changed); assert.equal(v.status, 'DRAFT');
+  assert.match(AC.completeEdit(S, id).error, /khóa Kịch bản/); assert.match(AC.renderBlockers(v), /khóa Kịch bản/); assert.match(AC.useEditVersion(S, id, 1).error, /khóa Kịch bản/);
+  AC.approveVidScript(S, id); const n1 = v.edit.scenes.length;
+  assert.ok(AC.writeVidScript(S, id, { ok: true, script: '[Hook]\nBản mới hoàn toàn. Thêm câu.\n\n[CTA]\nHẹn gặp lại.' }).ok);
+  assert.equal(v.edit.scenes.length, n1, 'biên tập giữ nguyên'); assert.ok(AC.scriptChanged(v), 'Biên tập báo Kịch bản đã đổi');
+  assert.ok(AC.ackScriptChange(S, id).ok); assert.equal(AC.scriptChanged(v), false, 'Bỏ qua tắt báo cho đúng bản này');
+  assert.ok(AC.editVidScript(S, id, { script: v.script + ' Sửa thêm.' }).ok); assert.ok(AC.scriptChanged(v), 'sửa tiếp thì báo lại');
+  AC.approveVidScript(S, id); assert.ok(AC.planEdit(S, id).ok); assert.equal(AC.scriptChanged(v), false);
+  assert.equal(AC.editVersions(v).length, 1, 'chia lại cảnh: bản cũ vào lịch sử biên tập'); assert.equal(AC.editVersions(v)[0].edit.scenes.length, n1);
+  for (let i = 0; i < 7; i++) { v.edit.scenes[0].text = `Sửa ${i}`; AC.planEdit(S, id); }
+  assert.equal(AC.editVersions(v).length, AC.EDIT_KEEP);
+  const h = AC.editVersions(v)[AC.EDIT_KEEP - 1]; const u = AC.useEditVersion(S, id, h.n); assert.ok(u.ok); assert.deepEqual(v.edit.scenes.map(x => x.text), h.edit.scenes.map(x => x.text));
+  assert.equal(AC.useVidVersion(S, id, 1).ok, true); assert.ok(v.edit && v.edit.scenes.length, 'dùng bản kịch bản cũ không đụng phần biên tập'); assert.equal(v.status, 'DRAFT');
+  // Topic đổi sau khi viết kịch bản
+  const r = AC.byId(S.topics, tp.id); const before = r.currentVersion; r.versions.push(Object.assign({}, r.versions.find(x => x.n === before), { n: before + 1 })); r.currentVersion = before + 1;
+  assert.deepEqual(AC.vidTopicChanged(S, v), { from: before, to: before + 1 });
+  // Dữ liệu cũ: phần biên tập trong bản kịch bản cũ chuyển sang lịch sử biên tập
+  const old = AC.byId(S.videos, id); old.history[0].edit = JSON.parse(JSON.stringify(old.edit)); old.editHist = []; AC.ensureShortVid(S);
+  assert.equal(old.history[0].edit, undefined); assert.equal(old.editHist.length, 1);
+});
+
+
+test('10.88 · Video → Slot video: ren lại hoặc Up tệp khác thì slot báo "!", Cập nhật chép video mới và về Chưa duyệt, Tắt cảnh báo, slot đã đăng không báo', () => {
+  const S = seed(); const v = readyCard(S, 'free'); AC.completeEdit(S, v.id); AC.renderVid(S, v.id);
+  const r = AC.scheduleVideo(S, v.id, { date: '2026-10-14', time: '19:00', channelIds: ['ch-tt', 'ch-yt'] }); assert.ok(r.ok, r.error);
+  const [a, b] = r.slots; assert.equal(a.vidSig, AC.vidOutSig(v)); assert.equal(AC.slotSrcState(S, a), null);
+  const cap = a.text; AC.approveSlot(S, a.id); assert.equal(a.state, 'APPROVED');
+  v.edit.scenes[0].text += ' thêm ý.'; AC.completeEdit(S, v.id); assert.ok(AC.renderVid(S, v.id).ok);
+  const st = AC.slotSrcState(S, a); assert.equal(st.kind, 'video'); assert.ok(AC.slotSrcState(S, b));
+  assert.equal(AC.vidSlotsPending(S, v.id).length, 2); assert.ok(AC.slotCounts(S, T2).srcNew >= 2);
+  // Tắt cảnh báo ở slot b: hết "!" cho đúng bản này
+  assert.ok(AC.dismissSlotSrc(S, b.id).ok); assert.equal(AC.slotSrcState(S, b), null);
+  // Cập nhật slot a: chép video mới, caption giữ, về Chưa duyệt
+  const n0 = a.assets[0].versions.length; const u = AC.updateVideoSlot(S, a.id); assert.ok(u.ok, u.error);
+  assert.equal(a.assets[0].versions.length, n0 + 1); assert.equal(a.text, cap); assert.equal(a.state, 'DRAFT'); assert.equal(AC.slotSrcState(S, a), null);
+  // Up tệp khác: cả hai lại báo; Cập nhật tất cả
+  AC.setVidFile(S, v.id, { src: 'data:video/webm;base64,BBBBBBBB', name: 'khac.webm' });
+  assert.equal(AC.vidSlotsPending(S, v.id).length, 2); const all = AC.updateVideoSlots(S, v.id); assert.equal(all.updated, 2); assert.equal(AC.vidSlotsPending(S, v.id).length, 0);
+  // Slot đã đăng không báo; bỏ video ở thẻ: slot giữ bản chép, không báo
+  b.state = 'PUBLISHED'; AC.setVidFile(S, v.id, { src: 'data:video/webm;base64,CCCCCCCCCCCC', name: 'ba.webm' }); assert.equal(AC.slotSrcState(S, b), null); assert.ok(AC.slotSrcState(S, a));
+  assert.equal(AC.updateVideoSlot(S, b.id).ok, false);
+  AC.setVidFile(S, v.id, null); assert.equal(AC.slotSrcState(S, a), null); assert.ok(a.assets[0].versions.length > 0);
+  // Dữ liệu cũ chưa có chữ ký: lấy chữ ký hiện tại, không báo
+  delete a.vidSig; AC.migrateState(S); assert.equal(a.vidSig, null); assert.equal(AC.slotSrcState(S, a), null);
+});

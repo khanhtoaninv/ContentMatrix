@@ -319,17 +319,21 @@ function bodyHtml(v, st, ro) {
   const ed = v.edit; const dis = ro ? 'disabled' : '';
   const left = st.cap ? capPane(v, ro) : st.sub === 'scene' ? scenePane(v, st) : settingsPane(v);
   const bl = AC.editBlockers(v); const iss = ro ? [] : AC.editIssues(S, v);
-  return `<div class="vp-ed"><div class="vp-l"><div class="vp-mini" role="tablist" aria-label="Công cụ biên tập"><button role="tab" data-a="sub" data-k="scene" aria-selected="${st.sub === 'scene' && !st.cap}" data-testid="ve-sub-scene">Scene</button><button role="tab" data-a="sub" data-k="set" aria-selected="${st.sub === 'set' || st.cap}" data-testid="ve-sub-set">Cài đặt</button></div><fieldset class="vp-fs" ${dis}>${left}</fieldset></div>
+  // Mục 10.88: kịch bản đổi sau khi chia cảnh → Cập nhật (chia lại, bản cũ vào lịch sử) hoặc Bỏ qua
+  const chg = !ro && AC.scriptChanged(v) ? `<div class="vp-stale" data-testid="ve-scrchg"><span><b>Kịch bản đã đổi.</b> Các cảnh vẫn theo kịch bản lúc chia cảnh.</span><button class="btn sm" data-a="scr-skip" data-testid="ve-scrskip">Bỏ qua</button><button class="btn sm primary" data-a="scr-upd" data-testid="ve-scrupd" title="Chia lại cảnh theo kịch bản mới; bản biên tập hiện tại lưu vào Lịch sử biên tập">Cập nhật theo kịch bản</button></div>` : '';
+  const eh = ro ? [] : AC.editVersions(v);
+  const hist = eh.length ? `<label class="small" for="ve-ehist">Lịch sử biên tập</label><select id="ve-ehist" data-testid="ve-ehist">${eh.map(h => `<option value="${h.n}">Bản ${h.n} · ${esc(h.at || '')}${h.why ? ` · ${esc(h.why)}` : ''}</option>`).join('')}</select><button class="btn sm" data-a="ehist-use" data-testid="ve-ehistuse" title="Dùng lại bản biên tập này; bản hiện tại lưu vào lịch sử">Dùng bản này</button>` : '';
+  return `${chg}<div class="vp-ed"><div class="vp-l"><div class="vp-mini" role="tablist" aria-label="Công cụ biên tập"><button role="tab" data-a="sub" data-k="scene" aria-selected="${st.sub === 'scene' && !st.cap}" data-testid="ve-sub-scene">Scene</button><button role="tab" data-a="sub" data-k="set" aria-selected="${st.sub === 'set' || st.cap}" data-testid="ve-sub-set">Cài đặt</button></div><fieldset class="vp-fs" ${dis}>${left}</fieldset></div>
     <div class="vp-pv"><div class="vp-box" id="vp-box" data-testid="ve-stage"></div>${tbarHtml(v, st)}
       <div class="vp-pvbar"><button class="btn sm primary vp-ico" data-a="play" id="vp-play" data-testid="ve-play" title="Phát" aria-label="Phát">▶</button><button class="btn sm vp-ico" data-a="replay" data-testid="ve-replay" title="Phát lại từ đầu" aria-label="Phát lại từ đầu">↺</button><label class="small vp-safe-l"><input type="checkbox" data-a="safe" ${st.safe ? 'checked' : ''}> Vùng an toàn</label></div></div></div>
     <fieldset class="vp-fs" ${dis}>${timelineHtml(v, st)}</fieldset>
     ${ro ? '<div class="vp-foot"><span class="small muted">Bản cũ: chỉ xem. Bấm Dùng bản này để sửa tiếp.</span></div>' : `<div class="vp-foot"><span class="small ${bl.length ? '' : 'muted'}" id="ve-issues">${bl.length ? bl.map(x => `<a href="#" data-a="goto" data-i="${x.i}">Scene ${x.i + 1} chưa có hình</a>`).join(' · ') : renderNote(v)}${iss.filter(x => !/chưa có hình/.test(x)).length ? `<br><span class="vp-warn">${iss.filter(x => !/chưa có hình/.test(x)).map(esc).join(' · ')}</span>` : ''}</span>
-      <button class="btn" data-a="export" data-testid="ve-export">Xuất lệnh dựng (JSON)</button><button class="btn ${ed.doneAt ? '' : 'primary'}" data-a="done" data-testid="ve-done" ${bl.length ? 'disabled' : ''}>${ed.doneAt ? 'Đã hoàn thành ✓' : 'Hoàn thành'}</button>${renderBtn(v, bl)}</div>`}
+      ${hist}<button class="btn" data-a="export" data-testid="ve-export">Xuất lệnh dựng (JSON)</button><button class="btn ${ed.doneAt ? '' : 'primary'}" data-a="done" data-testid="ve-done" ${bl.length ? 'disabled' : ''}>${ed.doneAt ? 'Đã hoàn thành ✓' : 'Hoàn thành'}</button>${renderBtn(v, bl)}</div>`}
     <input type="file" id="vp-file" accept="image/*,video/*" multiple class="sr" tabindex="-1"><input type="file" id="vp-fileA" accept="audio/*" class="sr" tabindex="-1"><input type="file" id="vp-fileM" accept="audio/*" class="sr" tabindex="-1">`;
 }
 function emptyHtml(v, ro) {
   const ok = !ro && !!(v.script || (v.media || []).length);
-  return `<div class="vp-empty"><p>${ro ? 'Bản này chưa chia cảnh.' : ok ? 'Chưa chia cảnh. App chia kịch bản thành các cảnh có lời, gợi ý hình và thời lượng; sau đó bạn Up hình, thêm VO, đặt cue, chỉnh timeline.' : 'Chưa có kịch bản hoặc tệp nguồn để chia cảnh. Viết kịch bản ở tab Kịch bản trước.'}</p>${ro ? '' : `<button class="btn primary" data-a="plan" data-testid="ve-plan" ${ok ? '' : 'disabled'}>${icon('spark')} Chia cảnh theo kịch bản</button>`}</div>`;
+  return `<div class="vp-empty"><p>${ro ? 'Bản kịch bản cũ chỉ xem lời. Phần biên tập có lịch sử riêng ở Biên tập của bản đang dùng.' : ok ? 'Chưa chia cảnh. App chia kịch bản thành các cảnh có lời, gợi ý hình và thời lượng; sau đó bạn Up hình, thêm VO, đặt cue, chỉnh timeline.' : 'Chưa có kịch bản hoặc tệp nguồn để chia cảnh. Viết kịch bản ở tab Kịch bản trước.'}</p>${ro ? '' : `<button class="btn primary" data-a="plan" data-testid="ve-plan" ${ok ? '' : 'disabled'}>${icon('spark')} Chia cảnh theo kịch bản</button>`}</div>`;
 }
 
 // ---- Popup Cue: Icon / Text / SFX, kho dùng chung (Yêu thích, Gần đây) ----
@@ -695,7 +699,7 @@ export function mountEditor(host, id, hooks) {
     }
     const a = b.dataset.a; if (RO && !VIEW_ACTS.has(a)) return;
     const i = Number(b.dataset.i); const vv = v(); const ed = vv.edit; const sc = ed && ed.scenes[i];
-    if (a === 'plan') { const r = AC.planEdit(S, id); if (!r.ok) return toast(r.error, 'bad'); st.hist = []; st.cur = 0; st.t = 0; commit(); render(); return toast(`Đã chia ${r.count} cảnh. Kịch bản đã duyệt.`); }
+    if (a === 'plan') { const r = AC.planEdit(S, id); if (!r.ok) return toast(r.error, 'bad'); st.hist = []; st.cur = 0; st.t = 0; commit(); render(); return toast(`Đã chia ${r.count} cảnh. Kịch bản đã khóa.`); }
     if (a === 'sub') { st.sub = b.dataset.k; st.cap = false; render(); return; }
     if (a === 'capopen') { st.sub = 'set'; st.cap = true; render(); return; }
     if (a === 'capback') { st.cap = false; render(); return; }
@@ -721,6 +725,9 @@ export function mountEditor(host, id, hooks) {
       if (!(await confirmBox({ title: `Xóa Scene ${i + 1}?`, body: `<p>${lost.length ? `Sẽ mất ${esc(lost.join(', '))} của scene này.` : 'Scene này chưa có hình, VO hay cue.'}</p>`, ok: 'Xóa scene' }))) return;
       if (act(AC.removeScene(S, id, sc.id))) { st.cur = 0; st.t = 0; closeFx(); render(); } return;
     }
+    if (a === 'scr-skip') { act(AC.ackScriptChange(S, id), 'Đã bỏ qua: các cảnh giữ nguyên.'); return; }
+    if (a === 'scr-upd') { st.cur = 0; st.t = 0; st.play = false; closeCue(); closeFx(); act(AC.applyTemplate(S, id, ed.tpl || 'script'), 'Đã chia lại cảnh theo kịch bản mới. Bản biên tập trước đã lưu vào Lịch sử biên tập.'); return; }
+    if (a === 'ehist-use') { const sel = host.querySelector('#ve-ehist'); if (!sel) return; st.cur = 0; st.t = 0; st.play = false; closeCue(); closeFx(); const r = AC.useEditVersion(S, id, sel.value); act(r, r.ok ? `Đã dùng lại bản biên tập ${r.from}. Bản trước đã lưu vào lịch sử.` : ''); return; }
     if (a === 'origscr') {
       if (!(await confirmBox({ title: 'Quay về kịch bản gốc?', body: '<p>Các scene được chia lại theo kịch bản và mẫu dựng đang chọn. Scene đã thêm, xóa, sửa, hình, VO cảnh và cue đã làm sẽ mất. VO toàn bài, caption, frame, nhạc giữ nguyên.</p>', ok: 'Quay về kịch bản gốc' }))) return;
       st.cur = 0; st.t = 0; st.play = false; closeCue(); closeFx(); act(AC.applyTemplate(S, id, ed.tpl || 'script'), 'Đã chia lại scene theo kịch bản gốc.'); return;

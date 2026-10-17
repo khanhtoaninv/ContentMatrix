@@ -304,7 +304,7 @@ function newSlot(S, weekId, date, time, formatId) {
     id: nextId(S, 'slot'), weekId, date, time, channelId: f.channelId, formatId,
     sourceCellId: null, sourceStamp: null, state: 'EMPTY', text: '', prevText: null, genN: 0, history: [],
     scores: [], total: null, tip: '', assets: (f.assetNeeds || []).map(newAsset),
-    needsUpdate: false, keepReason: '', changedAfterPublish: false, free: false, columnId: null,
+    srcAck: null, srcGone: false, changedAfterPublish: false, free: false, columnId: null,
     confirmedText: null, pub: null, metrics: [],
   });
 }
@@ -334,8 +334,13 @@ export function validateSlotInput(S, weekId, input) {
 }
 // Đưa slot về "Chưa có bài" (giữ nguyên các bản ảnh đã tạo; prompt ảnh nhận lại khi Viết tất cả slot)
 export function clearSlotContent(s) {
-  Object.assign(s, { sourceCellId: null, sourceStamp: null, text: '', prevText: null, state: s.state === 'PUBLISHED' ? 'PUBLISHED' : 'EMPTY', needsUpdate: false, scores: [], total: null, tip: '', keepReason: '' });
+  Object.assign(s, { sourceCellId: null, sourceStamp: null, text: '', prevText: null, state: s.state === 'PUBLISHED' ? 'PUBLISHED' : 'EMPTY', scores: [], total: null, tip: '', srcAck: null, srcGone: false });
   s.assets.forEach(a => { a.cellPrompt = ''; a.prompt = ''; a.genPrompt = ''; });
+}
+// Nguồn của slot bị xóa (Hủy Topic, xóa Cột, nạp lại bỏ Topic; mục 10.88): slot có bài thì giữ bài, chỉ bỏ liên kết tới ô; chưa có bài thì về Chưa có bài
+export function detachSlotSource(s) {
+  if (!s.text) return clearSlotContent(s);
+  Object.assign(s, { sourceCellId: null, srcAck: null, srcGone: true });
 }
 export function addSlot(S, weekId, input) {
   if (isLocked(S, weekId)) return { ok: false, error: 'Tuần đã chốt. Bấm "Mở lại để sửa" trước.' };
@@ -364,7 +369,6 @@ export function updateSlot(S, slotId, patch) {
   if (s.free) { if (patch.columnId === '') next.columnId = null; }
   else if (patch.columnId !== undefined || formatChanged) next.columnId = patch.columnId && patch.columnId !== newF.columnId ? patch.columnId : null; // chỉ lưu khi khác Cột đề xuất
   const colChanged = !s.free && oldCol !== slotColumnId(S, next);
-  let cleared = false;
   if (s.free) {
     if (formatChanged) {
       // Slot tự do: đổi Format không mất bài/ảnh đã có; chỉ bổ sung ô ảnh theo Format mới
@@ -373,12 +377,12 @@ export function updateSlot(S, slotId, patch) {
       next.assets = keep.concat((newF.assetNeeds || []).filter(n => !keep.some(a => a.name === n.name)).map(newAsset));
     }
   } else if (formatChanged || colChanged) {
-    if (colChanged || !byId(S.formats, s.formatId)) { clearSlotContent(next); cleared = !s.sourceCellId; }
-    else if (s.state !== 'EMPTY') { next.needsUpdate = true; if (s.state === 'APPROVED') next.state = 'DRAFT'; }
+    // Slot giữ bài (mục 10.88): bài viết theo Format/ô cũ, lần Tạo lại sau mới viết theo Format/Cột mới
+    if (s.state === 'APPROVED') next.state = 'DRAFT';
     if (formatChanged) next.assets = (newF.assetNeeds || []).map(newAsset);
   }
   Object.assign(s, next); stampRatios(S, s); log(S, 'update', 'slot', s.id);
-  return { ok: true, slot: s, cleared: cleared || (colChanged && !s.text) };
+  return { ok: true, slot: s, colChanged };
 }
 // ---- Chuyển slot sang ngày khác trong tuần (mục 10.31): giữ giờ; lịch tự xếp theo giờ ----
 export function moveSlotCheck(S, slotId, date) {
@@ -463,7 +467,7 @@ export function cellView(S, cell) {
   }
   return { state, gen, text, editRev, imagePrompt: gen ? genImagePrompt(gen, editRev) : '', topicVersion: v, stamp: gen ? { cellId: cell.id, topicVersion: v, genN: gen.n, editRev } : null };
 }
-function sameStamp(a, b) { return !!a && !!b && a.cellId === b.cellId && a.topicVersion === b.topicVersion && a.genN === b.genN && (a.editRev || 0) === (b.editRev || 0); }
+export function sameStamp(a, b) { return !!a && !!b && a.cellId === b.cellId && a.topicVersion === b.topicVersion && a.genN === b.genN && (a.editRev || 0) === (b.editRev || 0); }
 export function slotsUsingCell(S, cellId) { return S.slots.filter(s => s.sourceCellId === cellId); }
 export function addWeekColumn(S, weekId, columnId) {
   const w = weekOf(S, weekId);
@@ -491,7 +495,7 @@ export function removeWeekColumn(S, weekId, columnId, k) {
   if (w.columnIds.length <= 1) return { ok: false, error: 'Tuần cần ít nhất 1 Cột.' };
   const impact = removeColumnImpact(S, weekId, columnId, k);
   const ids = new Set(cellsOf(S, weekId).filter(c => c.columnId === columnId && (c.k || 0) === k).map(c => c.id));
-  weekSlots(S, weekId).forEach(s => { if (s.sourceCellId && ids.has(s.sourceCellId)) clearSlotContent(s); });
+  weekSlots(S, weekId).forEach(s => { if (s.sourceCellId && ids.has(s.sourceCellId)) detachSlotSource(s); });
   S.cells = S.cells.filter(c => !ids.has(c.id));
   cellsOf(S, weekId).forEach(c => { if (c.columnId === columnId && (c.k || 0) > k) { c.k -= 1; if (!c.k) delete c.k; } }); // các vị trí cùng loại phía sau lùi lên
   let seen = -1; const at = w.columnIds.findIndex(id => id === columnId && ++seen === k);
@@ -500,16 +504,29 @@ export function removeWeekColumn(S, weekId, columnId, k) {
   return { ok: true, impact };
 }
 
-// ---- Cập nhật cờ "cần cập nhật" ----
-export function refreshSlotFlags(S, weekId) {
-  weekSlots(S, weekId).forEach(s => {
-    if (!s.sourceCellId || !s.sourceStamp || s.state === 'PUBLISHED') return;
-    const cell = byId(S.cells, s.sourceCellId);
-    const cur = cell ? cellView(S, cell).stamp : null;
-    const stale = !sameStamp(cur, s.sourceStamp);
-    const kept = !!s.keepReason && JSON.stringify(cur || null) === JSON.stringify(s.keepStamp || null);
-    if (stale && !kept) s.needsUpdate = true;
-  });
+// ---- Ô → Slot: liên quan một chiều có điều kiện (mục 10.88) ----
+// Slot là bản sao độc lập: chỉ đọc ô lúc bấm Tạo bài / Tạo lại; ô đổi sau đó không đụng tới bài của slot.
+// Ô nguồn có bản Đã duyệt mới hơn bản slot đã dùng thì slot hiện dấu "!" (chỉ để biết): bấm Tạo lại hoặc Tắt cảnh báo.
+export const SLOT_KEEP = 5; // số bản giữ trong lịch sử slot
+export function keepSlotHistory(h) { return h.length > SLOT_KEEP ? h.slice(-SLOT_KEEP) : h; }
+// Video → Slot video (mục 10.88): chữ ký thành phẩm của thẻ Vid (tệp video và phụ đề). Slot ghi chữ ký lúc xếp/cập nhật.
+// Thumbnail không tính: đổi thumbnail vẫn tự sang bìa các slot chưa đăng như mục 10.87
+export function vidOutSig(v) {
+  const f = v && v.file; if (!f) return '';
+  return [f.sig || '', f.at || '', f.size || 0, f.name || '', f.subs ? `s${(f.subs.cues || []).length}:${f.subs.at || ''}` : ''].join('|');
+}
+function vidSlotSrcState(S, s) {
+  if (s.state === 'PUBLISHED' || s.vidSig == null) return null; const v = byId(S.videos || [], s.videoId); if (!v || !v.file || v.cancelled) return null;
+  const sig = vidOutSig(v); if (sig === s.vidSig || sig === s.srcAck) return null;
+  return { kind: 'video', video: v, from: s.vidSig, to: sig };
+}
+export function slotSrcState(S, s) {
+  if (s && s.videoId) return vidSlotSrcState(S, s);
+  if (!s || s.free || s.videoId || !s.text || s.state === 'PUBLISHED' || !s.sourceCellId || !s.sourceStamp) return null;
+  const cell = byId(S.cells, s.sourceCellId); if (!cell) return null;
+  const v = cellView(S, cell);
+  if (v.state !== 'APPROVED' || !v.stamp || sameStamp(v.stamp, s.sourceStamp) || sameStamp(v.stamp, s.srcAck)) return null;
+  return { kind: 'new', cell, from: s.sourceStamp, to: v.stamp };
 }
 
 // ---- Cảnh báo theo ngữ cảnh ----
@@ -593,7 +610,6 @@ export function importTopics(S, weekId, md, at) {
   rows.slice(r.topics.length).forEach(row => dropTopicRow(S, weekId, row));
   topicsOf(S, weekId).forEach((row, i) => { row.order = i + 1; });
   ensureCells(S, weekId);
-  refreshSlotFlags(S, weekId);
   S.topicFiles = (S.topicFiles || []).filter(f => f.weekId !== weekId);
   S.topicFiles.push({ weekId, md: r.normalized.md, rawMd: r.normalized.changed ? String(md) : undefined, title: r.title, theme: r.theme, context: r.context, importedAt: now, warnings: r.warnings });
   const ch = r.changes;
@@ -628,7 +644,6 @@ export function addTopics(S, weekId, md, at) {
     S.topics.push({ id: uniqueTopicId(S, w, k), weekId, order: k, currentVersion: 1, versions: [{ n: 1, title: p.title, text: p.text, fields: clone(p.fields), words: p.words, hasCase: p.hasCase, createdAt: now, reason: 'imported' }] });
   });
   ensureCells(S, weekId);
-  refreshSlotFlags(S, weekId);
   const block = r.add.map(p => [`## ${p.title}`, ...topicFieldLines(p.fields), '', p.text].join('\n')).join('\n\n');
   const old = topicFileOf(S, weekId);
   if (old) {
@@ -645,7 +660,7 @@ export function addTopics(S, weekId, md, at) {
 }
 function dropTopicRow(S, weekId, row) {
   const ids = new Set(cellsOf(S, weekId).filter(c => c.topicId === row.id).map(c => c.id));
-  weekSlots(S, weekId).forEach(s => { if (s.sourceCellId && ids.has(s.sourceCellId)) clearSlotContent(s); });
+  weekSlots(S, weekId).forEach(s => { if (s.sourceCellId && ids.has(s.sourceCellId)) detachSlotSource(s); });
   S.cells = S.cells.filter(c => !ids.has(c.id));
   S.topics = S.topics.filter(x => x.id !== row.id);
 }
@@ -780,7 +795,7 @@ export function slotWriteGate(S, slotId) {
   if (s.free) return { ok: false, reason: 'Slot tự do: bạn tự viết bài' };
   if (s.state === 'PUBLISHED') return { ok: false, reason: 'Bài đã đăng chỉ xem' };
   if (isLocked(S, s.weekId)) return { ok: false, reason: 'Tuần đã chốt' };
-  if (!matrixDone(S, s.weekId)) return { ok: false, reason: 'Matrix chưa khóa (bấm ổ khóa ở Matrix trước)' };
+  if (!matrixDone(S, s.weekId)) return { ok: false, reason: 'Vui lòng đóng khóa Matrix (bấm ổ khóa ở Matrix)' };
   const f = byId(S.formats, s.formatId); if (!f) return { ok: false, reason: 'Slot chưa có Format' };
   const live = new Set(topicsOf(S, s.weekId).filter(r => topicCurrent(r)).map(r => r.id));
   const cells = cellsOf(S, s.weekId).filter(c => c.columnId === slotColumnId(S, s) && live.has(c.topicId) && cellView(S, c).state === 'APPROVED');
@@ -788,12 +803,22 @@ export function slotWriteGate(S, slotId) {
   if (!cells.length) return { ok: false, reason: `Cột "${col ? col.name : slotColumnId(S, s)}" chưa có ô Đã duyệt (duyệt ô ở Matrix trước)`, cells };
   return { ok: true, reason: '', cells };
 }
+// Ô ít slot dùng nhất, hòa thì Topic đầu
+function pickSlotCell(S, s, cells) {
+  const order = new Map(topicsOf(S, s.weekId).map(r => [r.id, r.order]));
+  const use = c => S.slots.filter(x => x.id !== s.id && x.sourceCellId === c.id).length;
+  return cells.slice().sort((a, b) => use(a) - use(b) || (order.get(a.topicId) || 0) - (order.get(b.topicId) || 0))[0];
+}
+// Ô dùng khi Tạo lại (mục 10.88): ô nguồn nếu còn trong Cột của slot và Đã duyệt; không thì chọn như Tạo bài
+export function slotRegenCell(S, s) {
+  const g = slotWriteGate(S, s.id); if (!g.ok) return { ok: false, error: g.reason + '.' };
+  const own = s.sourceCellId && g.cells.find(c => c.id === s.sourceCellId);
+  return { ok: true, cell: own || pickSlotCell(S, s, g.cells), same: !!own };
+}
 export function writeSlotNow(S, slotId, at) {
   const g = slotWriteGate(S, slotId); if (!g.ok) return { ok: false, error: g.reason + '.' };
   const s = byId(S.slots, slotId);
-  const order = new Map(topicsOf(S, s.weekId).map(r => [r.id, r.order]));
-  const use = c => S.slots.filter(x => x.id !== s.id && x.sourceCellId === c.id).length;
-  const cell = g.cells.slice().sort((a, b) => use(a) - use(b) || (order.get(a.topicId) || 0) - (order.get(b.topicId) || 0))[0];
+  const cell = pickSlotCell(S, s, g.cells);
   writeSlotFromCell(S, s, cell, at);
   log(S, 'write-slot', 'slot', slotId, cell.id);
   return { ok: true, slot: s, cellId: cell.id };
@@ -817,8 +842,8 @@ export function writeSlotFromCell(S, slot, cell, at) {
   if (blog && slot.text) text = keepBlogMedia(slot.text, text, blogMediaAssets(slot).map(x => x.a.bid)); // giữ ảnh/video đã chèn
   const sc = (ai && ai.score) || scoreText(text, f.criteria, `${slot.id}|${genN}`);
   const when = at || S.settings.demoNow;
-  Object.assign(slot, { sourceCellId: cell.id, sourceStamp: view.stamp, text, prevText: slot.text || null, genN, curN: genN, emptyReason: '', scores: sc.scores, total: sc.total, tip: sc.tip, needsUpdate: false, keepReason: '' });
-  slot.history = (slot.history || []).concat([Object.assign({ n: genN, text, createdAt: when, cellId: cell.id, stamp: view.stamp }, ai ? { ai: { provider: ai.provider, model: ai.model, scored: !!ai.score, ...skillTag(f) } } : {})]);
+  Object.assign(slot, { sourceCellId: cell.id, sourceStamp: view.stamp, text, prevText: slot.text || null, genN, curN: genN, emptyReason: '', scores: sc.scores, total: sc.total, tip: sc.tip, srcAck: null, srcGone: false });
+  slot.history = keepSlotHistory((slot.history || []).concat([Object.assign({ n: genN, text, createdAt: when, cellId: cell.id, stamp: view.stamp }, ai ? { ai: { provider: ai.provider, model: ai.model, scored: !!ai.score, ...skillTag(f) } } : {})]));
   if (ai) slot.ai = { provider: ai.provider, model: ai.model, scored: !!ai.score, ...skillTag(f) }; else delete slot.ai;
   if (slot.state !== 'PUBLISHED') slot.state = 'DRAFT';
   layoutSlotImages(S, slot, view.imagePrompt, at);
@@ -1111,8 +1136,8 @@ export function matrixCounts(S, weekId) {
   return counts;
 }
 export function slotCounts(S, weekId) {
-  const c = { EMPTY: 0, DRAFT: 0, APPROVED: 0, PUBLISHED: 0, needsUpdate: 0, total: 0 };
-  weekSlots(S, weekId).forEach(s => { c[s.state]++; c.total++; if (s.needsUpdate) c.needsUpdate++; });
+  const c = { EMPTY: 0, DRAFT: 0, APPROVED: 0, PUBLISHED: 0, srcNew: 0, total: 0 };
+  weekSlots(S, weekId).forEach(s => { c[s.state]++; c.total++; if (slotSrcState(S, s)) c.srcNew++; });
   return c;
 }
 export function imageCounts(S, weekId) {
@@ -1122,7 +1147,7 @@ export function imageCounts(S, weekId) {
 }
 export function weekProgress(S, weekId) {
   const w = weekOf(S, weekId);
-  if (!w) return { steps: STEP_NAMES.map((name, i) => ({ n: i + 1, name, done: false, reason: i === 0 ? 'Tuần chưa có slot' : '' })), current: 1, allDone: false, mc: { EMPTY: 0, DRAFT: 0, APPROVED: 0, CANCELLED: 0, total: 0 }, sc: { EMPTY: 0, DRAFT: 0, APPROVED: 0, PUBLISHED: 0, needsUpdate: 0, total: 0 }, gate: dealGate(S, weekId) };
+  if (!w) return { steps: STEP_NAMES.map((name, i) => ({ n: i + 1, name, done: false, reason: i === 0 ? 'Tuần chưa có slot' : '' })), current: 1, allDone: false, mc: { EMPTY: 0, DRAFT: 0, APPROVED: 0, CANCELLED: 0, total: 0 }, sc: { EMPTY: 0, DRAFT: 0, APPROVED: 0, PUBLISHED: 0, srcNew: 0, total: 0 }, gate: dealGate(S, weekId) };
   const rows = topicsOf(S, weekId).filter(i => topicCurrent(i));
   const mc = matrixCounts(S, weekId);
   const sc = slotCounts(S, weekId);
@@ -1138,7 +1163,7 @@ export function weekProgress(S, weekId) {
   st.push({ done: written, reason: rows.length && mc.EMPTY ? (mc.EMPTY > nc ? `${mc.EMPTY - nc}/${mc.total} ô chưa viết` : `${nc} ô Câu chuyện nên Hủy`) : '' });
   st.push({ done: completed, reason: written && mc.DRAFT ? `${mc.DRAFT} ô chưa duyệt` : (approved && !completed ? 'Chờ khóa Matrix' : '') });
   st.push({ done: dealt, reason: sc.EMPTY ? `${sc.EMPTY} slot chưa có bài` : '' });
-  st.push({ done: dealt && sc.DRAFT === 0 && sc.needsUpdate === 0, reason: sc.needsUpdate ? `${sc.needsUpdate} slot cần cập nhật` : (dealt && sc.DRAFT ? `${sc.DRAFT} slot chưa duyệt${ic.boxes ? ` · ${ic.done}/${ic.boxes} ảnh` : ''}` : '') });
+  st.push({ done: dealt && sc.DRAFT === 0, reason: dealt && sc.DRAFT ? `${sc.DRAFT} slot chưa duyệt${ic.boxes ? ` · ${ic.done}/${ic.boxes} ảnh` : ''}` : '' });
   st.push({ done: w.status === 'CONFIRMED', reason: w.status === 'REOPENED' ? 'Đang sửa' : (w.status === 'CONFIRMED' ? `Đã chốt · bản ${w.revision}` : '') });
   const steps = st.map((s, i) => Object.assign({ n: i + 1, name: STEP_NAMES[i] }, s));
   const firstOpen = steps.find(s => !s.done);
@@ -1164,7 +1189,7 @@ export function nextAction(S, weekId) {
     3: (() => { const n = writeQueue(S, weekId).length; return n ? { label: `Viết ma trận (${n} ô)`, target: { screen: 'matrix' } } : { label: `Hủy ${p.mc.EMPTY} ô Câu chuyện`, target: { screen: 'matrix' } }; })(),
     4: p.mc.DRAFT ? { label: `Duyệt ${p.mc.DRAFT} ô`, target: { screen: 'matrix' } } : { label: 'Khóa Matrix', target: { screen: 'matrix', action: 'mx-lock' } },
     5: { label: `Viết tất cả (${p.sc.EMPTY} slot)`, target: { screen: 'week', action: 'deal-all' } },
-    6: { label: p.sc.needsUpdate ? `Cập nhật ${p.sc.needsUpdate} slot` : `Duyệt ${p.sc.DRAFT} slot`, target: { screen: 'week' } },
+    6: { label: `Duyệt ${p.sc.DRAFT} slot`, target: { screen: 'week' } },
     7: { label: 'Xác nhận lịch', target: { screen: 'week', action: 'confirm-week' } },
   };
   return Object.assign({ step, detail: `Bước ${step}/${STEP_COUNT} · ${STEP_NAMES[step - 1]}` }, map[step]);

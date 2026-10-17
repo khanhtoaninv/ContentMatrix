@@ -1,6 +1,6 @@
 // ---------- 05e · R4: Xác nhận lịch, đăng bài, số liệu, đồng hồ demo (mục 10.22) ----------
 import { fold, hash32, isValidTime, isValidUrl, isValidYMD, minutesOf, mondayOf, parseYMD } from './01-util.js';
-import { byId, log, relinkShares, slotColumnId, slotWarnings, weekOf, weekSlots } from './05-model.js';
+import { byId, keepSlotHistory, log, vidOutSig, relinkShares, slotColumnId, slotWarnings, weekOf, weekSlots } from './05-model.js';
 import { stampRatios } from './05q-imgspec.js';
 import { ensureShortVid } from './05s-shortvid.js';
 // Đăng và số liệu ở R4 là mô phỏng xác định; dữ liệu đã đúng dạng để R6–R7 nối API/Metricool/Postiz thật.
@@ -163,8 +163,7 @@ export function confirmGate(S, weekId) {
   if (!slots.length) return { ok: false, reason: 'Tuần chưa có slot', blockers: [] };
   const blockers = [];
   slots.forEach(s => {
-    if (s.needsUpdate) blockers.push({ slot: s, why: 'Cần cập nhật' });
-    else if (s.state === 'EMPTY') blockers.push({ slot: s, why: 'Chưa có bài' });
+    if (s.state === 'EMPTY') blockers.push({ slot: s, why: 'Chưa có bài' });
     else if (s.state === 'DRAFT') blockers.push({ slot: s, why: 'Chưa duyệt' });
   });
   return { ok: !blockers.length, reason: blockers.length ? `${blockers.length} slot chưa đạt` : '', blockers };
@@ -328,7 +327,14 @@ export function isOnTime(s) { return !!(s.pub && isValidTs(s.pub.at)) && tsToMs(
 export function migrateState(S) {
   if (!Array.isArray(S.blogPosts)) S.blogPosts = [];
   ensureShortVid(S); // Short Vid (10.72): dữ liệu cũ chưa có thì thêm 7 Format mặc định và mảng rỗng
-  (S.slots || []).forEach(s => stampRatios(S, s)); // chuẩn ảnh theo nền tảng (mục 10.42)
+  (S.slots || []).forEach(s => {
+    stampRatios(S, s); // chuẩn ảnh theo nền tảng (mục 10.42)
+    // Ô → Slot một chiều (mục 10.88): bỏ cờ "Cần cập nhật" và "Giữ bản slot" của dữ liệu cũ; lịch sử giữ 5 bản
+    if ('needsUpdate' in s || 'keepReason' in s || 'keepStamp' in s) { delete s.needsUpdate; delete s.keepReason; delete s.keepStamp; if (s.srcAck === undefined) s.srcAck = null; if (s.srcGone === undefined) s.srcGone = false; }
+    if (Array.isArray(s.history)) s.history = keepSlotHistory(s.history);
+    // Slot video cũ chưa có chữ ký thành phẩm: lấy chữ ký hiện tại (không báo "!" cho dữ liệu cũ)
+    if (s.videoId && s.vidSig === undefined) { const v = byId(S.videos || [], s.videoId); s.vidSig = v && v.file ? vidOutSig(v) : null; if (s.srcAck === undefined) s.srcAck = null; }
+  });
   relinkShares(S); // ảnh dùng chung giữa các slot (10.70): nối lại cùng một mảng phiên bản
   (S.channels || []).forEach(ch => {
     if (!ch.platform) ch.platform = PLATFORM_OF_ID[ch.id] || 'other';

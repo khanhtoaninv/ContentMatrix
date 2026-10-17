@@ -18,7 +18,7 @@ function filteredSlots(weekId) {
 }
 function slotLevel(s) {
   if (s.state === 'PUBLISHED') return 'done';
-  if (s.needsUpdate || s.state === 'EMPTY' || s.state === 'DRAFT') return 'need';
+  if (s.state === 'EMPTY' || s.state === 'DRAFT') return 'need';
   return '';
 }
 // Chuyên mục của slot = tên Cột của Format (D97, CAL-12)
@@ -30,15 +30,68 @@ export const FAIL_TAG = '<span class="st st-bad" title="Đã quá giờ mà chư
 function slotChipHtml(s) {
   // Kéo thả sang ngày khác (mục 10.31): mọi slot chưa đăng
   const drag = s.state !== 'PUBLISHED' ? ` draggable="true" data-drag="${esc(s.id)}" title="Kéo sang ngày khác để đổi ngày đăng"` : '';
-  return `<div class="slotwrap"${drag}>${slotChipBtn(s)}${slotGearBtn(s)}</div>`;
+  return `<div class="slotwrap"${drag}>${slotChipBtn(s)}${slotGearBtn(s)}${srcBangHtml(s)}</div>`;
+}
+// Dấu "!" vàng ở góc thẻ (mục 10.88): nguồn có bản mới; bài slot không tự đổi. Bấm để Tạo lại hoặc Tắt cảnh báo
+export function srcBangHtml(s) {
+  const st = AC.slotSrcState(S, s); if (!st) return '';
+  return `<button class="src-bang" data-act="slot-src" data-id="${esc(s.id)}" title="${esc(srcBangTitle(st))}" aria-label="${esc(`Nguồn có bản mới: ${s.time} ${fmtName(s.formatId)}`)}">!</button>`;
+}
+const stampLabel = x => x ? `bản ${x.genN}${x.editRev ? `.${x.editRev}` : ''} (Topic v${x.topicVersion})` : '?';
+const srcBangTitle = st => st.kind === 'video' ? `Thẻ Vid "${st.video.insight.title}" đã có video mới (ren lại, Up tệp khác hoặc đổi Thumbnail). Slot vẫn dùng bản chép lúc xếp, không tự đổi.` : `Ô nguồn đã có bản mới: slot viết từ ${stampLabel(st.from)}, ô nay là ${stampLabel(st.to)}. Bài slot không tự đổi.`;
+ACTIONS['slot-src'] = el => { const s = AC.byId(S.slots, el.dataset.id); if (s) srcDialog(s, msg => commit(msg)); };
+// Hộp của dấu "!": Tạo lại theo bản mới hoặc Tắt cảnh báo; after(msg) vẽ lại nơi gọi
+export function srcDialog(s, after) {
+  const st = AC.slotSrcState(S, s); if (!st) return;
+  if (st.kind === 'video') return vidSrcDialog(s, st, after);
+  const box = openLayer(`<h2>Ô nguồn có bản mới</h2>
+    <div class="stack muted"><p>${esc(srcBangTitle(st))}</p><p>${s.state === 'APPROVED' ? 'Slot đã duyệt (đang khóa): Tạo lại sẽ mở khóa, slot về Chưa duyệt.' : 'Tạo lại: viết lại slot theo bản mới của ô, bản hiện tại vào lịch sử.'} Tắt cảnh báo: giữ bài hiện tại, dấu này hiện lại khi ô có bản mới hơn nữa.</p></div>
+    <div class="actions"><button class="btn ghost" data-x="no">Đóng</button><button class="btn" data-x="dismiss">Tắt cảnh báo</button><button class="btn primary" data-x="regen">Tạo lại theo bản mới</button></div>`, 'dialog');
+  box.addEventListener('click', async e => {
+    const b = e.target.closest('[data-x]'); if (!b) return;
+    closeLayer();
+    if (b.dataset.x === 'dismiss') { const r = AC.dismissSlotSrc(S, s.id); if (!r.ok) return toast(r.error, 'bad'); return after('Đã tắt cảnh báo. Slot giữ bài hiện tại.'); }
+    if (b.dataset.x === 'regen') {
+      const info = AC.slotRegenInfo(S, s.id);
+      if (!info.ok && s.state !== 'APPROVED') return toast(info.error, 'bad');
+      if (s.state === 'APPROVED') { if (!AC.matrixDone(S, s.weekId)) return toast(AC.slotWriteGate(S, s.id).reason + '.', 'bad'); const u = AC.unlockSlot(S, s.id); if (!u.ok) return toast(u.error, 'bad'); }
+      const r = await regenFlow(s, true); if (r && r.ok) after(`Đã tạo bản ${r.n} theo ô mới. Bấm Hoàn tác để quay lại bản trước.`); else after('');
+    }
+  });
+}
+// Slot video có bản mới (mục 10.88): Cập nhật chép video mới vào slot (caption giữ), slot Đã duyệt về Chưa duyệt
+function vidSrcDialog(s, st, after) {
+  const all = AC.vidSlotsPending(S, st.video.id).length;
+  const box = openLayer(`<h2>Video có bản mới</h2>
+    <div class="stack muted"><p>${esc(srcBangTitle(st))}</p><p>Cập nhật: chép video, bìa, phụ đề mới vào slot; caption giữ nguyên${s.state === 'APPROVED' ? '; slot đã duyệt sẽ về Chưa duyệt để duyệt lại' : ''}. Tắt cảnh báo: giữ video hiện tại, dấu này hiện lại khi thẻ có video mới hơn nữa.</p></div>
+    <div class="actions"><button class="btn ghost" data-x="no">Đóng</button><button class="btn" data-x="dismiss">Tắt cảnh báo</button>${all > 1 ? `<button class="btn" data-x="all" data-testid="vsrc-all">Cập nhật cả ${all} slot</button>` : ''}<button class="btn primary" data-x="upd" data-testid="vsrc-upd">Cập nhật video</button></div>`, 'dialog');
+  box.addEventListener('click', e => {
+    const b = e.target.closest('[data-x]'); if (!b) return; closeLayer();
+    if (b.dataset.x === 'dismiss') { const r = AC.dismissSlotSrc(S, s.id); if (!r.ok) return toast(r.error, 'bad'); return after('Đã tắt cảnh báo. Slot giữ video hiện tại.'); }
+    if (b.dataset.x === 'upd') { const r = AC.updateVideoSlot(S, s.id); if (!r.ok) return toast(r.error, 'bad'); return after('Đã cập nhật video mới vào slot. Duyệt lại slot khi xem xong.'); }
+    if (b.dataset.x === 'all') { const r = AC.updateVideoSlots(S, st.video.id); return after(`Đã cập nhật ${r.updated} slot${r.failed.length ? `, ${r.failed.length} slot không cập nhật được` : ''}. Duyệt lại các slot khi xem xong.`); }
+  });
+}
+// Tạo lại slot (mục 10.88): Matrix phải khóa; nguồn đổi so với lần viết trước thì hỏi lại (asked = người dùng đã đồng ý ở hộp "!")
+export async function regenFlow(s, asked) {
+  const info = AC.slotRegenInfo(S, s.id);
+  if (!info.ok) { toast(info.error, 'bad'); return null; }
+  if (info.changed && !asked) {
+    const why = info.gone ? 'Ô nguồn cũ không còn trong Matrix: slot sẽ viết từ một ô Đã duyệt khác cùng Cột' : `Ô nguồn đã đổi so với lần viết trước: ${stampLabel(info.from)} → ${stampLabel(info.to)}`;
+    if (!(await confirmBox({ title: 'Nguồn đã đổi', body: `<p>${esc(why)}.</p><p>Slot sẽ viết theo bản mới nhất của ô lúc này; bản hiện tại vào lịch sử (giữ ${AC.SLOT_KEEP} bản).</p>`, ok: 'Viết theo bản mới' }))) return null;
+  }
+  const r = await withAiText(C => AC.regenSlot(C, s.id));
+  if (!r.ok) { toast(r.error, 'bad'); return null; }
+  save(); render(); return r;
 }
 // Nút trên thẻ slot: Duyệt (tắt khi đã duyệt/đã đăng/chưa có bài/tuần đã chốt) và Cấu hình (bánh răng)
 function slotGearBtn(s) {
   if (s.state === 'PUBLISHED') return `<span class="slotbtns"><button class="slot-view" data-act="open-slot" data-id="${esc(s.id)}" title="Xem bài đã đăng (chỉ xem)" aria-label="Xem bài đã đăng: ${esc(`${s.time} ${fmtName(s.formatId)}`)}">${icon('eye')}</button></span>`;
   const w = AC.weekOf(S, s.weekId); const locked = !!w && w.status === 'CONFIRMED';
   const done = s.state === 'APPROVED';
-  const why = locked ? 'Tuần đã chốt' : !s.text ? 'Chưa có bài' : done ? 'Slot đã duyệt' : 'Duyệt slot';
-  return `<span class="slotbtns"><button class="slot-ok" data-act="slot-approve" data-id="${esc(s.id)}" ${locked || !s.text || done ? 'disabled' : ''} title="${esc(why)}" aria-label="Duyệt slot: ${esc(`${s.time} ${fmtName(s.formatId)}`)}">${done ? icon('check') + ' ' : ''}Duyệt</button><button class="slot-view" data-act="slot-config" data-id="${esc(s.id)}" title="Cấu hình slot" aria-label="Cấu hình slot: ${esc(`${s.time} ${fmtName(s.formatId)}`)}">${icon('gear')}</button></span>`;
+  // Duyệt là khóa (mục 10.88): slot Đã duyệt hiện icon khóa, bấm để Mở khóa
+  const why = locked ? 'Tuần đã chốt' : !s.text ? 'Chưa có bài' : done ? 'Đã duyệt, đang khóa. Bấm để mở khóa' : 'Duyệt slot';
+  return `<span class="slotbtns"><button class="slot-ok${done ? ' on' : ''}" data-act="${done ? 'slot-unlock' : 'slot-approve'}" data-id="${esc(s.id)}" ${locked || !s.text ? 'disabled' : ''} title="${esc(why)}" aria-label="${done ? 'Mở khóa slot' : 'Duyệt slot'}: ${esc(`${s.time} ${fmtName(s.formatId)}`)}">${done ? icon('lock') + ' ' : ''}Duyệt</button><button class="slot-view" data-act="slot-config" data-id="${esc(s.id)}" title="Cấu hình slot" aria-label="Cấu hình slot: ${esc(`${s.time} ${fmtName(s.formatId)}`)}">${icon('gear')}</button></span>`;
 }
 // Duyệt slot từ thẻ (hỏi lại khi có cảnh báo, như ở View)
 ACTIONS['slot-approve'] = async el => {
@@ -48,6 +101,12 @@ ACTIONS['slot-approve'] = async el => {
   const r = AC.approveSlot(S, s.id); if (!r.ok) return toast(r.error, 'bad');
   commit('Đã duyệt slot.');
 };
+export async function unlockFlow(s) {
+  if (!(await confirmBox({ title: 'Mở khóa slot?', body: '<p>Slot về Chưa duyệt để sửa hoặc Tạo lại. Sửa xong thì Duyệt lại.</p>', ok: 'Mở khóa' }))) return false;
+  const r = AC.unlockSlot(S, s.id); if (!r.ok) { toast(r.error, 'bad'); return false; }
+  save(); render(); toast('Đã mở khóa slot.'); return true;
+}
+ACTIONS['slot-unlock'] = async el => { const s = AC.byId(S.slots, el.dataset.id); if (s) await unlockFlow(s); };
 function slotChipBtn(s) {
   return `<button class="slot ${slotLevel(s)}" data-act="open-slot" data-id="${esc(s.id)}" aria-label="${esc(`${s.time} ${chName(s.channelId)} ${fmtName(s.formatId)}`)}">
     <span class="top"><span class="t">${esc(s.time)}</span>${chTag(s.channelId)}</span>
@@ -377,8 +436,7 @@ export function openSlot(id, browseN, center) {
   else if (!s.text) { const g = AC.slotWriteGate(S, s.id); acts = `<button class="btn primary" data-x="write" ${g.ok ? '' : 'disabled'} title="${esc(g.ok ? 'Viết bài và ảnh từ một ô Đã duyệt của Cột' : g.reason)}">Tạo bài</button><span class="small muted">${esc(g.ok ? 'Tạo bài lấy một ô Đã duyệt của Cột (ô ít slot dùng nhất), hoặc chọn ô cụ thể bên dưới.' : g.reason + '.')}</span>`; }
   else if (viewing) acts = `<button class="btn primary" data-x="use" data-n="${viewing.n}">Dùng bản này</button>`;
   else {
-    if (s.needsUpdate) acts += btn('update', 'Cập nhật từ ô', 'primary') + btn('keep', 'Giữ bản slot');
-    else if (s.state === 'DRAFT') acts += btn('approve', 'Duyệt', 'primary');
+    if (s.state === 'DRAFT') acts += btn('approve', 'Duyệt', 'primary');
     acts += btn('regen', 'Tạo lại');
     if (s.undoN && hist.some(h => h.n === s.undoN)) acts += `<button class="btn ghost" data-x="use" data-n="${s.undoN}">Hoàn tác</button>`;
     acts += btn('edit', 'Sửa');
@@ -395,8 +453,6 @@ export function openSlot(id, browseN, center) {
     <div class="body">
       ${cfg || !s.text ? `<div id="fmt-layout">${formatLayoutHtml(s.formatId)}</div>` : ''}
       ${cfg ? cfgActionsHtml(s, locked) : `<div class="row" id="slot-actions">${navH}${acts}</div>`}
-      ${!cfg && s.needsUpdate && !viewing ? `<p class="note warn">Ô nguồn đã đổi sau khi slot được viết. "Cập nhật từ ô" viết lại slot theo bản mới của ô (ô phải Đã duyệt); "Giữ bản slot" cần ghi lý do.</p>` : ''}
-      ${!cfg && s.keepReason && !s.needsUpdate ? `<p class="small muted">Đang giữ bản slot: ${esc(s.keepReason)}</p>` : ''}
       ${cfg ? '' : shownText ? `<section class="stack"><div class="row" style="justify-content:space-between"><h3>Nội dung bài${viewing ? ' (bản cũ)' : ''}</h3><span class="row" style="gap:8px"><span class="small faint">${esc(len)} <span class="mock">Mô phỏng</span></span><button class="btn sm" data-act="slot-preview" data-id="${esc(s.id)}" ${viewing ? `data-n="${viewing.n}"` : ''}>${icon('eye')} Xem như khi đăng</button></span></div>
         <div class="content-text rich">${richText(shownText, viewing ? [] : warnMarks(ws))}</div></section>` : `<div class="empty"><p><b>Chưa có bài.</b> ${s.emptyReason ? esc(s.emptyReason) + '. ' : ''}Bấm <b>Tạo bài</b> ở trên (cần Matrix đã khóa), hoặc <b>Viết tất cả slot</b> ở Dashboard cho cả tuần, hoặc chọn ô bên dưới. Cột của slot này: <b>${esc(colName(AC.slotColumnId(S, s)))}</b>.</p></div>`}
       <section class="cfg-sec cfg-src"><div class="cfg-h"><span class="cfg-n">1</span><h3>Ô nguồn</h3></div>
@@ -429,14 +485,11 @@ export function openSlot(id, browseN, center) {
       if (n && !(await confirmBox({ title: 'Duyệt slot có cảnh báo?', body: `<p>Slot này có ${n} cảnh báo. Cảnh báo chỉ để tham khảo; bạn vẫn duyệt được.</p>`, ok: 'Vẫn duyệt' }))) return;
       return done(AC.approveSlot(S, s.id), 'Đã duyệt slot.');
     }
-    if (x === 'regen') { const r = await withAiText(C => AC.regenSlot(C, s.id)); return done(r, r.ok ? `Đã tạo bản ${r.n}. Bấm Hoàn tác để quay lại bản trước.` : ''); }
+    if (x === 'regen') { const r = await regenFlow(s); if (r) { openSlot(s.id); toast(`Đã tạo bản ${r.n}. Bấm Hoàn tác để quay lại bản trước.`); } return; }
+    if (x === 'src-dismiss') return done(AC.dismissSlotSrc(S, s.id), 'Đã tắt cảnh báo. Slot giữ bài hiện tại.');
+    if (x === 'vid-upd') return done(AC.updateVideoSlot(S, s.id), 'Đã cập nhật video mới vào slot. Duyệt lại slot khi xem xong.');
+    if (x === 'unlock') { if (await unlockFlow(s)) openSlot(s.id); return; }
     if (x === 'use') return done(AC.useSlotVersion(S, s.id, Number(b.dataset.n)), 'Slot dùng lại bản đã chọn, chờ duyệt.');
-    if (x === 'update') return done(await withAiText(C => AC.updateSlotFromCell(C, s.id)), 'Đã cập nhật slot từ ô.');
-    if (x === 'keep') {
-      const r = await confirmBox({ title: 'Giữ bản slot hiện tại?', body: '<p>Slot giữ bài hiện tại dù ô nguồn đã đổi. Ghi lý do để người khác hiểu.</p>', ok: 'Giữ bản slot', extra: '<div class="field"><label for="keep-why">Lý do</label><input id="keep-why" data-collect="reason" placeholder="Ví dụ: bản này đã gửi khách duyệt"></div>' });
-      if (!r) return;
-      return done(AC.keepSlotVersion(S, s.id, r.reason), 'Đã giữ bản slot.');
-    }
     if (x === 'edit') {
       const box2 = openLayer(`<h2>Sửa bài slot</h2><p class="small muted">Lưu thành một bản mới trong lịch sử slot; slot về Chưa duyệt. Không thêm số liệu ngoài ô nguồn.</p>
         <div class="field"><label for="se-text">Bài</label><textarea id="se-text" spellcheck="false" style="min-height:300px">${esc(s.text)}</textarea></div>
@@ -450,12 +503,12 @@ export function openSlot(id, browseN, center) {
       const input = readSlotForm(box);
       const newF = AC.byId(S.formats, input.formatId), newCol = input.columnId || (newF && newF.columnId), oldCol = AC.slotColumnId(S, s);
       if (!s.free && s.sourceCellId && newF && newCol && newCol !== oldCol) {
-        const ok = await confirmBox({ title: 'Đổi sang Cột khác?', danger: true, ok: 'Đổi Cột', body: `<p>Slot sẽ chuyển sang Cột "${esc(colName(newCol))}", khác Cột "${esc(colName(oldCol))}". Slot sẽ mất ô nguồn và bài hiện tại, chuyển "Chưa có bài".</p>` });
+        const ok = await confirmBox({ title: 'Đổi sang Cột khác?', danger: true, ok: 'Đổi Cột', body: `<p>Slot sẽ chuyển sang Cột "${esc(colName(newCol))}", khác Cột "${esc(colName(oldCol))}". Slot giữ bài hiện tại; lần Tạo lại sau viết từ ô của Cột mới.</p>` });
         if (!ok) return;
       }
       const r = AC.updateSlot(S, s.id, input);
       if (!r.ok) { $('#sf-err', box).textContent = r.error; return; }
-      closeLayer(); commit(r.cleared ? 'Đã lưu. Slot chuyển "Chưa có bài".' : (r.slot.needsUpdate ? 'Đã lưu. Slot cần cập nhật theo Format mới.' : 'Đã lưu vị trí slot.'));
+      closeLayer(); commit(r.colChanged && r.slot.text ? 'Đã lưu. Slot giữ bài; Tạo lại để viết theo Cột mới.' : 'Đã lưu vị trí slot.');
     }
     if (b.dataset.x === 'delete') {
       const ok = await confirmBox({ title: 'Xóa slot?', danger: true, ok: 'Xóa slot', body: `<p>Xóa slot ${esc(s.time)} ${esc(AC.dmy(s.date))} · ${esc(fmtFull(s.formatId))}${s.text ? ' cùng bài đã viết' : ''}. Ô nguồn trong ma trận không bị ảnh hưởng.${AC.weekSlots(S, s.weekId).length === 1 ? ' Đây là slot cuối của tuần: nút Tuần mẫu sẽ dùng lại được.' : ''}</p>` });
@@ -509,7 +562,13 @@ function cfgActionsHtml(s, locked) {
   if (locked) return `<p class="small faint">${esc(lockNote(s))}</p>`;
   if (s.free && !s.text) return `<div class="row" id="slot-actions"><button class="btn primary" data-x="free-write">Viết nội dung</button><span class="small muted">Slot tự do: bạn tự viết bài và tải ảnh/video trong View.</span></div>`;
   if (!s.text) { const g = AC.slotWriteGate(S, s.id); return `<div class="row" id="slot-actions"><button class="btn primary" data-x="write" ${g.ok ? '' : 'disabled'} title="${esc(g.ok ? 'Viết bài và ảnh từ một ô Đã duyệt của Cột' : g.reason)}">Tạo bài</button><span class="small muted">${esc(g.ok ? 'Tạo bài lấy một ô Đã duyệt của Cột (ô ít slot dùng nhất), hoặc chọn ô cụ thể bên dưới.' : g.reason + '.')}</span></div>`; }
-  if (s.needsUpdate) return `<div class="note warn"><p>Ô nguồn đã đổi sau khi slot được viết.</p><div class="row" id="slot-actions"><button class="btn primary" data-x="update">Cập nhật từ ô</button><button class="btn" data-x="keep">Giữ bản slot</button></div></div>`;
+  // Ô → Slot một chiều (mục 10.88): bài slot không tự đổi theo ô; chỉ báo để biết
+  const st = AC.slotSrcState(S, s); const lock = s.state === 'APPROVED';
+  const unlock = lock ? `<button class="btn" data-x="unlock">${icon('unlock')} Mở khóa</button>` : '';
+  if (st && st.kind === 'video') return `<div class="note warn srcnote" data-testid="slot-srcnote"><p><b>Video có bản mới.</b> ${esc(srcBangTitle(st))}</p><div class="row" id="slot-actions"><button class="btn primary" data-x="vid-upd">Cập nhật video</button><button class="btn" data-x="src-dismiss">Tắt cảnh báo</button></div></div>`;
+  if (st) return `<div class="note warn srcnote" data-testid="slot-srcnote"><p><b>Ô nguồn đã có bản mới.</b> ${esc(srcBangTitle(st))}</p><div class="row" id="slot-actions">${unlock}${lock ? '' : '<button class="btn primary" data-x="regen">Tạo lại theo bản mới</button>'}<button class="btn" data-x="src-dismiss">Tắt cảnh báo</button></div></div>`;
+  if (s.srcGone && !s.free) return `<div class="note srcnote" data-testid="slot-srcgone"><p>Ô nguồn đã bị xóa khỏi Matrix. Slot giữ bài hiện tại; Tạo lại sẽ viết từ một ô Đã duyệt khác cùng Cột.</p>${unlock ? `<div class="row" id="slot-actions">${unlock}</div>` : ''}</div>`;
+  if (lock) return `<div class="row" id="slot-actions">${unlock}<span class="small muted">Đã duyệt nên đang khóa. Mở khóa để sửa hoặc Tạo lại.</span></div>`;
   return '';
 }
 // Phần Ảnh của slot: dùng chung cho chi tiết slot và Sửa trong Xem như khi đăng

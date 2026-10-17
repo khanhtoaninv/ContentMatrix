@@ -120,9 +120,9 @@ const SLOT_STATE = {
 export const CELL_STATE = { EMPTY: ['Trống', 'st-need'], DRAFT: ['Chưa duyệt', 'st-need'], APPROVED: ['Đã duyệt', 'st-ok'], CANCELLED: ['Đã hủy', 'st-off'] };
 function freeTag(s) { return s.videoId ? '' : s.free ? '<span class="free-tag" title="Slot tự do: bạn tự viết bài, tải ảnh/video">Tự viết</span>' : ''; }
 export function slotStateHtml(s) {
-  if (s.needsUpdate) return `<span class="st st-bad">Cần cập nhật</span>`;
   const [l, c] = SLOT_STATE[s.state] || [s.state, 'st-off'];
-  return `<span class="st ${c}">${s.state === 'PUBLISHED' ? '✓ ' : ''}${l}</span>${freeTag(s)}`;
+  // Duyệt là khóa (mục 10.88): slot Đã duyệt có icon khóa
+  return `<span class="st ${c}"${s.state === 'APPROVED' ? ' title="Đã duyệt nên đang khóa. Mở khóa để sửa."' : ''}>${s.state === 'PUBLISHED' ? '✓ ' : s.state === 'APPROVED' ? icon('lock') : ''}${l}</span>${freeTag(s)}`;
 }
 // Icon nền tảng (mục 10.25): logo lấy từ Simple Icons 13.21 (CC0), giữ nguyên hình, tô màu thương hiệu; Blog và nền tảng khác dùng icon trang viết
 const PF_PATH = {
