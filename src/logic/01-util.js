@@ -2,7 +2,7 @@
 export const DATA_VERSION = 'ac-edu-r4-0';
 export const STORAGE_KEY = 'autocontent.state';
 export const RELEASE = 'R4';
-export const BUILD = 118; // số hiệu bản artifact, tăng 1 mỗi lần phát hành (hiện ở chân thanh bên)
+export const BUILD = 119; // số hiệu bản artifact, tăng 1 mỗi lần phát hành (hiện ở chân thanh bên)
 
 export function clone(o) { return JSON.parse(JSON.stringify(o)); }
 

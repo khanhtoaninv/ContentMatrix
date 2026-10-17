@@ -5,7 +5,7 @@ import { editSlot } from './05c-slots.js';
 import { fmtClock, setVideoSubs } from './05n-media.js';
 import { vidThumbOf } from './05x-vidthumb.js';
 import { aiSystem, extractJson } from './05o-aitext.js';
-import { VID_MAX_PER_TOPIC, attachVidRow, ensureShortVid, newVideo, vidGridOf, vidBody, vidSections, vidSettingsOf, vidTopicRow, vidsOf, snapEdit } from './05s-shortvid.js';
+import { VID_MAX_PER_TOPIC, attachVidRow, ensureShortVid, newVideo, vidGridOf, vidBody, vidSections, vidSettingsOf, vidTopicRow, vidsOf, vidFinal } from './05s-shortvid.js';
 // Mọi cách vào cùng đổ về một "dự án dựng" (v.edit): danh sách cảnh, mỗi cảnh có lời, thời lượng, tài nguyên (clip, ảnh hoặc prompt),
 // chữ phủ; kèm giọng đọc, caption, frame, nhạc nền và danh sách cắt. Bản HTML chỉ xem trước trong trình duyệt và xuất lệnh dựng (JSON);
 // xuất video thật để dành cho bộ xuất (ffmpeg trên PC app hoặc máy chủ của web app).
@@ -380,7 +380,6 @@ export function planEdit(S, id) {
   const v = vidGet(S, id); if (!v) return { ok: false, error: 'Không thấy thẻ Vid.' };
   if (v.cancelled) return { ok: false, error: 'Thẻ đã hủy.' };
   const c = vidSettingsOf(S); const o = vidOrigin(v); const ed = editOf(v); ed.seq = ed.seq || 1;
-  snapEdit(S, v, 'Trước khi chia lại cảnh');
   const dur = t => Math.max(1.5, r1(countWords(t) / c.wps));
   const scenes = [];
   if (o === 'talk') {
@@ -413,8 +412,7 @@ export function planEdit(S, id) {
   }
   scenes.forEach(sc => { if (sc.items.length) evenSplit(sc, sc.dur); sc.defDur = sc.dur; });
   ed.scenes = scenes; ed.plannedAt = S.settings.demoNow; ed.simulated = true; ed.tpl = 'script'; ed.capStale = true; ed.segs = null; ed.cues = []; ed.splitFrom = v.script || ''; ed.splitAck = null; ed.doneAt = null;
-  // Chia cảnh là khóa kịch bản (mục 10.88: biên tập chỉ làm khi kịch bản đã khóa)
-  if (v.script && (v.status === 'DRAFT' || v.status === 'TODO')) v.status = 'APPROVED';
+  // Mục 10.90: chia cảnh không tự duyệt kịch bản; người dùng bấm Duyệt Kịch bản
   log(S, 'vid-plan', 'video', id, `${scenes.length} cảnh`);
   return { ok: true, count: scenes.length };
 }
@@ -619,7 +617,7 @@ export function parseVidCaptions(raw, chans) {
 export function scheduleGate(S, vidId) {
   const v = vidGet(S, vidId); if (!v) return { ok: false, error: 'Không thấy thẻ Vid.' };
   if (v.cancelled) return { ok: false, error: 'Thẻ đã hủy.' };
-  if (!v.file) return { ok: false, error: 'Chưa có video thành phẩm. Up video trước.' };
+  if (!vidFinal(v)) return { ok: false, error: v.file ? 'Video chưa là thành phẩm: Duyệt Biên tập (video khớp bản biên tập) trước.' : 'Chưa có video thành phẩm. Ren Vid rồi Duyệt Biên tập trước.' };
   if (isLocked(S, v.weekId)) return { ok: false, error: 'Tuần đã chốt. Bấm "Mở lại để sửa" ở Dashboard trước.' };
   return { ok: true, video: v };
 }

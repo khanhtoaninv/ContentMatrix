@@ -4,6 +4,8 @@ import { S } from './00-state.js';
 import { $, closeLayer, confirmBox, esc, icon, openLayer, save, toast } from './01-core.js';
 import { downloadBytes } from './06-export.js';
 import { readMedia, sttOk, transcribe } from './09b-vidfree.js';
+// Nút Tạo mới nằm ở menu Phân cảnh (mục 10.90): chưa hiện thì sang Phân cảnh trước rồi bấm
+const clickWrite = box => { if (!box.querySelector('[data-x="write"]')) { const nb = box.querySelector('[data-nav="ks:scene"]'); if (nb) nb.click(); } const w = box.querySelector('[data-x="write"]'); if (w) w.click(); };
 import { renderOne } from './09c-videdit.js';
 
 const GL = { idea: 'Ý', script: 'KB', matrix: 'MX', voice: '♪', talk: 'Nói', broll: 'Clip', image: 'Ảnh', long: 'Dài', subs: 'Sub', article: 'Bài', product: 'SP', vlink: 'Link', sample: 'Mẫu', data: 'Số', comment: 'BL', oldvid: 'Vid' };
@@ -128,7 +130,7 @@ export const mixSubOf = id => SUB[id] || 'in';
 // ---- Thanh lô, Cần quay ----
 export function lotHtml(v) {
   const list = AC.batchOf(S, v); if (list.length < 2) return '';
-  return `<div class="vm-lot" data-testid="vm-lot"><b>Lô ${list.length} thẻ:</b>${list.map((x, i) => `<button type="button" class="it" data-mx="cur" data-id="${esc(x.id)}" aria-pressed="${x.id === v.id}" title="${esc(x.insight.title)}">${AC.vidEditDone(x) ? '✓ ' : ''}${i + 1} · ${esc(x.insight.title.replace(/^Short \d+\/\d+:\s*/, '').slice(0, 24))}</button>`).join('')}<span class="r"><button type="button" class="btn sm" data-mx="doneAll" data-testid="vm-doneall">Hoàn thành cả lô</button><button type="button" class="btn sm" data-mx="renderAll" data-testid="vm-renderall">Ren cả lô</button></span></div>`;
+  return `<div class="vm-lot" data-testid="vm-lot"><b>Lô ${list.length} thẻ:</b>${list.map((x, i) => `<button type="button" class="it" data-mx="cur" data-id="${esc(x.id)}" aria-pressed="${x.id === v.id}" title="${esc(x.insight.title)}">${AC.vidEditDone(x) ? '✓ ' : ''}${i + 1} · ${esc(x.insight.title.replace(/^Short \d+\/\d+:\s*/, '').slice(0, 24))}</button>`).join('')}<span class="r"><button type="button" class="btn sm" data-mx="doneAll" data-testid="vm-doneall">Duyệt Biên tập cả lô</button><button type="button" class="btn sm" data-mx="renderAll" data-testid="vm-renderall">Ren cả lô</button></span></div>`;
 }
 export function shootBannerHtml(v) {
   const l = AC.shootList(v); if (!l.length) return '';
@@ -183,7 +185,7 @@ export function bindMix(box, id, ctx) {
   });
   if (!isMix) {
     box.addEventListener('click', e => { const b = e.target.closest('[data-mx="vlen"]'); if (b && !b.disabled) setLen(Number(b.dataset.v)); });
-    box.addEventListener('click', e => { const b = e.target.closest('[data-mx="rewrite"]'); if (!b || b.disabled) return; const w = box.querySelector('[data-x="write"]'); if (w) w.click(); });
+    box.addEventListener('click', e => { const b = e.target.closest('[data-mx="rewrite"]'); if (!b || b.disabled) return; clickWrite(box); });
     return;
   }
   // --- chỉ thẻ Vid tự do ---
@@ -222,7 +224,7 @@ export function bindMix(box, id, ctx) {
     const b = e.target.closest('[data-mx]'); if (!b || b.disabled) return; const k = b.dataset.mx; const v = cur(); if (!v) return;
     if (ctx.ro && k !== 'cur') return; ctx.err('');
     if (k === 'vlen') return setLen(Number(b.dataset.v));
-    if (k === 'rewrite') { const w = box.querySelector('[data-x="write"]'); if (w) w.click(); return; }
+    if (k === 'rewrite') { clickWrite(box); return; }
     if (k === 'cur') { if (!ctx.persist()) return; ctx.open(b.dataset.id); return; }
     if (k === 'pick') { const f = box.querySelector('#vm-file'); if (f) f.click(); return; }
     if (k === 'paste') { const t = box.querySelector('#vm-paste'); if (t && t.value.trim()) { addText(t.value); } else ctx.err('Dán chữ hoặc link vào ô trước.'); return; }
@@ -284,12 +286,12 @@ export function bindMix(box, id, ctx) {
       const cf = AC.confirmMixOutline(S, id); if (!cf.ok) return ctx.err(cf.error);
       if (v.script && !(await confirmBox({ title: 'Viết lại kịch bản?', body: '<p>Kịch bản và phần biên tập hiện có lùi vào danh sách bản cũ (xem bằng nút ‹ ›); thẻ có kịch bản mới từ dàn ý này.</p>', ok: 'Viết lại' }))) return;
       const p = await buildOne(id); if (!p.ok) { if (!p.stopped) ctx.err(p.error); return; }
-      ctx.nav.tab = 'ks'; ctx.nav.ks = 'scene'; afterPlan(p, `Đã viết kịch bản và chia ${p.count} cảnh. Sửa nếu cần rồi bấm Biên tập để duyệt.`); return;
+      ctx.nav.tab = 'ks'; ctx.nav.ks = 'scene'; afterPlan(p, `Đã viết kịch bản và chia ${p.count} cảnh. Kịch bản đã duyệt; muốn sửa thì bấm Sửa Kịch bản.`); return;
     }
     if (k === 'doneAll') {
       if (!ctx.persist()) return;
       const r = AC.finishMixBatch(S, id); if (!r.ok) return ctx.err(r.error); save(); show();
-      toast(`Hoàn thành ${r.done.length} thẻ.${r.blocked.length ? ` ${r.blocked.length} thẻ chưa xong (${r.blocked.map(x => x.why).join('; ')}).` : ''}`, r.blocked.length ? 'bad' : ''); return;
+      toast(`Đã duyệt Biên tập ${r.done.length} thẻ.${r.blocked.length ? ` ${r.blocked.length} thẻ chưa xong (${r.blocked.map(x => x.why).join('; ')}).` : ''}`, r.blocked.length ? 'bad' : ''); return;
     }
     if (k === 'renderAll') {
       if (!ctx.persist()) return;

@@ -1142,6 +1142,11 @@ button.kchip { cursor: pointer; font: inherit; color: inherit; }
 .vp-sc { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 10px; padding: 9px; border: 1px solid var(--line); border-radius: var(--r-m, 10px); margin-bottom: 8px; background: var(--surface); scroll-margin-top: 8px; }
 .vp-sc[aria-current="true"] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, var(--surface)); box-shadow: 0 0 0 1px var(--accent); }
 .vp-scb { display: grid; gap: 4px; min-width: 0; }
+/* Mục 10.90: ô bảng Phân cảnh tự cao theo nội dung, không kéo giãn */
+.vp-phc textarea.vp-ag { min-height: 0; height: auto; line-height: 1.45; resize: none; overflow: hidden; border-radius: 12px; font-size: 13px; padding: 6px 11px; field-sizing: content; }
+.vp-tlk { display: inline-flex; margin-left: 4px; vertical-align: -2px; } .vp-tlk svg { width: 14px; height: 14px; }
+.sv-fin { display: inline-flex; color: var(--good); } .sv-fin svg { width: 16px; height: 16px; }
+#sp-acts { justify-content: flex-end; }
 textarea.vp-r2, .vp-scb textarea.vp-r2 { height: calc(2 * 1.45em + 14px); min-height: 0; line-height: 1.45; resize: vertical; border-radius: 12px; font-size: 13px; padding: 6px 11px; }
 .vp-f { display: block; font-size: var(--fs-1); color: var(--ink-3); margin-bottom: 2px; }
 .vp-stale { background: var(--warn-soft); color: var(--warn); border-radius: var(--r-s); padding: 7px 10px; font-size: var(--fs-2); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
@@ -8728,7 +8733,6 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		const o = vidOrigin(v);
 		const ed = editOf(v);
 		ed.seq = ed.seq || 1;
-		snapEdit(S, v, "Trước khi chia lại cảnh");
 		const dur = (t) => Math.max(1.5, r1$2(countWords(t) / c.wps));
 		const scenes = [];
 		if (o === "talk") {
@@ -8825,7 +8829,6 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		ed.splitFrom = v.script || "";
 		ed.splitAck = null;
 		ed.doneAt = null;
-		if (v.script && (v.status === "DRAFT" || v.status === "TODO")) v.status = "APPROVED";
 		log(S, "vid-plan", "video", id, `${scenes.length} cảnh`);
 		return {
 			ok: true,
@@ -9450,9 +9453,9 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 			ok: false,
 			error: "Thẻ đã hủy."
 		};
-		if (!v.file) return {
+		if (!vidFinal(v)) return {
 			ok: false,
-			error: "Chưa có video thành phẩm. Up video trước."
+			error: v.file ? "Video chưa là thành phẩm: Duyệt Biên tập (video khớp bản biên tập) trước." : "Chưa có video thành phẩm. Ren Vid rồi Duyệt Biên tập trước."
 		};
 		if (isLocked(S, v.weekId)) return {
 			ok: false,
@@ -9986,6 +9989,7 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		}
 		S.videos.forEach((v) => {
 			if (v.edit) migrateEdit(v.edit);
+			if (v.status === "APPROVED" && String(v.script || "").trim() && !v.apprSnap) v.apprSnap = scriptSnap(v);
 			if ((v.history || []).some((h) => h.edit)) {
 				const H = v.editHist = v.editHist || [];
 				v.history.forEach((h) => {
@@ -10878,10 +10882,7 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 			ok: false,
 			error: "Kịch bản đã hủy. Bấm Khôi phục trước."
 		};
-		if (v.status === "IDEA") return {
-			ok: false,
-			error: "Duyệt danh sách Insight trước khi viết kịch bản."
-		};
+		if (v.status === "IDEA") v.status = "TODO";
 		let r = res && res.ok ? res : null;
 		if (!r) {
 			const m = mockScript(S, v);
@@ -10896,7 +10897,6 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 			r = Object.assign({ simulated: true }, m);
 		}
 		const f = byId(S.vidFormats, v.formatId);
-		if (v.script) pushVersion(v);
 		v.script = r.script;
 		v.prompts = {
 			audio: r.audio || (v.kind === "bantin" ? (vidSections(r.script).find((s) => /máy/i.test(s.label)) || {}).text || "" : ""),
@@ -10950,15 +10950,30 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 			changed: true
 		};
 	}
+	var scriptSnap = (v) => ({
+		script: v.script || "",
+		prompts: clone$1(v.prompts || {
+			audio: "",
+			image: ""
+		}),
+		insight: clone$1(v.insight),
+		at: v.writtenAt || "",
+		ai: v.ai || null,
+		topicVer: v.topicVer == null ? null : v.topicVer
+	});
+	var snapDiffers = (a, v) => normScript(a.script) !== normScript(v.script) || JSON.stringify(a.insight || {}) !== JSON.stringify(v.insight || {});
+	var scriptDraft = (v) => !!(v && v.apprSnap && v.status !== "APPROVED" && snapDiffers(v.apprSnap, v));
 	function vidVersions(v) {
 		const H = v.history = v.history || [];
 		if (!(v.verN > 0)) v.verN = H.length + 1;
 		H.forEach((h, i) => {
 			if (!(h.n > 0)) h.n = Math.max(1, v.verN - 1 - i);
 		});
+		const d = scriptDraft(v);
 		return H.slice().reverse().concat([{
-			n: v.verN,
+			n: v.verN + (d ? 1 : 0),
 			current: true,
+			draft: d || v.status !== "APPROVED" && !v.apprSnap,
 			script: v.script,
 			prompts: v.prompts,
 			insight: v.insight,
@@ -10966,17 +10981,9 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 			ai: v.ai || null
 		}]);
 	}
-	function pushVersion(v) {
+	function pushSnap(v, a) {
 		vidVersions(v);
-		v.history = [{
-			n: v.verN,
-			script: v.script,
-			prompts: clone$1(v.prompts),
-			insight: clone$1(v.insight),
-			at: v.writtenAt || "",
-			ai: v.ai || null,
-			topicVer: v.topicVer == null ? null : v.topicVer
-		}].concat(v.history).slice(0, 4);
+		v.history = [Object.assign({ n: v.verN }, clone$1(a))].concat(v.history).slice(0, 4);
 		v.verN = Math.max(v.verN, ...v.history.map((h) => h.n)) + 1;
 	}
 	function useVidVersion(S, id, n) {
@@ -10996,7 +11003,6 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 			error: "Không thấy bản này."
 		};
 		const src = clone$1(h);
-		pushVersion(v);
 		v.script = src.script || "";
 		v.prompts = src.prompts || {
 			audio: "",
@@ -11010,11 +11016,11 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		log(S, "vid-version", "video", id, `từ bản ${h.n}`);
 		return {
 			ok: true,
-			n: v.verN,
+			n: vidVersions(v).slice(-1)[0].n,
 			from: h.n
 		};
 	}
-	var SCRIPT_LOCK_MSG = "Vui lòng khóa Kịch bản trước khi biên tập.";
+	var SCRIPT_LOCK_MSG = "Vui lòng Duyệt Kịch bản trước khi biên tập.";
 	var scriptOpen = (v) => !!(v && String(v.script || "").trim() && v.status !== "APPROVED");
 	function unlockVidScript(S, id) {
 		const v = vidGet$3(S, id);
@@ -11051,15 +11057,36 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		} : null;
 	}
 	var normScript = (t) => String(t || "").replace(/\s+/g, " ").trim();
+	function editSig(v) {
+		const e = Object.assign({}, v.edit || {});
+		delete e.doneAt;
+		delete e.plannedAt;
+		const s = JSON.stringify([v.script || "", e]);
+		let h = 5381;
+		for (let i = 0; i < s.length; i++) h = (h << 5) + h + s.charCodeAt(i) | 0;
+		return (h >>> 0).toString(36);
+	}
+	var freshFile = (v) => !!(v && v.file && (!v.file.rendered || v.file.sig === editSig(v)));
 	function snapEdit(S, v, why) {
 		const ed = v && v.edit;
 		if (!ed || !(ed.scenes || []).length) return null;
 		const H = v.editHist = v.editHist || [];
-		const j = JSON.stringify(ed);
-		if (H[0] && JSON.stringify(H[0].edit) === j) return H[0];
+		const strip = (x) => {
+			const o = Object.assign({}, x);
+			delete o.doneAt;
+			return JSON.stringify(o);
+		};
+		const j = strip(ed);
+		const file = v.file && v.file.rendered ? clone$1(v.file) : null;
+		if (H[0] && strip(H[0].edit) === j) {
+			H[0].file = file;
+			H[0].at = S.settings.demoNow;
+			return H[0];
+		}
 		const h = {
 			n: v.editN = Math.max(v.editN || 0, ...H.map((h) => h.n)) + 1,
 			edit: JSON.parse(j),
+			file,
 			at: S.settings.demoNow,
 			why: String(why || "")
 		};
@@ -11086,15 +11113,69 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 			ok: false,
 			error: "Không thấy bản biên tập này."
 		};
-		const src = clone$1(h.edit);
-		snapEdit(S, v, `Trước khi dùng lại bản ${h.n}`);
-		v.edit = migrateEdit(src);
+		v.edit = migrateEdit(clone$1(h.edit));
+		v.edit.doneAt = null;
+		if (h.file) restoreFile(S, v, h.file);
 		log(S, "vid-edit-version", "video", id, `từ bản ${h.n}`);
 		return {
 			ok: true,
 			from: h.n
 		};
 	}
+	function restoreFile(S, v, f) {
+		v.file = f ? clone$1(f) : null;
+		const lib = f && f.libId && (S.library || []).find((x) => x.id === f.libId);
+		if (lib && f.src) {
+			lib.src = f.src;
+			if (f.cover && f.cover.src) lib.cover = f.cover.src;
+			if (f.dur) lib.dur = f.dur;
+		}
+	}
+	function approveEdit(S, v) {
+		if (v.file && v.file.rendered && !freshFile(v)) return {
+			ok: false,
+			error: "Video đã ren không khớp bản biên tập hiện tại. Ren lại trước khi Duyệt Biên tập."
+		};
+		v.edit.doneAt = S.settings.demoNow;
+		const h = snapEdit(S, v, "Duyệt Biên tập");
+		v.editAppr = {
+			n: h ? h.n : null,
+			edit: clone$1(v.edit),
+			file: v.file ? clone$1(v.file) : null
+		};
+		log(S, "vid-edit-approve", "video", v.id, h ? `bản ${h.n}` : "");
+		return {
+			ok: true,
+			n: h ? h.n : null
+		};
+	}
+	var canCancelEdit = (v) => !!(v && v.editAppr && v.edit && !v.edit.doneAt);
+	function cancelEdit(S, id) {
+		const v = vidGet$3(S, id);
+		if (!v) return {
+			ok: false,
+			error: "Không thấy video."
+		};
+		if (v.cancelled) return {
+			ok: false,
+			error: "Thẻ đã hủy."
+		};
+		if (!canCancelEdit(v)) return {
+			ok: false,
+			error: "Chưa có bản Biên tập đã duyệt để quay về."
+		};
+		const a = v.editAppr;
+		const cur = v.file;
+		if (cur && cur.rendered && cur.libId && !(a.file && a.file.libId === cur.libId)) S.library = (S.library || []).filter((x) => x.id !== cur.libId);
+		v.edit = migrateEdit(clone$1(a.edit));
+		restoreFile(S, v, a.file);
+		log(S, "vid-edit-cancel", "video", id, a.n ? `về bản ${a.n}` : "");
+		return {
+			ok: true,
+			n: a.n
+		};
+	}
+	var vidFinal = (v) => !!(v && !v.cancelled && v.file && (!v.file.rendered || v.edit && v.edit.doneAt && freshFile(v)));
 	function scriptChanged(v) {
 		const ed = v && v.edit;
 		if (!ed || !(ed.scenes || []).length || ed.splitFrom == null) return false;
@@ -11117,8 +11198,8 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 		const off = !v || v.cancelled;
 		const mix = v && v.origin === "mix";
 		const src = has || (v && v.media || []).length > 0 || !!(v && v.edit && (v.edit.scenes || []).length);
-		const bt = idea ? "Duyệt Insight trước" : off ? "Thẻ đã hủy" : mix && !has ? "Nạp nguyên liệu rồi Dựng nhanh hoặc lập Dàn ý" : !src ? "Chưa có kịch bản hoặc tệp nguồn" : scriptOpen(v) ? "Khóa Kịch bản (xong Phân cảnh) trước khi biên tập" : "";
-		const sl = idea ? "Duyệt Insight trước" : off ? "Thẻ đã hủy" : !v.file ? "Cần Ren Vid hoặc Up video trước" : "";
+		const bt = idea ? "Tạo Kịch bản trước" : off ? "Thẻ đã hủy" : mix && !has ? "Nạp nguyên liệu rồi Dựng nhanh hoặc lập Dàn ý" : !src ? "Chưa có kịch bản hoặc tệp nguồn" : scriptOpen(v) ? "Duyệt Kịch bản trước khi biên tập" : "";
+		const sl = idea ? "Tạo Kịch bản trước" : off ? "Thẻ đã hủy" : vidFinal(v) ? "" : !v.file ? "Ren Vid rồi Duyệt Biên tập trước" : !editLocked(v) ? "Duyệt Biên tập trước" : "Video lệch bản biên tập: Sửa Biên tập, Ren lại rồi Duyệt";
 		return {
 			bt: {
 				ok: !bt,
@@ -11145,6 +11226,11 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 			ok: true,
 			changed: false
 		};
+		if (!v.editAppr) v.editAppr = {
+			n: null,
+			edit: clone$1(v.edit),
+			file: v.file ? clone$1(v.file) : null
+		};
 		v.edit.doneAt = null;
 		log(S, "vid-edit-unlock", "video", id);
 		return {
@@ -11166,9 +11252,18 @@ AutoContent gửi mỗi bài Blog đã duyệt tới web bằng một yêu cầu
 			ok: false,
 			error: "Chưa có kịch bản để duyệt."
 		};
+		vidVersions(v);
+		const a = v.apprSnap;
+		const added = !!(a && snapDiffers(a, v));
+		if (added) pushSnap(v, a);
+		v.apprSnap = scriptSnap(v);
 		v.status = "APPROVED";
-		log(S, "vid-approve", "video", id);
-		return { ok: true };
+		log(S, "vid-approve", "video", id, `bản ${v.verN}`);
+		return {
+			ok: true,
+			n: v.verN,
+			added
+		};
 	}
 	function toggleVidCancel(S, id) {
 		const v = vidGet$3(S, id);
@@ -18165,7 +18260,6 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		};
 		const ed = editOf(v);
 		const c = vidSettingsOf(S);
-		snapEdit(S, v, "Trước khi đổi mẫu dựng");
 		const k = Math.min(T.w.length, ss.length);
 		const W = T.w.slice(0, k);
 		const sum = W.reduce((a, x) => a + x, 0);
@@ -18242,8 +18336,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			ok: false,
 			error: `Cảnh ${bl.map((x) => x.i + 1).join(", ")} chưa có hình: Up hình hoặc chọn Dùng thẻ giữ chỗ.`
 		};
-		ed.doneAt = S.settings.demoNow;
-		return { ok: true };
+		return approveEdit(S, v);
 	}
 	var vidEditDone = (v) => !!(v && (v.file || v.edit && v.edit.doneAt));
 	function setEditMode(S, id, mode) {
@@ -18907,15 +19000,6 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 	//#region src/logic/05w-vidrender.js
 	var SIM_WEBM = "data:video/webm;base64,GkXfo59ChoEBQveBAULygQRC84EIQoKEd2VibUKHgQJChYECGFOAZwEAAAAAAAhQEU2bdLpNu4tTq4QVSalmU6yBoU27i1OrhBZUrmtTrIHYTbuMU6uEElTDZ1OsggEfTbuMU6uEHFO7a1Osggg67AEAAAAAAABZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAVSalmsirXsYMPQkBNgI1MYXZmNjAuMTYuMTAwV0GNTGF2ZjYwLjE2LjEwMESJiECfQAAAAAAAFlSua8KuAQAAAAAAADnXgQFzxYix837xQvhxbZyBACK1nIN1bmSIgQCGhVZfVlA4g4EBI+ODhAJiWgDgirCBtLqCAUCagQISVMNn/HNzoGPAgGfImkWjh0VOQ09ERVJEh41MYXZmNjAuMTYuMTAwc3PWY8CLY8WIsfN+8UL4cW1nyKFFo4dFTkNPREVSRIeUTGF2YzYwLjMxLjEwMiBsaWJ2cHhnyKFFo4hEVVJBVElPTkSHkzAwOjAwOjAyLjAwMDAwMDAwMAAfQ7Z1RpTngQCjQKOBAACAkA8AnQEqtABAAQBHCIWFiIWEiAICAnWqA/gCBoaE9waBZJ9r25snOHsnOHsnOHsnOHsnOHsnOHsnOHsnOHsnOHsnOHsnOHsnOHsnOHsnOHsnOHsnOHsnOHsnOHsnOHsnOHsnOHsnOHsnOHsnOHsnOHsnOHsnOHsnOHsnOHsnOHsnOHsnLgD+/00S//xYV/FhX8WFf/FhX/z8zu3F/OYAo52BACgAsQIAARAQABgAGFgv9AAIgCVjGpFkPu8AAKOdgQBQALECAAEQEAAYABhYL/QACIAlYxqRZD7vAACjnYEAeACxAgABEBAAGAAYWC/0AAiAJWMakWQ+7wAAo52BAKAAsQIAARAQABgAGFgv9AAIgCVjGpFkPu8AAKOdgQDIALECAAEQEAAYABhYL/QACIAlYxqRZD7vAACjnYEA8ACxAgABEBAAGAAYWC/0AAiAJWMakWQ+7wAAo5yBARgAkQIAARAQFGAAYWC/0AAiAJWMakWQ+7wAo52BAUAAsQIAARAQABgAGFgv9AAIgCVjGpFkPu8AAKOdgQFoALECAAEQEAAYABhYL/QACIAlYxqRZD7vAACjnYEBkACxAgABEBAAGAAYWC/0AAiAJWMakWQ+7wAAo52BAbgAsQIAARAQABgAGFgv9AAIgCVjGpFkPu8AAKOdgQHgALECAAEQEAAYABhYL/QACIAlYxqRZD7vAACjnYECCACxAgABEBAAGAAYWC/0AAiAJWMakWQ+7wAAo52BAjAAsQIAARAQABgAGFgv9AAIgCVjGpFkPu8AAKOdgQJYALECAAEQEAAYABhYL/QACIAlYxqRZD7vAACjnYECgACxAgABEBAAGAAYWC/0AAiAJWMakWQ+7wAAo52BAqgAsQIAARAQABgAGFgv9AAIgCVjGpFkPu8AAKOcgQLQAJECAAEQEBRgAGFgv9AAIgCVjGpFkPu8AKOdgQL4ALECAAEQEAAYABhYL/QACIAlYxqRZD7vAACjnYEDIACxAgABEBAAGAAYWC/0AAiAJWMakWQ+7wAAo52BA0gAsQIAARAQABgAGFgv9AAIgCVjGpFkPu8AAKOdgQNwALECAAEQEAAYABhYL/QACIAlYxqRZD7vAACjnYEDmACxAgABEBAAGAAYWC/0AAiAJWMakWQ+7wAAo52BA8AAsQIAARAQABgAGFgv9AAIgCVjGpFkPu8AAKOdgQPoALECAAEQEAAYABhYL/QACIAlYxqRZD7vAACjnYEEEACxAgABEBAAGAAYWC/0AAiAJWMakWQ+7wAAo52BBDgAsQIAARAQABgAGFgv9AAIgCVjGpFkPu8AAKOdgQRgALECAAEQEAAYABhYL/QACIAlYxqRZD7vAACjnIEEiACRAgABEBAUYABhYL/QACIAlYxqRZD7vACjnYEEsACxAgABEBAAGAAYWC/0AAiAJWMakWQ+7wAAo52BBNgAsQIAARAQABgAGFgv9AAIgCVjGpFkPu8AAKOdgQUAALECAAEQEAAYABhYL/QACIAlYxqRZD7vAACjnYEFKACxAgABEBAAGAAYWC/0AAiAJWMakWQ+7wAAo52BBVAAsQIAARAQABgAGFgv9AAIgCVjGpFkPu8AAKOdgQV4ALECAAEQEAAYABhYL/QACIAlYxqRZD7vAACjnYEFoACxAgABEBAAGAAYWC/0AAiAJWMakWQ+7wAAo52BBcgAsQIAARAQABgAGFgv9AAIgCVjGpFkPu8AAKOdgQXwALECAAEQEAAYABhYL/QACIAlYxqRZD7vAACjnYEGGACxAgABEBAAGAAYWC/0AAiAJWMakWQ+7wAAo5yBBkAAkQIAARAQFGAAYWC/0AAiAJWMakWQ+7wAo52BBmgAsQIAARAQABgAGFgv9AAIgCVjGpFkPu8AAKOdgQaQALECAAEQEAAYABhYL/QACIAlYxqRZD7vAACjnYEGuACxAgABEBAAGAAYWC/0AAiAJWMakWQ+7wAAo52BBuAAsQIAARAQABgAGFgv9AAIgCVjGpFkPu8AAKOdgQcIALECAAEQEAAYABhYL/QACIAlYxqRZD7vAACjnYEHMACxAgABEBAAGAAYWC/0AAiAJWMakWQ+7wAAo52BB1gAsQIAARAQABgAGFgv9AAIgCVjGpFkPu8AAKOdgQeAALECAAEQEAAYABhYL/QACIAlYxqRZD7vAACjnYEHqACxAgABEBAAGAAYWC/0AAiAJWMakWQ+7wAAHFO7a5G7j7OBALeK94EB8YIBoPCBAw==";
 	var vidGet$1 = (S, id) => byId(S.videos || [], id);
-	function editSig(v) {
-		const e = Object.assign({}, v.edit || {});
-		delete e.doneAt;
-		delete e.plannedAt;
-		const s = JSON.stringify([v.script || "", e]);
-		let h = 5381;
-		for (let i = 0; i < s.length; i++) h = (h << 5) + h + s.charCodeAt(i) | 0;
-		return (h >>> 0).toString(36);
-	}
 	function renderBlockers(v) {
 		if (!v) return "Không thấy thẻ Vid.";
 		if (v.cancelled) return "Thẻ đã hủy.";
@@ -18923,7 +19007,6 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		if (scriptOpen(v)) return SCRIPT_LOCK_MSG;
 		const bl = editBlockers(v);
 		if (bl.length) return `Cảnh ${bl.map((x) => x.i + 1).join(", ")} chưa có hình.`;
-		if (!v.edit.doneAt) return "Chưa Hoàn thành biên tập.";
 		if (v.file && !v.file.rendered) return "Thẻ đang dùng video Up ngoài app. Bỏ video đó trước nếu muốn ren.";
 		return "";
 	}
@@ -18962,7 +19045,6 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			replaceId: v.file && v.file.libId
 		}, S.settings.demoNow);
 		if (!lib.ok) return lib;
-		snapEdit(S, v, "Bản đã ren");
 		v.file = {
 			kind: "video",
 			src: out.src,
@@ -18975,6 +19057,11 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			dur,
 			libId: lib.item.id
 		};
+		if (v.edit.doneAt) {
+			if (v.editAppr) v.editAppr.file = JSON.parse(JSON.stringify(v.file));
+			const h = (v.editHist || [])[0];
+			if (h && v.editAppr && h.n === v.editAppr.n) h.file = JSON.parse(JSON.stringify(v.file));
+		}
 		log(S, "vid-render", "video", id, `${dur} giây · Kho ${lib.item.id}${lib.updated ? " (thay bản cũ)" : ""}`);
 		return {
 			ok: true,
@@ -19793,6 +19880,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		};
 		let r = planEdit(S, id);
 		if (!r.ok) return r;
+		approveVidScript(S, id);
 		const own = (vidLibOf(S).tpls || []).find((t) => t.id === v.tplId);
 		if (v.tplId && VID_TEMPLATES[v.tplId] && v.tplId !== "script") {
 			const a = applyTemplate(S, id, v.tplId);
@@ -20201,7 +20289,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		const days = suggestVidDates(S, v.weekId, todo.length || 1);
 		const made = [], skipped = [];
 		todo.forEach((x, i) => {
-			if (!x.file) {
+			if (!vidFinal(x)) {
 				skipped.push(x.id);
 				return;
 			}
@@ -20290,7 +20378,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		DATA_VERSION,
 		STORAGE_KEY,
 		RELEASE: "R4",
-		BUILD: 118,
+		BUILD: 119,
 		TEMPLATES,
 		STEP_NAMES,
 		STEP_COUNT,
@@ -20786,6 +20874,11 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		deleteSkill,
 		skillOwnerOf,
 		skillBlock,
+		scriptDraft,
+		approveEdit,
+		canCancelEdit,
+		cancelEdit,
+		vidFinal,
 		vidStageGate,
 		editLocked,
 		unlockEdit,
@@ -29499,6 +29592,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		edit: "<path d=\"M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4\"/>",
 		upload: "<path d=\"M12 16V4M7 9l5-5 5 5M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3\"/>",
 		check: "<path d=\"M5 12.5l4.5 4.5L19 7.5\"/>",
+		checkc: "<circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M8 12.3l2.8 2.8L16.2 9.5\"/>",
 		gear: "<circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h0a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5h0a1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v0a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z\"/>",
 		eye: "<path d=\"M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z\"/><circle cx=\"12\" cy=\"12\" r=\"3\"/>",
 		more: "<circle cx=\"5\" cy=\"12\" r=\"1.4\"/><circle cx=\"12\" cy=\"12\" r=\"1.4\"/><circle cx=\"19\" cy=\"12\" r=\"1.4\"/>",
@@ -30913,13 +31007,13 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 	var renderNote = (v) => {
 		const ed = v.edit;
 		const rs = AC.renderState(v);
-		return !ed.doneAt ? rs === "ext" ? "Thẻ đang dùng video Up ngoài app." : "Đủ hình cho mọi cảnh" : rs === "fresh" ? "Đã ren video và lưu vào Kho. Sang Xếp Slot để chọn ngày giờ." : rs === "stale" ? "Biên tập đã đổi sau lần ren cuối: ren lại để video khớp." : rs === "ext" ? "Đã hoàn thành. Thẻ đang dùng video Up ngoài app." : "Đã hoàn thành. Bấm Ren Vid để tạo video.";
+		return ed.doneAt ? rs === "fresh" ? "Đã duyệt. Video thành phẩm đã lưu vào Kho; sang Xếp Slot để chọn ngày giờ." : rs === "ext" ? "Đã duyệt. Thẻ đang dùng video Up ngoài app." : rs === "stale" ? "Đã duyệt nhưng video lệch bản biên tập: bấm Sửa Biên tập, Ren lại rồi Duyệt." : "Đã duyệt, chưa có video: bấm Sửa Biên tập rồi Ren Vid." : rs === "fresh" ? "Video khớp bản biên tập. Bấm Duyệt Biên tập để sang Xếp Slot." : rs === "stale" ? "Biên tập đã đổi sau lần ren cuối: Ren lại trước khi Duyệt Biên tập." : rs === "ext" ? "Thẻ đang dùng video Up ngoài app." : "Đủ hình cho mọi cảnh. Bấm Ren Vid để tạo video, rồi Duyệt Biên tập.";
 	};
 	var renderBtn = (v, bl) => {
-		if (!v.edit.doneAt || bl.length) return "";
+		if (v.edit.doneAt || bl.length) return "";
 		const rs = AC.renderState(v);
 		if (rs === "ext") return "";
-		return `<button class="btn primary" data-a="render" data-testid="ve-render" ${isRendering(v.id) ? "disabled" : ""}>${rs === "fresh" ? "Ren lại" : rs === "stale" ? "Ren lại" : "Ren Vid"}</button><span class="small muted" id="ve-prog" aria-live="polite"></span>`;
+		return `<button class="btn primary" data-a="render" data-testid="ve-render" ${isRendering(v.id) ? "disabled" : ""}>${rs === "none" ? "Ren Vid" : "Ren lại"}</button><span class="small muted" id="ve-prog" aria-live="polite"></span>`;
 	};
 	function bodyHtml(v, st, ro, lockd) {
 		v.edit;
@@ -30928,15 +31022,12 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		const lfs = lockd && !st.cap && st.sub !== "scene" ? "" : dis;
 		const bl = AC.editBlockers(v);
 		const iss = ro ? [] : AC.editIssues(S, v);
-		const chg = (!ro || lockd) && AC.scriptChanged(v) ? `<div class="vp-stale" data-testid="ve-scrchg"><span><b>Kịch bản đã đổi.</b> Các cảnh vẫn theo kịch bản lúc chia cảnh.${lockd ? " Mở khóa Biên tập để cập nhật." : ""}</span><button class="btn sm" data-a="scr-skip" data-testid="ve-scrskip" ${lockd ? "disabled" : ""}>Bỏ qua</button><button class="btn sm primary" ${lockd ? "disabled" : ""} data-a="scr-upd" data-testid="ve-scrupd" title="Chia lại cảnh theo kịch bản mới; bản biên tập hiện tại lưu vào Lịch sử biên tập">Cập nhật theo kịch bản</button></div>` : "";
-		const eh = ro ? [] : AC.editVersions(v);
-		const hist = eh.length ? `<label class="small" for="ve-ehist">Lịch sử biên tập</label><select id="ve-ehist" data-testid="ve-ehist">${eh.map((h) => `<option value="${h.n}">Bản ${h.n} · ${esc(h.at || "")}${h.why ? ` · ${esc(h.why)}` : ""}</option>`).join("")}</select><button class="btn sm" data-a="ehist-use" data-testid="ve-ehistuse" title="Dùng lại bản biên tập này; bản hiện tại lưu vào lịch sử">Dùng bản này</button>` : "";
-		return `${chg}<div class="vp-ed"><div class="vp-l"><div class="vp-mini" role="tablist" aria-label="Công cụ biên tập"><button role="tab" data-a="sub" data-k="scene" aria-selected="${st.sub === "scene" && !st.cap}" data-testid="ve-sub-scene">Scene</button><button role="tab" data-a="sub" data-k="set" aria-selected="${st.sub === "set" || st.cap}" data-testid="ve-sub-set">Cài đặt</button></div><fieldset class="vp-fs" ${lfs}>${left}</fieldset></div>
+		return `${(!ro || lockd) && AC.scriptChanged(v) ? `<div class="vp-stale" data-testid="ve-scrchg"><span><b>Kịch bản đã đổi.</b> Các cảnh vẫn theo kịch bản lúc chia cảnh.${lockd ? " Bấm Sửa Biên tập để cập nhật." : ""}</span><button class="btn sm" data-a="scr-skip" data-testid="ve-scrskip" ${lockd ? "disabled" : ""}>Bỏ qua</button><button class="btn sm primary" ${lockd ? "disabled" : ""} data-a="scr-upd" data-testid="ve-scrupd" title="Chia lại cảnh theo kịch bản mới; bản biên tập hiện tại lưu vào Lịch sử biên tập">Cập nhật theo kịch bản</button></div>` : ""}<div class="vp-ed"><div class="vp-l"><div class="vp-mini" role="tablist" aria-label="Công cụ biên tập"><button role="tab" data-a="sub" data-k="scene" aria-selected="${st.sub === "scene" && !st.cap}" data-testid="ve-sub-scene">Scene</button><button role="tab" data-a="sub" data-k="set" aria-selected="${st.sub === "set" || st.cap}" data-testid="ve-sub-set">Cài đặt</button></div><fieldset class="vp-fs" ${lfs}>${left}</fieldset></div>
     <div class="vp-pv"><div class="vp-box" id="vp-box" data-testid="ve-stage"></div>${tbarHtml(v, st)}
       <div class="vp-pvbar"><button class="btn sm primary vp-ico" data-a="play" id="vp-play" data-testid="ve-play" title="Phát" aria-label="Phát">▶</button><button class="btn sm vp-ico" data-a="replay" data-testid="ve-replay" title="Phát lại từ đầu" aria-label="Phát lại từ đầu">↺</button><label class="small vp-safe-l"><input type="checkbox" data-a="safe" ${st.safe ? "checked" : ""}> Vùng an toàn</label></div></div></div>
     <fieldset class="vp-fs" ${dis}>${timelineHtml(v, st)}</fieldset>
-    ${ro && !lockd ? "<div class=\"vp-foot\"><span class=\"small muted\">Bản cũ: chỉ xem. Bấm Dùng bản này để sửa tiếp.</span></div>" : `<div class="vp-foot"><span class="small ${bl.length ? "" : "muted"}" id="ve-issues">${bl.length ? bl.map((x) => `<a href="#" data-a="goto" data-i="${x.i}">Scene ${x.i + 1} chưa có hình</a>`).join(" · ") : renderNote(v)}${iss.filter((x) => !/chưa có hình/.test(x)).length ? `<br><span class="vp-warn">${iss.filter((x) => !/chưa có hình/.test(x)).map(esc).join(" · ")}</span>` : ""}</span>
-      ${lockd ? "" : hist}<button class="btn" data-a="export" data-testid="ve-export">Xuất lệnh dựng (JSON)</button>${lockd ? `<button class="btn slot-ok on" data-a="eunlock" data-testid="ve-unlock" ${isRendering(v.id) ? "disabled" : ""} title="Biên tập đã Hoàn thành nên đang khóa. Bấm để mở khóa và sửa tiếp">${icon("lock")} Đã khóa · Mở khóa</button>` : `<button class="btn primary" data-a="done" data-testid="ve-done" ${bl.length ? "disabled" : ""} title="Hoàn thành thì Biên tập khóa lại">${icon("unlock")} Hoàn thành</button>`}${renderBtn(v, bl)}</div>`}
+    ${ro && !lockd ? "<div class=\"vp-foot\"><span class=\"small muted\">Bản cũ: chỉ xem. Bấm Dùng bản này ở trên để sửa tiếp.</span></div>" : `<div class="vp-foot"><span class="small ${bl.length ? "" : "muted"}" id="ve-issues">${bl.length ? bl.map((x) => `<a href="#" data-a="goto" data-i="${x.i}">Scene ${x.i + 1} chưa có hình</a>`).join(" · ") : renderNote(v)}${iss.filter((x) => !/chưa có hình/.test(x)).length ? `<br><span class="vp-warn">${iss.filter((x) => !/chưa có hình/.test(x)).map(esc).join(" · ")}</span>` : ""}</span>
+      <button class="btn" data-a="export" data-testid="ve-export">Xuất lệnh dựng (JSON)</button>${renderBtn(v, bl)}</div>`}
     <input type="file" id="vp-file" accept="image/*,video/*" multiple class="sr" tabindex="-1"><input type="file" id="vp-fileA" accept="audio/*" class="sr" tabindex="-1"><input type="file" id="vp-fileM" accept="audio/*" class="sr" tabindex="-1">`;
 	}
 	function emptyHtml(v, ro) {
@@ -32298,8 +32389,6 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			"cb"
 		]);
 		const DONE_ACTS = /* @__PURE__ */ new Set([
-			"eunlock",
-			"render",
 			"export",
 			"thauto",
 			"thcrop",
@@ -32335,15 +32424,6 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			}
 			const a = b.dataset.a;
 			if (RO && !VIEW_ACTS.has(a) && !(LOCKD && DONE_ACTS.has(a))) return;
-			if (a === "eunlock") {
-				const r = AC.unlockEdit(S, id);
-				if (!r.ok) return toast(r.error, "bad");
-				save();
-				render();
-				if (H.bar) H.bar();
-				if (H.done) H.done(true);
-				return toast("Đã mở khóa Biên tập. Sửa xong bấm Hoàn thành để khóa lại.");
-			}
 			const i = Number(b.dataset.i);
 			const vv = v();
 			const ed = vv.edit;
@@ -32356,7 +32436,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				st.t = 0;
 				commit();
 				render();
-				return toast(`Đã chia ${r.count} cảnh. Kịch bản đã khóa.`);
+				return toast(`Đã chia ${r.count} cảnh.`);
 			}
 			if (a === "sub") {
 				st.sub = b.dataset.k;
@@ -32496,18 +32576,6 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				closeCue();
 				closeFx();
 				act(AC.applyTemplate(S, id, ed.tpl || "script"), "Đã chia lại cảnh theo kịch bản mới. Bản biên tập trước đã lưu vào Lịch sử biên tập.");
-				return;
-			}
-			if (a === "ehist-use") {
-				const sel = host.querySelector("#ve-ehist");
-				if (!sel) return;
-				st.cur = 0;
-				st.t = 0;
-				st.play = false;
-				closeCue();
-				closeFx();
-				const r = AC.useEditVersion(S, id, sel.value);
-				act(r, r.ok ? `Đã dùng lại bản biên tập ${r.from}. Bản trước đã lưu vào lịch sử.` : "");
 				return;
 			}
 			if (a === "origscr") {
@@ -32750,6 +32818,9 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				host.querySelectorAll(".vp-foot button").forEach((x) => {
 					x.disabled = true;
 				});
+				document.querySelectorAll(".sv-dlg #sp-verw button, .sv-dlg #sp-acts button").forEach((x) => {
+					x.disabled = true;
+				});
 				const r = await renderOne(id, (p) => {
 					if (prog) prog.textContent = `Đang ren… ${p}%`;
 				});
@@ -32762,13 +32833,6 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				render();
 				if (H.rendered) H.rendered(r);
 				return;
-			}
-			if (a === "done") {
-				const r = AC.completeEdit(S, id);
-				if (!r.ok) return toast(r.error, "bad");
-				commit();
-				render();
-				if (H.done) H.done();
 			}
 		});
 		{
@@ -32783,6 +32847,13 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			undo,
 			redo,
 			render,
+			reset: () => {
+				st.hist = [];
+				st.fut = [];
+				st.cur = 0;
+				st.t = 0;
+				st.play = false;
+			},
 			pause: () => {
 				st.play = false;
 				stopAudio();
@@ -32804,6 +32875,14 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 	}
 	//#endregion
 	//#region src/ui/09e-vidmix.js
+	var clickWrite = (box) => {
+		if (!box.querySelector("[data-x=\"write\"]")) {
+			const nb = box.querySelector("[data-nav=\"ks:scene\"]");
+			if (nb) nb.click();
+		}
+		const w = box.querySelector("[data-x=\"write\"]");
+		if (w) w.click();
+	};
 	var GL = {
 		idea: "Ý",
 		script: "KB",
@@ -32967,7 +33046,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 	function lotHtml(v) {
 		const list = AC.batchOf(S, v);
 		if (list.length < 2) return "";
-		return `<div class="vm-lot" data-testid="vm-lot"><b>Lô ${list.length} thẻ:</b>${list.map((x, i) => `<button type="button" class="it" data-mx="cur" data-id="${esc(x.id)}" aria-pressed="${x.id === v.id}" title="${esc(x.insight.title)}">${AC.vidEditDone(x) ? "✓ " : ""}${i + 1} · ${esc(x.insight.title.replace(/^Short \d+\/\d+:\s*/, "").slice(0, 24))}</button>`).join("")}<span class="r"><button type="button" class="btn sm" data-mx="doneAll" data-testid="vm-doneall">Hoàn thành cả lô</button><button type="button" class="btn sm" data-mx="renderAll" data-testid="vm-renderall">Ren cả lô</button></span></div>`;
+		return `<div class="vm-lot" data-testid="vm-lot"><b>Lô ${list.length} thẻ:</b>${list.map((x, i) => `<button type="button" class="it" data-mx="cur" data-id="${esc(x.id)}" aria-pressed="${x.id === v.id}" title="${esc(x.insight.title)}">${AC.vidEditDone(x) ? "✓ " : ""}${i + 1} · ${esc(x.insight.title.replace(/^Short \d+\/\d+:\s*/, "").slice(0, 24))}</button>`).join("")}<span class="r"><button type="button" class="btn sm" data-mx="doneAll" data-testid="vm-doneall">Duyệt Biên tập cả lô</button><button type="button" class="btn sm" data-mx="renderAll" data-testid="vm-renderall">Ren cả lô</button></span></div>`;
 	}
 	function shootBannerHtml(v) {
 		const l = AC.shootList(v);
@@ -33080,8 +33159,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			box.addEventListener("click", (e) => {
 				const b = e.target.closest("[data-mx=\"rewrite\"]");
 				if (!b || b.disabled) return;
-				const w = box.querySelector("[data-x=\"write\"]");
-				if (w) w.click();
+				clickWrite(box);
 			});
 			return;
 		}
@@ -33200,8 +33278,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			ctx.err("");
 			if (k === "vlen") return setLen(Number(b.dataset.v));
 			if (k === "rewrite") {
-				const w = box.querySelector("[data-x=\"write\"]");
-				if (w) w.click();
+				clickWrite(box);
 				return;
 			}
 			if (k === "cur") {
@@ -33426,7 +33503,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				}
 				ctx.nav.tab = "ks";
 				ctx.nav.ks = "scene";
-				afterPlan(p, `Đã viết kịch bản và chia ${p.count} cảnh. Sửa nếu cần rồi bấm Biên tập để duyệt.`);
+				afterPlan(p, `Đã viết kịch bản và chia ${p.count} cảnh. Kịch bản đã duyệt; muốn sửa thì bấm Sửa Kịch bản.`);
 				return;
 			}
 			if (k === "doneAll") {
@@ -33435,7 +33512,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				if (!r.ok) return ctx.err(r.error);
 				save();
 				show();
-				toast(`Hoàn thành ${r.done.length} thẻ.${r.blocked.length ? ` ${r.blocked.length} thẻ chưa xong (${r.blocked.map((x) => x.why).join("; ")}).` : ""}`, r.blocked.length ? "bad" : "");
+				toast(`Đã duyệt Biên tập ${r.done.length} thẻ.${r.blocked.length ? ` ${r.blocked.length} thẻ chưa xong (${r.blocked.map((x) => x.why).join("; ")}).` : ""}`, r.blocked.length ? "bad" : "");
 				return;
 			}
 			if (k === "renderAll") {
@@ -33738,7 +33815,6 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		return `<span class="st ${c}">${esc(l)}</span>`;
 	};
 	var fmtSec = (s) => s >= 60 ? `${Math.floor(s / 60)} phút ${s % 60} giây` : `${s} giây`;
-	var fmtMb = (b) => `${(b / 1048576).toFixed(1).replace(".", ",")} MB`;
 	var clamp = (t, n) => {
 		t = String(t || "").replace(/\s+/g, " ").trim();
 		return t.length > n ? t.slice(0, n - 1).replace(/\s+\S*$/, "") + "…" : t;
@@ -33767,7 +33843,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		const issues = AC.vidIssues(S, v).length + (dupes[v.id] || []).length;
 		const need = st === "IDEA" || st === "TODO" || st === "DRAFT";
 		return `<button class="cellbtn sv-vcell${v.cancelled ? " sv-off" : ""}${st === "IDEA" ? " idea" : ""}${need ? " need" : ""}" data-act="sv-open" data-id="${esc(v.id)}" data-testid="sv-card" aria-label="Thẻ Vid ${pos}: ${esc(v.insight.title)}">
-    <span class="row" style="justify-content:space-between;gap:4px">${stateChip(v)}${v.script ? `<span class="mono small">${words}</span>` : ""}</span>
+    <span class="row" style="justify-content:space-between;gap:4px">${stateChip(v)}<span class="row" style="gap:4px">${v.script ? `<span class="mono small">${words}</span>` : ""}${AC.vidFinal(v) ? `<span class="sv-fin" data-testid="sv-fin" title="Đã có video thành phẩm (Biên tập đã duyệt)" aria-label="Đã có video thành phẩm">${icon("checkc")}</span>` : ""}</span></span>
     <span class="sv-ct">${esc(clamp(v.insight.title.replace(/^[^:]{2,20}:\s*/, ""), 64))}</span>
     <span class="small muted">${esc(free ? originName(v) : vfName(v.formatId))} · ${esc(kindName(v.kind))}</span>
     ${issues ? `<span class="small" style="color:var(--warn)">${issues} cảnh báo</span>` : ""}
@@ -33778,7 +33854,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		const nRows = AC.vidGridOf(S, weekId()).length;
 		const del = (label, cls) => `<button class="linkbtn small${cls ? " " + cls : ""}" data-act="sv-row-del" data-row="${esc(g.id)}">${label}</button>`;
 		if (!t) return `<button class="btn" data-act="sv-row-topic" data-row="${esc(g.id)}" data-testid="sv-row-topic" aria-label="Thêm Topic cho hàng này" title="Chọn Topic từ Matrix hoặc nạp Topic ngoài">${icon("plus")}</button><br><span class="small muted">Thêm Topic. Hoặc bấm + ở ô bên cạnh để tạo Vid tự do.</span>${nRows > 1 ? `<br>${del("Bỏ hàng")}` : ""}`;
-		const rr = vs.length ? `<button class="linkbtn small" data-act="sv-render-row" data-id="${esc(t.row.id)}" data-testid="sv-render-row" title="Ren Vid cho mọi thẻ đã Hoàn thành biên tập trong hàng, tự lưu vào Kho">Ren cả hàng</button>` : "";
+		const rr = vs.length ? `<button class="linkbtn small" data-act="sv-render-row" data-id="${esc(t.row.id)}" data-testid="sv-render-row" title="Ren Vid cho mọi thẻ đủ hình mọi cảnh trong hàng, tự lưu vào Kho">Ren cả hàng</button>` : "";
 		if (t.row.free) return `<b>Video tự do</b> <span class="small faint">${vs.length}/${AC.VID_MAX_FREE} thẻ</span><br><span class="small muted">Không đi từ Topic: nạp ý tưởng, kịch bản, bài Matrix, giọng, clip, ảnh, số liệu… rồi lập dàn ý.</span>${vs.length ? `<br>${rr}` : `<br>${del("Bỏ hàng", "danger")}`}`;
 		const live = vs.filter((v) => !v.cancelled && v.status !== "IDEA").length;
 		const an = AC.vidAnalysisOf(S, t.row.weekId, t.row.id);
@@ -34115,7 +34191,59 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			ro: true
 		});
 	}
-	function popHtml(v, G) {
+	function editGhostOf(v, n) {
+		const h = n == null ? null : AC.editVersions(v).find((x) => x.n === n);
+		if (!h || !v.edit) return null;
+		return Object.assign({}, v, {
+			edit: AC.migrateEdit(clone(h.edit)),
+			file: h.file || null,
+			verN: `e${h.n}`,
+			editVer: h.n,
+			verAt: h.at || "",
+			ro: true
+		});
+	}
+	function editVerList(v) {
+		const H = AC.editVersions(v).slice().reverse();
+		const top = H[H.length - 1];
+		return AC.editLocked(v) && top && v.editAppr && v.editAppr.n === top.n ? H.map((h, i) => Object.assign({ cur: i === H.length - 1 }, h)) : H.concat([{
+			n: Math.max(v.editN || 0, ...H.map((h) => h.n), 0) + 1,
+			cur: true,
+			draft: true
+		}]);
+	}
+	function verBarHtml(v, G, GE, tab) {
+		const off = v.cancelled;
+		const idea = v.status === "IDEA";
+		const hasScript = !!String(v.script || "").trim();
+		if (tab === "sl") return "";
+		if (tab === "bt") {
+			if (G || !v.edit || !v.edit.scenes.length || idea) return "";
+			const L = editVerList(v);
+			const N = L[L.length - 1].n;
+			const i = GE ? L.findIndex((x) => x.n === GE.editVer) : L.length - 1;
+			const e = L[i] || L[L.length - 1];
+			const lk = AC.editLocked(v);
+			const busy = isRendering(v.id);
+			const bl = AC.editBlockers(v).length;
+			const btn = lk ? `<button class="btn sm" data-x="eunlock" data-testid="ve-unlock" ${off || GE || busy ? "disabled" : ""} title="Biên tập đã duyệt nên đang khóa. Bấm để sửa tiếp">${icon("edit")} Sửa Biên tập</button>` : `<button class="btn sm primary" data-x="edone" data-testid="ve-done" ${off || GE || busy || bl ? "disabled" : ""} title="${bl ? "Còn cảnh chưa có hình" : "Duyệt nội dung biên tập và video đã ren; lưu thành một bản và khóa lại"}">${icon("check")} Duyệt Biên tập</button>`;
+			return `<button class="btn sm" data-x="eprev" ${i > 0 ? "" : "disabled"} title="Bản biên tập trước" aria-label="Bản biên tập trước">‹</button><span class="small vp-vn" id="sp-evn" data-testid="sp-evn">Bản ${e.n}/${N}${GE ? " · cũ" : e.draft ? " · nháp" : ""}</span><button class="btn sm" data-x="enext" ${GE ? "" : "disabled"} title="Bản biên tập sau" aria-label="Bản biên tập sau">›</button>${btn}`;
+		}
+		const vers = AC.vidVersions(v);
+		const N = vers[vers.length - 1].n;
+		const vi = G ? vers.findIndex((x) => x.n === G.verN) : vers.length - 1;
+		const cv = vers[vi];
+		const sLock = hasScript && v.status === "APPROVED";
+		const btn = G || !hasScript || idea ? "" : sLock ? `<button class="btn sm" data-x="sunlock" data-testid="sp-sunlock" ${off ? "disabled" : ""} title="Kịch bản đã duyệt nên đang khóa. Bấm để sửa tiếp">${icon("edit")} Sửa Kịch bản</button>` : `<button class="btn sm primary" data-x="slock" data-testid="sp-slock" ${off ? "disabled" : ""} title="Duyệt kịch bản, Insight và phân cảnh; lưu thành một bản và khóa lại">${icon("check")} Duyệt Kịch bản</button>`;
+		return `<button class="btn sm" data-x="vprev" ${vi > 0 ? "" : "disabled"} title="Bản kịch bản trước" aria-label="Bản kịch bản trước">‹</button><span class="small vp-vn" id="sp-vn">Bản ${cv.n}/${N}${G ? " · cũ" : cv.draft && hasScript ? " · nháp" : ""}</span><button class="btn sm" data-x="vnext" ${G ? "" : "disabled"} title="Bản kịch bản sau" aria-label="Bản kịch bản sau">›</button>${btn}`;
+	}
+	function writeBtnHtml(v, ro) {
+		const o = AC.vidOrigin(v);
+		const off = v.cancelled || ro || !!String(v.script || "").trim() && v.status === "APPROVED";
+		if (o === "audio" || o === "talk") return `<button class="btn sm ${v.script ? "" : "primary"}" data-x="stt" ${off || !sttOk() ? "disabled" : ""} title="${sttOk() ? "Gửi tệp tới API nhận giọng nói để chép lời" : "Cần chọn OpenAI ở Setup → AI ảnh & video; hoặc dán lời vào ô Lời nói"}">Chép lời (API)</button>`;
+		return `<button class="btn sm primary" data-x="${o === "script" ? "resplit" : "write"}" data-testid="sp-write" ${off ? "disabled" : ""} title="${off ? "Kịch bản đã duyệt. Bấm Sửa Kịch bản để tạo mới" : o === "script" ? "Chia cảnh lại theo kịch bản" : "Viết kịch bản mới và chia cảnh; thay bản nháp đang có"}">${icon("spark")} Tạo mới</button>`;
+	}
+	function popHtml(v, G, GE) {
 		const R = G || v;
 		const ro = !!G;
 		const row = AC.vidTopicRow(S, v.topicId);
@@ -34124,13 +34252,12 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		const off = v.cancelled;
 		const lock = off || ro;
 		const c = AC.vidSettingsOf(S, v);
-		const f = v.file;
+		v.file;
 		const words = AC.vidWords(R.script);
 		const issues = ro ? [] : AC.vidIssues(S, v).concat(AC.vidDupes(S, v.weekId)[v.id] || []);
 		const fs = AC.vidFormatsOf(S, true);
 		const kopt = Object.entries(AC.VID_KINDS).map(([k, l]) => `<option value="${k}" ${k === v.kind ? "selected" : ""}>${esc(l)}</option>`).join("");
 		const others = idea ? AC.vidsOf(S, v.weekId, v.topicId).filter((x) => x.id !== v.id && x.status === "IDEA") : [];
-		const upOff = off || idea || ro;
 		const o = AC.vidOrigin(v);
 		const free = o !== "topic";
 		const media = v.media || [];
@@ -34148,18 +34275,14 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
   </section>`;
 		const ideasHtml = o === "broll" || o === "longroll" ? `<div class="stack" style="gap:6px"><div class="field"><label for="sp-request">Yêu cầu cho lời dẫn</label><textarea id="sp-request" rows="2" ${lock ? "readonly" : ""} placeholder="Ví dụ: lời dẫn vui, xưng mình">${esc(v.request || "")}</textarea></div>
       <span class="small muted">Ý tưởng kịch bản (mô phỏng):</span><div class="row" style="gap:6px">${AC.brollIdeas(S, v.id).map((it) => `<button class="btn sm ${v.ideaKey === it.key ? "primary" : ""}" data-x="idea" data-k="${it.key}" title="${esc(it.idea)}" ${lock ? "disabled" : ""}>${esc(it.title)}</button>`).join("")}</div></div>` : "";
-		const videoCell = f ? `<div class="sv-video"><video src="${esc(f.src)}#t=0.1" ${f.cover ? `poster="${esc(f.cover.src)}"` : ""} controls playsinline preload="metadata"></video>
-        <div class="stack" style="gap:4px;min-width:0"><span class="small"><b>${esc(f.name)}</b> · ${fmtMb(f.size || AC.dataUrlBytes(f.src).length)}</span>
-        <span class="small faint">${[f.cover ? "có ảnh bìa" : "chưa có ảnh bìa", f.subs ? `phụ đề ${f.subs.cues.length} dòng` : "chưa có phụ đề"].join(" · ")}</span></div></div>` : "";
 		const hint = R.simulated ? "Bản mô phỏng (chưa bật AI viết bài)." : R.ai ? `AI viết${R.ai.skill ? ` · Skill "${esc(R.ai.skill.name)}" v${R.ai.skill.version}` : ""}${v.edited && !ro ? " · đã sửa tay" : ""}.` : "";
 		const nav = navOf(v.id);
-		const done = AC.vidEditDone(v);
+		AC.vidEditDone(v);
 		const mix = o === "mix";
 		const hasScript = !!String(v.script || "").trim();
 		const sLock = hasScript && v.status === "APPROVED";
 		const sg = AC.vidStageGate(v);
-		const lockBtn = `<span id="sp-lockw">${ro ? "" : lockBtnHtml(v)}</span>`;
-		const tab = (k, n, label, dis, title) => `<button role="tab" data-nav="tab:${k}" aria-selected="${nav.tab === k}" ${dis ? "disabled" : ""} ${title ? `title="${esc(title)}"` : ""} data-testid="sp-tab-${k}"><span class="vp-step">${n}</span>${label}</button>`;
+		const tab = (k, n, label, dis, title) => `<button role="tab" data-nav="tab:${k}" aria-selected="${nav.tab === k}" ${dis ? "disabled" : ""} ${title ? `title="${esc(title)}"` : ""} data-testid="sp-tab-${k}"><span class="vp-step">${n}</span><span class="vp-tl" data-tl="${k}" data-lbl="${esc(label)}">${label}</span></button>`;
 		const insightPane = `<section class="panel stack" style="gap:8px"><h3>Insight</h3>
           <div class="field"><label for="sp-title">Tiêu đề</label><input id="sp-title" value="${esc(R.insight.title)}" maxlength="160" ${lock ? "readonly" : ""}></div>
           <div class="field"><label for="sp-idea">Ý chính</label><textarea id="sp-idea" class="vp-r2" rows="2" ${lock ? "readonly" : ""}>${esc(R.insight.idea)}</textarea></div>
@@ -34171,29 +34294,22 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
           ${others.length ? `<div class="row" style="gap:6px"><label class="sr" for="sp-merge">Gộp với</label><select id="sp-merge">${others.map((o2) => `<option value="${esc(o2.id)}">${esc(clamp(o2.insight.title, 50))}</option>`).join("")}</select><button class="btn sm" data-x="merge">Gộp vào thẻ này</button></div>` : ""}
         </section>`;
 		const tch = !ro && AC.vidTopicChanged(S, v);
-		const scriptSec = idea ? "<section class=\"panel\"><p class=\"small muted\">Duyệt Insight để viết kịch bản.</p></section>" : `<section class="panel stack" style="gap:8px">
-        ${tch ? `<div class="vp-stale" data-testid="sp-topicchg">Topic đã đổi (phiên bản ${tch.from} → ${tch.to}) sau khi viết kịch bản này. Kịch bản không tự đổi theo; bấm Tạo Kịch bản để viết theo Topic mới.</div>` : ""}
+		const scriptSec = idea ? "<section class=\"panel\"><p class=\"small muted\">Bấm Tạo mới để viết kịch bản và chia cảnh cho đề xuất này.</p></section>" : `<section class="panel stack" style="gap:8px">
+        ${tch ? `<div class="vp-stale" data-testid="sp-topicchg">Topic đã đổi (phiên bản ${tch.from} → ${tch.to}) sau khi viết kịch bản này. Kịch bản không tự đổi theo; bấm Sửa Kịch bản rồi Tạo mới để viết theo Topic mới.</div>` : ""}
         <div class="vp-stale" id="sp-stale" hidden>Kịch bản đã sửa sau khi chia cảnh. Cảnh không tự đổi theo. <button class="btn sm primary" data-x="resplit" data-testid="sp-resplit" ${lock ? "disabled" : ""}>Chia lại cảnh</button></div>
         <details class="vp-src" id="sp-scrd" ${R.edit && R.edit.scenes.length ? "" : "open"}><summary>Script · <span id="sp-scrc">${words} chữ · ≈ ${fmtSec(AC.vidDuration(S, words))}</span></summary>
           <div class="stack" style="gap:8px;margin-top:6px">${ideasHtml}
           ${issues.length ? `<ul class="small sv-warn" id="sp-warn">${issues.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
-          <div class="field"><label for="sp-script">Lời nói (mỗi phần mở bằng nhãn trong ngoặc vuông, ví dụ [Hook])</label><textarea id="sp-script" style="min-height:220px" ${lock || sLock ? "readonly" : ""}>${esc(R.script)}</textarea><span class="hint">${sLock && !ro ? "Kịch bản đã khóa: bấm Mở khóa ở trên để sửa. " : ""}Nên ${c.wordMin}–${c.wordMax} chữ (nhắm ${c.wordTarget}). ${hint}</span></div>
+          <div class="field"><label for="sp-script">Lời nói (mỗi phần mở bằng nhãn trong ngoặc vuông, ví dụ [Hook])</label><textarea id="sp-script" style="min-height:220px" ${lock || sLock ? "readonly" : ""}>${esc(R.script)}</textarea><span class="hint">${sLock && !ro ? "Kịch bản đã duyệt: bấm Sửa Kịch bản ở trên để sửa. " : ""}Nên ${c.wordMin}–${c.wordMax} chữ (nhắm ${c.wordTarget}). ${hint}</span></div>
           <div class="row" style="gap:6px"><button class="btn sm" data-x="dl-script" ${R.script ? "" : "disabled"}>Tải kịch bản</button><span class="small faint">Kho B-roll dùng chung: chưa có.</span></div></div></details>
         </section>`;
-		const outPane = off ? "<p class=\"small muted\">Đã hủy: không cần nộp video.</p>" : idea ? "<p class=\"small muted\">Duyệt Insight rồi mới tải video.</p>" : `${videoCell}
-        <label class="vp-drop${f ? " has" : ""}" for="sp-up" data-testid="sp-drop"><span><b>＋</b><span class="vp-dt">${f ? "Up lại để thay video" : "Up video của bạn lên đây"}</span><span class="small muted">Dọc 9:16, MP4/WebM/MOV, tối đa ${vidMax() / 1048576} MB vì lưu trong trình duyệt. Up lại bất cứ lúc nào.</span></span></label>
-        <div class="row" style="gap:6px;margin-top:8px"><button class="btn sm" data-x="cover" ${f && !ro ? "" : "disabled"}>Bìa</button><button class="btn sm" data-x="subs" data-testid="sp-subs" ${f && !ro ? "" : "disabled"}>Phụ đề</button>${f ? "<button class=\"btn sm\" data-x=\"dl-video\">Tải video</button>" : ""}<button class="btn sm ghost danger" data-x="file-del" ${f && !ro ? "" : "disabled"}>Bỏ video</button></div>`;
-		const vers = AC.vidVersions(v);
-		const N = vers[vers.length - 1].n;
-		const vi = G ? vers.findIndex((x) => x.n === G.verN) : vers.length - 1;
-		const writeBtn = o === "script" ? "" : o === "audio" || o === "talk" ? `<button class="btn sm ${v.script ? "" : "primary"}" data-x="stt" ${off || ro || idea || sLock || !sttOk() ? "disabled" : ""} title="${sttOk() ? "Gửi tệp tới API nhận giọng nói để chép lời" : "Cần chọn OpenAI ở Setup → AI ảnh & video; hoặc dán lời vào ô Lời nói"}">Chép lời (API)</button>` : `<button class="btn sm primary" data-x="write" ${off || ro || idea || sLock ? "disabled" : ""} data-testid="sp-write" title="${sLock ? "Kịch bản đang khóa. Mở khóa để tạo kịch bản mới" : "Viết kịch bản mới: bản đang có lùi vào danh sách bản cũ"}">Tạo Kịch bản</button>`;
-		const verHtml = `<span class="vp-ver" data-testid="sp-ver"><button class="btn sm" data-x="vprev" ${vi > 0 ? "" : "disabled"} title="Bản kịch bản trước" aria-label="Bản kịch bản trước">‹</button><span class="small vp-vn" id="sp-vn">Bản ${vers[vi].n}/${N}${ro ? " · cũ" : ""}</span><button class="btn sm" data-x="vnext" ${ro ? "" : "disabled"} title="Bản kịch bản sau" aria-label="Bản kịch bản sau">›</button>${writeBtn}${lockBtn}</span>`;
+		const verHtml = `<span class="vp-ver" id="sp-verw" data-testid="sp-ver">${verBarHtml(v, G, GE, nav.tab)}</span>`;
 		return `<header class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><span class="eyebrow">Thẻ Vid ${posOf(v)} · ${esc(tv ? tv.title : "?")}</span><h2>${esc(R.insight.title)}</h2>
       <div class="row" style="gap:8px">${stateChip(v)}<span class="small muted">${esc(free ? originName(v) : vfName(v.formatId))} · ${esc(kindName(v.kind))}</span><span class="small mono" id="sp-count" title="Số chữ lời nói, thời lượng ước tính">${R.script ? `${words} chữ · ≈ ${fmtSec(AC.vidDuration(S, words))}` : ""}</span><span class="small muted sv-busy" aria-live="polite">${view.svBusy ? esc(view.svBusy) : ""}</span></div></div>
       <div class="row" style="gap:6px;flex-wrap:nowrap"><button class="btn sm ${off ? "primary" : "ghost"}" data-x="cancel" data-testid="sp-cancel" aria-pressed="${off}" ${ro ? "disabled" : ""}>${off ? "Khôi phục" : "Hủy thẻ"}</button><button class="btn icon ghost" data-act="close-layer" aria-label="Đóng">${icon("close")}</button></div></header>
-    <div class="vp-h1"><div class="vp-tabs tabs" role="tablist" aria-label="Các bước của thẻ Vid">${mix ? tab("nap", (v.inputs || []).length ? "✓" : "1", "Nạp nguyên liệu", false) + tab("dy", v.dyOk ? "✓" : "2", "Dàn ý", !(v.cells || []).length, "Cần nguyên liệu để lập dàn ý") : ""}${tab("ks", v.script && v.status !== "DRAFT" && v.status !== "TODO" && !idea ? "✓" : mix ? "3" : "1", "Kịch bản", mix && !hasScript, mix && !hasScript ? "Nạp nguyên liệu rồi Dựng nhanh hoặc lập Dàn ý" : "")}${tab("bt", done ? "✓" : mix ? "4" : "2", "Biên tập", !sg.bt.ok, sg.bt.why)}${tab("sl", slots.length ? "✓" : mix ? "5" : "3", "Xếp Slot", !sg.sl.ok || ro, ro ? "Xếp Slot dùng bản đang dùng" : sg.sl.why)}</div>${verHtml}</div>
+    <div class="vp-h1"><div class="vp-tabs tabs" role="tablist" aria-label="Các bước của thẻ Vid">${mix ? tab("nap", (v.inputs || []).length ? "✓" : "1", "Nạp nguyên liệu", false) + tab("dy", v.dyOk ? "✓" : "2", "Dàn ý", !(v.cells || []).length, "Cần nguyên liệu để lập dàn ý") : ""}${tab("ks", sLock ? "✓" : mix ? "3" : "1", "Kịch bản", mix && !hasScript, mix && !hasScript ? "Nạp nguyên liệu rồi Dựng nhanh hoặc lập Dàn ý" : "")}${tab("bt", AC.editLocked(v) ? "✓" : mix ? "4" : "2", "Biên tập", !sg.bt.ok, sg.bt.why)}${tab("sl", slots.length ? "✓" : mix ? "5" : "3", "Xếp Slot", !sg.sl.ok || ro, ro ? "Xếp Slot dùng bản đang dùng" : sg.sl.why)}</div>${verHtml}</div>
     ${ro ? `<div class="vp-old" data-testid="sp-old">Đang xem bản ${G.verN}${G.verAt ? ` (${esc(G.verAt)})` : ""}: chỉ xem kịch bản và Insight của bản này. Phần biên tập có lịch sử riêng ở Biên tập.<button class="btn sm" data-x="usever" data-testid="sp-usever" ${off ? "disabled" : ""}>Dùng bản này</button></div>` : ""}
-    <div class="vp-bar" id="sp-bar">${barHtml(v, null)}</div>
+    <div class="vp-bar" id="sp-bar">${barHtml(v, null, ro)}</div>
     ${mix ? `<div id="sp-lot">${lotHtml(v)}</div>` : ""}
     <div class="sv-pop${off ? " sv-off-pop" : ""}" style="display:block">
       ${mix ? "<div data-pane=\"nap\" hidden id=\"sp-nap\"></div><div data-pane=\"dy\" hidden id=\"sp-dy\"></div>" : ""}
@@ -34202,21 +34318,13 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
         <div data-sub="scene" hidden><div id="sp-scenes"></div>${scriptSec}</div>
         ${mediaHtml ? `<div data-sub="nguon" hidden>${mediaHtml}</div>` : ""}
       </fieldset></div>
-      <div data-pane="bt" hidden>
-        <div data-bm="in" hidden><div id="sp-ed"></div></div>
-        <div data-bm="out" hidden><fieldset class="vp-fs" ${ro ? "disabled" : ""}><input id="sp-up" type="file" accept="video/*" class="sr" ${upOff ? "disabled" : ""}>${outPane}</fieldset></div>
-      </div>
+      <div data-pane="bt" hidden>${GE ? `<div class="vp-old" data-testid="sp-eold">Đang xem bản biên tập ${GE.editVer}${GE.verAt ? ` (${esc(GE.verAt)})` : ""}: chỉ xem.<button class="btn sm" data-x="euse" data-testid="sp-euse" ${off ? "disabled" : ""}>Dùng bản này</button></div>` : ""}<div id="sp-ed"></div></div>
       <div data-pane="sl" hidden id="sp-sl"></div>
     </div>
     <span class="err" id="sp-err" role="alert"></span>
-    <div class="actions"><button class="btn ghost" data-act="close-layer">Đóng</button><button class="btn primary" data-x="save" data-testid="sp-save" ${lock ? "disabled" : ""}>Lưu</button></div>`;
+    <div class="actions" id="sp-acts" hidden></div>`;
 	}
-	function lockBtnHtml(v) {
-		if (!!!String(v.script || "").trim() || v.status === "IDEA") return "";
-		const off = v.cancelled ? "disabled" : "";
-		return v.status === "APPROVED" ? `<button class="btn sm slot-ok on" data-x="sunlock" data-testid="sp-sunlock" title="Kịch bản đang khóa: không sửa, không tạo kịch bản mới. Bấm để mở khóa." ${off}>${icon("lock")} Đã khóa · Mở khóa</button>` : `<button class="btn sm" data-x="slock" data-testid="sp-slock" title="Kịch bản đang mở. Bấm để khóa (xong Phân cảnh) rồi sang Biên tập" ${off}>${icon("unlock")} Khóa Kịch bản</button>`;
-	}
-	function barHtml(v, es) {
+	function barHtml(v, es, ro) {
 		const nav = navOf(v.id);
 		const idea = v.status === "IDEA";
 		const o = AC.vidOrigin(v);
@@ -34224,13 +34332,10 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		const b = (k, l, cur) => `<button data-nav="${k}" aria-selected="${cur === k.split(":")[1]}" data-testid="sp-sub-${k.split(":")[1]}">${l}</button>`;
 		if (nav.tab === "nap") return `<span class="small muted">Nạp mọi nguyên liệu của một video; app tự nhận diện loại${o === "mix" && AC.lenSecOf(S, v) ? ` · video ${AC.lenSecOf(S, v)} giây` : ""}</span>`;
 		if (nav.tab === "dy") return "<span class=\"small muted\">Duyệt các ô dùng cho kịch bản: kéo sang cột Dàn ý hoặc bấm ＋</span>";
-		if (nav.tab === "bt") {
-			const m = AC.editModeOf(v);
-			return `${b("mode:in", "Biên tập trong app", m)}${b("mode:out", "Biên tập ngoài app", m)}${m === "out" ? "<span class=\"small muted\">Tự dựng ở phần mềm khác rồi Up thành phẩm</span>" : ""}${mixBarExtras(v, "bt")}
-      ${m === "in" && es && es.active && !es.ro ? `<span class="vp-sp"><span class="small muted" id="sp-saved">${esc(es.saved || "")}</span><button class="btn sm" data-x="undo" ${es.canUndo ? "" : "disabled"} data-testid="ve-undo">↶ Hoàn tác</button><button class="btn sm" data-x="redo" ${es.canRedo ? "" : "disabled"}>↷ Làm lại</button></span>` : ""}`;
-		}
+		if (nav.tab === "bt") return `<span class="small muted">${AC.editLocked(v) ? "Biên tập đã duyệt: chỉ xem. Bấm Sửa Biên tập để sửa tiếp" : "Dựng video trong app: Ren Vid rồi Duyệt Biên tập"}</span>${mixBarExtras(v, "bt")}
+      ${es && es.active && !es.ro ? `<span class="vp-sp"><span class="small muted" id="sp-saved">${esc(es.saved || "")}</span><button class="btn sm" data-x="undo" ${es.canUndo ? "" : "disabled"} data-testid="ve-undo">↶ Hoàn tác</button><button class="btn sm" data-x="redo" ${es.canRedo ? "" : "disabled"}>↷ Làm lại</button></span>` : ""}`;
 		if (nav.tab === "sl") return `<span class="small muted">Lưới Thứ × Kênh: mỗi ô là một slot của video này</span>${mixBarExtras(v, "sl")}`;
-		return `${[["insight", "Insight"], ["scene", "Phân cảnh"]].concat(media ? [["nguon", "Nguồn vào"]] : []).map(([k, l]) => b(`ks:${k}`, l, nav.ks)).join("")}${idea ? `<span class="vp-sp"><button class="btn sm primary" data-x="approve-idea">Duyệt Insight</button><button class="btn sm ghost danger" data-x="drop-idea">Bỏ đề xuất</button></span>` : ""}`;
+		return `${[["insight", "Insight"], ["scene", "Phân cảnh"]].concat(media ? [["nguon", "Nguồn vào"]] : []).map(([k, l]) => b(`ks:${k}`, l, nav.ks)).join("")}<span class="vp-sp">${nav.ks === "scene" ? writeBtnHtml(v, ro) : ""}${idea ? `<button class="btn sm ghost danger" data-x="drop-idea" ${ro ? "disabled" : ""}>Bỏ đề xuất</button>` : ""}</span>`;
 	}
 	var NAV = {};
 	var startTab = (id) => {
@@ -34248,15 +34353,15 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 	};
 	var fmtS = (x) => String(Math.round(x * 10) / 10).replace(".", ",");
 	function sceneListHtml(v) {
-		if (!v.edit || !v.edit.scenes.length) return `<section class="panel stack" style="gap:8px;margin-bottom:12px"><h3>Phân cảnh</h3><p class="small muted">${v.script || (v.media || []).length ? "Chưa chia cảnh. Bấm Chia cảnh: app chia kịch bản thành các cảnh có lời, mô tả hình và thời lượng; kịch bản được coi là đã duyệt." : "Cần kịch bản hoặc tệp nguồn để chia cảnh."}</p><div class="row"><button class="btn sm primary" data-x="plan-scenes" data-testid="sp-plan" ${!v.ro && (v.script || (v.media || []).length) ? "" : "disabled"}>Chia cảnh theo kịch bản</button></div></section>`;
+		if (!v.edit || !v.edit.scenes.length) return `<section class="panel stack" style="gap:8px;margin-bottom:12px"><h3>Phân cảnh</h3><p class="small muted">${v.script || (v.media || []).length ? "Chưa chia cảnh. Bấm Tạo mới để viết kịch bản và chia cảnh, hoặc Chia cảnh để chia kịch bản đang có thành các cảnh có lời, mô tả hình và thời lượng." : "Cần kịch bản hoặc tệp nguồn để chia cảnh."}</p><div class="row"><button class="btn sm primary" data-x="plan-scenes" data-testid="sp-plan" ${!v.ro && !(v.status === "APPROVED" && v.script) && (v.script || (v.media || []).length) ? "" : "disabled"}>Chia cảnh theo kịch bản</button></div></section>`;
 		const tl = AC.editTimeline(v);
 		return `<section class="panel stack" style="gap:6px;margin-bottom:12px"><h3>Phân cảnh <span class="small muted">${tl.items.length} cảnh · ${fmtS(tl.total)} giây</span></h3>
     <div class="vp-phw"><table class="vp-phc"><thead><tr><th>STT</th><th>Timeline</th><th>Nội dung</th><th>Mô tả hình ảnh hoặc video minh hoạ</th></tr></thead><tbody>
     ${tl.items.map((it, i) => {
 			const s = it.scene;
 			return `<tr data-testid="sp-scene-row"><td class="n">${i + 1}</td><td class="t">${fmtS(it.t0)}–${fmtS(it.t1)}s<br><span class="small muted">${s.items.length ? `${s.items.length} hình` : s.ph ? "thẻ giữ chỗ" : ""}</span></td>
-      <td><label class="sr" for="sp-pt-${esc(s.id)}">Lời cảnh ${i + 1}</label><textarea id="sp-pt-${esc(s.id)}" class="vp-r2" rows="2" data-pt="${esc(s.id)}">${esc(s.text)}</textarea></td>
-      <td><label class="sr" for="sp-pp-${esc(s.id)}">Mô tả hình cảnh ${i + 1}</label><textarea id="sp-pp-${esc(s.id)}" class="vp-r2" rows="2" data-pp="${esc(s.id)}">${esc(s.prompt || "")}</textarea></td></tr>`;
+      <td><label class="sr" for="sp-pt-${esc(s.id)}">Lời cảnh ${i + 1}</label><textarea id="sp-pt-${esc(s.id)}" class="vp-ag" rows="1" data-pt="${esc(s.id)}">${esc(s.text)}</textarea></td>
+      <td><label class="sr" for="sp-pp-${esc(s.id)}">Mô tả hình cảnh ${i + 1}</label><textarea id="sp-pp-${esc(s.id)}" class="vp-ag" rows="1" data-pp="${esc(s.id)}">${esc(s.prompt || "")}</textarea></td></tr>`;
 		}).join("")}
     </tbody></table></div></section>`;
 	}
@@ -34266,7 +34371,9 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		const n0 = navOf(id);
 		let G = ghostOf(v0, n0.ver);
 		if (!G) n0.ver = null;
-		const box = openLayer(popHtml(v0, G), "dialog");
+		const GE = G ? null : editGhostOf(v0, n0.ever);
+		if (!GE) n0.ever = null;
+		const box = openLayer(popHtml(v0, G, GE), "dialog");
 		box.classList.add("wide", "sv-dlg");
 		const g = (k) => box.querySelector("#sp-" + k);
 		const err = (m) => {
@@ -34286,7 +34393,13 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 		const bar = () => {
 			const vv = AC.byId(S.videos, id);
 			const el = g("bar");
-			if (vv && el) el.innerHTML = barHtml(vv, ED ? Object.assign(ED.state(), { ro: !!G }) : null);
+			if (vv && el) el.innerHTML = barHtml(vv, ED ? Object.assign(ED.state(), { ro: !!G || !!GE }) : null, !!G);
+			const vw = g("verw");
+			if (vv && vw && navOf(id).tab === "bt") vw.innerHTML = verBarHtml(vv, G, GE, "bt");
+		};
+		const grow = (el) => {
+			el.style.height = "auto";
+			el.style.height = `${el.scrollHeight + 2}px`;
 		};
 		const stale = () => {
 			const el = g("stale");
@@ -34298,12 +34411,12 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			const vv = AC.byId(S.videos, id);
 			if (!vv) return;
 			const n = navOf(id);
-			const m = AC.editModeOf(vv);
 			if (n.tab === "ks" && n.ks === "nguon" && !box.querySelector("[data-sub=\"nguon\"]")) n.ks = "insight";
 			if (G && n.tab === "sl") n.tab = "ks";
-			const done = AC.vidEditDone(vv);
 			const mx = vv.origin === "mix";
 			const hs = !!String(vv.script || "").trim();
+			const sLk = hs && vv.status === "APPROVED";
+			const eLk = AC.editLocked(vv);
 			if (mx && !hs && n.tab !== "nap" && n.tab !== "dy") n.tab = "nap";
 			const sg = AC.vidStageGate(vv);
 			if (!G && (n.tab === "bt" && !sg.bt.ok || n.tab === "sl" && !sg.sl.ok)) n.tab = "ks";
@@ -34316,12 +34429,12 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 					b.querySelector(".vp-step").textContent = AC.vidSlotsOf(S, id).length ? "✓" : mx ? "5" : "3";
 				}
 				if (k === "bt") {
-					b.querySelector(".vp-step").textContent = done ? "✓" : mx ? "4" : "2";
+					b.querySelector(".vp-step").textContent = eLk ? "✓" : mx ? "4" : "2";
 					b.disabled = !sg.bt.ok;
 					b.title = sg.bt.why;
 				}
 				if (k === "ks") {
-					b.querySelector(".vp-step").textContent = vv.script && vv.status !== "DRAFT" && vv.status !== "TODO" && vv.status !== "IDEA" ? "✓" : mx ? "3" : "1";
+					b.querySelector(".vp-step").textContent = sLk ? "✓" : mx ? "3" : "1";
 					if (mx) b.disabled = !hs;
 				}
 				if (k === "nap") b.querySelector(".vp-step").textContent = (vv.inputs || []).length ? "✓" : "1";
@@ -34336,9 +34449,23 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			box.querySelectorAll("[data-sub]").forEach((e) => {
 				e.hidden = e.dataset.sub !== n.ks;
 			});
-			box.querySelectorAll("[data-bm]").forEach((e) => {
-				e.hidden = e.dataset.bm !== m;
+			box.querySelectorAll("[data-tl]").forEach((t) => {
+				const k = t.dataset.tl;
+				const lk = !G && (k === "ks" && sLk || k === "bt" && eLk);
+				t.innerHTML = esc(t.dataset.lbl) + (lk ? `<span class="vp-tlk" data-testid="sp-lock-${k}" title="Đã duyệt, đang khóa">${icon("lock")}</span>` : "");
 			});
+			{
+				const vw = g("verw");
+				if (vw) vw.innerHTML = verBarHtml(vv, G, GE, n.tab);
+			}
+			{
+				const ac = g("acts");
+				const can = n.tab === "bt" && !G && !GE && !vv.cancelled && AC.canCancelEdit(vv);
+				if (ac) {
+					ac.hidden = !can;
+					ac.innerHTML = can ? "<button class=\"btn ghost danger\" data-x=\"ecancel\" data-testid=\"sp-ecancel\" title=\"Bỏ mọi thay đổi từ lần Duyệt Biên tập gần nhất, quay về bản đã duyệt\">Hủy Biên tập</button>" : "";
+				}
+			}
 			if (mx) {
 				const lk = vv.cancelled || !!G;
 				if (n.tab === "nap") g("nap").innerHTML = napPaneHtml(vv, lk);
@@ -34349,6 +34476,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			if (n.tab !== "bt" && ED) ED.pause();
 			if (n.tab === "ks" && n.ks === "scene") {
 				g("scenes").innerHTML = sceneListHtml(cur());
+				g("scenes").querySelectorAll("textarea.vp-ag").forEach(grow);
 				stale();
 			}
 			{
@@ -34356,29 +34484,19 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				if (sh) sh.innerHTML = n.tab === "ks" && n.ks === "scene" && !vv.cancelled ? shootBannerHtml(cur()) : "";
 			}
 			if (!G) {
-				const sl2 = hs && vv.status === "APPROVED";
-				const lw = g("lockw");
-				if (lw) lw.innerHTML = lockBtnHtml(vv);
 				const fs = g("ksfs");
-				if (fs) fs.disabled = !!vv.cancelled || sl2;
+				if (fs) fs.disabled = !!vv.cancelled || sLk;
 				const ta = g("script");
-				if (ta) ta.readOnly = !!vv.cancelled || sl2;
-				const wb = box.querySelector("[data-testid=\"sp-write\"]");
-				if (wb) wb.disabled = !!vv.cancelled || sl2 || vv.status === "IDEA";
+				if (ta) ta.readOnly = !!vv.cancelled || sLk;
 			}
 			if (n.tab === "sl") g("sl").innerHTML = slotPaneHtml(vv, sel);
-			if (n.tab === "bt" && m === "in" && !vv.cancelled && vv.status !== "IDEA") {
+			if (n.tab === "bt" && !vv.cancelled && vv.status !== "IDEA") {
 				if (!ED) ED = mountEditor(g("ed"), id, {
 					bar,
-					view: G,
-					done: (unlocked) => {
-						show();
-						if (!unlocked) toast("Đã hoàn thành: Biên tập đã khóa. Bấm Ren Vid để tạo video.");
-					},
+					view: G || GE,
 					rendered: (r) => {
-						n.tab = "sl";
 						show();
-						toast(`Đã ren video ${r.video.file.dur} giây và lưu vào Kho. Chọn ngày giờ ở Xếp Slot.`);
+						toast(`Đã ren video ${r.video.file.dur} giây và lưu vào Kho. Bấm Duyệt Biên tập để sang Xếp Slot.`);
 					}
 				});
 				else ED.render();
@@ -34527,31 +34645,6 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			if (!r.ok) return err(r.error);
 			save();
 		});
-		g("up").addEventListener("change", (e) => {
-			const file = e.target.files && e.target.files[0];
-			if (!file) return;
-			if (!/^video\//.test(file.type)) {
-				e.target.value = "";
-				return toast("Tệp không phải video (MP4, WebM, MOV).", "bad");
-			}
-			if (file.size > vidMax()) {
-				e.target.value = "";
-				return toast(`Video quá lớn (tối đa ${vidMax() / 1048576} MB vì lưu trong trình duyệt). Nén bớt rồi tải lại.`, "bad");
-			}
-			if (!persist()) return;
-			const rd = new FileReader();
-			rd.onerror = () => toast("Không đọc được tệp video.", "bad");
-			rd.onload = () => {
-				const r = AC.setVidFile(S, id, {
-					src: String(rd.result),
-					name: file.name,
-					size: file.size
-				});
-				if (!r.ok) return toast(r.error, "bad");
-				reopen("Đã tải video thành phẩm. Thẻ chuyển sang Sẵn sàng.");
-			};
-			rd.readAsDataURL(file);
-		});
 		const addIn = g("addmedia");
 		if (addIn) addIn.addEventListener("change", async (e) => {
 			const files = [...e.target.files || []];
@@ -34584,12 +34677,6 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			else if (kind === "ks") {
 				n.tab = "ks";
 				n.ks = val;
-			} else if (kind === "mode") {
-				if (!G) {
-					AC.setEditMode(S, id, val);
-					save();
-				}
-				n.tab = "bt";
 			}
 			show();
 		});
@@ -34616,7 +34703,16 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				const r = AC.useVidVersion(S, id, from);
 				if (!r.ok) return err(r.error);
 				n.ver = null;
-				reopen(`Đã dùng lại bản ${from}: thành bản ${r.n}, bản mới nhất.`);
+				reopen(`Đã nạp bản ${from} vào bản nháp. Bấm Duyệt Kịch bản để lưu thành bản ${r.n}.`);
+				return;
+			}
+			if (k === "eprev" || k === "enext") {
+				const L = editVerList(v);
+				const i = GE ? L.findIndex((h) => h.n === GE.editVer) : L.length - 1;
+				const j = Math.max(0, Math.min(L.length - 1, i + (k === "eprev" ? -1 : 1)));
+				n.ever = L[j].cur ? null : L[j].n;
+				n.tab = "bt";
+				reopen();
 				return;
 			}
 			if (k === "dl-script") {
@@ -34637,18 +34733,6 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				return;
 			}
 			if (G) return;
-			if (k === "save") {
-				if (!persist()) return;
-				reopen("Đã lưu thẻ Vid.");
-				return;
-			}
-			if (k === "approve-idea") {
-				if (!persist()) return;
-				const r = AC.approveIdeas(S, v.weekId, v.topicId, [id]);
-				if (!r.ok) return err(r.error);
-				reopen("Đã duyệt Insight. Bấm Tạo Kịch bản.");
-				return;
-			}
 			if (k === "drop-idea") {
 				const r = AC.dropIdea(S, id);
 				if (!r.ok) return err(r.error);
@@ -34665,10 +34749,12 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			}
 			if (k === "write") {
 				if (view.svBusy) return;
-				if (v.script && !await confirmBox({
-					title: "Tạo Kịch bản mới?",
-					body: `<p>Kịch bản và Insight đang có lùi vào danh sách bản cũ, xem lại bằng nút ‹ ›. App giữ ${AC.VID_KEEP_VERSIONS} bản gần nhất.</p><p>Phần biên tập giữ nguyên; Biên tập sẽ báo "Kịch bản đã đổi" để bạn chọn Cập nhật theo kịch bản hoặc Bỏ qua.</p>`,
-					ok: "Tạo Kịch bản"
+				const ed = v.edit;
+				const has = ed && (ed.scenes.some((s) => s.items.length || s.vo) || (ed.cues || []).length);
+				if ((v.script || has) && !await confirmBox({
+					title: "Tạo mới kịch bản và phân cảnh?",
+					body: `<p>App viết lại kịch bản và chia lại cảnh. Bản nháp đang có bị thay; các bản đã duyệt vẫn xem lại được bằng nút ‹ ›.</p>${has ? "<p>Hình, VO cảnh và cue đã thêm ở Biên tập sẽ bị thay. Bản Biên tập đã duyệt vẫn giữ: bấm Hủy Biên tập hoặc ‹ › ở Biên tập để lấy lại.</p>" : ""}`,
+					ok: "Tạo mới"
 				})) return;
 				if (!persist()) return;
 				const r = await writeOne(id);
@@ -34684,10 +34770,11 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 					reopen(p.ok ? `Đã viết kịch bản ${r.words} chữ và chia ${p.count} cảnh${p.shoot ? `, ${p.shoot} cảnh cần quay` : ""}.` : `Đã viết kịch bản ${r.words} chữ.`);
 					return;
 				}
+				const p = AC.planEdit(S, id);
 				n.ver = null;
 				n.tab = "ks";
 				n.ks = "scene";
-				reopen(`Đã viết kịch bản ${r.words} chữ. Bấm Chia cảnh để duyệt.`);
+				reopen(p.ok ? `Đã viết kịch bản ${r.words} chữ và chia ${p.count} cảnh. Xem lại rồi bấm Duyệt Kịch bản.` : `Đã viết kịch bản ${r.words} chữ. ${p.error}`);
 				return;
 			}
 			if (k === "vslot-all") {
@@ -34699,13 +34786,58 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				if (!persist()) return;
 				const r = AC.approveVidScript(S, id);
 				if (!r.ok) return err(r.error);
-				reopen("Đã khóa Kịch bản. Sang Biên tập để chia cảnh, dựng video.");
+				reopen(`Đã duyệt Kịch bản${r.added ? `: lưu thành bản ${r.n}` : ""}. Sang Biên tập để dựng video.`);
 				return;
 			}
 			if (k === "sunlock") {
 				const r = AC.unlockVidScript(S, id);
 				if (!r.ok) return err(r.error);
-				reopen(v.edit && v.edit.scenes.length ? "Đã mở khóa Kịch bản. Sửa xong, Biên tập sẽ báo Kịch bản đã đổi để bạn chọn Cập nhật hoặc Bỏ qua." : "Đã mở khóa Kịch bản.");
+				reopen(v.edit && v.edit.scenes.length ? "Đã mở Kịch bản để sửa. Sửa xong bấm Duyệt Kịch bản; Biên tập sẽ báo Kịch bản đã đổi để bạn chọn Cập nhật hoặc Bỏ qua." : "Đã mở Kịch bản để sửa. Sửa xong bấm Duyệt Kịch bản.");
+				return;
+			}
+			if (k === "edone") {
+				const r = AC.completeEdit(S, id);
+				if (!r.ok) return err(r.error);
+				if (ED) ED.reset();
+				save();
+				render();
+				show();
+				toast(AC.vidFinal(v) ? `Đã duyệt Biên tập (bản ${r.n}). Sang Xếp Slot để chọn ngày giờ.` : `Đã duyệt Biên tập (bản ${r.n}). Chưa có video: bấm Sửa Biên tập rồi Ren Vid.`);
+				return;
+			}
+			if (k === "eunlock") {
+				const r = AC.unlockEdit(S, id);
+				if (!r.ok) return err(r.error);
+				save();
+				render();
+				show();
+				toast("Đã mở Biên tập để sửa. Xong bấm Duyệt Biên tập; muốn bỏ thay đổi thì bấm Hủy Biên tập.");
+				return;
+			}
+			if (k === "ecancel") {
+				const a = v.editAppr;
+				if (!await confirmBox({
+					title: "Hủy Biên tập?",
+					body: `<p>Mọi thay đổi từ lần Duyệt Biên tập gần nhất bị bỏ, kể cả video ren sau đó. Thẻ quay về ${a && a.n ? `bản ${a.n}` : "bản đã duyệt"} và khóa lại.</p>`,
+					ok: "Hủy Biên tập",
+					danger: true
+				})) return;
+				const r = AC.cancelEdit(S, id);
+				if (!r.ok) return err(r.error);
+				if (ED) ED.reset();
+				save();
+				render();
+				show();
+				toast(`Đã hủy Biên tập, quay về ${r.n ? `bản ${r.n}` : "bản đã duyệt"}.`);
+				return;
+			}
+			if (k === "euse") {
+				const from = GE.editVer;
+				const r = AC.useEditVersion(S, id, from);
+				if (!r.ok) return err(r.error);
+				n.ever = null;
+				if (ED) ED.reset();
+				reopen(`Đã nạp bản biên tập ${from} để sửa. Bấm Duyệt Biên tập để lưu thành bản mới.`);
 				return;
 			}
 			if (k === "cancel") {
@@ -34734,7 +34866,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				save();
 				render();
 				show();
-				toast(`Đã chia ${r.count} cảnh. Kịch bản đã khóa; chỉnh tiếp ở Biên tập.`);
+				toast(`Đã chia ${r.count} cảnh. Xem lại rồi bấm Duyệt Kịch bản.`);
 				return;
 			}
 			if (k === "resplit") {
@@ -34769,10 +34901,8 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				}
 				save();
 				render();
-				const n2 = navOf(id);
-				n2.tab = "sl";
 				show();
-				toast(`Đã ren video ${r.video.file.dur} giây và lưu vào Kho. Chọn ngày giờ ở Xếp Slot.`);
+				toast(`Đã ren video ${r.video.file.dur} giây và lưu vào Kho. Bấm Duyệt Biên tập để sang Xếp Slot.`);
 				return;
 			}
 			if (k === "export-cmd") {
@@ -34836,7 +34966,7 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 			if (k === "idea") {
 				if (!persist()) return;
 				AC.useBrollIdea(S, id, x.dataset.k);
-				reopen("Đã chọn ý tưởng. Bấm Tạo Kịch bản.");
+				reopen("Đã chọn ý tưởng. Bấm Tạo mới ở Phân cảnh.");
 				return;
 			}
 			if (k === "stt") {
@@ -34874,6 +35004,37 @@ Câu hỏi: Theo báo cáo, nhân viên văn phòng dự trung bình bao nhiêu 
 				else subsDialog(Object.assign(T, { save: (c, src) => AC.setVidSubs(S, id, c, src) }));
 			}
 		});
+		let asT = 0;
+		const flush = () => {
+			clearTimeout(asT);
+			asT = 0;
+			if (!G && persist()) save();
+		};
+		const ksIn = (e) => !G && e.target.closest && e.target.closest("[data-pane=\"ks\"]") && !e.target.dataset.pt && !e.target.dataset.pp && e.target.id !== "sp-merge" && e.target.type !== "file";
+		box.addEventListener("input", (e) => {
+			if (e.target.classList && e.target.classList.contains("vp-ag")) grow(e.target);
+			if (ksIn(e)) {
+				clearTimeout(asT);
+				asT = setTimeout(flush, 700);
+			}
+		});
+		box.addEventListener("change", (e) => {
+			if (ksIn(e)) flush();
+		});
+		{
+			const mo = new MutationObserver(() => {
+				if (box.isConnected) return;
+				mo.disconnect();
+				if (asT) {
+					flush();
+					render();
+				}
+			});
+			mo.observe($("#layer"), {
+				childList: true,
+				subtree: true
+			});
+		}
 		bindMix(box, id, {
 			show,
 			reopen,

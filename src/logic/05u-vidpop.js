@@ -1,7 +1,7 @@
 // ---------- 05u · Short Vid: popup thẻ Vid (bản 1 mục 10.76, bản 4 mục 10.77): cảnh nhiều hình, độ dài từng hình, VO toàn bài / VO cảnh, co giãn timeline, caption theo timeline, cue, mẫu, Hoàn thành, xếp slot theo ô ----------
 import { countWords, addDays } from './01-util.js';
 import { byId, deleteSlot, weekOf } from './05-model.js';
-import { SCRIPT_LOCK_MSG, scriptOpen, snapEdit, vidBody, vidSettingsOf } from './05s-shortvid.js';
+import { SCRIPT_LOCK_MSG, approveEdit, scriptOpen, vidBody, vidSettingsOf } from './05s-shortvid.js';
 import { ITEM_MIN, SCENE_FLOOR, VID_CAPTION_MODES, captionChunks, cueTime, editOf, editTimeline, evenSplit, planEdit, sceneWordTimes, sceneWords, scenePrompt, sceneMin, scheduleGate, scheduleVideo, setSceneDur, vidChannels } from './05t-videdit.js';
 import { splitSentences } from './01-util.js';
 
@@ -187,7 +187,7 @@ export function applyTemplate(S, id, key) {
   if (scriptOpen(v)) return { ok: false, error: SCRIPT_LOCK_MSG };
   if (key === 'script') { const ed0 = editOf(v); const keepAll = ed0.voAll; const r = planEdit(S, id); if (r.ok && keepAll && !v.edit.voAll) { /* planEdit giữ VO toàn bài còn tệp */ } return r.ok ? Object.assign(r, { template: key }) : r; }
   const ss = splitSentences(vidBody(v.script).replace(/\n+/g, ' ')); if (ss.length < 3) return { ok: false, error: 'Kịch bản quá ngắn để chia theo mẫu (cần ít nhất 3 câu).' };
-  const ed = editOf(v); const c = vidSettingsOf(S); snapEdit(S, v, 'Trước khi đổi mẫu dựng');
+  const ed = editOf(v); const c = vidSettingsOf(S);
   const k = Math.min(T.w.length, ss.length); const W = T.w.slice(0, k); const sum = W.reduce((a, x) => a + x, 0);
   const cuts = []; let acc = 0; W.forEach((x, i) => { acc += x; cuts.push(i === k - 1 ? ss.length : Math.max((cuts[i - 1] || 0) + 1, Math.min(ss.length - (k - 1 - i), Math.round(ss.length * acc / sum)))); });
   const texts = cuts.map((e, i) => ss.slice(i ? cuts[i - 1] : 0, e).join(' '));
@@ -198,14 +198,14 @@ export function applyTemplate(S, id, key) {
   return { ok: true, count: ed.scenes.length, template: key };
 }
 
-// ---- Hoàn thành biên tập ----
+// ---- Duyệt Biên tập (mục 10.90; trước là Hoàn thành) ----
 export function editBlockers(v) { const ed = v && v.edit; return ed ? ed.scenes.map((s, i) => ({ i, id: s.id })).filter(x => !ed.scenes[x.i].items.length && !ed.scenes[x.i].ph) : []; }
 export function completeEdit(S, id) {
   const v = vidGet(S, id); if (!v) return { ok: false, error: 'Không thấy thẻ Vid.' }; if (v.cancelled) return { ok: false, error: 'Thẻ đã hủy.' };
   const ed = v.edit; if (!ed || !ed.scenes.length) return { ok: false, error: 'Chưa có cảnh để hoàn thành.' };
   if (scriptOpen(v)) return { ok: false, error: SCRIPT_LOCK_MSG };
   const bl = editBlockers(v); if (bl.length) return { ok: false, error: `Cảnh ${bl.map(x => x.i + 1).join(', ')} chưa có hình: Up hình hoặc chọn Dùng thẻ giữ chỗ.` };
-  ed.doneAt = S.settings.demoNow; return { ok: true };
+  return approveEdit(S, v);
 }
 export const vidEditDone = v => !!(v && (v.file || (v.edit && v.edit.doneAt)));
 export function setEditMode(S, id, mode) { const v = vidGet(S, id); if (!v) return { ok: false, error: 'Không thấy thẻ Vid.' }; if (mode !== 'in' && mode !== 'out') return { ok: false, error: 'Chế độ biên tập không hợp lệ.' }; v.editMode = mode; return { ok: true }; }

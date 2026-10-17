@@ -7,23 +7,17 @@ import { editBlockers } from './05u-vidpop.js';
 import { addLibraryVideo } from './05m-studio.js';
 import { editTimeline } from './05t-videdit.js';
 import { slugOf } from './05f-export.js';
-import { SCRIPT_LOCK_MSG, scriptOpen, snapEdit, vidsOf } from './05s-shortvid.js';
+import { SCRIPT_LOCK_MSG, scriptOpen, editSig, vidsOf } from './05s-shortvid.js';
 
 const SIM_WEBM = 'data:video/webm;base64,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';
 const vidGet = (S, id) => byId(S.videos || [], id);
-// Chữ ký của phần biên tập: đổi kịch bản hoặc dự án dựng thì video đã ren thành "lỗi thời"
-export function editSig(v) {
-  const e = Object.assign({}, v.edit || {}); delete e.doneAt; delete e.plannedAt;
-  const s = JSON.stringify([v.script || '', e]); let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
-  return (h >>> 0).toString(36);
-}
+export { editSig };
 // Lý do chưa ren được ('' nếu ren được)
 export function renderBlockers(v) {
   if (!v) return 'Không thấy thẻ Vid.'; if (v.cancelled) return 'Thẻ đã hủy.';
   if (!v.edit || !v.edit.scenes.length) return 'Chưa có cảnh để ren.';
   if (scriptOpen(v)) return SCRIPT_LOCK_MSG;
   const bl = editBlockers(v); if (bl.length) return `Cảnh ${bl.map(x => x.i + 1).join(', ')} chưa có hình.`;
-  if (!v.edit.doneAt) return 'Chưa Hoàn thành biên tập.';
   if (v.file && !v.file.rendered) return 'Thẻ đang dùng video Up ngoài app. Bỏ video đó trước nếu muốn ren.';
   return '';
 }
@@ -39,12 +33,13 @@ export function renderVid(S, id) {
   const out = simRender(v); const dur = Math.round(editTimeline(v).total); const name = `${slugOf(v.insight.title) || 'video'}.webm`;
   const lib = addLibraryVideo(S, { name: v.insight.title.slice(0, 80), src: out.src, cover: out.cover, dur, vidId: v.id, replaceId: v.file && v.file.libId }, S.settings.demoNow);
   if (!lib.ok) return lib;
-  snapEdit(S, v, 'Bản đã ren');
   v.file = { kind: 'video', src: out.src, name, size: out.size, at: S.settings.demoNow, rendered: true, sim: true, sig: editSig(v), dur, libId: lib.item.id };
+  // Ren khi Biên tập đã duyệt (vd. Ren cả lô): video thuộc đúng bản đã duyệt đó
+  if (v.edit.doneAt) { if (v.editAppr) v.editAppr.file = JSON.parse(JSON.stringify(v.file)); const h = (v.editHist || [])[0]; if (h && v.editAppr && h.n === v.editAppr.n) h.file = JSON.parse(JSON.stringify(v.file)); }
   log(S, 'vid-render', 'video', id, `${dur} giây · Kho ${lib.item.id}${lib.updated ? ' (thay bản cũ)' : ''}`);
   return { ok: true, video: v, library: lib.item, updated: !!lib.updated };
 }
-// Thẻ trong danh sách ren được ngay (đã Hoàn thành biên tập; chưa ren hoặc đã lỗi thời) và thẻ bị bỏ qua kèm lý do
+// Thẻ trong danh sách ren được ngay (đủ hình mọi cảnh; chưa ren hoặc đã lỗi thời) và thẻ bị bỏ qua kèm lý do
 export function renderTargets(S, ids) {
   const todo = [], skipped = [];
   ids.map(i => vidGet(S, i)).filter(x => x && !x.cancelled && x.status !== 'IDEA').forEach(v => {

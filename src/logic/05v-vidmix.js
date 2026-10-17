@@ -3,7 +3,7 @@ import { countWords, splitSentences } from './01-util.js';
 import { byId, cellView, log } from './05-model.js';
 import { aiSystem } from './05o-aitext.js';
 import { fmtClock } from './05n-media.js';
-import { VID_LEN_MAX, VID_LEN_MIN, lenWords, newVideo, vidTopicRow, vidBody, vidSections, vidSettingsOf, vidWords, vidsOf } from './05s-shortvid.js';
+import { VID_LEN_MAX, VID_LEN_MIN, lenWords, newVideo, vidTopicRow, vidBody, vidSections, vidSettingsOf, vidWords, vidsOf, approveVidScript, vidFinal } from './05s-shortvid.js';
 import { FREE_HOOKS, VID_MAX_FREE, addSceneItems, addVidMedia, autoBuild, editOf, ensureFreeTopic, planEdit, scheduleVideo, suggestVidDates, vidChannels, vidSlotsOf } from './05t-videdit.js';
 import { VID_TEMPLATES, applyTemplate, completeEdit, vidLibOf } from './05u-vidpop.js';
 // Một Vid tự do = nhiều nguyên liệu (v.inputs) → các ô trích ra (v.cells) → dàn ý đã duyệt (v.outline) → kịch bản → cảnh (v.edit).
@@ -280,6 +280,7 @@ export function mixPlan(S, id) {
   const v = vidGet(S, id); if (!v) return { ok: false, error: 'Không thấy thẻ Vid.' };
   if (!String(v.script || '').trim()) return { ok: false, error: 'Chưa có kịch bản để chia cảnh.' };
   let r = planEdit(S, id); if (!r.ok) return r;
+  approveVidScript(S, id);   // Dựng nhanh (mục 10.90): đường tắt viết + chia cảnh + duyệt kịch bản cho thẻ tự do / cả lô
   const lib = vidLibOf(S); const own = (lib.tpls || []).find(t => t.id === v.tplId);
   if (v.tplId && VID_TEMPLATES[v.tplId] && v.tplId !== 'script') { const a = applyTemplate(S, id, v.tplId); if (a.ok) r = a; }
   const ed = editOf(v); ed.scenes.forEach(sc => { sc.items = []; sc.ph = false; sc.shoot = false; sc.autoMiss = false; });
@@ -394,7 +395,7 @@ export function autoSlotBatch(S, id, p) {
   const chans = (P.channelIds && P.channelIds.length ? P.channelIds : vidChannels(S).map(x => x.channel.id)); if (!chans.length) return { ok: false, error: 'Chưa có kênh video ngắn.' };
   const todo = list.filter(x => !x.cancelled && !vidSlotsOf(S, x.id).length); const days = suggestVidDates(S, v.weekId, todo.length || 1);
   const made = [], skipped = [];
-  todo.forEach((x, i) => { if (!x.file) { skipped.push(x.id); return; } const r = scheduleVideo(S, x.id, { date: days[i], time: P.time || '19:00', channelIds: chans, captions: P.captions && P.captions[x.id] }); if (r.ok) made.push({ id: x.id, slots: r.slots.length, date: days[i] }); else skipped.push(x.id); });
+  todo.forEach((x, i) => { if (!vidFinal(x)) { skipped.push(x.id); return; } const r = scheduleVideo(S, x.id, { date: days[i], time: P.time || '19:00', channelIds: chans, captions: P.captions && P.captions[x.id] }); if (r.ok) made.push({ id: x.id, slots: r.slots.length, date: days[i] }); else skipped.push(x.id); });
   return { ok: true, made, skipped };
 }
 

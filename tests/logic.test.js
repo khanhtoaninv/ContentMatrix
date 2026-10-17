@@ -10,6 +10,8 @@ const seed = () => AC.buildSeed();
 // Từ 10.66: Chia bài thành Hoàn thành Matrix + Viết tất cả slot; dealFull làm cả hai (nếu Matrix chưa khóa)
 const dealFullWeek = (S, w, at) => { if (!AC.matrixDone(S, w)) AC.completeMatrix(S, w, at); return AC.dealWeek(S, w, at); };
 const dealFull = (S, w, at) => { if (!AC.matrixDone(S, w)) AC.completeMatrix(S, w, at); return AC.dealSlots(S, w, at); };
+// Mục 10.90: chia cảnh không tự duyệt kịch bản; test luồng cũ chia cảnh rồi Duyệt Kịch bản
+const planA = (S, id) => { const r = AC.planEdit(S, id); if (r.ok) AC.approveVidScript(S, id); return r; };
 const fileOf = (S, w) => AC.topicFileOf(S, w).md;
 const approveAll = (S, w) => AC.cellsOf(S, w).forEach(c => { const row = AC.byId(S.topics, c.topicId); const bv = c.byVersion[row.currentVersion]; if (bv && bv.state === 'DRAFT') bv.state = 'APPROVED'; });
 
@@ -2059,7 +2061,6 @@ test('10.72 · Phân tích Topic → Insight có lý do, gộp, bỏ, duyệt, v
   assert.ok(AC.mergeIdeas(S, ideas[0].id, ideas[1].id).ok);
   assert.ok(AC.dropIdea(S, ideas[2].id).ok);
   assert.equal(AC.vidsOf(S, T2, tid).length, ideas.length - 2);
-  assert.equal(AC.writeVidScript(S, ideas[0].id).ok, false, 'chưa duyệt Insight thì chưa viết');
   assert.ok(AC.approveIdeas(S, T2, tid).ok);
   const vs = AC.vidsOf(S, T2, tid);
   vs.forEach(v => assert.ok(AC.writeVidScript(S, v.id).ok));
@@ -2155,7 +2156,7 @@ test('10.75 · Vid tự do: 6 cách nạp, hàng Video tự do tối đa 30 th�
 test('10.75 · Bàn dựng: chia cảnh, gán b-roll, cắt khoảng lặng, caption, lệnh dựng', () => {
   const S = seed();
   const s1 = AC.addFreeVideo(S, T2, { origin: 'script', script: '[Hook]\nVì sao nói chậm lại giúp người nghe hiểu hơn?\n\n[Cơ chế]\n' + 'Não cần thời gian ghép âm thành nghĩa, nên mỗi câu cần một nhịp nghỉ ngắn. '.repeat(4) + '\n\n[CTA]\nTheo dõi kênh nhé.' }).video;
-  const p = AC.planEdit(S, s1.id); assert.ok(p.ok && p.count >= 4, String(p.count));
+  const p = planA(S, s1.id); assert.ok(p.ok && p.count >= 4, String(p.count));
   const ed = s1.edit; assert.equal(ed.voice.mode, 'tts'); assert.ok(ed.scenes.every(s => !s.items.length && /Hình dọc 9:16/.test(s.prompt)));
   assert.ok(ed.scenes.every(s => AC.countWords(s.text) <= 30), 'đoạn dài chia thành nhiều cảnh');
   const tl = AC.editTimeline(s1); assert.equal(tl.items[1].t0, tl.items[0].t1); assert.ok(tl.total > 20);
@@ -2176,12 +2177,12 @@ test('10.75 · Bàn dựng: chia cảnh, gán b-roll, cắt khoảng lặng, cap
   assert.deepEqual(AC.captionChunks('Xin chào.', 3, 'off'), []);
   // b-roll: cảnh k nhận clip k
   const br = AC.addFreeVideo(S, T2, { origin: 'broll', media: [{ src: VID, name: 'a.webm', dur: 4 }, { src: VID, name: 'b.webm', dur: 6 }] }).video;
-  AC.writeVidScript(S, br.id); assert.ok(AC.planEdit(S, br.id).ok);
+  AC.writeVidScript(S, br.id); assert.ok(planA(S, br.id).ok);
   const c1 = br.edit.scenes.find(s => s.label === 'Cảnh 1'), c2 = br.edit.scenes.find(s => s.label === 'Cảnh 2');
   assert.equal(c1.items[0].mediaId, 'm1'); assert.equal(c2.items[0].mediaId, 'm2'); assert.ok(c1.items[0].to <= 4);
   // giọng đọc: cảnh co giãn theo độ dài file
   const au = AC.addFreeVideo(S, T2, { origin: 'audio', media: [{ src: AUD, name: 'g.mp3', dur: 30 }], script: 'Xin chào các bạn. Hôm nay mình nói về cách luyện nghe. Mỗi ngày mười phút là đủ.' }).video;
-  assert.ok(AC.planEdit(S, au.id).ok); assert.equal(au.edit.voice.mode, 'file'); assert.ok(Math.abs(AC.editTimeline(au).total - 30) < 0.6);
+  assert.ok(planA(S, au.id).ok); assert.equal(au.edit.voice.mode, 'file'); assert.ok(Math.abs(AC.editTimeline(au).total - 30) < 0.6);
   // quay người nói: khoảng lặng → đoạn giữ
   const lv = [0, 0, 0.5, 0.6, 0.5, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.6, 0.7, 0.5, 0.5, 0, 0];
   const cuts = AC.silenceCuts(lv, 0.25); assert.equal(cuts.length, 3, JSON.stringify(cuts)); assert.equal(cuts[0].why, 'Lặng đầu clip');
@@ -2191,7 +2192,7 @@ test('10.75 · Bàn dựng: chia cảnh, gán b-roll, cắt khoảng lặng, cap
   const tk = AC.addFreeVideo(S, T2, { origin: 'talk', media: [{ src: VID, name: 't.webm', dur: 10 }] }).video;
   AC.editVidScript(S, tk.id, { script: 'một hai ba bốn năm sáu bảy tám chín mười' });
   assert.ok(AC.setVidCuts(S, tk.id, [{ from: 2, to: 3 }, { from: 6, to: 7 }]).ok); assert.ok(AC.toggleVidCut(S, tk.id, 1, false).ok);
-  assert.ok(AC.planEdit(S, tk.id).ok); assert.equal(tk.edit.scenes.length, 2); assert.equal(tk.edit.voice.mode, 'clip');
+  assert.ok(planA(S, tk.id).ok); assert.equal(tk.edit.scenes.length, 2); assert.equal(tk.edit.voice.mode, 'clip');
   assert.deepEqual(tk.edit.scenes.map(s => [s.items[0].from, s.items[0].to]), [[0, 2], [3, 10]]);
   assert.equal(tk.edit.scenes.map(s => s.text).join(' '), 'một hai ba bốn năm sáu bảy tám chín mười');
 });
@@ -2229,7 +2230,7 @@ test('10.76 · Popup bản 1: cảnh nhiều hình, VO toàn bài / VO cảnh, c
   AC.ensureShortVid(S); const o0 = old.edit.scenes[0];
   assert.ok(o0.items.length === 1 && o0.items[0].kind === 'image' && !('asset' in o0) && o0.fit === 'fill' && o0.vo === null && old.edit.v === 3 && old.edit.captions.style === 0);
   // chia cảnh, mức tối thiểu của cảnh
-  assert.ok(AC.planEdit(S, id).ok); const ed = v.edit; assert.ok(ed.scenes.length >= 4 && ed.scenes.every(s => s.defDur === s.dur && Array.isArray(s.items) && s.vo === null));
+  assert.ok(planA(S, id).ok); const ed = v.edit; assert.ok(ed.scenes.length >= 4 && ed.scenes.every(s => s.defDur === s.dur && Array.isArray(s.items) && s.vo === null));
   const [a, b] = ed.scenes;
   assert.equal(AC.resizeScene(S, id, a.id, 0.1).ok, true); assert.equal(a.dur, AC.SCENE_FLOOR, 'không dưới mức sàn');
   const t1 = AC.editTimeline(v).total; assert.ok(AC.resizeScene(S, id, a.id, a.dur + 3).ok); assert.ok(Math.abs(AC.editTimeline(v).total - (t1 + 3)) < 0.05, 'ripple: các cảnh sau dồn theo, tổng tăng đúng bằng phần kéo thêm');
@@ -2307,7 +2308,7 @@ test('10.77 · Popup bản 4: độ dài từng hình, VO, cue bám từ trong V
   AC.ensureShortVid(S); const oe = old.edit;
   assert.equal(oe.v, 3); assert.deepEqual(oe.scenes[0].items.map(x => x.d), [2, 2]); assert.ok(!('overlay' in oe.scenes[0])); assert.equal(oe.cues.length, 1); assert.equal(oe.cues[0].text.t, 'Nhớ lâu'); assert.equal(oe.cues[0].wi, 0);
   // chia cảnh là duyệt kịch bản
-  assert.equal(v.status, 'DRAFT'); assert.ok(AC.planEdit(S, id).ok); assert.equal(v.status, 'APPROVED'); const ed = v.edit; assert.equal(ed.splitFrom, v.script); assert.deepEqual(ed.cues, []);
+  assert.equal(v.status, 'DRAFT'); assert.ok(planA(S, id).ok); assert.equal(v.status, 'APPROVED'); const ed = v.edit; assert.equal(ed.splitFrom, v.script); assert.deepEqual(ed.cues, []);
   const [a, b, c] = ed.scenes;
   // nhiều hình: chia đều độ dài cảnh; kéo cảnh thì các hình co giãn theo; kéo vạch thì chỉ hình đó đổi
   assert.ok(AC.addSceneItems(S, id, a.id, [{ src: IMG, name: '1.jpg' }, { src: IMG, name: '2.jpg' }, { src: IMG, name: '3.jpg' }]).ok);
@@ -2346,21 +2347,25 @@ test('10.77 · Popup bản 4: độ dài từng hình, VO, cue bám từ trong V
   // Yêu thích dùng chung
   assert.ok(AC.toggleVidFav(S, 'sfx', 'boing').fav); assert.ok(AC.vidLibOf(S).favS.includes('boing')); assert.equal(AC.toggleVidFav(S, 'sfx', 'boing').fav, false); assert.equal(AC.toggleVidFav(S, 'icon', '🦄').ok, false);
   assert.ok(AC.VID_SFX.length >= 30 && AC.VID_SFX_GROUPS.every(g => AC.VID_SFX.some(x => x[2] === g)) && AC.VID_ICONS.length >= 40);
-  // phiên bản: Tạo Kịch bản = bản mới chưa có cảnh; tối đa 5 bản; Dùng bản này chép bản cũ thành bản mới nhất
-  assert.equal(AC.vidVersions(v).length, 1); const scenes1 = ed.scenes.length;
+  // phiên bản (mục 10.90): chỉ Duyệt Kịch bản mới lưu bản; Tạo mới ghi đè bản nháp; tối đa 5 bản
+  assert.equal(AC.vidVersions(v).length, 1); const scenes1 = ed.scenes.length; AC.unlockVidScript(S, id);
   assert.ok(AC.writeVidScript(S, id, { ok: true, script: '[Hook]\nBản hai của kịch bản.\n\n[CTA]\nTheo dõi nhé.' }).ok);
-  assert.equal(v.edit.scenes.length, scenes1, 'mục 10.88: Tạo Kịch bản mới không xóa phần biên tập'); assert.equal(v.verN, 2); assert.equal(v.history[0].n, 1); assert.equal(v.history[0].edit, undefined); assert.equal(v.status, 'DRAFT'); assert.ok(AC.scriptChanged(v));
-  for (let i = 3; i <= 6; i++) assert.ok(AC.writeVidScript(S, id, { ok: true, script: `[Hook]\nBản ${i}.` }).ok);
-  assert.equal(AC.vidVersions(v).length, AC.VID_KEEP_VERSIONS); assert.deepEqual(AC.vidVersions(v).map(x => x.n), [2, 3, 4, 5, 6]);
-  assert.ok(AC.editVidScript(S, id, { script: '[Hook]\nSửa tay.' }).ok); assert.equal(AC.vidVersions(v).length, 5, 'sửa tay không tạo bản mới');
-  const u = AC.useVidVersion(S, id, 2); assert.ok(u.ok); assert.equal(v.verN, 7); assert.ok(v.script.includes('Bản hai')); assert.deepEqual(AC.vidVersions(v).map(x => x.n), [3, 4, 5, 6, 7]); assert.equal(AC.useVidVersion(S, id, 1).ok, false);
+  assert.equal(v.edit.scenes.length, scenes1, 'Tạo Kịch bản mới không xóa phần biên tập'); assert.equal(v.status, 'DRAFT'); assert.ok(AC.scriptChanged(v));
+  assert.equal(v.history.length, 0, 'Tạo mới không thêm bản'); { const vs = AC.vidVersions(v); assert.equal(vs.length, 1); assert.equal(vs[0].n, 2); assert.ok(vs[0].draft); }
+  assert.ok(AC.approveVidScript(S, id).added); assert.equal(v.verN, 2); assert.equal(v.history[0].n, 1); assert.equal(v.history[0].edit, undefined);
+  assert.equal(AC.approveVidScript(S, id).added, false, 'duyệt lại mà không đổi gì thì không thêm bản');
+  for (let i = 3; i <= 6; i++) { AC.unlockVidScript(S, id); assert.ok(AC.writeVidScript(S, id, { ok: true, script: `[Hook]\nBản ${i}.` }).ok); AC.approveVidScript(S, id); }
+  assert.deepEqual(AC.vidVersions(v).map(x => x.n), [2, 3, 4, 5, 6]);
+  AC.unlockVidScript(S, id); assert.ok(AC.editVidScript(S, id, { script: '[Hook]\nSửa tay.' }).ok); assert.equal(AC.vidVersions(v).length, 5); assert.equal(AC.vidVersions(v).slice(-1)[0].n, 7, 'bản nháp mang số kế tiếp');
+  const u = AC.useVidVersion(S, id, 3); assert.ok(u.ok); assert.ok(v.script.includes('Bản 3')); assert.equal(v.status, 'DRAFT'); assert.equal(v.verN, 6);
+  AC.approveVidScript(S, id); assert.equal(v.verN, 7); assert.deepEqual(AC.vidVersions(v).map(x => x.n), [3, 4, 5, 6, 7]); assert.equal(AC.useVidVersion(S, id, 1).ok, false);
 });
 
 test('10.79 · Popup bản 5: hiệu ứng tự động, chuyển động chỉ cho ảnh (không cho video), chuyển cảnh Scene 1 mặc định không có', () => {
   const S = seed();
   const SCR = '[Hook]\nBạn nghĩ học tám tiếng mỗi ngày thì sẽ giỏi hơn? Chưa chắc.\n\n[Cơ chế]\nNhiều người ngồi cả ngày nhưng đầu óc đã tắt từ giờ thứ ba. Điều quyết định là mức tập trung, không phải số giờ.\n\n[Cách làm]\nHãy thử hai mươi lăm phút học sâu, nghỉ năm phút. Lặp lại bốn lần mỗi ngày.\n\n[CTA]\nLưu lại và thử ngay hôm nay.';
   const v = AC.addFreeVideo(S, T2, { origin: 'script', script: SCR }).video; const id = v.id;
-  assert.ok(AC.planEdit(S, id).ok); const ed = v.edit; assert.ok(ed.scenes.length >= 3);
+  assert.ok(planA(S, id).ok); const ed = v.edit; assert.ok(ed.scenes.length >= 3);
   assert.deepEqual([ed.fxTr, ed.fxMo, ed.fxDur], ['auto', 'auto', 0.5]); assert.ok(ed.scenes.every(s => s.tr === null && s.mo === null));
   // dữ liệu cũ (bản 4, v3 chưa có trường hiệu ứng) vẫn nạp được
   delete ed.fxTr; delete ed.fxMo; delete ed.fxDur; ed.scenes.forEach(s => { delete s.tr; delete s.mo; delete s.sec; }); AC.migrateEdit(ed); assert.equal(ed.fxTr, 'auto'); assert.equal(ed.scenes[0].tr, null);
@@ -2392,7 +2397,7 @@ test('10.79 · Popup bản 5: hiệu ứng tự động, chuyển động chỉ 
 test('10.80 · Tách caption tại con trỏ, frame Yêu thích, kho nhạc nền', () => {
   const S = seed();
   const v = AC.addFreeVideo(S, T2, { origin: 'script', script: '[Hook]\nBạn nghĩ học tám tiếng mỗi ngày thì sẽ giỏi hơn? Chưa chắc.\n\n[Cơ chế]\nNhiều người ngồi cả ngày nhưng đầu óc đã tắt từ giờ thứ ba.' }).video; const id = v.id;
-  assert.ok(AC.planEdit(S, id).ok); AC.genCaptions(S, id, { full: true }); const ed = v.edit; ed.segs[0].t = 'Hai nửa câu chia đôi'; const n = ed.segs.length;
+  assert.ok(planA(S, id).ok); AC.genCaptions(S, id, { full: true }); const ed = v.edit; ed.segs[0].t = 'Hai nửa câu chia đôi'; const n = ed.segs.length;
   assert.equal(AC.splitSegAt(S, id, 0, 0, ed.segs[0].t).ok, false); assert.equal(AC.splitSegAt(S, id, 0, 99, ed.segs[0].t).ok, false);
   assert.ok(AC.splitSegAt(S, id, 0, 7, 'Hai nửa câu chia đôi').ok); assert.equal(ed.segs.length, n + 1); assert.deepEqual([ed.segs[0].t, ed.segs[1].t], ['Hai nửa', 'câu chia đôi']); assert.ok(ed.segs[1].at > ed.segs[0].at);
   assert.ok(AC.mergeSeg(S, id, 1).ok); assert.equal(ed.segs[0].t, 'Hai nửa câu chia đôi');
@@ -2407,7 +2412,7 @@ test('10.80 · Tách caption tại con trỏ, frame Yêu thích, kho nhạc nề
 test('10.83 · Dựng tự động (mô phỏng): gợi ý b-roll theo mô tả hình, cắt clip dài vừa cảnh, không đè hình đã có', () => {
   const S = seed();
   const v = AC.addFreeVideo(S, T2, { origin: 'script', script: '[Hook]\nBạn nghĩ học tám tiếng mỗi ngày thì sẽ giỏi hơn? Chưa chắc.\n\n[Cơ chế]\nNhiều người ngồi cả ngày nhưng đầu óc đã tắt từ giờ thứ ba.\n\n[CTA]\nHãy thử học ngắn hơn và nghỉ đúng lúc.' }).video; const id = v.id;
-  assert.ok(AC.planEdit(S, id).ok); const ed = v.edit; assert.ok(ed.scenes.length >= 3);
+  assert.ok(planA(S, id).ok); const ed = v.edit; assert.ok(ed.scenes.length >= 3);
   assert.equal(AC.autoBuild(S, id).ok, false);   // chưa có b-roll
   assert.ok(AC.addVidMedia(S, id, { src: VID, name: 'ban-hoc.mp4', dur: 60, desc: 'Người ngồi ở bàn học, đồng hồ chỉ 11 giờ đêm' }).ok);
   assert.ok(AC.addVidMedia(S, id, { src: VID, name: 'san-bong.mp4', dur: 3, desc: 'Sân bóng đá buổi chiều, nhiều người chạy' }).ok);
@@ -2610,20 +2615,21 @@ function readyCard(S, origin) {   // thẻ đã có cảnh, mọi cảnh có th�
   const v = origin === 'topic'
     ? (() => { const tid = AC.topicsOf(S, T2)[0].id; AC.analyzeTopic(S, T2, tid); AC.approveIdeas(S, T2, tid); const x = AC.vidsOf(S, T2, tid)[0]; AC.writeVidScript(S, x.id, null, {}); return x; })()
     : AC.addFreeVideo(S, T2, { origin: 'script', script: 'Vì sao nói chậm giúp người nghe hiểu hơn?\n\nNão cần thời gian ghép âm thành nghĩa.\n\nTheo dõi kênh nhé.' }).video;
-  assert.ok(AC.planEdit(S, v.id).ok); v.edit.scenes.forEach(s => AC.editScene(S, v.id, s.id, { ph: true })); return v;
+  assert.ok(planA(S, v.id).ok); v.edit.scenes.forEach(s => AC.editScene(S, v.id, s.id, { ph: true })); return v;
 }
 for (const origin of ['topic', 'free']) {
   test(`10.86 · Ren Vid (${origin}): cần Hoàn thành biên tập, ren xong tự lưu Kho, đổi biên tập thì lỗi thời, ren lại thay đúng mục Kho`, () => {
     const S = seed(); const v = readyCard(S, origin);
-    assert.equal(AC.renderState(v), 'none'); assert.match(AC.renderBlockers(v), /Hoàn thành biên tập/); assert.equal(AC.renderVid(S, v.id).ok, false);
-    assert.ok(AC.completeEdit(S, v.id).ok); assert.equal(AC.renderBlockers(v), '');
+    assert.equal(AC.renderState(v), 'none'); assert.equal(AC.renderBlockers(v), '', 'mục 10.90: đang sửa Biên tập vẫn Ren được');
     const nImg = AC.libraryFind(S, '', '').length;
     const r = AC.renderVid(S, v.id); assert.ok(r.ok, r.error);
     assert.equal(AC.renderState(v), 'fresh'); assert.ok(v.file.rendered && v.file.sim && /^data:video\//.test(v.file.src)); assert.equal(AC.vidState(v, S), 'READY');
     const lib = AC.libraryOf(S).find(x => x.id === v.file.libId); assert.ok(lib && lib.kind === 'video' && lib.vidId === v.id && lib.tags.includes('Vid ren') && /^data:image\//.test(lib.cover));
     assert.equal(AC.libraryFind(S, '', '').length, nImg, 'bộ chọn ảnh không thấy video'); assert.ok(AC.libraryFind(S, '', '', true).some(x => x.id === lib.id)); assert.equal(AC.useLibraryItem(S, 'slot-1', 0, lib.id).ok, false);
     v.edit.scenes[0].text += ' thêm một ý.'; assert.equal(AC.renderState(v), 'stale');
+    assert.match(AC.completeEdit(S, v.id).error, /Ren lại/, 'video lệch bản biên tập thì chưa Duyệt được');
     const n = AC.libraryOf(S).length; const r2 = AC.renderVid(S, v.id); assert.ok(r2.ok && r2.updated); assert.equal(AC.libraryOf(S).length, n, 'ren lại thay mục cũ, không thêm'); assert.equal(AC.renderState(v), 'fresh');
+    assert.equal(AC.vidFinal(v), false, 'chưa Duyệt Biên tập thì chưa là thành phẩm'); assert.ok(AC.completeEdit(S, v.id).ok); assert.ok(AC.vidFinal(v));
     // Video Up ngoài app: không ren đè
     const w = readyCard(S, 'free'); AC.completeEdit(S, w.id); AC.setVidFile(S, w.id, { src: 'data:video/webm;base64,AAAA', name: 'x.webm' }); assert.equal(AC.renderState(w), 'ext'); assert.match(AC.renderBlockers(w), /Up ngoài app/);
     // Có video ren thì Xếp Slot mở được
@@ -2632,7 +2638,7 @@ for (const origin of ['topic', 'free']) {
 }
 test('10.86 · Ren cả hàng / cả lô: chỉ ren thẻ đã Hoàn thành biên tập, báo thẻ bị bỏ qua', () => {
   const S = seed(); const a = readyCard(S, 'free'); const b = AC.addFreeVideo(S, T2, { origin: 'script', script: 'Một câu khác.\n\nCâu thứ hai ở đây.\n\nTheo dõi kênh nhé.' }).video;
-  AC.planEdit(S, b.id); AC.completeEdit(S, a.id);
+  planA(S, b.id); AC.completeEdit(S, a.id);
   const t = AC.renderTargets(S, [a.id, b.id]); assert.deepEqual(t.todo, [a.id]); assert.equal(t.skipped.length, 1); assert.equal(t.skipped[0].id, b.id);
   AC.renderVid(S, a.id); assert.deepEqual(AC.renderTargets(S, [a.id]).todo, [], 'đã ren thì không ren lại');
   assert.deepEqual(AC.rowRenderTargets(S, T2, a.topicId).todo, []);
@@ -2690,18 +2696,19 @@ test('10.88 · Kịch bản → Biên tập: khóa kịch bản, lịch sử bi�
   AC.approveIdeas(S, T2, tid, [v0.id]); const id = v0.id; const v = AC.byId(S.videos, id);
   assert.ok(AC.writeVidScript(S, id, { ok: true, script: '[Hook]\nCâu một. Câu hai rõ ràng.\n\n[Thân]\nCâu ba. Câu bốn.\n\n[CTA]\nTheo dõi nhé.' }).ok);
   assert.equal(v.topicVer, tp.currentVersion, 'thẻ ghi phiên bản Topic đã dùng'); assert.equal(AC.vidTopicChanged(S, v), null);
-  assert.ok(AC.scriptOpen(v)); assert.match(AC.applyTemplate(S, id, 'script').error, /khóa Kịch bản/); assert.ok(AC.planEdit(S, id).ok, 'Chia cảnh = khóa kịch bản');
+  assert.ok(AC.scriptOpen(v)); assert.match(AC.applyTemplate(S, id, 'script').error, /Duyệt Kịch bản/); assert.ok(AC.planEdit(S, id).ok);
+  assert.equal(v.status, 'DRAFT', 'mục 10.90: chia cảnh không tự duyệt'); assert.ok(AC.approveVidScript(S, id).ok);
   assert.equal(v.status, 'APPROVED'); assert.equal(AC.scriptOpen(v), false); assert.equal(AC.editVersions(v).length, 0);
   assert.ok(AC.unlockVidScript(S, id).changed); assert.equal(v.status, 'DRAFT');
-  assert.match(AC.completeEdit(S, id).error, /khóa Kịch bản/); assert.match(AC.renderBlockers(v), /khóa Kịch bản/); assert.match(AC.useEditVersion(S, id, 1).error, /khóa Kịch bản/);
+  assert.match(AC.completeEdit(S, id).error, /Duyệt Kịch bản/); assert.match(AC.renderBlockers(v), /Duyệt Kịch bản/); assert.match(AC.useEditVersion(S, id, 1).error, /Duyệt Kịch bản/);
   AC.approveVidScript(S, id); const n1 = v.edit.scenes.length;
   assert.ok(AC.writeVidScript(S, id, { ok: true, script: '[Hook]\nBản mới hoàn toàn. Thêm câu.\n\n[CTA]\nHẹn gặp lại.' }).ok);
   assert.equal(v.edit.scenes.length, n1, 'biên tập giữ nguyên'); assert.ok(AC.scriptChanged(v), 'Biên tập báo Kịch bản đã đổi');
   assert.ok(AC.ackScriptChange(S, id).ok); assert.equal(AC.scriptChanged(v), false, 'Bỏ qua tắt báo cho đúng bản này');
   assert.ok(AC.editVidScript(S, id, { script: v.script + ' Sửa thêm.' }).ok); assert.ok(AC.scriptChanged(v), 'sửa tiếp thì báo lại');
-  AC.approveVidScript(S, id); assert.ok(AC.planEdit(S, id).ok); assert.equal(AC.scriptChanged(v), false);
-  assert.equal(AC.editVersions(v).length, 1, 'chia lại cảnh: bản cũ vào lịch sử biên tập'); assert.equal(AC.editVersions(v)[0].edit.scenes.length, n1);
-  for (let i = 0; i < 7; i++) { v.edit.scenes[0].text = `Sửa ${i}`; AC.planEdit(S, id); }
+  AC.approveVidScript(S, id); assert.ok(planA(S, id).ok); assert.equal(AC.scriptChanged(v), false);
+  assert.equal(AC.editVersions(v).length, 0, 'mục 10.90: bản biên tập chỉ lưu khi Duyệt Biên tập');
+  for (let i = 0; i < 7; i++) { v.edit.scenes.forEach(x => AC.editScene(S, id, x.id, { ph: true })); v.edit.scenes[0].text = `Sửa ${i}`; assert.ok(AC.completeEdit(S, id).ok); AC.unlockEdit(S, id); }
   assert.equal(AC.editVersions(v).length, AC.EDIT_KEEP);
   const h = AC.editVersions(v)[AC.EDIT_KEEP - 1]; const u = AC.useEditVersion(S, id, h.n); assert.ok(u.ok); assert.deepEqual(v.edit.scenes.map(x => x.text), h.edit.scenes.map(x => x.text));
   assert.equal(AC.useVidVersion(S, id, 1).ok, true); assert.ok(v.edit && v.edit.scenes.length, 'dùng bản kịch bản cũ không đụng phần biên tập'); assert.equal(v.status, 'DRAFT');
@@ -2740,11 +2747,43 @@ test('10.88 · Video → Slot video: ren lại hoặc Up tệp khác thì slot b
 
 test('10.89 · Xong khâu nào khóa khâu đó: Biên tập mở khi Kịch bản khóa, Hoàn thành khóa Biên tập, Xếp Slot mở khi có video', () => {
   const S = seed(); const v = AC.addFreeVideo(S, T2, { origin: 'script', script: 'Câu một rõ ràng.\n\nCâu hai ở giữa.\n\nTheo dõi kênh nhé.' }).video;
-  assert.equal(v.status, 'DRAFT'); let g = AC.vidStageGate(v); assert.equal(g.bt.ok, false); assert.match(g.bt.why, /Khóa Kịch bản/); assert.equal(g.sl.ok, false);
+  assert.equal(v.status, 'DRAFT'); let g = AC.vidStageGate(v); assert.equal(g.bt.ok, false); assert.match(g.bt.why, /Duyệt Kịch bản/); assert.equal(g.sl.ok, false);
   assert.ok(AC.approveVidScript(S, v.id).ok); assert.ok(AC.vidStageGate(v).bt.ok);
-  assert.ok(AC.planEdit(S, v.id).ok); v.edit.scenes.forEach(s => AC.editScene(S, v.id, s.id, { ph: true }));
+  assert.ok(planA(S, v.id).ok); v.edit.scenes.forEach(s => AC.editScene(S, v.id, s.id, { ph: true }));
   assert.ok(AC.completeEdit(S, v.id).ok); assert.ok(AC.editLocked(v)); assert.equal(AC.vidStageGate(v).sl.ok, false, 'chưa ren thì Xếp Slot chưa mở');
   assert.ok(AC.unlockEdit(S, v.id).changed); assert.equal(AC.editLocked(v), false); AC.completeEdit(S, v.id);
   assert.ok(AC.renderVid(S, v.id).ok); assert.ok(AC.vidStageGate(v).sl.ok);
-  assert.ok(AC.planEdit(S, v.id).ok); assert.equal(AC.editLocked(v), false, 'chia lại cảnh thì Biên tập mở lại');
+  assert.ok(planA(S, v.id).ok); assert.equal(AC.editLocked(v), false, 'chia lại cảnh thì Biên tập mở lại');
+});
+
+test('10.90 · Duyệt và khóa Short Vid: bản Biên tập kèm video lưu khi Duyệt, Hủy Biên tập về bản đã duyệt, video thành phẩm, Tạo mới trên đề xuất', () => {
+  const S = seed(); const v = AC.addFreeVideo(S, T2, { origin: 'script', script: 'Câu một rõ ràng.\n\nCâu hai ở giữa.\n\nTheo dõi kênh nhé.' }).video; const id = v.id;
+  assert.ok(AC.planEdit(S, id).ok); assert.equal(v.status, 'DRAFT'); assert.equal(AC.vidStageGate(v).bt.ok, false);
+  assert.ok(AC.approveVidScript(S, id).ok); assert.ok(v.apprSnap); v.edit.scenes.forEach(s => AC.editScene(S, id, s.id, { ph: true }));
+  // Ren khi đang sửa, rồi Duyệt Biên tập: bản 1 = nội dung + video
+  assert.ok(AC.renderVid(S, id).ok); assert.equal(AC.vidFinal(v), false); assert.equal(AC.vidStageGate(v).sl.ok, false);
+  assert.ok(AC.completeEdit(S, id).ok); assert.ok(AC.vidFinal(v)); assert.ok(AC.vidStageGate(v).sl.ok);
+  const h1 = AC.editVersions(v)[0]; assert.equal(AC.editVersions(v).length, 1); assert.ok(h1.file && h1.file.rendered); assert.equal(h1.file.sig, v.file.sig);
+  // Sửa Biên tập, đổi nội dung, ren lại rồi Hủy: về đúng bản 1 (đã khóa), Kho không thêm mục
+  const lib0 = AC.libraryOf(S).length; const txt = v.edit.scenes[0].text; const sig1 = v.file.sig;
+  assert.equal(AC.canCancelEdit(v), false); assert.ok(AC.unlockEdit(S, id).changed); assert.ok(AC.canCancelEdit(v));
+  v.edit.scenes[0].text += ' thêm.'; assert.ok(AC.renderVid(S, id).ok); assert.notEqual(v.file.sig, sig1); assert.equal(AC.vidFinal(v), false);
+  assert.ok(AC.cancelEdit(S, id).ok); assert.equal(v.edit.scenes[0].text, txt); assert.ok(AC.editLocked(v)); assert.equal(v.file.sig, sig1); assert.ok(AC.vidFinal(v)); assert.equal(AC.libraryOf(S).length, lib0);
+  assert.equal(AC.editVersions(v).length, 1, 'Hủy không thêm bản'); assert.equal(AC.cancelEdit(S, id).ok, false);
+  // Ren nhiều lần trong một bản: bản chỉ giữ video mới nhất; Duyệt lại cùng nội dung không thêm bản
+  AC.unlockEdit(S, id); v.edit.scenes[0].text += ' hai.'; AC.renderVid(S, id); v.edit.scenes[0].text += ' ba.';
+  assert.match(AC.completeEdit(S, id).error, /Ren lại/); AC.renderVid(S, id); assert.ok(AC.completeEdit(S, id).ok);
+  assert.equal(AC.editVersions(v).length, 2); assert.equal(AC.editVersions(v)[0].file.sig, v.file.sig);
+  AC.unlockEdit(S, id); AC.completeEdit(S, id); assert.equal(AC.editVersions(v).length, 2);
+  // Dùng lại bản 1: nạp nội dung + video của bản đó, đang sửa
+  AC.unlockEdit(S, id); assert.ok(AC.useEditVersion(S, id, h1.n).ok); assert.equal(v.edit.scenes[0].text, txt); assert.equal(v.file.sig, sig1); assert.equal(AC.editLocked(v), false);
+  assert.ok(AC.completeEdit(S, id).ok, 'video của bản cũ khớp nên Duyệt được ngay');
+  // Duyệt Biên tập không cần ren; chưa có video thì chưa xếp lịch
+  const w = AC.addFreeVideo(S, T2, { origin: 'script', script: 'Một câu.\n\nHai câu.\n\nBa câu.' }).video; AC.planEdit(S, w.id); AC.approveVidScript(S, w.id); w.edit.scenes.forEach(s => AC.editScene(S, w.id, s.id, { ph: true }));
+  assert.ok(AC.completeEdit(S, w.id).ok); assert.equal(AC.vidFinal(w), false); assert.match(AC.scheduleCells(S, w.id, { cells: [{ date: '2026-10-14', channelId: 'ch-tt', time: '19:00' }] }).error || '', /thành phẩm/);
+  // Thẻ đề xuất: Tạo mới viết thẳng, không cần Duyệt Insight
+  const tid = AC.topicsOf(S, T2)[0].id; AC.analyzeTopic(S, T2, tid); const idea = AC.vidsOf(S, T2, tid).find(x => x.status === 'IDEA');
+  assert.ok(AC.writeVidScript(S, idea.id, null, {}).ok); assert.equal(idea.status, 'DRAFT');
+  // Dữ liệu cũ: thẻ đã duyệt có bản đã duyệt
+  delete v.apprSnap; AC.ensureShortVid(S); assert.equal(v.apprSnap.script, v.script);
 });

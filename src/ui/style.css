@@ -1137,6 +1137,11 @@ button.kchip { cursor: pointer; font: inherit; color: inherit; }
 .vp-sc { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 10px; padding: 9px; border: 1px solid var(--line); border-radius: var(--r-m, 10px); margin-bottom: 8px; background: var(--surface); scroll-margin-top: 8px; }
 .vp-sc[aria-current="true"] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, var(--surface)); box-shadow: 0 0 0 1px var(--accent); }
 .vp-scb { display: grid; gap: 4px; min-width: 0; }
+/* Mục 10.90: ô bảng Phân cảnh tự cao theo nội dung, không kéo giãn */
+.vp-phc textarea.vp-ag { min-height: 0; height: auto; line-height: 1.45; resize: none; overflow: hidden; border-radius: 12px; font-size: 13px; padding: 6px 11px; field-sizing: content; }
+.vp-tlk { display: inline-flex; margin-left: 4px; vertical-align: -2px; } .vp-tlk svg { width: 14px; height: 14px; }
+.sv-fin { display: inline-flex; color: var(--good); } .sv-fin svg { width: 16px; height: 16px; }
+#sp-acts { justify-content: flex-end; }
 textarea.vp-r2, .vp-scb textarea.vp-r2 { height: calc(2 * 1.45em + 14px); min-height: 0; line-height: 1.45; resize: vertical; border-radius: 12px; font-size: 13px; padding: 6px 11px; }
 .vp-f { display: block; font-size: var(--fs-1); color: var(--ink-3); margin-bottom: 2px; }
 .vp-stale { background: var(--warn-soft); color: var(--warn); border-radius: var(--r-s); padding: 7px 10px; font-size: var(--fs-2); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }

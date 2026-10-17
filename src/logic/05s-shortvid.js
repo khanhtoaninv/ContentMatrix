@@ -62,6 +62,7 @@ export function ensureShortVid(S) {
   if (S.vidSettings.lenSec == null) { const c = S.vidSettings; const wps = Number(c.wps) || 2.5; if (c.wordMin === 140 && c.wordMax === 200 && c.wordTarget === 150) Object.assign(c, { lenSec: 90 }, (({ min, max, target }) => ({ wordMin: min, wordMax: max, wordTarget: target }))(lenWords(90, wps))); else c.lenSec = Math.max(VID_LEN_MIN, Math.min(VID_LEN_MAX, Math.round((Number(c.wordTarget) || 225) / wps))); }
   S.videos.forEach(v => {
     if (v.edit) migrateEdit(v.edit);   // mục 10.76: cảnh nhiều hình, VO toàn bài
+    if (v.status === 'APPROVED' && String(v.script || '').trim() && !v.apprSnap) v.apprSnap = scriptSnap(v);   // mục 10.90
     // Mục 10.88: phần biên tập trong bản kịch bản cũ chuyển sang lịch sử biên tập riêng
     if ((v.history || []).some(h => h.edit)) { const H = v.editHist = v.editHist || []; v.history.forEach(h => { if (h.edit && (h.edit.scenes || []).length && H.length < EDIT_KEEP) { v.editN = (v.editN || 0) + 1; H.push({ n: v.editN, edit: migrateEdit(h.edit), at: h.at || '', why: `Theo kịch bản bản ${h.n}` }); } delete h.edit; }); }
   });
@@ -460,13 +461,12 @@ export function parseVidScript(raw) {
 export function writeVidScript(S, id, res, meta) {
   const v = vidGet(S, id); if (!v) return { ok: false, error: 'Không thấy video.' };
   if (v.cancelled) return { ok: false, error: 'Kịch bản đã hủy. Bấm Khôi phục trước.' };
-  if (v.status === 'IDEA') return { ok: false, error: 'Duyệt danh sách Insight trước khi viết kịch bản.' };
+  // Mục 10.90: không còn bước Duyệt Insight; Tạo mới trên thẻ đề xuất là chọn luôn đề xuất đó
+  if (v.status === 'IDEA') v.status = 'TODO';
   let r = res && res.ok ? res : null;
   if (!r) { const m = mockScript(S, v); if (!m) return { ok: false, error: 'Không thấy Topic của video.' }; if (m.error) return { ok: false, error: m.error }; r = Object.assign({ simulated: true }, m); }
   const f = byId(S.vidFormats, v.formatId);
-  // Tạo Kịch bản = bản mới: bản đang có (kịch bản, Insight, phần biên tập) lùi vào danh sách bản cũ; bản mới chưa có cảnh
-  // Mục 10.88: phần biên tập không bị xóa; Biên tập báo "Kịch bản đã đổi" để người dùng chọn Cập nhật hoặc Bỏ qua
-  if (v.script) pushVersion(v);
+  // Mục 10.90: Tạo mới ghi đè bản nháp, không thêm phiên bản; chỉ Duyệt Kịch bản mới lưu bản (bản đã duyệt trước nằm ở v.apprSnap)
   v.script = r.script; v.prompts = { audio: r.audio || (v.kind === 'bantin' ? ((vidSections(r.script).find(s => /máy/i.test(s.label)) || {}).text || '') : ''), image: r.image || '' };
   v.status = 'DRAFT'; v.writtenAt = S.settings.demoNow; v.simulated = !!r.simulated; v.topicVer = vidTopicVer(S, v);
   v.ai = r.simulated ? null : Object.assign({ provider: (meta || {}).provider || '', model: (meta || {}).model || '' }, f && skillRefOf(f) ? { skill: skillRefOf(f) } : {});
@@ -489,27 +489,32 @@ export function editVidScript(S, id, patch) {
 }
 // ---- Phiên bản kịch bản (bản 4, mục 10.77; mục 10.88 tách phần biên tập ra lịch sử riêng): mỗi bản gồm kịch bản và Insight; giữ 5 bản gần nhất (bản đang dùng + 4 bản cũ trong v.history, mới nhất đứng đầu) ----
 export const VID_KEEP_VERSIONS = 5;
+// Mục 10.90: bản chỉ được lưu khi bấm Duyệt Kịch bản. v.apprSnap = bản đã duyệt gần nhất; đang sửa mà khác bản đó thì bản đang dùng là "nháp" mang số kế tiếp
+const scriptSnap = v => ({ script: v.script || '', prompts: clone(v.prompts || { audio: '', image: '' }), insight: clone(v.insight), at: v.writtenAt || '', ai: v.ai || null, topicVer: v.topicVer == null ? null : v.topicVer });
+const snapDiffers = (a, v) => normScript(a.script) !== normScript(v.script) || JSON.stringify(a.insight || {}) !== JSON.stringify(v.insight || {});
+export const scriptDraft = v => !!(v && v.apprSnap && v.status !== 'APPROVED' && snapDiffers(v.apprSnap, v));
 export function vidVersions(v) {
   const H = v.history = v.history || []; if (!(v.verN > 0)) v.verN = H.length + 1;
   H.forEach((h, i) => { if (!(h.n > 0)) h.n = Math.max(1, v.verN - 1 - i); });
-  return H.slice().reverse().concat([{ n: v.verN, current: true, script: v.script, prompts: v.prompts, insight: v.insight, at: v.writtenAt || '', ai: v.ai || null }]);
+  const d = scriptDraft(v);
+  return H.slice().reverse().concat([{ n: v.verN + (d ? 1 : 0), current: true, draft: d || (v.status !== 'APPROVED' && !v.apprSnap), script: v.script, prompts: v.prompts, insight: v.insight, at: v.writtenAt || '', ai: v.ai || null }]);
 }
-function pushVersion(v) {
+function pushSnap(v, a) {
   vidVersions(v);
-  v.history = [{ n: v.verN, script: v.script, prompts: clone(v.prompts), insight: clone(v.insight), at: v.writtenAt || '', ai: v.ai || null, topicVer: v.topicVer == null ? null : v.topicVer }].concat(v.history).slice(0, VID_KEEP_VERSIONS - 1);
+  v.history = [Object.assign({ n: v.verN }, clone(a))].concat(v.history).slice(0, VID_KEEP_VERSIONS - 1);
   v.verN = Math.max(v.verN, ...v.history.map(h => h.n)) + 1;
 }
-// Dùng một bản cũ: chép bản đó thành bản mới nhất (bản đang dùng lùi vào danh sách bản cũ)
+// Dùng một bản cũ: nạp bản đó vào bản nháp; bấm Duyệt Kịch bản thì thành bản mới nhất
 export function useVidVersion(S, id, n) {
   const v = vidGet(S, id); if (!v) return { ok: false, error: 'Không thấy video.' }; if (v.cancelled) return { ok: false, error: 'Kịch bản đã hủy. Bấm Khôi phục trước.' };
   vidVersions(v); const h = v.history.find(x => x.n === Number(n)); if (!h) return { ok: false, error: 'Không thấy bản này.' };
-  const src = clone(h); pushVersion(v);
+  const src = clone(h);
   v.script = src.script || ''; v.prompts = src.prompts || { audio: '', image: '' }; if (src.insight) v.insight = Object.assign({}, v.insight, src.insight); v.ai = src.ai || null; v.topicVer = src.topicVer == null ? null : src.topicVer;
   v.status = 'DRAFT'; v.writtenAt = S.settings.demoNow; log(S, 'vid-version', 'video', id, `từ bản ${h.n}`);
-  return { ok: true, n: v.verN, from: h.n };
+  return { ok: true, n: vidVersions(v).slice(-1)[0].n, from: h.n };
 }
 // ---- Khóa kịch bản (mục 10.88): khóa = trạng thái Đã duyệt. Biên tập, Hoàn thành, Ren chỉ làm khi kịch bản đã khóa ----
-export const SCRIPT_LOCK_MSG = 'Vui lòng khóa Kịch bản trước khi biên tập.';
+export const SCRIPT_LOCK_MSG = 'Vui lòng Duyệt Kịch bản trước khi biên tập.';
 export const scriptOpen = v => !!(v && String(v.script || '').trim() && v.status !== 'APPROVED');
 export function unlockVidScript(S, id) {
   const v = vidGet(S, id); if (!v) return { ok: false, error: 'Không thấy video.' }; if (v.cancelled) return { ok: false, error: 'Kịch bản đã hủy.' };
@@ -523,23 +528,59 @@ export function vidTopicChanged(S, v) {
   return now != null && now !== v.topicVer ? { from: v.topicVer, to: now } : null;
 }
 // ---- Lịch sử biên tập (mục 10.88): giữ 5 bản, chụp trước khi chia lại cảnh, đổi mẫu dựng, dùng bản cũ, và lúc Ren ----
+// Mục 10.90: mỗi bản biên tập = nội dung biên tập + video đã ren (nếu có), chỉ lưu khi bấm Duyệt Biên tập. Ren nhiều lần thì bản chỉ giữ video mới nhất
 export const EDIT_KEEP = 5;
 const normScript = t => String(t || '').replace(/\s+/g, ' ').trim();
+// Chữ ký của phần biên tập: đổi kịch bản hoặc dự án dựng thì video đã ren thành "lỗi thời"
+export function editSig(v) {
+  const e = Object.assign({}, v.edit || {}); delete e.doneAt; delete e.plannedAt;
+  const s = JSON.stringify([v.script || '', e]); let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
+  return (h >>> 0).toString(36);
+}
+const freshFile = v => !!(v && v.file && (!v.file.rendered || v.file.sig === editSig(v)));
 export function snapEdit(S, v, why) {
   const ed = v && v.edit; if (!ed || !(ed.scenes || []).length) return null;
-  const H = v.editHist = v.editHist || []; const j = JSON.stringify(ed);
-  if (H[0] && JSON.stringify(H[0].edit) === j) return H[0];
+  const H = v.editHist = v.editHist || []; const strip = x => { const o = Object.assign({}, x); delete o.doneAt; return JSON.stringify(o); }; const j = strip(ed);
+  const file = v.file && v.file.rendered ? clone(v.file) : null;
+  if (H[0] && strip(H[0].edit) === j) { H[0].file = file; H[0].at = S.settings.demoNow; return H[0]; }
   const n = (v.editN = Math.max(v.editN || 0, ...H.map(h => h.n)) + 1);
-  const h = { n, edit: JSON.parse(j), at: S.settings.demoNow, why: String(why || '') }; v.editHist = [h].concat(H).slice(0, EDIT_KEEP); return h;
+  const h = { n, edit: JSON.parse(j), file, at: S.settings.demoNow, why: String(why || '') }; v.editHist = [h].concat(H).slice(0, EDIT_KEEP); return h;
 }
 export const editVersions = v => (v && v.editHist) || [];
+// Nạp một bản biên tập đã duyệt (kèm video của bản đó) vào bản đang sửa
 export function useEditVersion(S, id, n) {
   const v = vidGet(S, id); if (!v) return { ok: false, error: 'Không thấy video.' }; if (v.cancelled) return { ok: false, error: 'Thẻ đã hủy.' };
   if (scriptOpen(v)) return { ok: false, error: SCRIPT_LOCK_MSG };
   const h = editVersions(v).find(x => x.n === Number(n)); if (!h) return { ok: false, error: 'Không thấy bản biên tập này.' };
-  const src = clone(h.edit); snapEdit(S, v, `Trước khi dùng lại bản ${h.n}`); v.edit = migrateEdit(src); log(S, 'vid-edit-version', 'video', id, `từ bản ${h.n}`);
+  v.edit = migrateEdit(clone(h.edit)); v.edit.doneAt = null; if (h.file) restoreFile(S, v, h.file);
+  log(S, 'vid-edit-version', 'video', id, `từ bản ${h.n}`);
   return { ok: true, from: h.n };
 }
+// Đặt lại video của thẻ (và bản trong Kho cùng mã) theo một bản đã lưu
+function restoreFile(S, v, f) {
+  v.file = f ? clone(f) : null;
+  const lib = f && f.libId && (S.library || []).find(x => x.id === f.libId); if (lib && f.src) { lib.src = f.src; if (f.cover && f.cover.src) lib.cover = f.cover.src; if (f.dur) lib.dur = f.dur; }
+}
+// Duyệt Biên tập: khóa, lưu thành một bản (nội dung + video). Có video ren mà lệch bản biên tập thì phải Ren lại trước
+export function approveEdit(S, v) {
+  if (v.file && v.file.rendered && !freshFile(v)) return { ok: false, error: 'Video đã ren không khớp bản biên tập hiện tại. Ren lại trước khi Duyệt Biên tập.' };
+  v.edit.doneAt = S.settings.demoNow; const h = snapEdit(S, v, 'Duyệt Biên tập');
+  v.editAppr = { n: h ? h.n : null, edit: clone(v.edit), file: v.file ? clone(v.file) : null };
+  log(S, 'vid-edit-approve', 'video', v.id, h ? `bản ${h.n}` : ''); return { ok: true, n: h ? h.n : null };
+}
+// Hủy Biên tập: bỏ mọi thay đổi từ lần Duyệt gần nhất, trả về đúng bản đó (đã khóa)
+export const canCancelEdit = v => !!(v && v.editAppr && v.edit && !v.edit.doneAt);
+export function cancelEdit(S, id) {
+  const v = vidGet(S, id); if (!v) return { ok: false, error: 'Không thấy video.' }; if (v.cancelled) return { ok: false, error: 'Thẻ đã hủy.' };
+  if (!canCancelEdit(v)) return { ok: false, error: 'Chưa có bản Biên tập đã duyệt để quay về.' };
+  const a = v.editAppr; const cur = v.file;
+  // Video ren trong lúc sửa mà bản đã duyệt chưa có video: bỏ bản đó khỏi Kho
+  if (cur && cur.rendered && cur.libId && !(a.file && a.file.libId === cur.libId)) S.library = (S.library || []).filter(x => x.id !== cur.libId);
+  v.edit = migrateEdit(clone(a.edit)); restoreFile(S, v, a.file);
+  log(S, 'vid-edit-cancel', 'video', id, a.n ? `về bản ${a.n}` : ''); return { ok: true, n: a.n };
+}
+// Video thành phẩm (mục 10.90): Biên tập đã duyệt và có video khớp bản đó; thẻ cũ có video Up ngoài app vẫn tính
+export const vidFinal = v => !!(v && !v.cancelled && v.file && (!v.file.rendered || (v.edit && v.edit.doneAt && freshFile(v))));
 // Kịch bản đã đổi sau khi chia cảnh (và người dùng chưa bấm Bỏ qua cho đúng bản này)
 export function scriptChanged(v) {
   const ed = v && v.edit; if (!ed || !(ed.scenes || []).length || ed.splitFrom == null) return false;
@@ -550,8 +591,8 @@ export function ackScriptChange(S, id) { const v = vidGet(S, id); if (!v || !v.e
 export function vidStageGate(v) {
   const has = !!String((v && v.script) || '').trim(); const idea = !v || v.status === 'IDEA'; const off = !v || v.cancelled; const mix = v && v.origin === 'mix';
   const src = has || ((v && v.media) || []).length > 0 || !!(v && v.edit && (v.edit.scenes || []).length);
-  const bt = idea ? 'Duyệt Insight trước' : off ? 'Thẻ đã hủy' : mix && !has ? 'Nạp nguyên liệu rồi Dựng nhanh hoặc lập Dàn ý' : !src ? 'Chưa có kịch bản hoặc tệp nguồn' : scriptOpen(v) ? 'Khóa Kịch bản (xong Phân cảnh) trước khi biên tập' : '';
-  const sl = idea ? 'Duyệt Insight trước' : off ? 'Thẻ đã hủy' : !v.file ? 'Cần Ren Vid hoặc Up video trước' : '';
+  const bt = idea ? 'Tạo Kịch bản trước' : off ? 'Thẻ đã hủy' : mix && !has ? 'Nạp nguyên liệu rồi Dựng nhanh hoặc lập Dàn ý' : !src ? 'Chưa có kịch bản hoặc tệp nguồn' : scriptOpen(v) ? 'Duyệt Kịch bản trước khi biên tập' : '';
+  const sl = idea ? 'Tạo Kịch bản trước' : off ? 'Thẻ đã hủy' : vidFinal(v) ? '' : !v.file ? 'Ren Vid rồi Duyệt Biên tập trước' : !editLocked(v) ? 'Duyệt Biên tập trước' : 'Video lệch bản biên tập: Sửa Biên tập, Ren lại rồi Duyệt';
   return { bt: { ok: !bt, why: bt }, sl: { ok: !sl, why: sl } };
 }
 // Biên tập đã Hoàn thành = khóa; Mở khóa để sửa tiếp (video đã ren thành lỗi thời khi biên tập đổi)
@@ -559,13 +600,16 @@ export const editLocked = v => !!(v && v.edit && v.edit.doneAt);
 export function unlockEdit(S, id) {
   const v = vidGet(S, id); if (!v || !v.edit) return { ok: false, error: 'Chưa có phần biên tập.' }; if (v.cancelled) return { ok: false, error: 'Thẻ đã hủy.' };
   if (!v.edit.doneAt) return { ok: true, changed: false };
+  if (!v.editAppr) v.editAppr = { n: null, edit: clone(v.edit), file: v.file ? clone(v.file) : null };   // thẻ cũ khóa trước bản 10.90
   v.edit.doneAt = null; log(S, 'vid-edit-unlock', 'video', id); return { ok: true, changed: true };
 }
 export function approveVidScript(S, id) {
   const v = vidGet(S, id); if (!v) return { ok: false, error: 'Không thấy video.' };
   if (v.cancelled) return { ok: false, error: 'Kịch bản đã hủy.' };
   if (!String(v.script || '').trim()) return { ok: false, error: 'Chưa có kịch bản để duyệt.' };
-  v.status = 'APPROVED'; log(S, 'vid-approve', 'video', id); return { ok: true };
+  // Mục 10.90: Duyệt = lưu bản. Khác bản đã duyệt trước thì bản trước lùi vào danh sách bản cũ
+  vidVersions(v); const a = v.apprSnap; const added = !!(a && snapDiffers(a, v)); if (added) pushSnap(v, a);
+  v.apprSnap = scriptSnap(v); v.status = 'APPROVED'; log(S, 'vid-approve', 'video', id, `bản ${v.verN}`); return { ok: true, n: v.verN, added };
 }
 export function toggleVidCancel(S, id) {
   const v = vidGet(S, id); if (!v) return { ok: false, error: 'Không thấy video.' };
